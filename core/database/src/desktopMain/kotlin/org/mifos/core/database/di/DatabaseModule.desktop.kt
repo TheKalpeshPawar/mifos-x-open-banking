@@ -15,7 +15,6 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mifos.core.database.AppDatabase
 import template.core.base.database.AppDatabaseFactory
-import kotlin.coroutines.CoroutineContext
 
 actual val platformModule: Module = module {
     single {
@@ -23,9 +22,10 @@ actual val platformModule: Module = module {
             .createDatabase<AppDatabase>(
                 databaseName = AppDatabase.DATABASE_NAME,
             )
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .fallbackToDestructiveMigrationOnDowngrade(false)
             .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO as CoroutineContext)
+            .setQueryCoroutineContext(Dispatchers.IO)
             .build()
     }
 }

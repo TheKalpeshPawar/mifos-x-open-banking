@@ -15,16 +15,24 @@ import cmp.navigation.rootnav.RootNavViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.mifos.core.data.di.DataModule
+import org.mifos.core.database.di.DatabaseModule
 import org.mifos.core.datastore.di.DatastoreModule
+import org.mifos.core.store.di.appStoreModule
+import org.mifos.feature.alerts.di.AlertsModule
+import org.mifos.feature.crypto.di.CryptoModule
+import org.mifos.feature.currencyrates.di.CurrencyRatesModule
+import org.mifos.feature.emicalculator.di.EmiCalculatorModule
 import org.mifos.feature.home.di.HomeModule
 import org.mifos.feature.settings.SettingsModule
+import org.mifos.feature.watchlist.di.WatchlistModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
 import template.core.base.platform.di.platformModule
+import template.core.base.security.di.SecurityModule
 
 object KoinModules {
     private val dataModule = module {
-        includes(DataModule)
+        includes(DataModule, appStoreModule)
     }
 
     private val dispatcherModule = module {
@@ -41,13 +49,20 @@ object KoinModules {
 
     private val featureModule = module {
         includes(
+            CryptoModule,
+            CurrencyRatesModule,
+            EmiCalculatorModule,
             HomeModule,
             SettingsModule,
+            WatchlistModule,
+            AlertsModule,
         )
     }
 
     val allModules = listOf(
+        SecurityModule,
         dataModule,
+        DatabaseModule,
         dispatcherModule,
         analyticsModule,
         DatastoreModule,
