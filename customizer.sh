@@ -372,10 +372,8 @@ process_module_dirs() {
                 if [ -d "$kotlin_dir/$SUBDIR" ]; then
                     print_info "Updating package declarations and imports"
                     find "$kotlin_dir/$SUBDIR" -type f -name "*.kt" -exec sed -i.bak \
-                        -e "s/package org\.mifos/package $PACKAGE/g" \
-                        -e "s/package com\.niyaj/package $PACKAGE/g" \
-                        -e "s/import org\.mifos/import $PACKAGE/g" \
-                        -e "s/import com\.niyaj/import $PACKAGE/g" {} \;
+                        -e "s/org\.mifos/$PACKAGE/g" \
+                        -e "s/com\.niyaj/$PACKAGE/g" {} \;
                 fi
 
                 print_info "Cleaning up old directory structure"
@@ -384,9 +382,6 @@ process_module_dirs() {
             fi
         fi
     done
-
-    find "$module_path" -type f -name "*.kt" -exec sed -i.bak "s/import org\.mifos/import $PACKAGE/g" {} \;
-    find "$module_path" -type f -name "*.kt" -exec sed -i.bak "s/package org\.mifos/package $PACKAGE/g" {} \;
 }
 
 process_module_content() {

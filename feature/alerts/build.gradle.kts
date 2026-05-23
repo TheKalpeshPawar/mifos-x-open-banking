@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.feature.alerts"
+    namespace = "org.mifosx.openbanking.feature.alerts"
 }
 
 kotlin {

@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.feature.crypto"
+    namespace = "org.mifosx.openbanking.feature.crypto"
 }
 
 kotlin {

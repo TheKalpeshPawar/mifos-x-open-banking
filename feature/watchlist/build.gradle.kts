@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.feature.watchlist"
+    namespace = "org.mifosx.openbanking.feature.watchlist"
 }
 
 kotlin {

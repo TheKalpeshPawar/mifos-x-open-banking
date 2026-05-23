@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.feature.emicalculator"
+    namespace = "org.mifosx.openbanking.feature.emicalculator"
 }
 
 kotlin {

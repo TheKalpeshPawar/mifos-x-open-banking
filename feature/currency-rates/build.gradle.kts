@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.feature.currencyrates"
+    namespace = "org.mifosx.openbanking.feature.currencyrates"
 }
 
 kotlin {
