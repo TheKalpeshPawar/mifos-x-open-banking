@@ -1,0 +1,12 @@
+
+tasks.register("checkSourceSets") {
+    doLast {
+        val kotlin = project.extensions.getByType(org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension::class.java)
+        kotlin.sourceSets.forEach { ss ->
+            println("SourceSet: ${ss.name}")
+            ss.dependsOn.forEach { dep ->
+                println("  dependsOn: ${dep.name}")
+            }
+        }
+    }
+}

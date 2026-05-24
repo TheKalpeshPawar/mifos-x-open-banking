@@ -18,9 +18,19 @@ import androidx.navigation.navigation
 import cmp.navigation.authenticatednavbar.AuthenticatedNavbarRoute
 import cmp.navigation.authenticatednavbar.authenticatedNavbarGraph
 import kotlinx.serialization.Serializable
-import org.mifos.feature.settings.navigateToSettings
-import org.mifos.feature.settings.notificationDestination
-import org.mifos.feature.settings.settingsDestination
+import org.mifosx.openbanking.feature.alerts.navigation.alertsGraph
+import org.mifosx.openbanking.feature.crypto.navigation.CoinDetailRoute
+import org.mifosx.openbanking.feature.crypto.navigation.cryptoGraph
+import org.mifosx.openbanking.feature.crypto.navigation.navigateToCrypto
+import org.mifosx.openbanking.feature.currencyrates.navigation.currencyRatesGraph
+import org.mifosx.openbanking.feature.currencyrates.navigation.navigateToCurrencyRates
+import org.mifosx.openbanking.feature.currencyrates.navigation.navigateToRateHistory
+import org.mifosx.openbanking.feature.emicalculator.navigation.emiCalculatorDestination
+import org.mifosx.openbanking.feature.emicalculator.navigation.navigateToEmiCalculator
+import org.mifosx.openbanking.feature.settings.navigateToSettings
+import org.mifosx.openbanking.feature.settings.notificationDestination
+import org.mifosx.openbanking.feature.settings.settingsDestination
+import org.mifosx.openbanking.feature.watchlist.navigation.personalWatchlistDestination
 
 @Serializable
 internal data object AuthenticatedGraphRoute
@@ -37,6 +47,10 @@ internal fun NavGraphBuilder.authenticatedGraph(
     ) {
         authenticatedNavbarGraph(
             navigateToSettingsScreen = navController::navigateToSettings,
+            navigateToRates = { navController.navigateToCurrencyRates() },
+            navigateToHistory = { navController.navigateToRateHistory() },
+            navigateToCrypto = { navController.navigateToCrypto() },
+            navigateToEmi = { navController.navigateToEmiCalculator() },
         )
 
         notificationDestination(
@@ -46,5 +60,19 @@ internal fun NavGraphBuilder.authenticatedGraph(
         settingsDestination(
             onBackClick = navController::popBackStack,
         )
+
+        // Fintech feature graphs
+        cryptoGraph(navController)
+        currencyRatesGraph(navController)
+        emiCalculatorDestination(onBackClick = navController::popBackStack)
+
+        // Personal watchlist (local-only — SubmitHandler showcase target)
+        personalWatchlistDestination(
+            onBackClick = navController::popBackStack,
+            onCoinClick = { coinId -> navController.navigate(CoinDetailRoute(coinId)) },
+        )
+
+        // Price alerts (DraftSubmitHandler showcase — offline-resilient form submit)
+        alertsGraph(navController)
     }
 }

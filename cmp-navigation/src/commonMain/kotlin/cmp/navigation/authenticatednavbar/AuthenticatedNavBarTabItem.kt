@@ -15,11 +15,11 @@ import cmp.navigation.generated.resources.home
 import cmp.navigation.generated.resources.profile
 import cmp.navigation.utils.toObjectNavigationRoute
 import org.jetbrains.compose.resources.StringResource
-import org.mifos.core.designsystem.icon.AppIcons
-import org.mifos.core.ui.NavigationItem
-import org.mifos.feature.home.TasksDestination
-import org.mifos.feature.home.TasksRoute
-import org.mifos.feature.profile.ProfileRoute
+import org.mifosx.openbanking.core.designsystem.icon.AppIcons
+import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.home.HomeDestination
+import org.mifosx.openbanking.feature.home.HomeRoute
+import org.mifosx.openbanking.feature.profile.ProfileRoute
 
 sealed class AuthenticatedNavBarTabItem : NavigationItem {
 
@@ -33,9 +33,9 @@ sealed class AuthenticatedNavBarTabItem : NavigationItem {
         override val contentDescriptionRes: StringResource
             get() = Res.string.home
         override val graphRoute: String
-            get() = TasksDestination.toObjectNavigationRoute()
+            get() = HomeDestination.toObjectNavigationRoute()
         override val startDestinationRoute: String
-            get() = TasksRoute.toObjectNavigationRoute()
+            get() = HomeRoute.toObjectNavigationRoute()
         override val testTag: String
             get() = "HomeTab"
     }

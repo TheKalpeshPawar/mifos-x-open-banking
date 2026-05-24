@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cmp.navigation.rootnav.RootNavScreen
 import org.koin.compose.viewmodel.koinViewModel
-import org.mifos.core.designsystem.theme.MifosTheme
-import template.core.base.ui.EventsEffect
+import org.mifosx.openbanking.core.designsystem.theme.MifosTheme
+import template.core.base.ui.effects.EventsEffect
 
 @Composable
 fun ComposeApp(

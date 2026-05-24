@@ -15,7 +15,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.core.network"
+    namespace = "org.mifosx.openbanking.core.network"
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -30,8 +30,10 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.core.common)
-            implementation(projects.core.model)
+            api(projects.core.common)
+            api(projects.core.model)
+            api(projects.coreBase.network)
+
             implementation(projects.core.datastore)
 
             implementation(libs.kotlinx.serialization.json)
@@ -66,7 +68,6 @@ dependencies {
     add("kspJs", libs.ktorfit.ksp)
     add("kspWasmJs", libs.ktorfit.ksp)
     add("kspDesktop", libs.ktorfit.ksp)
-    add("kspIosX64", libs.ktorfit.ksp)
     add("kspIosArm64", libs.ktorfit.ksp)
     add("kspIosSimulatorArm64", libs.ktorfit.ksp)
 }

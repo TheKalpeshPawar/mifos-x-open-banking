@@ -9,35 +9,25 @@
  */
 plugins {
     alias(libs.plugins.cmp.feature.convention)
-    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
-    namespace = "org.mifos.feature.home"
+    namespace = "org.mifosx.openbanking.feature.home"
 }
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.coreBase.platform)
+            implementation(projects.core.common)
+            implementation(projects.core.data)
+            implementation(projects.core.model)
+            implementation(projects.core.ui)
+            implementation(projects.coreBase.store)
 
             implementation(compose.ui)
             implementation(compose.material3)
             implementation(compose.foundation)
-            implementation(compose.components.resources)
             implementation(compose.materialIconsExtended)
-            implementation(compose.components.uiToolingPreview)
-
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.kotlinx.serialization.json)
-
-            implementation(libs.calf.permissions)
         }
-    }
-}
-
-compose {
-    resources {
-        packageOfResClass = "org.mifos.feature.home.generated.resources"
     }
 }

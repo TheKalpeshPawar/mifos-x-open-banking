@@ -14,7 +14,7 @@ plugins {
 }
 
 android {
-    namespace = "org.mifos.core.ui"
+    namespace = "org.mifosx.openbanking.core.ui"
 }
 
 kotlin {
@@ -30,6 +30,9 @@ kotlin {
             implementation(projects.core.designsystem)
             implementation(projects.core.model)
             implementation(projects.core.common)
+            // For rememberKptPullToRefreshState(pagingStream) bridge — observes
+            // ScreenState freshness + calls pagingStream.refresh() on pull.
+            implementation(projects.coreBase.store)
             implementation(libs.jb.composeViewmodel)
             implementation(libs.jb.lifecycleViewmodel)
             implementation(libs.jb.lifecycleViewmodelSavedState)
@@ -54,5 +57,5 @@ dependencies {
 compose.resources {
     publicResClass = true
     generateResClass = always
-    packageOfResClass = "org.mifos.core.ui.generated.resources"
+    packageOfResClass = "org.mifosx.openbanking.core.ui.generated.resources"
 }
