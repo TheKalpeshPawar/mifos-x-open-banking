@@ -29,6 +29,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
+import cmp.navigation.placeholder.AccountApplicationsRoute
+import cmp.navigation.placeholder.AccountDetailRoute
+import cmp.navigation.placeholder.AccountsRoute
 import cmp.navigation.placeholder.FoDashboardRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.profileDestination
@@ -45,6 +49,7 @@ import org.mifosx.openbanking.feature.settings.SettingsRoute
 import org.mifosx.openbanking.feature.settings.notificationDestination
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.openmf.kmptemplate.BuildKonfig
+import template.core.base.ui.nav.composableWithStayTransitions
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
@@ -125,6 +130,15 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             profileDestination()
             settingsDestination(onBackClick = navController::popBackStack)
             notificationDestination(onBackClick = navController::popBackStack)
+
+            // Accounts tab — real feature module (Phase 5). Detail + request-account targets
+            // remain Phase 2 placeholders until their own feature modules land.
+            composableWithStayTransitions<AccountsRoute> {
+                AccountsScreen(
+                    onAccountClick = { navController.navigate(AccountDetailRoute) },
+                    onRequestNewAccount = { navController.navigate(AccountApplicationsRoute) },
+                )
+            }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()

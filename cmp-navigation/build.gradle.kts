@@ -33,6 +33,7 @@ kotlin {
             implementation(projects.feature.profile)
             implementation(projects.feature.settings)
             implementation(projects.feature.login)
+            implementation(projects.feature.accounts)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

@@ -123,7 +123,7 @@ fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    composableWithStayTransitions<AccountsRoute> { PlaceholderScreen("Accounts") }
+    // AccountsRoute is registered with the real feature:accounts screen in the navbar NavHost.
     composableWithStayTransitions<AccountDetailRoute> { PlaceholderScreen("Account detail") }
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
