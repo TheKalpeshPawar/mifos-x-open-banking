@@ -9,10 +9,19 @@
  */
 package org.mifosx.openbanking.core.data.accounts
 
+import kotlinx.coroutines.CoroutineScope
 import org.mifosx.openbanking.core.model.obp.Account
+import template.core.base.store.screen.ScreenDataStream
 
 /** Read access to the authenticated user's OBP accounts. */
 interface AccountsRepository {
+    /**
+     * Store5-backed, network-aware stream of the account list (cache-then-network,
+     * auto-refresh on reconnect). The canonical offline-first read path for the
+     * accounts/home screens.
+     */
+    fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>>
+
     suspend fun listAccounts(): Result<List<Account>>
     suspend fun myAccounts(): Result<List<Account>>
     suspend fun accountDetail(accountId: String): Result<Account>

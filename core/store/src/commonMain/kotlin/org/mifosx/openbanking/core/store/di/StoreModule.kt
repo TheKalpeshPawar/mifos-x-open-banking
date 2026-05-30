@@ -11,6 +11,8 @@ package org.mifosx.openbanking.core.store.di
 
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.store.AppStoreRegistry
+import org.mifosx.openbanking.core.store.accounts.provideAccountsStore
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 import org.mifosx.openbanking.core.store.infra.impl.StoreCacheManagerImpl
 
@@ -37,6 +39,13 @@ val appStoreModule: Module = module {
         )
     }
 
-    // OBP banking stores (Accounts, Transactions, …) are registered here in Phase 3
-    // and registered with the StoreCacheManager for logout cache clearing.
+    // OBP banking stores. Accounts lands the canonical Store5 pattern; further
+    // services adopt it in the data-layer fan-out.
+    single(AppStoreRegistry.Accounts) { provideAccountsStore(api = get(), config = get()) }
+
+    // Register stores with the cache manager so they clear on logout.
+    single(createdAtStart = true) {
+        val mgr = get<StoreCacheManager>() as StoreCacheManagerImpl
+        mgr.register(get(AppStoreRegistry.Accounts))
+    }
 }

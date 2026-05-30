@@ -67,6 +67,7 @@ import org.mifosx.openbanking.core.database.AppDatabase
 import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.network.di.NetworkModule
+import org.mifosx.openbanking.core.store.AppStoreRegistry
 import template.core.base.common.di.CommonModule
 import template.core.base.store.infra.FetchedAtRepository
 
@@ -92,7 +93,15 @@ val DataModule = module {
     // OBP banking repositories. Store5 cache wrapping is added per service in the
     // data-layer fan-out; Accounts + DirectLogin auth land the canonical pattern here.
     single<ObpAuthRepository> { ObpAuthRepositoryImpl(authApi = get(), config = get(), tokenProvider = get()) }
-    single<AccountsRepository> { AccountsRepositoryImpl(api = get(), config = get()) }
+    single<AccountsRepository> {
+        AccountsRepositoryImpl(
+            api = get(),
+            config = get(),
+            accountsStore = get(AppStoreRegistry.Accounts),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
     single<TransactionsRepository> { TransactionsRepositoryImpl(api = get(), config = get()) }
     single<CardsRepository> { CardsRepositoryImpl(api = get(), config = get()) }
     single<PaymentsRepository> { PaymentsRepositoryImpl(api = get(), config = get()) }

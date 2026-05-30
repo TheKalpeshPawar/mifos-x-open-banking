@@ -34,4 +34,7 @@ import template.core.base.store.infra.StoreRegistry
  * Centralizing here gives a one-place audit of every Store the app owns and prevents
  * qualifier-name collisions across feature modules.
  */
-object AppStoreRegistry : StoreRegistry()
+object AppStoreRegistry : StoreRegistry() {
+    /** Authenticated user's account list (Store5, keyed by Unit). */
+    val Accounts = store("accounts")
+}
