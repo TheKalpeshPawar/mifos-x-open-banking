@@ -9,41 +9,9 @@
  */
 package org.mifosx.openbanking.core.network.di
 
-import de.jensklingenberg.ktorfit.Ktorfit
 import org.koin.dsl.module
-import org.mifosx.openbanking.core.network.client.FintechApiClient
-import org.mifosx.openbanking.core.network.crypto.api.CoinGeckoApi
-import org.mifosx.openbanking.core.network.currency.api.FrankfurterApi
-import template.core.base.network.httpClient
-import template.core.base.network.setupDefaultHttpClient
 
+// OBP Ktorfit services + Ktor client config are registered here in Phase 3
+// (Accounts, Transactions, Payments, … per OBP tag). Empty until then.
 val NetworkModule = module {
-
-    single {
-        FintechApiClient(
-            frankfurterKtorfit = Ktorfit.Builder()
-                .httpClient(
-                    client = httpClient(
-                        setupDefaultHttpClient(
-                            baseUrl = FrankfurterApi.BASE_URL,
-                            loggableHosts = listOf("api.frankfurter.app"),
-                        ),
-                    ),
-                )
-                .build(),
-            coinGeckoKtorfit = Ktorfit.Builder()
-                .httpClient(
-                    client = httpClient(
-                        setupDefaultHttpClient(
-                            baseUrl = CoinGeckoApi.BASE_URL,
-                            loggableHosts = listOf("api.coingecko.com"),
-                        ),
-                    ),
-                )
-                .build(),
-        )
-    }
-
-    single<FrankfurterApi> { get<FintechApiClient>().frankfurterApi }
-    single<CoinGeckoApi> { get<FintechApiClient>().coinGeckoApi }
 }

@@ -11,20 +11,15 @@ package org.mifosx.openbanking.core.store.di
 
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.mifosx.openbanking.core.store.AppStoreRegistry
-import org.mifosx.openbanking.core.store.crypto.impl.provideCoinDetailStore
-import org.mifosx.openbanking.core.store.crypto.impl.provideCoinMarketsStore
-import org.mifosx.openbanking.core.store.currency.impl.provideExchangeRatesStore
-import org.mifosx.openbanking.core.store.currency.impl.provideRateHistoryStore
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 import org.mifosx.openbanking.core.store.infra.impl.StoreCacheManagerImpl
 
 /**
  * Koin module for app-level Store wiring.
  *
- * Forks register their `Store` instances here, qualifier-bound via [AppStoreRegistry].
- * The 4 demo stores ship as forkable examples — add your own `single(qualifier = ...)`
- * blocks next to them.
+ * OBP banking `Store` instances are registered here in Phase 3, qualifier-bound via
+ * [org.mifosx.openbanking.core.store.AppStoreRegistry], and each registered with the
+ * [StoreCacheManager] for logout cache clearing.
  *
  * Wire into the Koin start-up:
  * ```kotlin
@@ -42,18 +37,6 @@ val appStoreModule: Module = module {
         )
     }
 
-    // Fintech Stores (internal — exposed only through repositories)
-    single(AppStoreRegistry.ExchangeRates) { provideExchangeRatesStore(get(), get(), get()) }
-    single(AppStoreRegistry.RateHistory) { provideRateHistoryStore(get(), get(), get()) }
-    single(AppStoreRegistry.CoinMarkets) { provideCoinMarketsStore(get(), get(), get()) }
-    single(AppStoreRegistry.CoinDetail) { provideCoinDetailStore(get(), get(), get()) }
-
-    // Register fintech feature stores for logout cache clearing
-    single(createdAtStart = true) {
-        val mgr = get<StoreCacheManager>() as StoreCacheManagerImpl
-        mgr.register(get(AppStoreRegistry.ExchangeRates))
-        mgr.register(get(AppStoreRegistry.RateHistory))
-        mgr.register(get(AppStoreRegistry.CoinMarkets))
-        mgr.register(get(AppStoreRegistry.CoinDetail))
-    }
+    // OBP banking stores (Accounts, Transactions, …) are registered here in Phase 3
+    // and registered with the StoreCacheManager for logout cache clearing.
 }

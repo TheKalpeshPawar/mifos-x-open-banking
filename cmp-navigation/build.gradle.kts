@@ -30,13 +30,8 @@ kotlin {
             implementation(projects.coreBase.security)
 
             implementation(projects.feature.home)
-            implementation(projects.feature.crypto)
-            implementation(projects.feature.currencyRates)
-            implementation(projects.feature.emiCalculator)
             implementation(projects.feature.profile)
             implementation(projects.feature.settings)
-            implementation(projects.feature.watchlist)
-            implementation(projects.feature.alerts)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)
