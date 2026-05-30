@@ -21,8 +21,14 @@ import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
+import org.mifosx.openbanking.core.data.cards.CardsRepository
+import org.mifosx.openbanking.core.data.cards.CardsRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
+import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.data.payments.PaymentsRepositoryImpl
+import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.data.transactions.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.data.user.UserLogoutManager
 import org.mifosx.openbanking.core.data.user.impl.UserDataRepositoryImpl
@@ -57,6 +63,9 @@ val DataModule = module {
     // data-layer fan-out; Accounts + DirectLogin auth land the canonical pattern here.
     single<ObpAuthRepository> { ObpAuthRepositoryImpl(authApi = get(), config = get(), tokenProvider = get()) }
     single<AccountsRepository> { AccountsRepositoryImpl(api = get(), config = get()) }
+    single<TransactionsRepository> { TransactionsRepositoryImpl(api = get(), config = get()) }
+    single<CardsRepository> { CardsRepositoryImpl(api = get(), config = get()) }
+    single<PaymentsRepository> { PaymentsRepositoryImpl(api = get(), config = get()) }
 }
 
 expect val platformModule: Module

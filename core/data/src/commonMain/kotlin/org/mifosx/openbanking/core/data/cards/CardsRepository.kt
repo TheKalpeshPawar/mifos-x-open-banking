@@ -1,0 +1,33 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ */
+package org.mifosx.openbanking.core.data.cards
+
+import org.mifosx.openbanking.core.data.obp.toResult
+import org.mifosx.openbanking.core.model.obp.Card
+import org.mifosx.openbanking.core.network.api.CardsApi
+import org.mifosx.openbanking.core.network.obp.ObpConfig
+
+/** Read access to an account's OBP cards. */
+interface CardsRepository {
+    suspend fun listCards(accountId: String): Result<List<Card>>
+    suspend fun getCard(accountId: String, cardId: String): Result<Card>
+}
+
+class CardsRepositoryImpl(
+    private val api: CardsApi,
+    private val config: ObpConfig,
+) : CardsRepository {
+
+    override suspend fun listCards(accountId: String): Result<List<Card>> =
+        api.listCards(config.bankId, accountId).toResult().map { it.cards }
+
+    override suspend fun getCard(accountId: String, cardId: String): Result<Card> =
+        api.getCard(config.bankId, accountId, cardId).toResult()
+}

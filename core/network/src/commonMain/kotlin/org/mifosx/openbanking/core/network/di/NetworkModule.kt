@@ -14,8 +14,14 @@ import io.ktor.client.HttpClient
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.api.AccountsApi
 import org.mifosx.openbanking.core.network.api.AuthApi
+import org.mifosx.openbanking.core.network.api.CardsApi
+import org.mifosx.openbanking.core.network.api.PaymentsApi
+import org.mifosx.openbanking.core.network.api.TransactionsApi
 import org.mifosx.openbanking.core.network.api.createAccountsApi
 import org.mifosx.openbanking.core.network.api.createAuthApi
+import org.mifosx.openbanking.core.network.api.createCardsApi
+import org.mifosx.openbanking.core.network.api.createPaymentsApi
+import org.mifosx.openbanking.core.network.api.createTransactionsApi
 import org.mifosx.openbanking.core.network.obp.InMemoryObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.network.obp.ObpTokenProvider
@@ -35,4 +41,7 @@ val NetworkModule = module {
 
     single<AuthApi> { get<Ktorfit>().createAuthApi() }
     single<AccountsApi> { get<Ktorfit>().createAccountsApi() }
+    single<TransactionsApi> { get<Ktorfit>().createTransactionsApi() }
+    single<CardsApi> { get<Ktorfit>().createCardsApi() }
+    single<PaymentsApi> { get<Ktorfit>().createPaymentsApi() }
 }
