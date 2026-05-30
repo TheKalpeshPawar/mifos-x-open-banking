@@ -19,14 +19,24 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
+import org.mifosx.openbanking.core.data.atm.AtmRepository
+import org.mifosx.openbanking.core.data.atm.AtmRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.cards.CardsRepository
 import org.mifosx.openbanking.core.data.cards.CardsRepositoryImpl
+import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepository
+import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepositoryImpl
+import org.mifosx.openbanking.core.data.fx.FxRepository
+import org.mifosx.openbanking.core.data.fx.FxRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepositoryImpl
+import org.mifosx.openbanking.core.data.products.ProductsRepository
+import org.mifosx.openbanking.core.data.products.ProductsRepositoryImpl
+import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
+import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepositoryImpl
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.user.UserDataRepository
@@ -66,6 +76,11 @@ val DataModule = module {
     single<TransactionsRepository> { TransactionsRepositoryImpl(api = get(), config = get()) }
     single<CardsRepository> { CardsRepositoryImpl(api = get(), config = get()) }
     single<PaymentsRepository> { PaymentsRepositoryImpl(api = get(), config = get()) }
+    single<StandingOrdersRepository> { StandingOrdersRepositoryImpl(api = get(), config = get()) }
+    single<DirectDebitsRepository> { DirectDebitsRepositoryImpl(api = get(), config = get()) }
+    single<FxRepository> { FxRepositoryImpl(api = get(), config = get()) }
+    single<AtmRepository> { AtmRepositoryImpl(api = get(), config = get()) }
+    single<ProductsRepository> { ProductsRepositoryImpl(api = get(), config = get()) }
 }
 
 expect val platformModule: Module
