@@ -12,6 +12,8 @@ package org.mifosx.openbanking.core.data.auth
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.model.obp.DirectLoginResponse
+import org.mifosx.openbanking.core.model.obp.MessageResponse
+import org.mifosx.openbanking.core.model.obp.OidcToken
 import org.mifosx.openbanking.core.network.api.AuthApi
 import org.mifosx.openbanking.core.network.obp.InMemoryObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.ObpConfig
@@ -35,6 +37,25 @@ private class FakeAuthApi(
         lastAuthorization = authorization
         return result
     }
+
+    override suspend fun oidcToken(
+        code: String,
+        redirectUri: String,
+        clientId: String,
+        codeVerifier: String,
+        grantType: String,
+    ): NetworkResult<OidcToken, NetworkError> = NetworkResult.Success(OidcToken(accessToken = "oidc-acc"))
+
+    override suspend fun oidcRefresh(
+        refreshToken: String,
+        clientId: String,
+        grantType: String,
+    ): NetworkResult<OidcToken, NetworkError> = NetworkResult.Success(OidcToken(accessToken = "oidc-acc"))
+
+    override suspend fun oidcRevoke(
+        token: String,
+        clientId: String,
+    ): NetworkResult<MessageResponse, NetworkError> = NetworkResult.Success(MessageResponse("revoked"))
 }
 
 class ObpAuthRepositoryTest {

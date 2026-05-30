@@ -15,7 +15,20 @@ interface ObpAuthRepository {
     /** Exchange credentials for a session token and retain it for subsequent calls. */
     suspend fun login(username: String, password: String): Result<Unit>
 
-    /** Drop the session token. */
+    /**
+     * OIDC alternative to [login]: exchange an authorization code (with its PKCE
+     * verifier) for tokens and retain the access token for subsequent calls.
+     */
+    suspend fun loginWithOidc(
+        code: String,
+        redirectUri: String,
+        codeVerifier: String,
+    ): Result<Unit>
+
+    /** Silent re-auth using a stored refresh token. */
+    suspend fun refreshSession(refreshToken: String): Result<Unit>
+
+    /** Drop the session token (DirectLogin or OIDC). */
     fun logout()
 
     /** True when a session token is currently held. */

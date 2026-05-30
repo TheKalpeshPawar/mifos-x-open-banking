@@ -14,8 +14,10 @@ import io.ktor.client.HttpClient
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.api.AccountApplicationsApi
 import org.mifosx.openbanking.core.network.api.AccountsApi
+import org.mifosx.openbanking.core.network.api.AgentsApi
 import org.mifosx.openbanking.core.network.api.AtmApi
 import org.mifosx.openbanking.core.network.api.AuthApi
+import org.mifosx.openbanking.core.network.api.AuthRecoveryApi
 import org.mifosx.openbanking.core.network.api.CardsApi
 import org.mifosx.openbanking.core.network.api.ConsentsApi
 import org.mifosx.openbanking.core.network.api.CustomerMessagesApi
@@ -25,13 +27,17 @@ import org.mifosx.openbanking.core.network.api.FxApi
 import org.mifosx.openbanking.core.network.api.KycApi
 import org.mifosx.openbanking.core.network.api.MeetingsApi
 import org.mifosx.openbanking.core.network.api.PaymentsApi
+import org.mifosx.openbanking.core.network.api.PfmApi
 import org.mifosx.openbanking.core.network.api.ProductsApi
+import org.mifosx.openbanking.core.network.api.ProfileApi
 import org.mifosx.openbanking.core.network.api.StandingOrdersApi
 import org.mifosx.openbanking.core.network.api.TransactionsApi
 import org.mifosx.openbanking.core.network.api.createAccountApplicationsApi
 import org.mifosx.openbanking.core.network.api.createAccountsApi
+import org.mifosx.openbanking.core.network.api.createAgentsApi
 import org.mifosx.openbanking.core.network.api.createAtmApi
 import org.mifosx.openbanking.core.network.api.createAuthApi
+import org.mifosx.openbanking.core.network.api.createAuthRecoveryApi
 import org.mifosx.openbanking.core.network.api.createCardsApi
 import org.mifosx.openbanking.core.network.api.createConsentsApi
 import org.mifosx.openbanking.core.network.api.createCustomerMessagesApi
@@ -41,7 +47,9 @@ import org.mifosx.openbanking.core.network.api.createFxApi
 import org.mifosx.openbanking.core.network.api.createKycApi
 import org.mifosx.openbanking.core.network.api.createMeetingsApi
 import org.mifosx.openbanking.core.network.api.createPaymentsApi
+import org.mifosx.openbanking.core.network.api.createPfmApi
 import org.mifosx.openbanking.core.network.api.createProductsApi
+import org.mifosx.openbanking.core.network.api.createProfileApi
 import org.mifosx.openbanking.core.network.api.createStandingOrdersApi
 import org.mifosx.openbanking.core.network.api.createTransactionsApi
 import org.mifosx.openbanking.core.network.obp.InMemoryObpTokenProvider
@@ -77,4 +85,8 @@ val NetworkModule = module {
     single<AccountApplicationsApi> { get<Ktorfit>().createAccountApplicationsApi() }
     single<CustomerMessagesApi> { get<Ktorfit>().createCustomerMessagesApi() }
     single<MeetingsApi> { get<Ktorfit>().createMeetingsApi() }
+    single<ProfileApi> { get<Ktorfit>().createProfileApi() }
+    single<AgentsApi> { get<Ktorfit>().createAgentsApi() }
+    single<PfmApi> { get<Ktorfit>().createPfmApi() }
+    single<AuthRecoveryApi> { get<Ktorfit>().createAuthRecoveryApi() }
 }

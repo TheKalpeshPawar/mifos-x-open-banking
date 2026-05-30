@@ -34,6 +34,24 @@ class ObpAuthRepositoryImpl(
             .map { response -> tokenProvider.setToken(response.token) }
     }
 
+    override suspend fun loginWithOidc(
+        code: String,
+        redirectUri: String,
+        codeVerifier: String,
+    ): Result<Unit> =
+        authApi.oidcToken(
+            code = code,
+            redirectUri = redirectUri,
+            clientId = config.consumerKey,
+            codeVerifier = codeVerifier,
+        ).toResult().map { tokenProvider.setToken(it.accessToken) }
+
+    override suspend fun refreshSession(refreshToken: String): Result<Unit> =
+        authApi.oidcRefresh(
+            refreshToken = refreshToken,
+            clientId = config.consumerKey,
+        ).toResult().map { tokenProvider.setToken(it.accessToken) }
+
     override fun logout() = tokenProvider.clear()
 
     override fun isLoggedIn(): Boolean = tokenProvider.token() != null

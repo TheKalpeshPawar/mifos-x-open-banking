@@ -19,10 +19,14 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
+import org.mifosx.openbanking.core.data.agents.AgentsRepository
+import org.mifosx.openbanking.core.data.agents.AgentsRepositoryImpl
 import org.mifosx.openbanking.core.data.applications.AccountApplicationsRepository
 import org.mifosx.openbanking.core.data.applications.AccountApplicationsRepositoryImpl
 import org.mifosx.openbanking.core.data.atm.AtmRepository
 import org.mifosx.openbanking.core.data.atm.AtmRepositoryImpl
+import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
+import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.cards.CardsRepository
@@ -45,8 +49,12 @@ import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepository
 import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepositoryImpl
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepositoryImpl
+import org.mifosx.openbanking.core.data.pfm.PfmRepository
+import org.mifosx.openbanking.core.data.pfm.PfmRepositoryImpl
 import org.mifosx.openbanking.core.data.products.ProductsRepository
 import org.mifosx.openbanking.core.data.products.ProductsRepositoryImpl
+import org.mifosx.openbanking.core.data.profile.ProfileRepository
+import org.mifosx.openbanking.core.data.profile.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepositoryImpl
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
@@ -99,6 +107,10 @@ val DataModule = module {
     single<AccountApplicationsRepository> { AccountApplicationsRepositoryImpl(api = get(), config = get()) }
     single<CustomerMessagesRepository> { CustomerMessagesRepositoryImpl(api = get(), config = get()) }
     single<MeetingsRepository> { MeetingsRepositoryImpl(api = get(), config = get()) }
+    single<ProfileRepository> { ProfileRepositoryImpl(api = get()) }
+    single<AgentsRepository> { AgentsRepositoryImpl(api = get(), config = get()) }
+    single<PfmRepository> { PfmRepositoryImpl(api = get()) }
+    single<AuthRecoveryRepository> { AuthRecoveryRepositoryImpl(api = get()) }
 }
 
 expect val platformModule: Module
