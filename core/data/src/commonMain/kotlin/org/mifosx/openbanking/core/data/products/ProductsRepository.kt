@@ -9,20 +9,42 @@
  */
 package org.mifosx.openbanking.core.data.products
 
+import kotlinx.coroutines.CoroutineScope
+import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.Product
 import org.mifosx.openbanking.core.network.api.ProductsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
+import org.mobilenativefoundation.store.store5.Store
+import template.core.base.store.infra.FetchedAtRepository
+import template.core.base.store.screen.ScreenDataStream
+import template.core.base.store.screen.asScreenStream
 
 /** Read access to OBP bank products. */
 interface ProductsRepository {
+    /** Durable, offline-first stream of the bank's products (cache-then-network). */
+    fun productsStream(scope: CoroutineScope): ScreenDataStream<List<Product>>
+
     suspend fun listProducts(): Result<List<Product>>
 }
 
 class ProductsRepositoryImpl(
     private val api: ProductsApi,
     private val config: ObpConfig,
+    private val productsStore: Store<Unit, List<Product>>,
+    private val networkMonitor: NetworkMonitor,
+    private val fetchedAtRepository: FetchedAtRepository,
 ) : ProductsRepository {
+
+    override fun productsStream(scope: CoroutineScope): ScreenDataStream<List<Product>> =
+        productsStore.asScreenStream(
+            key = Unit,
+            networkMonitor = networkMonitor,
+            fetchedAtRepository = fetchedAtRepository,
+            cacheKey = "products",
+            scope = scope,
+            isEmpty = { it.isEmpty() },
+        )
 
     override suspend fun listProducts(): Result<List<Product>> =
         api.listProducts(config.bankId).toResult().map { it.products }

@@ -9,14 +9,23 @@
  */
 package org.mifosx.openbanking.core.data.customers
 
+import kotlinx.coroutines.CoroutineScope
+import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.Customer
 import org.mifosx.openbanking.core.model.obp.CustomerRequest
 import org.mifosx.openbanking.core.network.api.CustomersApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
+import org.mobilenativefoundation.store.store5.Store
+import template.core.base.store.infra.FetchedAtRepository
+import template.core.base.store.screen.ScreenDataStream
+import template.core.base.store.screen.asScreenStream
 
 /** Read + write access to OBP customers (field-officer surface). */
 interface CustomersRepository {
+    /** Durable, offline-first stream of the customer list (cache-then-network). */
+    fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>>
+
     suspend fun list(): Result<List<Customer>>
     suspend fun get(customerId: String): Result<Customer>
     suspend fun create(request: CustomerRequest): Result<Customer>
@@ -26,7 +35,20 @@ interface CustomersRepository {
 class CustomersRepositoryImpl(
     private val api: CustomersApi,
     private val config: ObpConfig,
+    private val customersStore: Store<Unit, List<Customer>>,
+    private val networkMonitor: NetworkMonitor,
+    private val fetchedAtRepository: FetchedAtRepository,
 ) : CustomersRepository {
+
+    override fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>> =
+        customersStore.asScreenStream(
+            key = Unit,
+            networkMonitor = networkMonitor,
+            fetchedAtRepository = fetchedAtRepository,
+            cacheKey = "customers",
+            scope = scope,
+            isEmpty = { it.isEmpty() },
+        )
 
     override suspend fun list(): Result<List<Customer>> =
         api.listCustomers(config.bankId).toResult().map { it.customers }

@@ -10,10 +10,15 @@
 package org.mifosx.openbanking.core.data.cards
 
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.data.testutil.FakeObpCacheDao
+import org.mifosx.openbanking.core.data.testutil.NoopFetchedAt
+import org.mifosx.openbanking.core.data.testutil.testJson
+import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
 import org.mifosx.openbanking.core.model.obp.Card
 import org.mifosx.openbanking.core.model.obp.CardsResponse
 import org.mifosx.openbanking.core.network.api.CardsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
+import org.mifosx.openbanking.core.store.cards.provideCardsStore
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test
@@ -28,13 +33,23 @@ private class FakeCardsApi(
         NetworkResult.Success(Card())
 }
 
+private fun cardsRepo(api: CardsApi): CardsRepositoryImpl {
+    val config = ObpConfig()
+    return CardsRepositoryImpl(
+        api,
+        config,
+        provideCardsStore(api, config, FakeObpCacheDao(), testJson()),
+        testNetworkMonitor(),
+        NoopFetchedAt,
+    )
+}
+
 class CardsRepositoryTest {
 
     @Test
     fun listCards_unwrapsList() = runTest {
-        val repo = CardsRepositoryImpl(
+        val repo = cardsRepo(
             FakeCardsApi(NetworkResult.Success(CardsResponse(cards = listOf(Card(id = "c1"))))),
-            ObpConfig(),
         )
         val result = repo.listCards("acc-1")
         assertTrue(result.isSuccess)
@@ -43,7 +58,7 @@ class CardsRepositoryTest {
 
     @Test
     fun listCards_error_isFailure() = runTest {
-        val repo = CardsRepositoryImpl(FakeCardsApi(NetworkResult.Error(NetworkError.UNAUTHORIZED)), ObpConfig())
+        val repo = cardsRepo(FakeCardsApi(NetworkResult.Error(NetworkError.UNAUTHORIZED)))
         assertTrue(repo.listCards("acc-1").isFailure)
     }
 }

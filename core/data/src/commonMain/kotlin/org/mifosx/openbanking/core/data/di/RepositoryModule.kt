@@ -111,18 +111,98 @@ val DataModule = module {
             fetchedAtRepository = get(),
         )
     }
-    single<CardsRepository> { CardsRepositoryImpl(api = get(), config = get()) }
-    single<PaymentsRepository> { PaymentsRepositoryImpl(api = get(), config = get()) }
-    single<StandingOrdersRepository> { StandingOrdersRepositoryImpl(api = get(), config = get()) }
-    single<DirectDebitsRepository> { DirectDebitsRepositoryImpl(api = get(), config = get()) }
+    single<CardsRepository> {
+        CardsRepositoryImpl(
+            api = get(),
+            config = get(),
+            cardsStore = get(AppStoreRegistry.Cards),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<PaymentsRepository> {
+        PaymentsRepositoryImpl(
+            api = get(),
+            config = get(),
+            counterpartiesStore = get(AppStoreRegistry.Counterparties),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<StandingOrdersRepository> {
+        StandingOrdersRepositoryImpl(
+            api = get(),
+            config = get(),
+            standingOrdersStore = get(AppStoreRegistry.StandingOrders),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<DirectDebitsRepository> {
+        DirectDebitsRepositoryImpl(
+            api = get(),
+            config = get(),
+            directDebitsStore = get(AppStoreRegistry.DirectDebits),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
     single<FxRepository> { FxRepositoryImpl(api = get(), config = get()) }
-    single<AtmRepository> { AtmRepositoryImpl(api = get(), config = get()) }
-    single<ProductsRepository> { ProductsRepositoryImpl(api = get(), config = get()) }
-    single<CustomersRepository> { CustomersRepositoryImpl(api = get(), config = get()) }
-    single<KycRepository> { KycRepositoryImpl(api = get(), config = get()) }
+    single<AtmRepository> {
+        AtmRepositoryImpl(
+            api = get(),
+            config = get(),
+            atmsStore = get(AppStoreRegistry.Atms),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<ProductsRepository> {
+        ProductsRepositoryImpl(
+            api = get(),
+            config = get(),
+            productsStore = get(AppStoreRegistry.Products),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<CustomersRepository> {
+        CustomersRepositoryImpl(
+            api = get(),
+            config = get(),
+            customersStore = get(AppStoreRegistry.Customers),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<KycRepository> {
+        KycRepositoryImpl(
+            api = get(),
+            config = get(),
+            documentsStore = get(AppStoreRegistry.KycDocuments),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
     single<ConsentsRepository> { ConsentsRepositoryImpl(api = get()) }
-    single<AccountApplicationsRepository> { AccountApplicationsRepositoryImpl(api = get(), config = get()) }
-    single<CustomerMessagesRepository> { CustomerMessagesRepositoryImpl(api = get(), config = get()) }
+    single<AccountApplicationsRepository> {
+        AccountApplicationsRepositoryImpl(
+            api = get(),
+            config = get(),
+            applicationsStore = get(AppStoreRegistry.AccountApplications),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+    single<CustomerMessagesRepository> {
+        CustomerMessagesRepositoryImpl(
+            api = get(),
+            config = get(),
+            messagesStore = get(AppStoreRegistry.CustomerMessages),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
     single<MeetingsRepository> { MeetingsRepositoryImpl(api = get(), config = get()) }
     single<ProfileRepository> { ProfileRepositoryImpl(api = get()) }
     single<AgentsRepository> { AgentsRepositoryImpl(api = get(), config = get()) }

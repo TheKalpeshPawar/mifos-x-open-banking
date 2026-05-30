@@ -40,4 +40,34 @@ object AppStoreRegistry : StoreRegistry() {
 
     /** Per-account transactions (Store5, keyed by accountId). */
     val Transactions = store("transactions")
+
+    /** Per-account cards (Store5, keyed by accountId). */
+    val Cards = store("cards")
+
+    /** Per-account counterparties / payees (Store5, keyed by accountId). */
+    val Counterparties = store("counterparties")
+
+    /** Per-account standing orders (Store5, keyed by accountId). */
+    val StandingOrders = store("standing-orders")
+
+    /** Per-account direct-debit mandates (Store5, keyed by accountId). */
+    val DirectDebits = store("direct-debits")
+
+    /** Bank customers, field-officer surface (Store5, keyed by Unit). */
+    val Customers = store("customers")
+
+    /** Account-application review queue (Store5, keyed by Unit). */
+    val AccountApplications = store("account-applications")
+
+    /** Per-customer message thread (Store5, keyed by customerId). */
+    val CustomerMessages = store("customer-messages")
+
+    /** Per-customer KYC documents (Store5, keyed by customerId). */
+    val KycDocuments = store("kyc-documents")
+
+    /** Bank products (Store5, keyed by Unit). */
+    val Products = store("products")
+
+    /** Bank ATM locations (Store5, keyed by Unit). */
+    val Atms = store("atms")
 }
