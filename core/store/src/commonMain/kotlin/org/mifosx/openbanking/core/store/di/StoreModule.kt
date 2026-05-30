@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.store.di
 
+import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.store.AppStoreRegistry
@@ -41,7 +42,18 @@ val appStoreModule: Module = module {
 
     // OBP banking stores. Accounts lands the canonical Store5 pattern; further
     // services adopt it in the data-layer fan-out.
-    single(AppStoreRegistry.Accounts) { provideAccountsStore(api = get(), config = get()) }
+    // Shared JSON for the offline cache payloads (lenient — tolerates OBP field drift).
+    single {
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            explicitNulls = false
+        }
+    }
+
+    single(AppStoreRegistry.Accounts) {
+        provideAccountsStore(api = get(), config = get(), dao = get(), json = get())
+    }
 
     // Register stores with the cache manager so they clear on logout.
     single(createdAtStart = true) {

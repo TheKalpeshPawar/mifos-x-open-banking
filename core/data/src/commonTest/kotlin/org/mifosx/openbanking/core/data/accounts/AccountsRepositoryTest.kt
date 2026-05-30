@@ -9,9 +9,15 @@
  */
 package org.mifosx.openbanking.core.data.accounts
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.impl.NetworkMonitorImpl
+import org.mifosx.openbanking.core.database.cache.ObpCacheDao
+import org.mifosx.openbanking.core.database.cache.ObpCacheEntity
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AccountsResponse
 import org.mifosx.openbanking.core.model.obp.ObpException
@@ -42,10 +48,24 @@ private object NoopFetchedAt : FetchedAtRepository {
     override suspend fun write(storeKey: String, instant: Instant) {}
 }
 
+private class FakeObpCacheDao : ObpCacheDao {
+    private val rows = MutableStateFlow<Map<String, String>>(emptyMap())
+    override fun observe(storeKey: String): Flow<String?> = rows.map { it[storeKey] }
+    override suspend fun upsert(entity: ObpCacheEntity) {
+        rows.value = rows.value + (entity.storeKey to entity.payload)
+    }
+    override suspend fun delete(storeKey: String) {
+        rows.value = rows.value - storeKey
+    }
+    override suspend fun clear() {
+        rows.value = emptyMap()
+    }
+}
+
 private fun buildRepo(api: AccountsApi, config: ObpConfig) = AccountsRepositoryImpl(
     api = api,
     config = config,
-    accountsStore = provideAccountsStore(api, config),
+    accountsStore = provideAccountsStore(api, config, FakeObpCacheDao(), Json { ignoreUnknownKeys = true }),
     networkMonitor = NetworkMonitorImpl(),
     fetchedAtRepository = NoopFetchedAt,
 )

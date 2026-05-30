@@ -9,10 +9,13 @@
  */
 package org.mifosx.openbanking.core.database
 
+import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
+import org.mifosx.openbanking.core.database.cache.ObpCacheDao
+import org.mifosx.openbanking.core.database.cache.ObpCacheEntity
 import org.mifosx.openbanking.core.database.infra.dao.BookkeeperDao
 import org.mifosx.openbanking.core.database.infra.dao.DraftDao
 import org.mifosx.openbanking.core.database.infra.dao.FetchedAtDao
@@ -54,9 +57,14 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
         BookkeeperEntity::class,
         FetchedAtEntity::class,
         DraftEntity::class,
+        ObpCacheEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
+    autoMigrations = [
+        // v1 → v2: adds `obp_cache` for offline-first read caching.
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -65,9 +73,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val bookkeeperDao: BookkeeperDao
     abstract val fetchedAtDao: FetchedAtDao
     abstract val draftDao: DraftDao
+    abstract val obpCacheDao: ObpCacheDao
 
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
         const val DATABASE_NAME = "mifos_database.db"
     }
 }
