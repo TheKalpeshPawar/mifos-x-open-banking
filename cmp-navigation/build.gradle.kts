@@ -36,6 +36,7 @@ kotlin {
 
             //put your multiplatform dependencies here
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.foundation)
             implementation(compose.ui)
             implementation(compose.components.uiToolingPreview)

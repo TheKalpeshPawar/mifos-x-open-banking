@@ -18,9 +18,6 @@ import androidx.navigation.navigation
 import cmp.navigation.authenticatednavbar.AuthenticatedNavbarRoute
 import cmp.navigation.authenticatednavbar.authenticatedNavbarGraph
 import kotlinx.serialization.Serializable
-import org.mifosx.openbanking.feature.settings.navigateToSettings
-import org.mifosx.openbanking.feature.settings.notificationDestination
-import org.mifosx.openbanking.feature.settings.settingsDestination
 
 @Serializable
 internal data object AuthenticatedGraphRoute
@@ -30,24 +27,13 @@ internal fun NavController.navigateToAuthenticatedGraph(navOptions: NavOptions? 
 }
 
 internal fun NavGraphBuilder.authenticatedGraph(
-    navController: NavController,
+    @Suppress("UnusedParameter") navController: NavController,
 ) {
     navigation<AuthenticatedGraphRoute>(
         startDestination = AuthenticatedNavbarRoute,
     ) {
-        authenticatedNavbarGraph(
-            navigateToSettingsScreen = navController::navigateToSettings,
-        )
-
-        notificationDestination(
-            onBackClick = navController::popBackStack,
-        )
-
-        settingsDestination(
-            onBackClick = navController::popBackStack,
-        )
-
-        // OBP banking feature graphs (accounts, transactions, payments, …) are
-        // registered here per feature wave in Phases 4–6.
+        // The navbar hosts a nested NavHost with the flavor-aware bottom-nav tabs +
+        // all banking destinations (home/settings/notifications + Phase 2 placeholders).
+        authenticatedNavbarGraph()
     }
 }

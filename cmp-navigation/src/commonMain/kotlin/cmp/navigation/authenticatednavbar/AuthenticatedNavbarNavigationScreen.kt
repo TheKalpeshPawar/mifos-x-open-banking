@@ -22,67 +22,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.navOptions
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
+import cmp.navigation.placeholder.FoDashboardRoute
+import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
-import cmp.navigation.ui.logDestinationChanged
 import cmp.navigation.ui.rememberKptNavController
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
-import org.mifosx.openbanking.feature.home.navigateToHome
-import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
-import template.core.base.analytics.rememberAnalyticsHelper
-import template.core.base.ui.effects.EventsEffect
+import org.mifosx.openbanking.feature.settings.SettingsRoute
+import org.mifosx.openbanking.feature.settings.notificationDestination
+import org.mifosx.openbanking.feature.settings.settingsDestination
+import org.openmf.kmptemplate.BuildKonfig
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
 internal fun AuthenticatedNavbarNavigationScreen(
-    navigateToSettingsScreen: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberKptNavController(
         name = "AuthenticatedNavbarScreen",
     ),
     viewModel: AuthenticatedNavbarNavigationViewModel = koinViewModel(),
 ) {
-    val analyticsHelper = rememberAnalyticsHelper()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
-
-    EventsEffect(eventFlow = viewModel.eventFlow) { event ->
-        navController.apply {
-            when (event) {
-                AuthenticatedNavBarEvent.NavigateToHomeScreen -> {
-                    analyticsHelper.logDestinationChanged(event.tab.startDestinationRoute)
-                    navigateToTabOrRoot(tabToNavigateTo = event.tab) {
-                        navigateToHome(navOptions = it)
-                    }
-                }
-
-                AuthenticatedNavBarEvent.NavigateToProfileScreen -> {
-                    analyticsHelper.logDestinationChanged(event.tab.startDestinationRoute)
-                    navigateToTabOrRoot(tabToNavigateTo = event.tab) {
-                        navigateToProfile(navOptions = it)
-                    }
-                }
-            }
-        }
-    }
 
     val message = stringResource(Res.string.not_connected)
     LaunchedEffect(isOffline) {
@@ -100,26 +75,21 @@ internal fun AuthenticatedNavbarNavigationScreen(
         navController = navController,
         snackbarHostState = snackbarHostState,
         modifier = modifier,
-        navigateToSettingsScreen = navigateToSettingsScreen,
-        onAction = remember(viewModel) {
-            { viewModel.trySendAction(it) }
-        },
     )
 }
 
 @Composable
 internal fun AuthenticatedNavbarNavigationScreenContent(
     navController: NavHostController,
-    navigateToSettingsScreen: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    onAction: (AuthenticatedNavBarAction) -> Unit,
 ) {
+    // Flavor-aware tab set, resolved from the userType build flavor (app-shell.yaml).
+    val isFieldOfficer = BuildKonfig.IS_FIELDOFFICER
+    val navigationItems = if (isFieldOfficer) fieldOfficerNavBarTabs else consumerNavBarTabs
+    val startDestination: Any = if (isFieldOfficer) FoDashboardRoute else HomeDestination
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val navigationItems = persistentListOf<NavigationItem>(
-        AuthenticatedNavBarTabItem.HomeTab,
-        AuthenticatedNavBarTabItem.ProfileTab,
-    )
 
     KptRootScaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -129,15 +99,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 navBackStackEntry.isCurrentRoute(route = it.graphRoute)
             },
             onNavigationClick = { navigationItem ->
-                when (navigationItem) {
-                    is AuthenticatedNavBarTabItem.HomeTab -> {
-                        onAction(AuthenticatedNavBarAction.HomeTabClick)
-                    }
-
-                    is AuthenticatedNavBarTabItem.ProfileTab -> {
-                        onAction(AuthenticatedNavBarAction.SettingsTabClick)
-                    }
-                }
+                navController.navigateToTab(navigationItem)
             },
             shouldShowNavigation = navigationItems.any {
                 navBackStackEntry.isCurrentRoute(route = it.startDestinationRoute)
@@ -148,45 +110,35 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
         },
         modifier = modifier,
     ) {
-        // Because this Scaffold has a bottom navigation bar, the NavHost will:
-        // - consume the vertical navigation bar insets.
-        // - consume the IME insets.
         NavHost(
             navController = navController,
-            startDestination = HomeDestination,
+            startDestination = startDestination,
             enterTransition = RootTransitionProviders.Enter.fadeIn,
             exitTransition = RootTransitionProviders.Exit.fadeOut,
             popEnterTransition = RootTransitionProviders.Enter.fadeIn,
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
-            // TOP LEVEL DESTINATIONS
+            // Consumer Home tab — real shell; "More" routes to settings.
             homeGraph(
-                onSettingsClick = navigateToSettingsScreen,
+                onSettingsClick = { navController.navigate(SettingsRoute) },
             )
-
             profileDestination()
+            settingsDestination(onBackClick = navController::popBackStack)
+            notificationDestination(onBackClick = navController::popBackStack)
+
+            // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
+            bankingPlaceholderDestinations()
         }
     }
 }
 
-private fun NavController.navigateToTabOrRoot(
-    tabToNavigateTo: AuthenticatedNavBarTabItem,
-    navigate: (NavOptions) -> Unit,
-) {
-    if (tabToNavigateTo.startDestinationRoute == currentDestination?.route) {
-        return
-    } else if (currentDestination?.parent?.route == tabToNavigateTo.graphRoute) {
-        popBackStack(route = tabToNavigateTo.startDestinationRoute, inclusive = false)
-    } else {
-        navigate(
-            navOptions {
-                popUpTo(graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            },
-        )
+private fun NavHostController.navigateToTab(tab: NavigationItem) {
+    navigate(route = tab.startDestinationRoute) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
