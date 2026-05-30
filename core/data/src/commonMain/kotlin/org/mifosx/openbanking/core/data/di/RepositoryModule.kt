@@ -19,18 +19,30 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
+import org.mifosx.openbanking.core.data.applications.AccountApplicationsRepository
+import org.mifosx.openbanking.core.data.applications.AccountApplicationsRepositoryImpl
 import org.mifosx.openbanking.core.data.atm.AtmRepository
 import org.mifosx.openbanking.core.data.atm.AtmRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.cards.CardsRepository
 import org.mifosx.openbanking.core.data.cards.CardsRepositoryImpl
+import org.mifosx.openbanking.core.data.consents.ConsentsRepository
+import org.mifosx.openbanking.core.data.consents.ConsentsRepositoryImpl
+import org.mifosx.openbanking.core.data.customers.CustomersRepository
+import org.mifosx.openbanking.core.data.customers.CustomersRepositoryImpl
 import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepositoryImpl
 import org.mifosx.openbanking.core.data.fx.FxRepository
 import org.mifosx.openbanking.core.data.fx.FxRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
+import org.mifosx.openbanking.core.data.kyc.KycRepository
+import org.mifosx.openbanking.core.data.kyc.KycRepositoryImpl
+import org.mifosx.openbanking.core.data.meetings.MeetingsRepository
+import org.mifosx.openbanking.core.data.meetings.MeetingsRepositoryImpl
+import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepository
+import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepositoryImpl
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepositoryImpl
 import org.mifosx.openbanking.core.data.products.ProductsRepository
@@ -81,6 +93,12 @@ val DataModule = module {
     single<FxRepository> { FxRepositoryImpl(api = get(), config = get()) }
     single<AtmRepository> { AtmRepositoryImpl(api = get(), config = get()) }
     single<ProductsRepository> { ProductsRepositoryImpl(api = get(), config = get()) }
+    single<CustomersRepository> { CustomersRepositoryImpl(api = get(), config = get()) }
+    single<KycRepository> { KycRepositoryImpl(api = get(), config = get()) }
+    single<ConsentsRepository> { ConsentsRepositoryImpl(api = get()) }
+    single<AccountApplicationsRepository> { AccountApplicationsRepositoryImpl(api = get(), config = get()) }
+    single<CustomerMessagesRepository> { CustomerMessagesRepositoryImpl(api = get(), config = get()) }
+    single<MeetingsRepository> { MeetingsRepositoryImpl(api = get(), config = get()) }
 }
 
 expect val platformModule: Module
