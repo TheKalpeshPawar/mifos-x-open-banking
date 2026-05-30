@@ -37,4 +37,7 @@ import template.core.base.store.infra.StoreRegistry
 object AppStoreRegistry : StoreRegistry() {
     /** Authenticated user's account list (Store5, keyed by Unit). */
     val Accounts = store("accounts")
+
+    /** Per-account transactions (Store5, keyed by accountId). */
+    val Transactions = store("transactions")
 }

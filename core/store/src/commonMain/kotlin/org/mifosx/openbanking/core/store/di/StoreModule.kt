@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.store.AppStoreRegistry
 import org.mifosx.openbanking.core.store.accounts.provideAccountsStore
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 import org.mifosx.openbanking.core.store.infra.impl.StoreCacheManagerImpl
+import org.mifosx.openbanking.core.store.transactions.provideTransactionsStore
 
 /**
  * Koin module for app-level Store wiring.
@@ -54,10 +55,14 @@ val appStoreModule: Module = module {
     single(AppStoreRegistry.Accounts) {
         provideAccountsStore(api = get(), config = get(), dao = get(), json = get())
     }
+    single(AppStoreRegistry.Transactions) {
+        provideTransactionsStore(api = get(), config = get(), dao = get(), json = get())
+    }
 
     // Register stores with the cache manager so they clear on logout.
     single(createdAtStart = true) {
         val mgr = get<StoreCacheManager>() as StoreCacheManagerImpl
         mgr.register(get(AppStoreRegistry.Accounts))
+        mgr.register(get(AppStoreRegistry.Transactions))
     }
 }

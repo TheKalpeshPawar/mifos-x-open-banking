@@ -33,17 +33,36 @@ fun <T : Any> jsonCachedStore(
     json: Json,
     serializer: KSerializer<List<T>>,
     fetch: suspend () -> List<T>,
-): Store<Unit, List<T>> = StoreFactory.createStore(
-    fetcher = Fetcher.of { _: Unit -> fetch() },
+): Store<Unit, List<T>> = keyedJsonCachedStore<Unit, T>(
+    dao = dao,
+    json = json,
+    serializer = serializer,
+    cacheKey = { cacheKey },
+    fetch = { fetch() },
+)
+
+/**
+ * Keyed variant of [jsonCachedStore] for per-resource caches (e.g. transactions or
+ * cards per account). [cacheKey] derives a stable row key from the Store key so each
+ * key gets its own cached payload.
+ */
+fun <K : Any, T : Any> keyedJsonCachedStore(
+    dao: ObpCacheDao,
+    json: Json,
+    serializer: KSerializer<List<T>>,
+    cacheKey: (K) -> String,
+    fetch: suspend (K) -> List<T>,
+): Store<K, List<T>> = StoreFactory.createStore(
+    fetcher = Fetcher.of { key: K -> fetch(key) },
     sourceOfTruth = SourceOfTruth.of(
-        reader = { _: Unit ->
-            dao.observe(cacheKey).map { payload ->
+        reader = { key: K ->
+            dao.observe(cacheKey(key)).map { payload ->
                 payload?.let { json.decodeFromString(serializer, it) }
             }
         },
-        writer = { _: Unit, value: List<T> ->
+        writer = { key: K, value: List<T> ->
             dao.upsert(
-                ObpCacheEntity(storeKey = cacheKey, payload = json.encodeToString(serializer, value)),
+                ObpCacheEntity(storeKey = cacheKey(key), payload = json.encodeToString(serializer, value)),
             )
         },
     ),

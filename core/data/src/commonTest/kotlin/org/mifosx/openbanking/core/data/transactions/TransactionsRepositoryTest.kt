@@ -10,10 +10,15 @@
 package org.mifosx.openbanking.core.data.transactions
 
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.data.testutil.FakeObpCacheDao
+import org.mifosx.openbanking.core.data.testutil.NoopFetchedAt
+import org.mifosx.openbanking.core.data.testutil.testJson
+import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionsResponse
 import org.mifosx.openbanking.core.network.api.TransactionsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
+import org.mifosx.openbanking.core.store.transactions.provideTransactionsStore
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test
@@ -31,20 +36,33 @@ private class FakeTransactionsApi(
         offset: Int?,
     ) = listResult
 
-    override suspend fun getTransaction(bankId: String, accountId: String, transactionId: String) =
-        NetworkResult.Success(Transaction())
+    override suspend fun getTransaction(
+        bankId: String,
+        accountId: String,
+        transactionId: String,
+    ) = NetworkResult.Success(Transaction())
+}
+
+private fun txnRepo(api: TransactionsApi): TransactionsRepositoryImpl {
+    val config = ObpConfig()
+    return TransactionsRepositoryImpl(
+        api,
+        config,
+        provideTransactionsStore(api, config, FakeObpCacheDao(), testJson()),
+        testNetworkMonitor(),
+        NoopFetchedAt,
+    )
 }
 
 class TransactionsRepositoryTest {
-    private val repo = TransactionsRepositoryImpl(
-        FakeTransactionsApi(
-            NetworkResult.Success(TransactionsResponse(transactions = listOf(Transaction(id = "t1")))),
-        ),
-        ObpConfig(),
-    )
 
     @Test
     fun listTransactions_unwrapsList() = runTest {
+        val repo = txnRepo(
+            FakeTransactionsApi(
+                NetworkResult.Success(TransactionsResponse(transactions = listOf(Transaction(id = "t1")))),
+            ),
+        )
         val result = repo.listTransactions("acc-1")
         assertTrue(result.isSuccess)
         assertEquals("t1", result.getOrNull()?.firstOrNull()?.id)
@@ -52,10 +70,7 @@ class TransactionsRepositoryTest {
 
     @Test
     fun listTransactions_error_isFailure() = runTest {
-        val errRepo = TransactionsRepositoryImpl(
-            FakeTransactionsApi(NetworkResult.Error(NetworkError.SERVER)),
-            ObpConfig(),
-        )
-        assertTrue(errRepo.listTransactions("acc-1").isFailure)
+        val repo = txnRepo(FakeTransactionsApi(NetworkResult.Error(NetworkError.SERVER)))
+        assertTrue(repo.listTransactions("acc-1").isFailure)
     }
 }

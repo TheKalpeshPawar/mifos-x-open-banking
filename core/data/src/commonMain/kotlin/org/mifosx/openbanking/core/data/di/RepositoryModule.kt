@@ -102,7 +102,15 @@ val DataModule = module {
             fetchedAtRepository = get(),
         )
     }
-    single<TransactionsRepository> { TransactionsRepositoryImpl(api = get(), config = get()) }
+    single<TransactionsRepository> {
+        TransactionsRepositoryImpl(
+            api = get(),
+            config = get(),
+            transactionsStore = get(AppStoreRegistry.Transactions),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
     single<CardsRepository> { CardsRepositoryImpl(api = get(), config = get()) }
     single<PaymentsRepository> { PaymentsRepositoryImpl(api = get(), config = get()) }
     single<StandingOrdersRepository> { StandingOrdersRepositoryImpl(api = get(), config = get()) }
