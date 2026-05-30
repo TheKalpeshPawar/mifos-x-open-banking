@@ -30,6 +30,9 @@ import cmp.navigation.splash.splashDestination
 import cmp.navigation.ui.rememberKptNavController
 import cmp.navigation.utils.toObjectNavigationRoute
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.feature.login.AuthGraphRoute
+import org.mifosx.openbanking.feature.login.authGraph
+import org.mifosx.openbanking.feature.login.navigateToAuthGraph
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -64,7 +67,7 @@ fun RootNavScreen(
     ) {
         splashDestination()
 //        onboardingDestination()
-//        authNavGraph(navController)
+        authGraph()
         authenticatedGraph(navController)
 //        userUnlockDestination()
     }
@@ -72,8 +75,7 @@ fun RootNavScreen(
     val targetRoute = when (state) {
         // SetLanguageRoute
         RootNavState.ShowOnboarding -> ""
-        // AuthGraphRoute
-        RootNavState.Auth -> ""
+        RootNavState.Auth -> AuthGraphRoute
         RootNavState.Splash -> SplashRoute
         // UserUnlockRoute.Standard
         RootNavState.UserLocked -> ""
@@ -114,8 +116,7 @@ fun RootNavScreen(
     LaunchedEffect(state) {
         when (state) {
             RootNavState.Splash -> navController.navigateToSplash(rootNavOptions)
-            // navController.navigateToAuthGraph(rootNavOptions)
-            RootNavState.Auth -> {}
+            RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions)
             // navController.navigateToSetLanguage(rootNavOptions)
             RootNavState.ShowOnboarding -> {}
             // navController.navigateToUserUnlock(rootNavOptions)
