@@ -9,17 +9,238 @@
  */
 package org.mifosx.openbanking.feature.login.ui
 
+import androidx.compose.runtime.Immutable
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
+import org.mifosx.openbanking.core.data.user.UserDataRepository
+import org.mifosx.openbanking.core.model.obp.ObpException
 import template.core.base.ui.viewmodel.BaseViewModel
+import kotlin.random.Random
 
 /**
- * Login shell ViewModel. OBP `direct_login` token flow + credential validation
- * are wired in Phase 4 (feature wave A) per PLAN-kmp-greenfield-implementation.
+ * Login ViewModel. Owns dual OBP authentication:
+ *
+ * - **DirectLogin** — submits username/password through [ObpAuthRepository.login]; fully wired.
+ * - **OAuth/OIDC** — authorization_code + PKCE. The browser launch ([LoginEvent.LaunchOidcAuth])
+ *   and real PKCE S256 challenge are platform glue deferred to Phase 7 (secure storage); this
+ *   ViewModel models the redirecting/exchanging states + the [ObpAuthRepository.loginWithOidc]
+ *   token exchange so the screen and navigation are complete now.
+ *
+ * On success the session token is held by the repository's `ObpTokenProvider` and the user is
+ * marked authenticated in [UserDataRepository]; `RootNavViewModel` observes that and flips the
+ * root graph to the authenticated destination — login never navigates to home imperatively.
  */
-class LoginViewModel : BaseViewModel<Unit, Nothing, LoginAction>(initialState = Unit) {
+class LoginViewModel(
+    private val authRepository: ObpAuthRepository,
+    private val userDataRepository: UserDataRepository,
+) : BaseViewModel<LoginState, LoginEvent, LoginAction>(initialState = LoginState()) {
 
-    @Suppress("EmptyFunctionBlock")
     override fun handleAction(action: LoginAction) {
+        when (action) {
+            is LoginAction.UsernameChanged ->
+                updateState { copy(username = action.value, errorMessage = null) }
+
+            is LoginAction.PasswordChanged ->
+                updateState { copy(password = action.value, errorMessage = null) }
+
+            LoginAction.RememberMeToggled ->
+                updateState { copy(rememberMe = !rememberMe) }
+
+            LoginAction.PasswordVisibilityToggled ->
+                updateState { copy(isPasswordVisible = !isPasswordVisible) }
+
+            LoginAction.DirectLoginClicked -> onDirectLoginClicked()
+
+            LoginAction.OAuthLoginClicked -> onOAuthLoginClicked()
+
+            is LoginAction.OAuthCallback -> onOAuthCallback(action.code, action.state)
+
+            LoginAction.ForgotPasswordClicked ->
+                sendEvent(LoginEvent.NavigateToForgotPassword)
+
+            is LoginAction.Internal.DirectLoginResultReceive ->
+                onAuthResult(action.result, AuthMethod.DIRECT_LOGIN)
+
+            is LoginAction.Internal.OAuthResultReceive ->
+                onAuthResult(action.result, AuthMethod.OAUTH_OIDC)
+        }
+    }
+
+    private fun onDirectLoginClicked() {
+        val current = state
+        if (!current.isFormValid || current.isLoading) return
+        updateState {
+            copy(isLoading = true, errorMessage = null, authMethod = AuthMethod.DIRECT_LOGIN)
+        }
+        viewModelScope.launch {
+            val result = authRepository.login(current.username.trim(), current.password)
+            sendAction(LoginAction.Internal.DirectLoginResultReceive(result))
+        }
+    }
+
+    private fun onOAuthLoginClicked() {
+        if (state.isLoading || state.oauthPhase != OAuthPhase.NONE) return
+        // TODO(Phase 7): replace with a real PKCE S256 challenge + secure-random state.
+        val csrfState = Random.nextLong().toString(radix = 16)
+        val codeVerifier = Random.nextLong().toString(radix = 16) + Random.nextLong().toString(radix = 16)
+        updateState {
+            copy(
+                authMethod = AuthMethod.OAUTH_OIDC,
+                oauthPhase = OAuthPhase.REDIRECTING,
+                oauthState = csrfState,
+                oauthCodeVerifier = codeVerifier,
+                errorMessage = null,
+            )
+        }
+        sendEvent(LoginEvent.LaunchOidcAuth(buildAuthorizeUrl(csrfState, codeVerifier)))
+    }
+
+    private fun onOAuthCallback(code: String, returnedState: String) {
+        val expectedState = state.oauthState
+        val verifier = state.oauthCodeVerifier
+        if (expectedState == null || expectedState != returnedState) {
+            updateState {
+                copy(
+                    oauthPhase = OAuthPhase.NONE,
+                    authMethod = AuthMethod.NONE,
+                    errorMessage = "Security check failed. Please try signing in again.",
+                )
+            }
+            return
+        }
+        if (verifier == null) {
+            updateState {
+                copy(
+                    oauthPhase = OAuthPhase.NONE,
+                    authMethod = AuthMethod.NONE,
+                    errorMessage = "Authentication failed. Please try signing in again.",
+                )
+            }
+            return
+        }
+        updateState { copy(oauthPhase = OAuthPhase.EXCHANGING) }
+        viewModelScope.launch {
+            val result = authRepository.loginWithOidc(
+                code = code,
+                redirectUri = OAUTH_REDIRECT_URI,
+                codeVerifier = verifier,
+            )
+            sendAction(LoginAction.Internal.OAuthResultReceive(result))
+        }
+    }
+
+    private fun onAuthResult(result: Result<Unit>, method: AuthMethod) {
+        result.fold(
+            onSuccess = {
+                viewModelScope.launch {
+                    userDataRepository.setIsAuthenticated(true)
+                    userDataRepository.setIsUnlocked(true)
+                }
+            },
+            onFailure = { error ->
+                updateState {
+                    copy(
+                        isLoading = false,
+                        oauthPhase = OAuthPhase.NONE,
+                        authMethod = AuthMethod.NONE,
+                        oauthState = null,
+                        oauthCodeVerifier = null,
+                        errorMessage = error.toLoginErrorMessage(method),
+                    )
+                }
+            },
+        )
+    }
+
+    private fun buildAuthorizeUrl(csrfState: String, codeVerifier: String): String =
+        "$OIDC_AUTHORIZE_ENDPOINT" +
+            "?response_type=code" +
+            "&client_id=$OIDC_CLIENT_ID" +
+            "&redirect_uri=$OAUTH_REDIRECT_URI" +
+            "&scope=openid" +
+            "&state=$csrfState" +
+            // TODO(Phase 7): send code_challenge (S256 of verifier), not the raw verifier.
+            "&code_challenge=$codeVerifier&code_challenge_method=plain"
+
+    private companion object {
+        const val OIDC_AUTHORIZE_ENDPOINT =
+            "https://apisandbox-oidc.openbankproject.com/obp-oidc/auth"
+        const val OAUTH_REDIRECT_URI = "org.mifosx.openbanking://oauth/callback"
+
+        // Public OIDC client id is non-secret; real value injected per-flavor in Phase 7.
+        const val OIDC_CLIENT_ID = "mifos-x-open-banking"
     }
 }
 
-sealed interface LoginAction
+/**
+ * Maps an [ObpException.reason] (or unknown failure) to the user-facing message defined in the
+ * login feature SPEC. OAuth token-exchange failures use the OAuth-specific copy.
+ */
+private fun Throwable.toLoginErrorMessage(method: AuthMethod): String =
+    when ((this as? ObpException)?.reason) {
+        "UNAUTHORIZED", "BAD_REQUEST" ->
+            if (method == AuthMethod.OAUTH_OIDC) {
+                "Authentication failed. Please try signing in again."
+            } else {
+                "Invalid username or password. Please check your credentials and try again."
+            }
+
+        "REQUEST_TIMEOUT", "TOO_MANY_REQUESTS", "UNKNOWN" ->
+            "Could not connect to banking services. Please try again."
+
+        else ->
+            "Something went wrong on our end. Please try again in a moment."
+    }
+
+/** Immutable UI state for the Login screen. Field set mirrors the login SPEC State Model. */
+@Immutable
+data class LoginState(
+    val username: String = "",
+    val password: String = "",
+    val rememberMe: Boolean = false,
+    val isPasswordVisible: Boolean = false,
+    val errorMessage: String? = null,
+    val isLoading: Boolean = false,
+    val authMethod: AuthMethod = AuthMethod.NONE,
+    val oauthState: String? = null,
+    val oauthCodeVerifier: String? = null,
+    // UI-only: drives the OAuth full-screen takeover states (redirecting / exchanging).
+    val oauthPhase: OAuthPhase = OAuthPhase.NONE,
+) {
+    /** DirectLogin is enabled only when both credential fields are non-blank. */
+    val isFormValid: Boolean get() = username.isNotBlank() && password.isNotBlank()
+}
+
+/** Which authentication path is in flight. */
+enum class AuthMethod { NONE, DIRECT_LOGIN, OAUTH_OIDC }
+
+/** OAuth full-screen takeover phase. */
+enum class OAuthPhase { NONE, REDIRECTING, EXCHANGING }
+
+/** One-shot navigation/side-effect events emitted by [LoginViewModel]. */
+sealed interface LoginEvent {
+    /** Navigate to the forgot-password destination within the auth graph. */
+    data object NavigateToForgotPassword : LoginEvent
+
+    /** Open the system browser at the OBP OIDC authorize URL (platform handles the launch). */
+    data class LaunchOidcAuth(val authUrl: String) : LoginEvent
+}
+
+/** Actions accepted by [LoginViewModel]. */
+sealed interface LoginAction {
+    data class UsernameChanged(val value: String) : LoginAction
+    data class PasswordChanged(val value: String) : LoginAction
+    data object RememberMeToggled : LoginAction
+    data object PasswordVisibilityToggled : LoginAction
+    data object DirectLoginClicked : LoginAction
+    data object OAuthLoginClicked : LoginAction
+    data class OAuthCallback(val code: String, val state: String) : LoginAction
+    data object ForgotPasswordClicked : LoginAction
+
+    /** Internal actions posted from async work back onto the synchronous action stream. */
+    sealed interface Internal : LoginAction {
+        data class DirectLoginResultReceive(val result: Result<Unit>) : Internal
+        data class OAuthResultReceive(val result: Result<Unit>) : Internal
+    }
+}

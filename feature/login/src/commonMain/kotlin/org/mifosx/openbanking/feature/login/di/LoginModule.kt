@@ -11,8 +11,10 @@ package org.mifosx.openbanking.feature.login.di
 
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.login.ui.ForgotPasswordViewModel
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
 
 val LoginModule = module {
     viewModelOf(::LoginViewModel)
+    viewModelOf(::ForgotPasswordViewModel)
 }

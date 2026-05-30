@@ -67,7 +67,7 @@ fun RootNavScreen(
     ) {
         splashDestination()
 //        onboardingDestination()
-        authGraph()
+        authGraph(navController)
         authenticatedGraph(navController)
 //        userUnlockDestination()
     }

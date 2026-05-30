@@ -11,11 +11,13 @@
 
 package org.mifosx.openbanking.feature.login
 
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
+import template.core.base.ui.nav.composableWithPushTransitions
 import template.core.base.ui.nav.composableWithStayTransitions
 
 /** Root route of the unauthenticated graph (splash → [AuthGraphRoute] → authenticated). */
@@ -25,21 +27,40 @@ data object AuthGraphRoute
 @Serializable
 data object LoginRoute
 
+@Serializable
+data object ForgotPasswordRoute
+
 fun NavController.navigateToAuthGraph(navOptions: NavOptions? = null) {
     navigate(route = AuthGraphRoute, navOptions = navOptions)
 }
 
+fun NavController.navigateToForgotPassword(navOptions: NavOptions? = null) {
+    navigate(route = ForgotPasswordRoute, navOptions = navOptions)
+}
+
 /**
- * Unauthenticated graph. Shell wiring for Phase 1 — the real OBP `direct_login` /
- * OIDC flow is implemented in Phase 4 (feature wave A) and will add forgot-password
- * + onboarding destinations here.
+ * Unauthenticated graph: login + forgot-password.
+ *
+ * Login success is **not** navigated here — `LoginViewModel` marks the session authenticated and
+ * `RootNavViewModel` flips the root graph to the authenticated destination reactively. This graph
+ * only owns intra-auth navigation (forgot-password) and launching the OBP OIDC browser flow via
+ * the platform [androidx.compose.ui.platform.UriHandler].
  */
-fun NavGraphBuilder.authGraph() {
+fun NavGraphBuilder.authGraph(navController: NavController) {
     navigation<AuthGraphRoute>(
         startDestination = LoginRoute,
     ) {
         composableWithStayTransitions<LoginRoute> {
-            LoginScreen()
+            val uriHandler = LocalUriHandler.current
+            LoginScreen(
+                onNavigateToForgotPassword = { navController.navigateToForgotPassword() },
+                onLaunchOidcAuth = { authUrl -> uriHandler.openUri(authUrl) },
+            )
+        }
+        composableWithPushTransitions<ForgotPasswordRoute> {
+            ForgotPasswordScreen(
+                onBackClick = { navController.popBackStack() },
+            )
         }
     }
 }
