@@ -17,6 +17,10 @@ import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
+import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
+import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
@@ -49,8 +53,10 @@ val DataModule = module {
     // App-scoped CoroutineScope for cross-VM long-running coroutines.
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
-    // OBP banking repositories (Accounts, Transactions, Payments, …) are registered
-    // here in Phase 3 — one Store5-backed repository per OBP service.
+    // OBP banking repositories. Store5 cache wrapping is added per service in the
+    // data-layer fan-out; Accounts + DirectLogin auth land the canonical pattern here.
+    single<ObpAuthRepository> { ObpAuthRepositoryImpl(authApi = get(), config = get(), tokenProvider = get()) }
+    single<AccountsRepository> { AccountsRepositoryImpl(api = get(), config = get()) }
 }
 
 expect val platformModule: Module

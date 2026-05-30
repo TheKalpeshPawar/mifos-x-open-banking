@@ -45,5 +45,10 @@ kotlin {
             implementation(libs.androidx.tracing.ktx)
             implementation(libs.koin.android)
         }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
 }
