@@ -12,7 +12,7 @@ package cmp.android.app
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import cmp.shared.utils.initKoin
+import org.mifosx.openbanking.utils.initKoin
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader

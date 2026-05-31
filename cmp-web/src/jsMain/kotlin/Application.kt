@@ -5,8 +5,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import cmp.shared.SharedApp
-import cmp.shared.utils.initKoin
+import org.mifosx.openbanking.SharedApp
+import org.mifosx.openbanking.utils.initKoin
 import kotlinx.browser.document
 import kotlinx.browser.localStorage
 import kotlinx.browser.window
