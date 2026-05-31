@@ -116,6 +116,7 @@ val DataModule = module {
             api = get(),
             config = get(),
             cardsStore = get(AppStoreRegistry.Cards),
+            userCardsStore = get(AppStoreRegistry.UserCards),
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )

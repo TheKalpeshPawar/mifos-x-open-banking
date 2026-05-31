@@ -20,11 +20,18 @@ import template.core.base.store.infra.FetchedAtRepository
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.asScreenStream
 
-/** Read access to an account's OBP cards. */
+/** Read access to OBP cards — the current user's full list and per-account lists. */
 interface CardsRepository {
-    /** Durable, offline-first stream of an account's cards (cache-then-network). */
+    /**
+     * Durable, offline-first stream of EVERY card the current user holds across all
+     * accounts (GET /obp/v7.0.0/cards). This is the "My Cards" carousel source.
+     */
+    fun userCardsStream(scope: CoroutineScope): ScreenDataStream<List<Card>>
+
+    /** Durable, offline-first stream of one account's cards (cache-then-network). */
     fun cardsStream(accountId: String, scope: CoroutineScope): ScreenDataStream<List<Card>>
 
+    suspend fun listUserCards(): Result<List<Card>>
     suspend fun listCards(accountId: String): Result<List<Card>>
     suspend fun getCard(accountId: String, cardId: String): Result<Card>
 }
@@ -33,9 +40,20 @@ class CardsRepositoryImpl(
     private val api: CardsApi,
     private val config: ObpConfig,
     private val cardsStore: Store<String, List<Card>>,
+    private val userCardsStore: Store<Unit, List<Card>>,
     private val networkMonitor: NetworkMonitor,
     private val fetchedAtRepository: FetchedAtRepository,
 ) : CardsRepository {
+
+    override fun userCardsStream(scope: CoroutineScope): ScreenDataStream<List<Card>> =
+        userCardsStore.asScreenStream(
+            key = Unit,
+            networkMonitor = networkMonitor,
+            fetchedAtRepository = fetchedAtRepository,
+            cacheKey = "user-cards",
+            scope = scope,
+            isEmpty = { it.isEmpty() },
+        )
 
     override fun cardsStream(
         accountId: String,
@@ -49,6 +67,9 @@ class CardsRepositoryImpl(
             scope = scope,
             isEmpty = { it.isEmpty() },
         )
+
+    override suspend fun listUserCards(): Result<List<Card>> =
+        api.getCardsForCurrentUser().toResult().map { it.cards }
 
     override suspend fun listCards(accountId: String): Result<List<Card>> =
         api.listCards(config.bankId, accountId).toResult().map { it.cards }

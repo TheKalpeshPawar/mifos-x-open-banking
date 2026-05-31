@@ -131,7 +131,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
     composableWithStayTransitions<BeneficiariesRoute> { PlaceholderScreen("Beneficiaries") }
-    composableWithStayTransitions<CardsRoute> { PlaceholderScreen("Cards") }
+    // CardsRoute is registered with the real feature:cards screen in the navbar NavHost.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }

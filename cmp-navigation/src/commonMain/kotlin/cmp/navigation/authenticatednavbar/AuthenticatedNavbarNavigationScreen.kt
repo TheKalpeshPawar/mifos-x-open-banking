@@ -32,7 +32,10 @@ import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AccountApplicationsRoute
 import cmp.navigation.placeholder.AccountDetailRoute
 import cmp.navigation.placeholder.AccountsRoute
+import cmp.navigation.placeholder.CardDetailRoute
+import cmp.navigation.placeholder.CardsRoute
 import cmp.navigation.placeholder.FoDashboardRoute
+import cmp.navigation.placeholder.TransactionDetailRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -42,6 +45,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
+import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.profileDestination
@@ -89,6 +93,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val scope = rememberCoroutineScope()
+
     // Flavor-aware tab set, resolved from the userType build flavor (app-shell.yaml).
     val isFieldOfficer = BuildKonfig.IS_FIELDOFFICER
     val navigationItems = if (isFieldOfficer) fieldOfficerNavBarTabs else consumerNavBarTabs
@@ -137,6 +143,18 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 AccountsScreen(
                     onAccountClick = { navController.navigate(AccountDetailRoute) },
                     onRequestNewAccount = { navController.navigate(AccountApplicationsRoute) },
+                )
+            }
+
+            // Cards tab — real feature module. Carousel + per-account transactions are live;
+            // card controls (freeze/limit/PIN/report/order) surface a "coming soon" snackbar
+            // (no consumer OBP endpoint — see CardsViewModel). card-detail + transaction-detail
+            // remain Phase 2 placeholders until their feature modules land.
+            composableWithStayTransitions<CardsRoute> {
+                CardsScreen(
+                    onCardClick = { navController.navigate(CardDetailRoute) },
+                    onTransactionClick = { navController.navigate(TransactionDetailRoute) },
+                    onDeferred = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
                 )
             }
 

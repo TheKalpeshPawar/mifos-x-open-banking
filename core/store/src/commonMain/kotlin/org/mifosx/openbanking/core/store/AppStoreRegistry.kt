@@ -44,6 +44,9 @@ object AppStoreRegistry : StoreRegistry() {
     /** Per-account cards (Store5, keyed by accountId). */
     val Cards = store("cards")
 
+    /** Current user's full card list across all accounts (Store5, keyed by Unit). */
+    val UserCards = store("user-cards")
+
     /** Per-account counterparties / payees (Store5, keyed by accountId). */
     val Counterparties = store("counterparties")
 

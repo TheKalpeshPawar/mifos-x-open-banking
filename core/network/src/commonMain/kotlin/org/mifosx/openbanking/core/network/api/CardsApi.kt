@@ -16,8 +16,16 @@ import org.mifosx.openbanking.core.model.obp.CardsResponse
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
-/** OBP card endpoints for an account. */
+/** OBP card endpoints. */
 interface CardsApi {
+
+    /**
+     * Get every card the current user has been issued, across all their accounts.
+     * Verified live against apisandbox.openbankproject.com (2026-05-31): consumer
+     * DirectLogin, no special role. This is the carousel's data source.
+     */
+    @GET("v7.0.0/cards")
+    suspend fun getCardsForCurrentUser(): NetworkResult<CardsResponse, NetworkError>
 
     @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/cards")
     suspend fun listCards(

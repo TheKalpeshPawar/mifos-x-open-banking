@@ -17,6 +17,7 @@ import org.mifosx.openbanking.core.store.accounts.provideAccountsStore
 import org.mifosx.openbanking.core.store.applications.provideAccountApplicationsStore
 import org.mifosx.openbanking.core.store.atm.provideAtmStore
 import org.mifosx.openbanking.core.store.cards.provideCardsStore
+import org.mifosx.openbanking.core.store.cards.provideUserCardsStore
 import org.mifosx.openbanking.core.store.customers.provideCustomersStore
 import org.mifosx.openbanking.core.store.directdebits.provideDirectDebitsStore
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
@@ -71,6 +72,9 @@ val appStoreModule: Module = module {
     single(AppStoreRegistry.Cards) {
         provideCardsStore(api = get(), config = get(), dao = get(), json = get())
     }
+    single(AppStoreRegistry.UserCards) {
+        provideUserCardsStore(api = get(), dao = get(), json = get())
+    }
     single(AppStoreRegistry.Counterparties) {
         provideCounterpartiesStore(api = get(), config = get(), dao = get(), json = get())
     }
@@ -105,6 +109,7 @@ val appStoreModule: Module = module {
         mgr.register(get(AppStoreRegistry.Accounts))
         mgr.register(get(AppStoreRegistry.Transactions))
         mgr.register(get(AppStoreRegistry.Cards))
+        mgr.register(get(AppStoreRegistry.UserCards))
         mgr.register(get(AppStoreRegistry.Counterparties))
         mgr.register(get(AppStoreRegistry.StandingOrders))
         mgr.register(get(AppStoreRegistry.DirectDebits))
