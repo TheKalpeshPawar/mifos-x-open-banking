@@ -13,7 +13,6 @@ import cmp.navigation.AppViewModel
 import cmp.navigation.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
 import cmp.navigation.rootnav.RootNavViewModel
 import org.koin.core.module.dsl.viewModelOf
-import org.openmf.kmptemplate.BuildKonfig
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.di.DataModule
 import org.mifosx.openbanking.core.database.di.DatabaseModule
@@ -24,6 +23,7 @@ import org.mifosx.openbanking.feature.cards.di.CardsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
 import org.mifosx.openbanking.feature.settings.SettingsModule
+import org.openmf.kmptemplate.BuildKonfig
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
 import template.core.base.platform.di.platformModule
