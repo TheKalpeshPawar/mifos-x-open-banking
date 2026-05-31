@@ -31,7 +31,6 @@ private class FakeAuthApi(
 ) : AuthApi {
     var lastAuthorization: String? = null
     override suspend fun directLogin(
-        bankId: String,
         authorization: String,
     ): NetworkResult<DirectLoginResponse, NetworkError> {
         lastAuthorization = authorization

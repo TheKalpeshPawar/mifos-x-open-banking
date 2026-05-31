@@ -25,8 +25,8 @@ interface AccountsApi {
         @Path("bankId") bankId: String,
     ): NetworkResult<AccountsResponse, NetworkError>
 
-    /** Cross-bank accounts for the current user — used by the home balance summary. */
-    @GET("v4.0.0/my/accounts")
+    /** Cross-bank accounts for the current user — the canonical account-list read. */
+    @GET("v3.0.0/my/accounts")
     suspend fun myAccounts(): NetworkResult<AccountsResponse, NetworkError>
 
     /** Full detail for a single account. */

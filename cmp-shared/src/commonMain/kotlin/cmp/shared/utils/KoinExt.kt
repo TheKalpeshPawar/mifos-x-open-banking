@@ -15,12 +15,14 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.koinApplication
 
 fun koinConfiguration() = koinApplication {
+    properties(KoinModules.koinProperties)
     modules(KoinModules.allModules)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {
     startKoin {
         config?.invoke(this)
+        properties(KoinModules.koinProperties)
         modules(KoinModules.allModules)
     }
 }

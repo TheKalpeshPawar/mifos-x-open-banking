@@ -29,7 +29,7 @@ class ObpAuthRepositoryImpl(
 
     override suspend fun login(username: String, password: String): Result<Unit> {
         val header = ObpAuth.loginHeader(username, password, config.consumerKey)
-        return authApi.directLogin(config.bankId, header)
+        return authApi.directLogin(header)
             .toResult()
             .map { response -> tokenProvider.setToken(response.token) }
     }

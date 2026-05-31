@@ -45,7 +45,7 @@ class AccountsRepositoryImpl(
         )
 
     override suspend fun listAccounts(): Result<List<Account>> =
-        api.listAccounts(config.bankId).toResult().map { it.accounts }
+        api.myAccounts().toResult().map { it.accounts }
 
     override suspend fun myAccounts(): Result<List<Account>> =
         api.myAccounts().toResult().map { it.accounts }

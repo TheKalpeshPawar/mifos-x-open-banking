@@ -64,7 +64,11 @@ import org.mifosx.openbanking.core.network.obp.obpKtorfit
  * OBP endpoint group. New OBP services are registered here as their APIs are added.
  */
 val NetworkModule = module {
-    single { ObpConfig() }
+    // consumer_key is supplied as a Koin property at startup (set from
+    // BuildKonfig.OBP_CONSUMER_KEY in the app module, which is sourced from the
+    // gitignored local.properties) — never hardcoded in source (CREDS-LIFECYCLE).
+    // core:network has no generated BuildKonfig, so it reads the property instead.
+    single { ObpConfig(consumerKey = getProperty("obp_consumer_key", "")) }
     single<ObpTokenProvider> { InMemoryObpTokenProvider() }
     single<HttpClient> { obpHttpClient(config = get(), tokenProvider = get()) }
     single<Ktorfit> { obpKtorfit(client = get()) }

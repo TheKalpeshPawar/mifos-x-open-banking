@@ -35,8 +35,10 @@ data class UserData(
             darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
             useDynamicColor = false,
             appLanguage = LanguageConfig.DEFAULT,
-            isAuthenticated = true,
-            isUnlocked = true,
+            // Boot to the login screen (both demo + prod) until the user signs in via
+            // OBP DirectLogin. RootNavViewModel routes to RootNavState.Auth while false.
+            isAuthenticated = false,
+            isUnlocked = false,
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
             showOnboarding = false,

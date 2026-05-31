@@ -13,7 +13,6 @@ import de.jensklingenberg.ktorfit.http.Field
 import de.jensklingenberg.ktorfit.http.FormUrlEncoded
 import de.jensklingenberg.ktorfit.http.Header
 import de.jensklingenberg.ktorfit.http.POST
-import de.jensklingenberg.ktorfit.http.Path
 import org.mifosx.openbanking.core.model.obp.DirectLoginResponse
 import org.mifosx.openbanking.core.model.obp.MessageResponse
 import org.mifosx.openbanking.core.model.obp.OidcToken
@@ -28,9 +27,11 @@ interface AuthApi {
      * `Authorization` header (see [org.mifosx.openbanking.core.network.obp.ObpAuth.loginHeader]),
      * not the body.
      */
-    @POST("v4.0.0/banks/{bankId}/direct_login")
+    // DirectLogin is NOT bank-scoped — the canonical endpoint is /my/logins/direct
+    // (verified live: /obp/v6.0.0/my/logins/direct → 201 + token). Credentials travel
+    // in the Authorization header (see ObpAuth.loginHeader), not the body.
+    @POST("v6.0.0/my/logins/direct")
     suspend fun directLogin(
-        @Path("bankId") bankId: String,
         @Header("Authorization") authorization: String,
     ): NetworkResult<DirectLoginResponse, NetworkError>
 

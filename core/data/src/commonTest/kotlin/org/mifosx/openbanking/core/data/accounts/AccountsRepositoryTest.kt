@@ -65,7 +65,7 @@ private class FakeObpCacheDao : ObpCacheDao {
 private fun buildRepo(api: AccountsApi, config: ObpConfig) = AccountsRepositoryImpl(
     api = api,
     config = config,
-    accountsStore = provideAccountsStore(api, config, FakeObpCacheDao(), Json { ignoreUnknownKeys = true }),
+    accountsStore = provideAccountsStore(api, FakeObpCacheDao(), Json { ignoreUnknownKeys = true }),
     networkMonitor = NetworkMonitorImpl(),
     fetchedAtRepository = NoopFetchedAt,
 )

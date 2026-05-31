@@ -30,6 +30,7 @@ class AppViewModel(
 ) : BaseViewModel<AppState, AppEvent, AppAction>(
     initialState = AppState(
         darkTheme = false,
+        followSystem = true,
         isAndroidTheme = false,
         isDynamicColorsEnabled = false,
         isScreenCaptureAllowed = false,
@@ -87,7 +88,10 @@ class AppViewModel(
 
     private fun handleAppThemeUpdated(action: AppAction.Internal.ThemeUpdate) {
         mutableStateFlow.update {
-            it.copy(darkTheme = action.theme == DarkThemeConfig.DARK)
+            it.copy(
+                darkTheme = action.theme == DarkThemeConfig.DARK,
+                followSystem = action.theme == DarkThemeConfig.FOLLOW_SYSTEM,
+            )
         }
         sendEvent(AppEvent.UpdateAppTheme(osValue = action.theme.osValue))
     }
@@ -112,6 +116,7 @@ class AppViewModel(
 
 data class AppState(
     val darkTheme: Boolean,
+    val followSystem: Boolean,
     val isAndroidTheme: Boolean,
     val isDynamicColorsEnabled: Boolean,
     val isScreenCaptureAllowed: Boolean,

@@ -15,7 +15,6 @@ import org.mifosx.openbanking.core.database.cache.ObpCacheDao
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.ObpException
 import org.mifosx.openbanking.core.network.api.AccountsApi
-import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.store.infra.jsonCachedStore
 import org.mobilenativefoundation.store.store5.Store
 import template.core.base.network.NetworkResult
@@ -27,7 +26,6 @@ import template.core.base.network.NetworkResult
  */
 fun provideAccountsStore(
     api: AccountsApi,
-    config: ObpConfig,
     dao: ObpCacheDao,
     json: Json,
 ): Store<Unit, List<Account>> = jsonCachedStore(
@@ -36,7 +34,7 @@ fun provideAccountsStore(
     json = json,
     serializer = ListSerializer(Account.serializer()),
 ) {
-    when (val result = api.listAccounts(config.bankId)) {
+    when (val result = api.myAccounts()) {
         is NetworkResult.Success -> result.data.accounts
         is NetworkResult.Error -> throw ObpException(reason = result.error.name)
     }

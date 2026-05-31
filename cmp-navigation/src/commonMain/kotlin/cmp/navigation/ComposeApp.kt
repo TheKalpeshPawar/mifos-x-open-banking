@@ -9,6 +9,7 @@
  */
 package cmp.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,8 +45,10 @@ fun ComposeApp(
         }
     }
 
+    val darkTheme = if (uiState.followSystem) isSystemInDarkTheme() else uiState.darkTheme
+
     MifosTheme(
-        darkTheme = uiState.darkTheme,
+        darkTheme = darkTheme,
         androidTheme = uiState.isAndroidTheme,
         useDynamicColor = uiState.isDynamicColorsEnabled,
     ) {

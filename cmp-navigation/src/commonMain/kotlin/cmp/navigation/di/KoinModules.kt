@@ -13,6 +13,7 @@ import cmp.navigation.AppViewModel
 import cmp.navigation.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
 import cmp.navigation.rootnav.RootNavViewModel
 import org.koin.core.module.dsl.viewModelOf
+import org.openmf.kmptemplate.BuildKonfig
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.di.DataModule
 import org.mifosx.openbanking.core.database.di.DatabaseModule
@@ -64,5 +65,15 @@ object KoinModules {
         DatastoreModule,
         featureModule,
         AppModule,
+    )
+
+    /**
+     * Koin properties injected at startup. The OBP consumer_key originates in the
+     * gitignored local.properties → BuildKonfig (generated only in flavor-aware app
+     * modules like this one) → consumed by core:network's ObpConfig via getProperty,
+     * so no other module needs to depend on BuildKonfig.
+     */
+    val koinProperties: Map<String, Any> = mapOf(
+        "obp_consumer_key" to BuildKonfig.OBP_CONSUMER_KEY,
     )
 }
