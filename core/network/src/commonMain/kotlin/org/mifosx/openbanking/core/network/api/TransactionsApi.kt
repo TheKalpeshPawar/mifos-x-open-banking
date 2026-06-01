@@ -20,7 +20,7 @@ import template.core.base.network.NetworkResult
 /** OBP transaction endpoints for an account. */
 interface TransactionsApi {
 
-    @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/transactions")
+    @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/owner/transactions")
     suspend fun listTransactions(
         @Path("bankId") bankId: String,
         @Path("accountId") accountId: String,
@@ -28,7 +28,7 @@ interface TransactionsApi {
         @Query("offset") offset: Int? = null,
     ): NetworkResult<TransactionsResponse, NetworkError>
 
-    @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/transactions/{transactionId}/transaction")
+    @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/owner/transactions/{transactionId}/transaction")
     suspend fun getTransaction(
         @Path("bankId") bankId: String,
         @Path("accountId") accountId: String,

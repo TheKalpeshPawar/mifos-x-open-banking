@@ -63,5 +63,8 @@ interface UserPreferencesRepository {
 
     suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean)
 
+    /** Persists (or clears, when null) the OBP DirectLogin session token in secure storage. */
+    suspend fun setAuthToken(token: String?)
+
     suspend fun clearUserData()
 }

@@ -20,16 +20,36 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Account(
     val id: String = "",
+    @SerialName("account_id") val accountId: String = "",
     val label: String = "",
     @SerialName("bank_id") val bankId: String = "",
     @SerialName("account_type") val accountType: String = "",
+    @SerialName("product_code") val productCode: String = "",
     val number: String = "",
     val iban: String = "",
     @SerialName("swift_bic") val swiftBic: String = "",
     val balance: AmountOfMoney = AmountOfMoney(),
     @SerialName("account_routings") val accountRoutings: List<AccountRouting> = emptyList(),
     val owners: List<AccountOwner> = emptyList(),
-)
+) {
+    /** Stable id across list (`id`) and v7 detail (`account_id`) responses. */
+    val accountIdOrId: String get() = id.ifBlank { accountId }
+
+    /** Account type across list (`account_type`) and v7 detail (`product_code`) responses. */
+    val typeOrProduct: String get() = accountType.ifBlank { productCode }
+
+    /**
+     * Human-facing account identifier for the list/detail rows: prefer IBAN, then the
+     * account number, then any routing address, falling back to the raw id.
+     */
+    val displayIdentifier: String
+        get() = iban.ifBlank {
+            number.ifBlank {
+                accountRoutings.firstOrNull { it.scheme.equals("IBAN", ignoreCase = true) }?.address
+                    ?: accountRoutings.firstOrNull()?.address.orEmpty()
+            }
+        }
+}
 
 @Serializable
 data class AccountOwner(

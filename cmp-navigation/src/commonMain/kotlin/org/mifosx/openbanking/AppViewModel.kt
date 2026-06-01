@@ -19,12 +19,14 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
+import org.mifosx.openbanking.core.network.obp.ObpTokenProvider
 import template.core.base.platform.garbage.GarbageCollectionManager
 import template.core.base.ui.viewmodel.BaseViewModel
 
 class AppViewModel(
     private val settingsRepository: UserDataRepository,
     private val garbageCollectionManager: GarbageCollectionManager,
+    private val tokenProvider: ObpTokenProvider,
 ) : BaseViewModel<AppState, AppEvent, AppAction>(
     initialState = AppState(
         darkTheme = false,
@@ -55,6 +57,12 @@ class AppViewModel(
             .distinctUntilChanged()
             .map { AppEvent.UpdateAppLocale(it.localeName) }
             .onEach(::sendEvent)
+            .launchIn(viewModelScope)
+
+        // A 401 from any OBP call invalidates the session (expired DirectLogin token, no
+        // refresh flow). Flip the auth flag false so RootNav routes back to the login screen.
+        tokenProvider.sessionInvalidations
+            .onEach { settingsRepository.setIsAuthenticated(false) }
             .launchIn(viewModelScope)
     }
 

@@ -19,8 +19,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -59,6 +59,7 @@ fun KptNavigationRail(
             navigationItems.forEach { navigationItem ->
                 KptNavigationRailItem(
                     contentDescriptionRes = navigationItem.contentDescriptionRes,
+                    labelRes = navigationItem.labelRes,
                     selectedIconRes = navigationItem.selectedIcon,
                     unselectedIconRes = navigationItem.icon,
                     isSelected = navigationItem == selectedItem,

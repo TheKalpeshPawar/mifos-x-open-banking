@@ -26,6 +26,9 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
+    // OBP DirectLogin session token. Secure-only field — persisted to the encrypted
+    // settings store so the session survives process death (lost before: in-memory only).
+    val authToken: String? = null,
 ) {
     companion object {
         val DEFAULT = UserData(

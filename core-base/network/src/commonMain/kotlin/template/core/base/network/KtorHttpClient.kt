@@ -87,6 +87,9 @@ fun setupDefaultHttpClient(
         isLenient = true
         ignoreUnknownKeys = true
         explicitNulls = false
+        // OBP sends explicit `null` for optional string fields (e.g. metadata.narrative).
+        // Coerce those to the model's default instead of throwing JsonConvertException.
+        coerceInputValues = true
     },
     basicCredentialsProvider: (() -> BasicAuthCredentials)? = null,
     digestCredentialsProvider: (() -> DigestAuthCredentials)? = null,

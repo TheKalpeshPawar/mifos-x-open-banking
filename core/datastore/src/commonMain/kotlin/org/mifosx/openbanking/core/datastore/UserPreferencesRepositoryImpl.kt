@@ -89,6 +89,7 @@ class UserPreferencesRepositoryImpl(
                 passcode = secureData.passcode,
                 isAuthenticated = secureData.isAuthenticated,
                 isUnlocked = secureData.isUnlocked,
+                authToken = secureData.authToken,
             )
             secureData != null -> secureData
             plainData != null -> plainData
@@ -102,7 +103,7 @@ class UserPreferencesRepositoryImpl(
         get() = _userData.asStateFlow()
 
     override val authToken: String?
-        get() = null
+        get() = _userData.value.authToken
 
     override val passcode: String
         get() = _userData.value.passcode
@@ -165,8 +166,12 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) =
         updatePreference { it.copy(enableScreenCapture = isScreenCaptureEnabled) }
 
+    override suspend fun setAuthToken(token: String?) =
+        updatePreference { it.copy(authToken = token) }
+
     override suspend fun clearUserData() {
         setIsAuthenticated(false)
+        setAuthToken(null)
         // TODO:: Uncomment this line when Unlocked Screen is Present
         // setIsUnlocked(false)
     }
@@ -176,7 +181,8 @@ private fun Settings.putUserPreference(preference: UserData) {
     encodeValue(
         key = USER_DATA_KEY,
         serializer = UserData.serializer(),
-        value = preference,
+        // The session token is secure-only; never write it to the plain store.
+        value = preference.copy(authToken = null),
     )
 }
 

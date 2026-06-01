@@ -52,9 +52,9 @@ import org.mifosx.openbanking.core.network.api.createProductsApi
 import org.mifosx.openbanking.core.network.api.createProfileApi
 import org.mifosx.openbanking.core.network.api.createStandingOrdersApi
 import org.mifosx.openbanking.core.network.api.createTransactionsApi
-import org.mifosx.openbanking.core.network.obp.InMemoryObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.network.obp.ObpTokenProvider
+import org.mifosx.openbanking.core.network.obp.PersistentObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.obpHttpClient
 import org.mifosx.openbanking.core.network.obp.obpKtorfit
 
@@ -69,7 +69,7 @@ val NetworkModule = module {
     // gitignored local.properties) — never hardcoded in source (CREDS-LIFECYCLE).
     // core:network has no generated BuildKonfig, so it reads the property instead.
     single { ObpConfig(consumerKey = getProperty("obp_consumer_key", "")) }
-    single<ObpTokenProvider> { InMemoryObpTokenProvider() }
+    single<ObpTokenProvider> { PersistentObpTokenProvider(preferences = get()) }
     single<HttpClient> { obpHttpClient(config = get(), tokenProvider = get()) }
     single<Ktorfit> { obpKtorfit(client = get()) }
 

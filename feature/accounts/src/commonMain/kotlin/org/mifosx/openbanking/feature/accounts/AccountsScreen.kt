@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.accounts
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
@@ -37,6 +39,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -188,10 +191,24 @@ private fun FilterTabs(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AccountTypeFilter.entries.forEach { filter ->
+            val selected = filter == activeFilter
             FilterChip(
-                selected = filter == activeFilter,
+                selected = selected,
                 onClick = { onFilterChanged(filter) },
                 label = { Text(filter.label, style = MaterialTheme.typography.labelMedium) },
+                shape = RoundedCornerShape(20.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = selected,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant,
+                    selectedBorderColor = MaterialTheme.colorScheme.primary,
+                ),
             )
         }
     }
@@ -203,11 +220,16 @@ private fun AccountCard(account: Account, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(16.dp),
+            ),
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             Box(
@@ -216,27 +238,44 @@ private fun AccountCard(account: Account, onClick: () -> Unit) {
                     .fillMaxHeight()
                     .background(accent),
             )
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = account.label.ifBlank { "Account" },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(8.dp))
-                TypeBadge(account = account)
-                Spacer(Modifier.height(8.dp))
+            Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = account.label.ifBlank { "Account" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TypeBadge(account = account)
+                }
+                Spacer(Modifier.height(12.dp))
                 Text(
                     text = formatMoney(account.balance.amount, account.balance.currency),
                     style = MaterialTheme.typography.displaySmall,
-                    color = accent,
+                    color = balanceColor(account),
                 )
-                if (account.iban.isNotBlank()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = account.iban,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                val identifier = account.displayIdentifier
+                if (identifier.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.AccountBox,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = identifier,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -245,14 +284,26 @@ private fun AccountCard(account: Account, onClick: () -> Unit) {
 
 @Composable
 private fun TypeBadge(account: Account) {
+    val isSavings = account.typeOrProduct.contains("savings", ignoreCase = true)
+    val isBusiness = account.typeOrProduct.contains("business", ignoreCase = true)
+    val container = when {
+        isSavings -> MaterialTheme.colorScheme.secondaryContainer
+        isBusiness -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val onContainer = when {
+        isSavings -> MaterialTheme.colorScheme.onSecondaryContainer
+        isBusiness -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
     Surface(
         shape = RoundedCornerShape(6.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = container,
     ) {
         Text(
-            text = account.accountType.ifBlank { "ACCOUNT" }.uppercase(),
+            text = account.typeOrProduct.ifBlank { "ACCOUNT" }.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = onContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
     }
@@ -267,7 +318,7 @@ private fun TotalFooter(count: Int, total: Double, currency: String) {
         )
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.background,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 4.dp),
@@ -388,11 +439,22 @@ private fun ErrorState(onRetry: () -> Unit) {
     }
 }
 
+/** Decorative left-border accent: checking=primary, savings=secondary, business=amber. */
 @Composable
 private fun accentColor(account: Account): Color = when {
-    account.accountType.contains("savings", ignoreCase = true) ->
+    account.typeOrProduct.contains("savings", ignoreCase = true) ->
         MaterialTheme.colorScheme.secondary
-    account.accountType.contains("business", ignoreCase = true) -> BusinessAccent
+    account.typeOrProduct.contains("business", ignoreCase = true) -> BusinessAccent
+    else -> MaterialTheme.colorScheme.primary
+}
+
+/** Balance text color: checking=primary, savings=secondary, business=onSurface (per preview). */
+@Composable
+private fun balanceColor(account: Account): Color = when {
+    account.typeOrProduct.contains("savings", ignoreCase = true) ->
+        MaterialTheme.colorScheme.secondary
+    account.typeOrProduct.contains("business", ignoreCase = true) ->
+        MaterialTheme.colorScheme.onSurface
     else -> MaterialTheme.colorScheme.primary
 }
 
@@ -404,8 +466,42 @@ private fun formatMoney(amount: String, currency: String): String {
 
 private fun formatMoney(amount: Double, currency: String): String {
     val cents = kotlin.math.round(amount * 100).toLong()
-    val whole = cents / 100
-    val frac = (if (cents < 0) -cents else cents) % 100
-    val number = "$whole.${frac.toString().padStart(2, '0')}"
-    return if (currency.isBlank()) number else "$currency $number"
+    val negative = cents < 0
+    val absCents = if (negative) -cents else cents
+    val whole = absCents / 100
+    val frac = absCents % 100
+    val grouped = groupThousands(whole)
+    val symbol = currencySymbol(currency)
+    val sign = if (negative) "-" else ""
+    return "$sign$symbol$grouped.${frac.toString().padStart(2, '0')}"
+}
+
+/** Inserts thousands separators into a non-negative whole-number string. */
+private fun groupThousands(value: Long): String {
+    val digits = value.toString()
+    if (digits.length <= 3) return digits
+    val sb = StringBuilder()
+    val firstGroup = digits.length % 3
+    if (firstGroup > 0) {
+        sb.append(digits, 0, firstGroup)
+        if (digits.length > firstGroup) sb.append(',')
+    }
+    var i = firstGroup
+    while (i < digits.length) {
+        sb.append(digits, i, i + 3)
+        if (i + 3 < digits.length) sb.append(',')
+        i += 3
+    }
+    return sb.toString()
+}
+
+/** Maps an ISO currency code to its symbol, falling back to the code plus a space. */
+private fun currencySymbol(currency: String): String = when (currency.uppercase()) {
+    "GBP" -> "£"
+    "EUR" -> "€"
+    "USD" -> "$"
+    "INR" -> "₹"
+    "JPY" -> "¥"
+    "" -> ""
+    else -> "$currency "
 }

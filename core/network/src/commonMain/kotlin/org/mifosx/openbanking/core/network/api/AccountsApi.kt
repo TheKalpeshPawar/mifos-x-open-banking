@@ -35,4 +35,14 @@ interface AccountsApi {
         @Path("bankId") bankId: String,
         @Path("accountId") accountId: String,
     ): NetworkResult<Account, NetworkError>
+
+    /**
+     * Core detail for one of the current user's accounts — includes balance, number and
+     * routings, which the `/my/accounts` list omits. Used to enrich the account list.
+     */
+    @GET("v7.0.0/my/banks/{bankId}/accounts/{accountId}/account")
+    suspend fun myAccountDetail(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+    ): NetworkResult<Account, NetworkError>
 }

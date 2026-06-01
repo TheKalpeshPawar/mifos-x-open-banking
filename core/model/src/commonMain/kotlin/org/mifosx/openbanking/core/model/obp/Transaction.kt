@@ -54,7 +54,8 @@ data class TransactionDetails(
 @Serializable
 data class TransactionMetadata(
     val narrative: String = "",
-    val tags: List<String> = emptyList(),
+    // OBP serializes `tags` as objects, not strings, and the app does not use them;
+    // omit the field so ignoreUnknownKeys skips it rather than failing deserialization.
 )
 
 /** Wrapper for the OBP transactions-list response (`{ "transactions": [...] }`). */

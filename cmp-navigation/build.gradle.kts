@@ -21,6 +21,7 @@ kotlin {
             implementation(projects.core.data)
             implementation(projects.core.database)
             implementation(projects.core.model)
+            implementation(projects.core.network)
             implementation(projects.core.common)
             implementation(projects.core.datastore)
 

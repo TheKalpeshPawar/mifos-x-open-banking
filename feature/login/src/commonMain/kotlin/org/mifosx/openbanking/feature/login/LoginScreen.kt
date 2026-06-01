@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -95,20 +96,26 @@ private fun LoginContent(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (state.oauthPhase) {
-        OAuthPhase.REDIRECTING -> OAuthTakeover(
-            title = "Redirecting to Open Bank Project",
-            message = "Opening your browser for secure OAuth authentication…",
-            modifier = modifier,
-        )
+    // The login flow renders outside the app scaffold, so it must paint its own themed
+    // background — otherwise the bare composables show the window background and the
+    // screen looks dark regardless of the active color scheme.
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        when (state.oauthPhase) {
+            OAuthPhase.REDIRECTING -> OAuthTakeover(
+                title = "Redirecting to Open Bank Project",
+                message = "Opening your browser for secure OAuth authentication…",
+            )
 
-        OAuthPhase.EXCHANGING -> OAuthTakeover(
-            title = "Completing Sign In",
-            message = "Exchanging authorization code for your session token…",
-            modifier = modifier,
-        )
+            OAuthPhase.EXCHANGING -> OAuthTakeover(
+                title = "Completing Sign In",
+                message = "Exchanging authorization code for your session token…",
+            )
 
-        OAuthPhase.NONE -> LoginForm(state = state, onAction = onAction, modifier = modifier)
+            OAuthPhase.NONE -> LoginForm(state = state, onAction = onAction)
+        }
     }
 }
 

@@ -150,13 +150,20 @@ private fun CardCarousel(cards: List<Card>, onCardClick: (Card) -> Unit) {
     }
 }
 
+// Fixed brand-art gradients (theme-independent, per the screen preview). The card face is a
+// deep coloured surface in both light and dark — Visa green, Mastercard teal — so it must NOT
+// derive from primary/primaryContainer (which flip pale in dark mode and wash the card out).
+private val VisaGradient = listOf(Color(0xFF3D5424), Color(0xFF4C662B), Color(0xFF2D3E1E))
+private val MastercardGradient = listOf(Color(0xFF2C5250), Color(0xFF386663), Color(0xFF1E3A38))
+private val CardNameColor = Color(0xFFCDEDA3).copy(alpha = 0.9f)
+
 @Composable
 private fun PaymentCard(card: Card, onClick: () -> Unit) {
     val isActive = card.enabled && !card.cancelled
     val gradient = if (card.network.equals("MASTERCARD", ignoreCase = true)) {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer))
+        Brush.linearGradient(MastercardGradient)
     } else {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer))
+        Brush.linearGradient(VisaGradient)
     }
     Surface(
         onClick = onClick,
@@ -188,23 +195,29 @@ private fun PaymentCard(card: Card, onClick: () -> Unit) {
                 Text(
                     text = card.nameOnCard.uppercase(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = CardNameColor,
                 )
             }
         }
     }
 }
 
+// Status chips sit ON the coloured card face, so they use fixed translucent fills (per
+// preview) rather than theme roles — active = translucent brand green, frozen = translucent grey.
+private val ChipActiveBg = Color(0xFF4C662B).copy(alpha = 0.85f)
+private val ChipFrozenBg = Color(0xFFC5C8BA).copy(alpha = 0.3f)
+private val ChipFrozenText = Color(0xFFC5C8BA)
+
 @Composable
 private fun StatusChip(active: Boolean) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        color = if (active) ChipActiveBg else ChipFrozenBg,
     ) {
         Text(
             text = if (active) "Active" else "Frozen",
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = if (active) Color.White else ChipFrozenText,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
@@ -374,8 +387,11 @@ private fun ErrorState(onRetry: () -> Unit) {
     }
 }
 
+// Card purchases name the merchant in the transaction description; the counterparty
+// holder is the acquiring/settlement account, not the shop. Prefer the description so
+// the card feed reads as purchases, falling back to the counterparty name.
 private fun transactionLabel(tx: Transaction): String =
-    tx.otherAccount.holder.name.ifBlank { tx.details.description.ifBlank { "Transaction" } }
+    tx.details.description.ifBlank { tx.otherAccount.holder.name.ifBlank { "Transaction" } }
 
 /** Masks all but the last four digits of an OBP card number for display. */
 private fun maskedNumber(raw: String): String {

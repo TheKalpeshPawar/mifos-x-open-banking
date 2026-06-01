@@ -41,6 +41,7 @@ private class FakeAccountsApi(
     override suspend fun listAccounts(bankId: String) = accountsResult
     override suspend fun myAccounts() = accountsResult
     override suspend fun accountDetail(bankId: String, accountId: String) = detailResult
+    override suspend fun myAccountDetail(bankId: String, accountId: String) = detailResult
 }
 
 private object NoopFetchedAt : FetchedAtRepository {

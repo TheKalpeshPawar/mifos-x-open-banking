@@ -17,6 +17,6 @@ package org.mifosx.openbanking.core.network.obp
 data class ObpConfig(
     // Trailing slash is required so Ktorfit relative paths resolve under /obp/.
     val baseUrl: String = "https://apisandbox.openbankproject.com/obp/",
-    val bankId: String = "rbs",
+    val bankId: String = "ac.bank.uk",
     val consumerKey: String = "",
 )
