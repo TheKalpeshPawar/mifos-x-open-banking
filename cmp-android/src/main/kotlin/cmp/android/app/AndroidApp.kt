@@ -12,7 +12,6 @@ package cmp.android.app
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import org.mifosx.openbanking.utils.initKoin
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -26,6 +25,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mifosx.openbanking.core.data.user.UserDataRepository
+import org.mifosx.openbanking.utils.initKoin
 import template.core.base.ui.util.getDefaultImageLoader
 
 /**

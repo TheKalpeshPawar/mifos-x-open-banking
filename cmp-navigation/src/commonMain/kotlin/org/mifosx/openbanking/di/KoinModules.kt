@@ -9,11 +9,10 @@
  */
 package org.mifosx.openbanking.di
 
-import org.mifosx.openbanking.AppViewModel
-import org.mifosx.openbanking.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
-import org.mifosx.openbanking.rootnav.RootNavViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.mifosx.openbanking.AppViewModel
+import org.mifosx.openbanking.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
 import org.mifosx.openbanking.core.data.di.DataModule
 import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
@@ -23,6 +22,7 @@ import org.mifosx.openbanking.feature.cards.di.CardsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
 import org.mifosx.openbanking.feature.settings.SettingsModule
+import org.mifosx.openbanking.rootnav.RootNavViewModel
 import org.openmf.kmptemplate.BuildKonfig
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule

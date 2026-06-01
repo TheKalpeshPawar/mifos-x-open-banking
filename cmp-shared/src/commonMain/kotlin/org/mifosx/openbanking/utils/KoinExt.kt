@@ -9,10 +9,10 @@
  */
 package org.mifosx.openbanking.utils
 
-import org.mifosx.openbanking.di.KoinModules
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.koinApplication
+import org.mifosx.openbanking.di.KoinModules
 
 fun koinConfiguration() = koinApplication {
     properties(KoinModules.koinProperties)

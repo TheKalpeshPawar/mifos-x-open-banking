@@ -15,9 +15,9 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navigation
+import kotlinx.serialization.Serializable
 import org.mifosx.openbanking.authenticatednavbar.AuthenticatedNavbarRoute
 import org.mifosx.openbanking.authenticatednavbar.authenticatedNavbarGraph
-import kotlinx.serialization.Serializable
 
 @Serializable
 internal data object AuthenticatedGraphRoute

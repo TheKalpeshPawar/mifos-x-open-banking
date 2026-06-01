@@ -15,9 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.mifosx.openbanking.rootnav.RootNavScreen
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.designsystem.theme.MifosTheme
+import org.mifosx.openbanking.rootnav.RootNavScreen
 import template.core.base.ui.effects.EventsEffect
 
 @Composable

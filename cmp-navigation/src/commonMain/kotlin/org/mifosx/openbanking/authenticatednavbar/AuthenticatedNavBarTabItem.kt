@@ -30,6 +30,13 @@ import cmp.navigation.generated.resources.home
 import cmp.navigation.generated.resources.messages
 import cmp.navigation.generated.resources.more
 import cmp.navigation.generated.resources.pay
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import org.jetbrains.compose.resources.StringResource
+import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.home.HomeDestination
+import org.mifosx.openbanking.feature.home.HomeRoute
+import org.mifosx.openbanking.feature.settings.SettingsRoute
 import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
@@ -38,13 +45,6 @@ import org.mifosx.openbanking.placeholder.CustomerSearchRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.utils.toObjectNavigationRoute
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import org.jetbrains.compose.resources.StringResource
-import org.mifosx.openbanking.core.ui.NavigationItem
-import org.mifosx.openbanking.feature.home.HomeDestination
-import org.mifosx.openbanking.feature.home.HomeRoute
-import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
  * Flavor-aware bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:

@@ -49,7 +49,6 @@ import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.profileDestination
-import org.mifosx.openbanking.feature.settings.SettingsRoute
 import org.mifosx.openbanking.feature.settings.notificationDestination
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.openmf.kmptemplate.BuildKonfig
@@ -129,9 +128,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popEnterTransition = RootTransitionProviders.Enter.fadeIn,
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
-            // Consumer Home tab — real shell; "More" routes to settings.
+            // Consumer Home tab — real shell. The gear shortcut opens Settings as the
+            // "More" tab (not a plain push) so Settings lives in the More tab's own
+            // back stack. Pushing it onto the Home stack made tab save/restore bring
+            // Settings back when returning to the Home tab.
             homeGraph(
-                onSettingsClick = { navController.navigate(SettingsRoute) },
+                onSettingsClick = { navController.navigateToTab(AuthenticatedNavBarTabItem.MoreTab) },
             )
             profileDestination()
             settingsDestination(onBackClick = navController::popBackStack)

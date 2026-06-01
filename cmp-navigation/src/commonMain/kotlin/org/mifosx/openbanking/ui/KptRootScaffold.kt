@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -64,8 +65,8 @@ fun KptRootScaffold(
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     navigationData: ScaffoldNavigationData? = null,
     pullToRefreshState: KptPullToRefreshState = rememberKptPullToRefreshState(),
-    containerColor: Color = Color.White,
-    contentColor: Color = Color.Black,
+    containerColor: Color = MaterialTheme.colorScheme.background,
+    contentColor: Color = MaterialTheme.colorScheme.onBackground,
     contentWindowInsets: WindowInsets = ScaffoldDefaults
         .contentWindowInsets
         .only(WindowInsetsSides.Horizontal),
