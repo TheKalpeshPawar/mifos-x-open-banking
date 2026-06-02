@@ -122,130 +122,138 @@ private fun LoginForm(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            imageVector = AppIcons.Bank,
-            contentDescription = "Mifos X logo",
-            tint = MaterialTheme.colorScheme.primary,
+    Column(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .size(80.dp)
-                .padding(bottom = 16.dp),
-        )
-        Text(
-            text = "Welcome Back",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = "Sign in to your Mifos X account",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
-        )
-
-        OutlinedTextField(
-            value = state.username,
-            onValueChange = { onAction(LoginAction.UsernameChanged(it)) },
-            label = { Text("Username") },
-            placeholder = { Text("Enter your username") },
-            singleLine = true,
-            enabled = !state.isLoading,
-            isError = state.errorMessage != null,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                imeAction = ImeAction.Next,
-            ),
-            shape = RoundedCornerShape(4.dp),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
-            label = { Text("Password") },
-            singleLine = true,
-            enabled = !state.isLoading,
-            isError = state.errorMessage != null,
-            visualTransformation = if (state.isPasswordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            trailingIcon = {
-                IconButton(onClick = { onAction(LoginAction.PasswordVisibilityToggled) }) {
-                    Icon(
-                        imageVector = if (state.isPasswordVisible) {
-                            AppIcons.VisibilityOff
-                        } else {
-                            AppIcons.Visibility
-                        },
-                        contentDescription = if (state.isPasswordVisible) {
-                            "Hide password"
-                        } else {
-                            "Show password"
-                        },
-                    )
-                }
-            },
-            shape = RoundedCornerShape(4.dp),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Checkbox(
-                checked = state.rememberMe,
-                onCheckedChange = { onAction(LoginAction.RememberMeToggled) },
-                enabled = !state.isLoading,
-                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+            Icon(
+                imageVector = AppIcons.Bank,
+                contentDescription = "Mifos X logo",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(80.dp)
+                    .padding(bottom = 16.dp),
             )
             Text(
-                text = "Keep me signed in",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = 8.dp),
+                text = "Welcome Back",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(bottom = 32.dp)
+                    .semantics { heading() },
             )
-        }
 
-        if (state.errorMessage != null) {
+            OutlinedTextField(
+                value = state.username,
+                onValueChange = { onAction(LoginAction.UsernameChanged(it)) },
+                label = { Text("Username") },
+                placeholder = { Text("Enter your username") },
+                singleLine = true,
+                enabled = !state.isLoading,
+                isError = state.errorMessage != null,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    imeAction = ImeAction.Next,
+                ),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(16.dp))
-            ErrorBanner(message = state.errorMessage)
-        }
 
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = { onAction(LoginAction.DirectLoginClicked) },
-            enabled = state.isFormValid && !state.isLoading,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(20.dp),
+            OutlinedTextField(
+                value = state.password,
+                onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
+                label = { Text("Password") },
+                singleLine = true,
+                enabled = !state.isLoading,
+                isError = state.errorMessage != null,
+                visualTransformation = if (state.isPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                trailingIcon = {
+                    IconButton(onClick = { onAction(LoginAction.PasswordVisibilityToggled) }) {
+                        Icon(
+                            imageVector = if (state.isPasswordVisible) {
+                                AppIcons.VisibilityOff
+                            } else {
+                                AppIcons.Visibility
+                            },
+                            contentDescription = if (state.isPasswordVisible) {
+                                "Hide password"
+                            } else {
+                                "Show password"
+                            },
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = state.rememberMe,
+                    onCheckedChange = { onAction(LoginAction.RememberMeToggled) },
+                    enabled = !state.isLoading,
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
                 )
-            } else {
-                Text("Sign In", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = "Keep me signed in",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
             }
+
+            if (state.errorMessage != null) {
+                Spacer(Modifier.height(16.dp))
+                ErrorBanner(message = state.errorMessage)
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = { onAction(LoginAction.DirectLoginClicked) },
+                enabled = state.isFormValid && !state.isLoading,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp),
+                    )
+                } else {
+                    Text("Sign In", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            LoginAlternativeAuth(state = state, onAction = onAction)
         }
 
-        LoginAlternativeAuth(state = state, onAction = onAction)
+        Text(
+            text = "Powered by Mifos",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 40.dp),
+        )
     }
 }
 
