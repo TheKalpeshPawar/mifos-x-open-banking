@@ -11,10 +11,6 @@ package org.mifosx.openbanking.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Earth-green M3 palette — reconciled to the idea-layer design-tokens (v3.0.0,
-// seed #4C662B) per RULE-DESIGN-MD-001. Roles not enumerated in the idea-layer
-// tokens (inverse*, surfaceDim/Bright, surfaceContainerLowest/Low/Highest) use
-// the canonical Material 3 values for this seed.
 val primaryLight = Color(0xFF4C662B)
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFFCDEDA3)

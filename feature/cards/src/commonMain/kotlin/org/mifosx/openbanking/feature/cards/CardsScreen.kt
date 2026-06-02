@@ -150,9 +150,6 @@ private fun CardCarousel(cards: List<Card>, onCardClick: (Card) -> Unit) {
     }
 }
 
-// Fixed brand-art gradients (theme-independent, per the screen preview). The card face is a
-// deep coloured surface in both light and dark — Visa green, Mastercard teal — so it must NOT
-// derive from primary/primaryContainer (which flip pale in dark mode and wash the card out).
 private val VisaGradient = listOf(Color(0xFF3D5424), Color(0xFF4C662B), Color(0xFF2D3E1E))
 private val MastercardGradient = listOf(Color(0xFF2C5250), Color(0xFF386663), Color(0xFF1E3A38))
 private val CardNameColor = Color(0xFFCDEDA3).copy(alpha = 0.9f)
@@ -202,8 +199,6 @@ private fun PaymentCard(card: Card, onClick: () -> Unit) {
     }
 }
 
-// Status chips sit ON the coloured card face, so they use fixed translucent fills (per
-// preview) rather than theme roles — active = translucent brand green, frozen = translucent grey.
 private val ChipActiveBg = Color(0xFF4C662B).copy(alpha = 0.85f)
 private val ChipFrozenBg = Color(0xFFC5C8BA).copy(alpha = 0.3f)
 private val ChipFrozenText = Color(0xFFC5C8BA)
@@ -387,9 +382,6 @@ private fun ErrorState(onRetry: () -> Unit) {
     }
 }
 
-// Card purchases name the merchant in the transaction description; the counterparty
-// holder is the acquiring/settlement account, not the shop. Prefer the description so
-// the card feed reads as purchases, falling back to the counterparty name.
 private fun transactionLabel(tx: Transaction): String =
     tx.details.description.ifBlank { tx.otherAccount.holder.name.ifBlank { "Transaction" } }
 
@@ -405,5 +397,6 @@ private fun formatAmount(amount: String, currency: String): String {
     val prefix = if (value != null && value < 0) "−" else ""
     val abs = value?.let { if (it < 0) -it else it }
     val number = abs?.let { it.toString() } ?: amount.removePrefix("-")
-    return "$prefix${currency.ifBlank { "" }} $number".trim()
+    val code = if (currency.isBlank()) "" else " $currency"
+    return "$prefix$number$code".trim()
 }

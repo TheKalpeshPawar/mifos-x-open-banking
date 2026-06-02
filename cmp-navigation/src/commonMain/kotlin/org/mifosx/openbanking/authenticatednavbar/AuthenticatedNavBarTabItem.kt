@@ -65,7 +65,6 @@ sealed class AuthenticatedNavBarTabItem(
     override val testTag: String,
 ) : NavigationItem {
 
-    // ─── Consumer ─────────────────────────────────────────────────────────────
     data object HomeTab : AuthenticatedNavBarTabItem(
         selectedIcon = Icons.Filled.Home,
         icon = Icons.Filled.Home,
@@ -106,7 +105,6 @@ sealed class AuthenticatedNavBarTabItem(
         testTag = "CardsTab",
     )
 
-    // ─── Field officer ──────────────────────────────────────────────────────────
     data object DashboardTab : AuthenticatedNavBarTabItem(
         selectedIcon = Icons.Filled.Dashboard,
         icon = Icons.Filled.Dashboard,
@@ -147,7 +145,6 @@ sealed class AuthenticatedNavBarTabItem(
         testTag = "MessagesTab",
     )
 
-    // ─── Shared ───────────────────────────────────────────────────────────────
     data object MoreTab : AuthenticatedNavBarTabItem(
         selectedIcon = Icons.Filled.MoreHoriz,
         icon = Icons.Filled.MoreHoriz,

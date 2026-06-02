@@ -52,8 +52,6 @@ class AccountsViewModel(
                 currency = accounts.firstOrNull()?.balance?.currency.orEmpty(),
             )
         }
-        // Only a genuinely empty account list collapses to the Empty state; a filter
-        // that excludes everything keeps Content so the user can switch filters back.
         .emptyIfContent { it.accountCount == 0 }
         .stateIn(
             scope = viewModelScope,

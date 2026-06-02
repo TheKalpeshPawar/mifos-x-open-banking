@@ -32,8 +32,6 @@ internal fun NavGraphBuilder.authenticatedGraph(
     navigation<AuthenticatedGraphRoute>(
         startDestination = AuthenticatedNavbarRoute,
     ) {
-        // The navbar hosts a nested NavHost with the flavor-aware bottom-nav tabs +
-        // all banking destinations (home/settings/notifications + Phase 2 placeholders).
         authenticatedNavbarGraph()
     }
 }

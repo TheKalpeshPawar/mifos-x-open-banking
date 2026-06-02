@@ -81,17 +81,12 @@ val DataModule = module {
     // DataFreshnessIndicator timestamps. Room-only by design (no in-memory fallback).
     single<FetchedAtRepository> { RoomFetchedAtRepository(get<AppDatabase>().fetchedAtDao) }
 
-    // Framework DraftDao — generic backing store for SubmitOutbox / DraftSubmitHandler.
-    // Reused by OBP banking submit flows (payments, standing orders) in Phase 3+.
     single { get<AppDatabase>().draftDao }
 
     single<UserLogoutManager> { UserLogoutManagerImpl(get(), get(), get()) }
 
-    // App-scoped CoroutineScope for cross-VM long-running coroutines.
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
-    // OBP banking repositories. Store5 cache wrapping is added per service in the
-    // data-layer fan-out; Accounts + DirectLogin auth land the canonical pattern here.
     single<ObpAuthRepository> { ObpAuthRepositoryImpl(authApi = get(), config = get(), tokenProvider = get()) }
     single<AccountsRepository> {
         AccountsRepositoryImpl(

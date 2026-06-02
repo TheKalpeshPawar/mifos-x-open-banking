@@ -20,9 +20,6 @@ data class Card(
     @SerialName("bank_card_number") val bankCardNumber: String = "",
     @SerialName("name_on_card") val nameOnCard: String = "",
     @SerialName("card_type") val cardType: String = "",
-    // Per-account endpoint (v3.0.0) returns a singular card_network; the current-user
-    // endpoint (v7.0.0) returns a networks[] array. Both are kept so the same model
-    // serves both responses — prefer [network] for display.
     @SerialName("card_network") val cardNetwork: String = "",
     val networks: List<String> = emptyList(),
     @SerialName("expires_date") val expiresDate: String = "",
@@ -30,8 +27,6 @@ data class Card(
     val enabled: Boolean = false,
     val cancelled: Boolean = false,
     @SerialName("on_hot_list") val onHotList: Boolean = false,
-    // Present on GET /obp/v7.0.0/cards — the owning account, used to fetch the card's
-    // transactions. Absent on the per-account endpoint (defaults to empty).
     val account: CardAccountRef = CardAccountRef(),
 ) {
     /** Card network for logo selection — falls back from the array to the singular field. */

@@ -61,8 +61,6 @@ class CardsViewModel(
                 recentTransactions = transactions,
             )
         }
-        // Only a genuinely empty card list collapses to Empty; transactions arriving
-        // late never flip the screen state.
         .emptyIfContent { it.cards.isEmpty() }
         .stateIn(
             scope = viewModelScope,
@@ -71,9 +69,6 @@ class CardsViewModel(
         )
 
     init {
-        // When cards load, fetch the most recent transactions for the first card's
-        // account. OBP has no card-scoped transaction endpoint — card transactions are
-        // the owning account's transactions (verified: .../accounts/{id}/owner/transactions).
         viewModelScope.launch {
             stream.state.collect { state ->
                 if (state is ScreenState.Content) {

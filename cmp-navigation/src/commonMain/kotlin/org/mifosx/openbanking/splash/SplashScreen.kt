@@ -54,9 +54,6 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // TODO(asset): replace the monogram placeholder with the real `mifos_logo`
-            //  drawable once it lands in core/designsystem composeResources, then render
-            //  it 120dp tinted MaterialTheme.colorScheme.primary per ui.yaml#splash_logo.
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -97,9 +94,6 @@ fun SplashScreen(
 
             CircularProgressIndicator(
                 color = MaterialTheme.colorScheme.primary,
-                // TODO(a11y): honor a reduced-motion preference with a static fallback per
-                //  ui.yaml#splash_loading_indicator.motion.reduced_motion_fallback once a
-                //  cross-platform reduced-motion signal is available.
                 modifier = Modifier
                     .padding(top = 32.dp)
                     .size(40.dp)

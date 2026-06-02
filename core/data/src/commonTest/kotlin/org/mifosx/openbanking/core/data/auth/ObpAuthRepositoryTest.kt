@@ -72,7 +72,6 @@ class ObpAuthRepositoryTest {
         assertTrue(result.isSuccess)
         assertEquals("tok-123", tokenProvider.token())
         assertTrue(repo.isLoggedIn())
-        // credentials + consumer key travel in the Authorization header, not the body
         assertTrue(api.lastAuthorization!!.contains("consumer_key=\"consumer-xyz\""))
         assertTrue(api.lastAuthorization!!.contains("username=\"alice\""))
     }

@@ -43,9 +43,6 @@ fun KptMaterialTheme(
     theme: KptThemeProvider = KptThemeProviderImpl(),
     content: @Composable () -> Unit,
 ) {
-    // Convert KptTheme values to Material3 equivalents. Preserve the font family the
-    // KptTypography styles already carry — otherwise the conversion would reset every
-    // style to FontFamily.Default and drop the app's Outfit font.
     val materialColorScheme = theme.colors.toMaterial3ColorScheme()
     val materialTypography = theme.typography.toMaterial3Typography(
         fontFamily = theme.typography.bodyLarge.fontFamily,

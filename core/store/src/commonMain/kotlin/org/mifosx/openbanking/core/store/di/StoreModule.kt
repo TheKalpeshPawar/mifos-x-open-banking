@@ -52,9 +52,6 @@ val appStoreModule: Module = module {
         )
     }
 
-    // OBP banking stores. Accounts lands the canonical Store5 pattern; further
-    // services adopt it in the data-layer fan-out.
-    // Shared JSON for the offline cache payloads (lenient — tolerates OBP field drift).
     single {
         Json {
             ignoreUnknownKeys = true
@@ -103,7 +100,6 @@ val appStoreModule: Module = module {
         provideAtmStore(api = get(), config = get(), dao = get(), json = get())
     }
 
-    // Register stores with the cache manager so they clear on logout.
     single(createdAtStart = true) {
         val mgr = get<StoreCacheManager>() as StoreCacheManagerImpl
         mgr.register(get(AppStoreRegistry.Accounts))

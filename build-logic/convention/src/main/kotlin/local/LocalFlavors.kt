@@ -35,10 +35,6 @@ import java.util.Properties
 object LocalFlavors {
     @JvmStatic
     fun apply(ext: KmpFlavorExtension, project: Project) {
-        // OBP consumer_key (the registered app's client identifier) is read from the
-        // gitignored local.properties (key: obp.consumer.key) so it never lands in
-        // committed source — RULE-SECRETS-VAULT-001 / CREDS-LIFECYCLE. Empty when
-        // unset; DirectLogin then fails gracefully with the standard auth error.
         val obpConsumerKey = readLocalProperty(project, "obp.consumer.key")
 
         ext.flavorDimensions.register("userType") { priority.set(1) }

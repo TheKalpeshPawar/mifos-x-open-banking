@@ -27,9 +27,6 @@ actual class SecureSettingsFactory(private val context: Context) {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
-        // commitOnSave = true → synchronous commit() so the session token and auth flag
-        // are flushed to disk immediately and survive process death (apply() can be lost
-        // when the process is force-stopped before the async write completes).
-        return SharedPreferencesSettings(encryptedPrefs, commitOnSave = true)
+        return SharedPreferencesSettings(encryptedPrefs, commit = true)
     }
 }

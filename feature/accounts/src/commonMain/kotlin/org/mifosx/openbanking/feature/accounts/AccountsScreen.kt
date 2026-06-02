@@ -471,9 +471,9 @@ private fun formatMoney(amount: Double, currency: String): String {
     val whole = absCents / 100
     val frac = absCents % 100
     val grouped = groupThousands(whole)
-    val symbol = currencySymbol(currency)
+    val code = if (currency.isBlank()) "" else " $currency"
     val sign = if (negative) "-" else ""
-    return "$sign$symbol$grouped.${frac.toString().padStart(2, '0')}"
+    return "$sign$grouped.${frac.toString().padStart(2, '0')}$code"
 }
 
 /** Inserts thousands separators into a non-negative whole-number string. */
@@ -493,15 +493,4 @@ private fun groupThousands(value: Long): String {
         i += 3
     }
     return sb.toString()
-}
-
-/** Maps an ISO currency code to its symbol, falling back to the code plus a space. */
-private fun currencySymbol(currency: String): String = when (currency.uppercase()) {
-    "GBP" -> "£"
-    "EUR" -> "€"
-    "USD" -> "$"
-    "INR" -> "₹"
-    "JPY" -> "¥"
-    "" -> ""
-    else -> "$currency "
 }

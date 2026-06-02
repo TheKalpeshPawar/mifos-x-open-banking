@@ -45,17 +45,8 @@ fun obpHttpClient(config: ObpConfig, tokenProvider: ObpTokenProvider): HttpClien
         defaults(this)
         install(obpAuthPlugin(tokenProvider))
     }.also { client ->
-        // A 401 on an authenticated call means the DirectLogin token expired or was revoked.
-        // There is no refresh flow, so drop the session — the app routes the user back to
-        // login. HttpSend sees every executed response (unlike a plugin onResponse, which
-        // Ktorfit's converter can bypass). The login exchange returns 201/200, never 401,
-        // and only fires when a token is present, so it never triggers mid-login.
         client.plugin(HttpSend).intercept { request ->
             val call = execute(request)
-            // Any 401 means the session is no longer valid — token expired, revoked, or
-            // lost on process restart (in-memory token). Drop the session so the app routes
-            // back to login. The login POST sends its own credentials and returns 201/200,
-            // so a 401 here is always a genuine "must re-authenticate" signal.
             if (call.response.status == HttpStatusCode.Unauthorized) {
                 tokenProvider.invalidateSession()
             }

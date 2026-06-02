@@ -181,7 +181,6 @@ private fun Settings.putUserPreference(preference: UserData) {
     encodeValue(
         key = USER_DATA_KEY,
         serializer = UserData.serializer(),
-        // The session token is secure-only; never write it to the plain store.
         value = preference.copy(authToken = null),
     )
 }

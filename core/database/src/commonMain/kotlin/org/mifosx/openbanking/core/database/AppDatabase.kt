@@ -62,7 +62,6 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     version = AppDatabase.VERSION,
     exportSchema = true,
     autoMigrations = [
-        // v1 → v2: adds `obp_cache` for offline-first read caching.
         AutoMigration(from = 1, to = 2),
     ],
 )

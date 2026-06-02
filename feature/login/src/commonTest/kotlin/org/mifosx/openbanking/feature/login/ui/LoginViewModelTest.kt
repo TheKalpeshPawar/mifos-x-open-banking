@@ -186,7 +186,6 @@ class LoginViewModelTest {
     fun forgotPasswordEmitsNavigationEvent() = runTest {
         val vm = viewModel()
         var navigated = false
-        // Collect the next event without blocking the test dispatcher indefinitely.
         val job = CoroutineScope(dispatcher).launch {
             vm.eventFlow.collect { if (it is LoginEvent.NavigateToForgotPassword) navigated = true }
         }

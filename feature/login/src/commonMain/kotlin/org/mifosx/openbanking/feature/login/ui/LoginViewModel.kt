@@ -81,7 +81,6 @@ class LoginViewModel(
 
     private fun onOAuthLoginClicked() {
         if (state.isLoading || state.oauthPhase != OAuthPhase.NONE) return
-        // TODO(Phase 7): replace with a real PKCE S256 challenge + secure-random state.
         val csrfState = Random.nextLong().toString(radix = 16)
         val codeVerifier = Random.nextLong().toString(radix = 16) + Random.nextLong().toString(radix = 16)
         updateState {
@@ -160,7 +159,6 @@ class LoginViewModel(
             "&redirect_uri=$OAUTH_REDIRECT_URI" +
             "&scope=openid" +
             "&state=$csrfState" +
-            // TODO(Phase 7): send code_challenge (S256 of verifier), not the raw verifier.
             "&code_challenge=$codeVerifier&code_challenge_method=plain"
 
     private companion object {
@@ -168,7 +166,6 @@ class LoginViewModel(
             "https://apisandbox-oidc.openbankproject.com/obp-oidc/auth"
         const val OAUTH_REDIRECT_URI = "org.mifosx.openbanking://oauth/callback"
 
-        // Public OIDC client id is non-secret; real value injected per-flavor in Phase 7.
         const val OIDC_CLIENT_ID = "mifos-x-open-banking"
     }
 }
@@ -205,7 +202,6 @@ data class LoginState(
     val authMethod: AuthMethod = AuthMethod.NONE,
     val oauthState: String? = null,
     val oauthCodeVerifier: String? = null,
-    // UI-only: drives the OAuth full-screen takeover states (redirecting / exchanging).
     val oauthPhase: OAuthPhase = OAuthPhase.NONE,
 ) {
     /** DirectLogin is enabled only when both credential fields are non-blank. */

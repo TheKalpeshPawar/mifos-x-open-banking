@@ -15,7 +15,6 @@ package org.mifosx.openbanking.core.network.obp
  * and injects [consumerKey] from secure storage (never hardcoded — CREDS-LIFECYCLE).
  */
 data class ObpConfig(
-    // Trailing slash is required so Ktorfit relative paths resolve under /obp/.
     val baseUrl: String = "https://apisandbox.openbankproject.com/obp/",
     val bankId: String = "ac.bank.uk",
     val consumerKey: String = "",

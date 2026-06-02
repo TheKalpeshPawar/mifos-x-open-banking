@@ -26,8 +26,6 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
-    // OBP DirectLogin session token. Secure-only field — persisted to the encrypted
-    // settings store so the session survives process death (lost before: in-memory only).
     val authToken: String? = null,
 ) {
     companion object {
@@ -38,8 +36,6 @@ data class UserData(
             darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
             useDynamicColor = false,
             appLanguage = LanguageConfig.DEFAULT,
-            // Boot to the login screen (both demo + prod) until the user signs in via
-            // OBP DirectLogin. RootNavViewModel routes to RootNavState.Auth while false.
             isAuthenticated = false,
             isUnlocked = false,
             isPasscodeEnabled = false,

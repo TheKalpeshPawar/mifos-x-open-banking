@@ -61,7 +61,6 @@ fun KptBottomBar(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Top hairline (preview: border-top 1px outline-variant).
             Spacer(
                 modifier = Modifier
                     .fillMaxWidth()

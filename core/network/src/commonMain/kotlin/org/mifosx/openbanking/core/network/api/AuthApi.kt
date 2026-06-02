@@ -27,9 +27,6 @@ interface AuthApi {
      * `Authorization` header (see [org.mifosx.openbanking.core.network.obp.ObpAuth.loginHeader]),
      * not the body.
      */
-    // DirectLogin is NOT bank-scoped — the canonical endpoint is /my/logins/direct
-    // (verified live: /obp/v6.0.0/my/logins/direct → 201 + token). Credentials travel
-    // in the Authorization header (see ObpAuth.loginHeader), not the body.
     @POST("v6.0.0/my/logins/direct")
     suspend fun directLogin(
         @Header("Authorization") authorization: String,

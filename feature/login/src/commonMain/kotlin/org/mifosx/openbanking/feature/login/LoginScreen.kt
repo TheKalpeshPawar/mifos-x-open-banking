@@ -96,9 +96,6 @@ private fun LoginContent(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The login flow renders outside the app scaffold, so it must paint its own themed
-    // background — otherwise the bare composables show the window background and the
-    // screen looks dark regardless of the active color scheme.
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,

@@ -28,7 +28,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
  * owning feature is implemented.
  */
 
-// ─── Consumer ────────────────────────────────────────────────────────────────
 @Serializable data object AccountsRoute
 
 @Serializable data object AccountDetailRoute
@@ -69,7 +68,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object ConsentManagerRoute
 
-// ─── Field officer ───────────────────────────────────────────────────────────
 @Serializable data object FoDashboardRoute
 
 @Serializable data object CustomerSearchRoute
@@ -94,7 +92,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object CustomerMessagesRoute
 
-// ─── Shared (non-tab) ────────────────────────────────────────────────────────
 @Serializable data object ChangePasswordRoute
 
 @Serializable data object AboutRoute
@@ -107,7 +104,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object ForgotPasswordRoute
 
-// ─── Bottom-nav navigation helpers ───────────────────────────────────────────
 fun NavController.navigateToAccounts(navOptions: NavOptions? = null) = navigate(AccountsRoute, navOptions)
 fun NavController.navigateToSendMoney(navOptions: NavOptions? = null) = navigate(SendMoneyRoute, navOptions)
 fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(CardsRoute, navOptions)
@@ -123,7 +119,6 @@ fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    // AccountsRoute is registered with the real feature:accounts screen in the navbar NavHost.
     composableWithStayTransitions<AccountDetailRoute> { PlaceholderScreen("Account detail") }
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
@@ -131,7 +126,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
     composableWithStayTransitions<BeneficiariesRoute> { PlaceholderScreen("Beneficiaries") }
-    // CardsRoute is registered with the real feature:cards screen in the navbar NavHost.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
