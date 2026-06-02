@@ -49,7 +49,7 @@ fun main() {
         Window(
             onCloseRequest = ::exitApplication,
             state = windowState,
-            title = "DesktopApp",
+            title = "Mifos X Open Banking",
         ) {
             // Use key() to force complete recomposition when locale changes
             key(localeVersion) {
