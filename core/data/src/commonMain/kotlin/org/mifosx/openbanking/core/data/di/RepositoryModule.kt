@@ -100,7 +100,6 @@ val DataModule = module {
     single<TransactionsRepository> {
         TransactionsRepositoryImpl(
             api = get(),
-            config = get(),
             transactionsStore = get(AppStoreRegistry.Transactions),
             networkMonitor = get(),
             fetchedAtRepository = get(),

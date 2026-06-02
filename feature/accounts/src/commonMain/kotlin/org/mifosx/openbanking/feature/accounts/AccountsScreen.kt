@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.AccountBalance
@@ -36,13 +39,14 @@ import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,13 +57,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
@@ -85,6 +95,11 @@ fun AccountsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
+    // Per-account balance reveal state. `remember` (not Saveable) — it is dropped when the
+    // screen leaves composition (navigating to another tab/screen), so balances default back
+    // to HIDDEN on every fresh entry, as required. Absent/false => hidden.
+    val revealed = remember { mutableStateMapOf<String, Boolean>() }
+
     Box(modifier = modifier.fillMaxSize()) {
         when (val s = state) {
             is ScreenState.Loading -> LoadingState()
@@ -105,6 +120,8 @@ fun AccountsScreen(
                 query = searchQuery,
                 onQueryChange = viewModel::onSearchQueryChanged,
                 onAccountClick = onAccountClick,
+                isRevealed = { id -> revealed[id] == true },
+                onToggleReveal = { id -> revealed[id] = revealed[id] != true },
             )
         }
 
@@ -127,6 +144,8 @@ private fun AccountsLoaded(
     query: String,
     onQueryChange: (String) -> Unit,
     onAccountClick: (String) -> Unit,
+    isRevealed: (String) -> Boolean,
+    onToggleReveal: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Header + search bar are hoisted OUT of the LazyColumn: a TextField inside a
@@ -142,28 +161,21 @@ private fun AccountsLoaded(
             if (content.filteredAccounts.isEmpty()) {
                 item { NoMatchRow() }
             } else {
-                // Group accounts by their owning bank; each group shows its own subtotal,
-                // then the overall total across all banks is shown once at the bottom.
+                // Group accounts by their owning bank. No balance totals are shown anywhere —
+                // only each account's own balance, on its card.
                 val groups = content.filteredAccounts.groupBy { it.bankId }
                 groups.forEach { (bankId, accounts) ->
                     item(key = "bank-$bankId") {
-                        BankSectionHeader(
-                            bankId = bankId,
-                            count = accounts.size,
-                            total = accounts.sumOf { it.balance.amount.toDoubleOrNull() ?: 0.0 },
-                            currency = accounts.firstOrNull()?.balance?.currency.orEmpty(),
-                        )
+                        BankSectionHeader(bankId = bankId, count = accounts.size)
                     }
                     items(accounts, key = { it.id }) { account ->
-                        AccountCard(account = account, onClick = { onAccountClick(account.id) })
+                        AccountCard(
+                            account = account,
+                            revealed = isRevealed(account.id),
+                            onToggleReveal = { onToggleReveal(account.id) },
+                            onClick = { onAccountClick(account.id) },
+                        )
                     }
-                }
-                item {
-                    TotalFooter(
-                        count = content.filteredAccounts.size,
-                        total = content.totalBalance,
-                        currency = content.currency,
-                    )
                 }
             }
         }
@@ -171,41 +183,33 @@ private fun AccountsLoaded(
 }
 
 @Composable
-private fun BankSectionHeader(bankId: String, count: Int, total: Double, currency: String) {
+private fun BankSectionHeader(bankId: String, count: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
-            Icon(
-                imageVector = Icons.Filled.AccountBalance,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = bankName(bankId),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = if (count == 1) "1 account" else "$count accounts",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Text(
-            text = formatMoney(total, currency),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+        Icon(
+            imageVector = Icons.Filled.AccountBalance,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
         )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(
+                text = bankName(bankId),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = if (count == 1) "1 account" else "$count accounts",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -295,7 +299,12 @@ private fun SearchBar(
 }
 
 @Composable
-private fun AccountCard(account: Account, onClick: () -> Unit) {
+private fun AccountCard(
+    account: Account,
+    revealed: Boolean,
+    onToggleReveal: () -> Unit,
+    onClick: () -> Unit,
+) {
     val accent = accentColor(account)
     Card(
         onClick = onClick,
@@ -334,8 +343,42 @@ private fun AccountCard(account: Account, onClick: () -> Unit) {
                     TypeBadge(account = account)
                 }
                 Spacer(Modifier.height(12.dp))
+                // Balance + currency + hide-toggle flow as one wrapping Text: the eye is an
+                // inline glyph right after the currency, so it shifts with the text across lines
+                // (and the amount may wrap to multiple lines on narrow screens / large numbers).
+                val eyeId = "balanceToggle"
+                val balanceText = buildAnnotatedString {
+                    append(
+                        if (revealed) {
+                            formatMoney(account.balance.amount, account.balance.currency)
+                        } else {
+                            maskedBalance(account.balance.currency)
+                        },
+                    )
+                    append(" ")
+                    appendInlineContent(eyeId, "[toggle]")
+                }
+                val inlineEye = mapOf(
+                    eyeId to InlineTextContent(
+                        Placeholder(
+                            width = 1.2.em,
+                            height = 1.2.em,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
+                        ),
+                    ) {
+                        Icon(
+                            imageVector = if (revealed) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (revealed) "Hide balance" else "Show balance",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(onClick = onToggleReveal),
+                        )
+                    },
+                )
                 Text(
-                    text = formatMoney(account.balance.amount, account.balance.currency),
+                    text = balanceText,
+                    inlineContent = inlineEye,
                     style = MaterialTheme.typography.displaySmall,
                     color = balanceColor(account),
                 )
@@ -389,38 +432,13 @@ private fun TypeBadge(account: Account) {
     }
 }
 
-@Composable
-private fun TotalFooter(count: Int, total: Double, currency: String) {
-    Column {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Total across $count accounts",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = formatMoney(total, currency),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
+/**
+ * Masked balance — only the amount is hidden; the currency keeps the exact same trailing
+ * placement as the visible state (formatMoney → "1,234.00 EUR"), so hidden reads "•••••• EUR".
+ */
+private fun maskedBalance(currency: String): String {
+    val mask = "••••••"
+    return if (currency.isBlank()) mask else "$mask $currency"
 }
 
 @Composable

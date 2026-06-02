@@ -49,8 +49,6 @@ class AccountsViewModel(
                 filteredAccounts = matches,
                 query = query,
                 accountCount = accounts.size,
-                totalBalance = matches.sumOf { it.balance.amount.toDoubleOrNull() ?: 0.0 },
-                currency = matches.firstOrNull()?.balance?.currency.orEmpty(),
             )
         }
         .emptyIfContent { it.accountCount == 0 }
@@ -73,8 +71,6 @@ data class AccountsContent(
     val filteredAccounts: List<Account>,
     val query: String,
     val accountCount: Int,
-    val totalBalance: Double,
-    val currency: String,
 )
 
 /**

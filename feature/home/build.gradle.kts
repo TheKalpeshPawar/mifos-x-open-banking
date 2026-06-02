@@ -24,6 +24,8 @@ kotlin {
             implementation(projects.core.ui)
             implementation(projects.coreBase.store)
 
+            implementation(libs.kotlinx.datetime)
+
             implementation(compose.ui)
             implementation(compose.material3)
             implementation(compose.foundation)

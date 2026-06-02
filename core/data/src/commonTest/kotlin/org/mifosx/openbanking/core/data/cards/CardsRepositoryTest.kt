@@ -19,6 +19,7 @@ import org.mifosx.openbanking.core.model.obp.CardsResponse
 import org.mifosx.openbanking.core.network.api.CardsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.store.cards.provideCardsStore
+import org.mifosx.openbanking.core.store.cards.provideUserCardsStore
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test
@@ -28,6 +29,7 @@ import kotlin.test.assertTrue
 private class FakeCardsApi(
     var listResult: NetworkResult<CardsResponse, NetworkError> = NetworkResult.Success(CardsResponse()),
 ) : CardsApi {
+    override suspend fun getCardsForCurrentUser() = listResult
     override suspend fun listCards(bankId: String, accountId: String) = listResult
     override suspend fun getCard(bankId: String, accountId: String, cardId: String) =
         NetworkResult.Success(Card())
@@ -39,6 +41,7 @@ private fun cardsRepo(api: CardsApi): CardsRepositoryImpl {
         api,
         config,
         provideCardsStore(api, config, FakeObpCacheDao(), testJson()),
+        provideUserCardsStore(api, FakeObpCacheDao(), testJson()),
         testNetworkMonitor(),
         NoopFetchedAt,
     )

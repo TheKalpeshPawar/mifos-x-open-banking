@@ -64,7 +64,7 @@ val appStoreModule: Module = module {
         provideAccountsStore(api = get(), dao = get(), json = get())
     }
     single(AppStoreRegistry.Transactions) {
-        provideTransactionsStore(api = get(), config = get(), dao = get(), json = get())
+        provideTransactionsStore(api = get(), dao = get(), json = get())
     }
     single(AppStoreRegistry.Cards) {
         provideCardsStore(api = get(), config = get(), dao = get(), json = get())

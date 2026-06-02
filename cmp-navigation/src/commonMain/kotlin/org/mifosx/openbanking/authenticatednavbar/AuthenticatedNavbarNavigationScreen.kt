@@ -10,7 +10,11 @@
 package org.mifosx.openbanking.authenticatednavbar
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.SnackbarDuration.Indefinite
+import androidx.compose.material3.SnackbarDuration.Short
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -19,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -43,10 +46,12 @@ import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
+import org.mifosx.openbanking.placeholder.AtmLocatorRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
+import org.mifosx.openbanking.placeholder.TransactionsRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
 import org.mifosx.openbanking.ui.KptRootScaffold
 import org.mifosx.openbanking.ui.ScaffoldNavigationData
@@ -102,7 +107,11 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
     KptRootScaffold(
-        contentWindowInsets = WindowInsets(0.dp),
+        // Respect the system bars (status bar / control center + display cutouts); the bottom
+        // navigation bar inset is handled by the scaffold's bottomBar. Previously zero,
+        // which let tab content draw under the status bar.
+        contentWindowInsets = WindowInsets.systemBars
+            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         navigationData = ScaffoldNavigationData(
             navigationItems = navigationItems,
             selectedNavigationItem = navigationItems.find {
@@ -133,7 +142,20 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             // back stack. Pushing it onto the Home stack made tab save/restore bring
             // Settings back when returning to the Home tab.
             homeGraph(
-                onSettingsClick = { navController.navigateToTab(AuthenticatedNavBarTabItem.MoreTab) },
+                // Tab targets switch tabs (navigateToTab) — navigate(route) would push another
+                // tab's destination onto the Home stack, breaking the Home tab button.
+                onTransfer = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
+                onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
+                onViewCards = { navController.navigateToTab(AuthenticatedNavBarTabItem.CardsTab) },
+                onTotalPortfolio = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
+                // Non-tab destinations are genuine pushes.
+                onFindAtm = { navController.navigate(AtmLocatorRoute) },
+                onViewAllTransactions = { navController.navigate(TransactionsRoute) },
+                onDeferred = { message ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message = message, duration = Short)
+                    }
+                },
             )
             profileDestination()
             settingsDestination(onBackClick = navController::popBackStack)

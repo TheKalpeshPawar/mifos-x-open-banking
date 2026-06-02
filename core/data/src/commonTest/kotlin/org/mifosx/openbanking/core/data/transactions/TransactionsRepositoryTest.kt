@@ -17,7 +17,6 @@ import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionsResponse
 import org.mifosx.openbanking.core.network.api.TransactionsApi
-import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.store.transactions.provideTransactionsStore
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -29,12 +28,17 @@ private class FakeTransactionsApi(
     var listResult: NetworkResult<TransactionsResponse, NetworkError> =
         NetworkResult.Success(TransactionsResponse()),
 ) : TransactionsApi {
+    var lastBankId: String? = null
+
     override suspend fun listTransactions(
         bankId: String,
         accountId: String,
         limit: Int?,
         offset: Int?,
-    ) = listResult
+    ): NetworkResult<TransactionsResponse, NetworkError> {
+        lastBankId = bankId
+        return listResult
+    }
 
     override suspend fun getTransaction(
         bankId: String,
@@ -43,16 +47,13 @@ private class FakeTransactionsApi(
     ) = NetworkResult.Success(Transaction())
 }
 
-private fun txnRepo(api: TransactionsApi): TransactionsRepositoryImpl {
-    val config = ObpConfig()
-    return TransactionsRepositoryImpl(
+private fun txnRepo(api: TransactionsApi): TransactionsRepositoryImpl =
+    TransactionsRepositoryImpl(
         api,
-        config,
-        provideTransactionsStore(api, config, FakeObpCacheDao(), testJson()),
+        provideTransactionsStore(api, FakeObpCacheDao(), testJson()),
         testNetworkMonitor(),
         NoopFetchedAt,
     )
-}
 
 class TransactionsRepositoryTest {
 
@@ -63,7 +64,7 @@ class TransactionsRepositoryTest {
                 NetworkResult.Success(TransactionsResponse(transactions = listOf(Transaction(id = "t1")))),
             ),
         )
-        val result = repo.listTransactions("acc-1")
+        val result = repo.listTransactions("bank-a", "acc-1")
         assertTrue(result.isSuccess)
         assertEquals("t1", result.getOrNull()?.firstOrNull()?.id)
     }
@@ -71,6 +72,19 @@ class TransactionsRepositoryTest {
     @Test
     fun listTransactions_error_isFailure() = runTest {
         val repo = txnRepo(FakeTransactionsApi(NetworkResult.Error(NetworkError.SERVER)))
-        assertTrue(repo.listTransactions("acc-1").isFailure)
+        assertTrue(repo.listTransactions("bank-a", "acc-1").isFailure)
+    }
+
+    @Test
+    fun listTransactions_usesAccountOwnBankId_notGlobalConfig() = runTest {
+        // Cross-bank: an account from /my/accounts living at bank-B must be queried at
+        // bank-B, not at any single global config bank. Regression guard for the
+        // config.bankId-pinning bug.
+        val api = FakeTransactionsApi(
+            NetworkResult.Success(TransactionsResponse(transactions = listOf(Transaction(id = "t9")))),
+        )
+        val repo = txnRepo(api)
+        repo.listTransactions("bank-B", "acc-at-bank-b")
+        assertEquals("bank-B", api.lastBankId)
     }
 }

@@ -73,10 +73,12 @@ class CardsViewModel(
         viewModelScope.launch {
             stream.state.collect { state ->
                 if (state is ScreenState.Content) {
-                    val accountId = state.data.firstOrNull()?.account?.id.orEmpty()
-                    if (accountId.isNotBlank()) {
+                    val account = state.data.firstOrNull()?.account
+                    val accountId = account?.id.orEmpty()
+                    val bankId = account?.bankId.orEmpty()
+                    if (accountId.isNotBlank() && bankId.isNotBlank()) {
                         transactionsFlow.value = transactionsFlow.value.copy(loading = true)
-                        transactionsRepository.listTransactions(accountId, limit = RECENT_LIMIT)
+                        transactionsRepository.listTransactions(bankId, accountId, limit = RECENT_LIMIT)
                             .onSuccess {
                                 transactionsFlow.value = TransactionsState(
                                     loading = false,

@@ -14,45 +14,55 @@ import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.network.api.TransactionsApi
-import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mobilenativefoundation.store.store5.Store
 import template.core.base.store.infra.FetchedAtRepository
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.asScreenStream
 
-/** Read access to an account's OBP transactions. */
+/**
+ * Read access to an account's OBP transactions. Every call carries the account's own
+ * [bankId] — accounts come from `/my/accounts` (cross-bank), so transactions must hit
+ * the bank that actually holds the account, not a single global config bank.
+ */
 interface TransactionsRepository {
     /** Durable, offline-first stream of an account's transactions (cache-then-network). */
-    fun transactionsStream(accountId: String, scope: CoroutineScope): ScreenDataStream<List<Transaction>>
+    fun transactionsStream(
+        bankId: String,
+        accountId: String,
+        scope: CoroutineScope,
+    ): ScreenDataStream<List<Transaction>>
 
-    suspend fun listTransactions(accountId: String, limit: Int? = null): Result<List<Transaction>>
-    suspend fun getTransaction(accountId: String, transactionId: String): Result<Transaction>
+    suspend fun listTransactions(bankId: String, accountId: String, limit: Int? = null): Result<List<Transaction>>
+    suspend fun getTransaction(bankId: String, accountId: String, transactionId: String): Result<Transaction>
 }
 
 class TransactionsRepositoryImpl(
     private val api: TransactionsApi,
-    private val config: ObpConfig,
     private val transactionsStore: Store<String, List<Transaction>>,
     private val networkMonitor: NetworkMonitor,
     private val fetchedAtRepository: FetchedAtRepository,
 ) : TransactionsRepository {
 
     override fun transactionsStream(
+        bankId: String,
         accountId: String,
         scope: CoroutineScope,
-    ): ScreenDataStream<List<Transaction>> =
-        transactionsStore.asScreenStream(
-            key = accountId,
+    ): ScreenDataStream<List<Transaction>> {
+        // Composite Store key — must match provideTransactionsStore's "$bankId/$accountId".
+        val key = "$bankId/$accountId"
+        return transactionsStore.asScreenStream(
+            key = key,
             networkMonitor = networkMonitor,
             fetchedAtRepository = fetchedAtRepository,
-            cacheKey = "transactions:$accountId",
+            cacheKey = "transactions:$key",
             scope = scope,
             isEmpty = { it.isEmpty() },
         )
+    }
 
-    override suspend fun listTransactions(accountId: String, limit: Int?): Result<List<Transaction>> =
-        api.listTransactions(config.bankId, accountId, limit).toResult().map { it.transactions }
+    override suspend fun listTransactions(bankId: String, accountId: String, limit: Int?): Result<List<Transaction>> =
+        api.listTransactions(bankId, accountId, limit).toResult().map { it.transactions }
 
-    override suspend fun getTransaction(accountId: String, transactionId: String): Result<Transaction> =
-        api.getTransaction(config.bankId, accountId, transactionId).toResult()
+    override suspend fun getTransaction(bankId: String, accountId: String, transactionId: String): Result<Transaction> =
+        api.getTransaction(bankId, accountId, transactionId).toResult()
 }
