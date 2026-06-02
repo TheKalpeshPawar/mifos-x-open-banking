@@ -48,7 +48,7 @@ class CardsViewModel(
 
     private val stream = cardsRepository.userCardsStream(viewModelScope)
 
-    private val transactionsFlow = MutableStateFlow<List<Transaction>>(emptyList())
+    private val transactionsFlow = MutableStateFlow(TransactionsState())
 
     private val deferredMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val deferredActionMessages: SharedFlow<String> = deferredMessages.asSharedFlow()
@@ -58,7 +58,8 @@ class CardsViewModel(
             CardsContent(
                 cards = cards,
                 selectedCardId = cards.firstOrNull()?.bankCardNumber.orEmpty(),
-                recentTransactions = transactions,
+                recentTransactions = transactions.items,
+                transactionsLoading = transactions.loading,
             )
         }
         .emptyIfContent { it.cards.isEmpty() }
@@ -74,8 +75,17 @@ class CardsViewModel(
                 if (state is ScreenState.Content) {
                     val accountId = state.data.firstOrNull()?.account?.id.orEmpty()
                     if (accountId.isNotBlank()) {
+                        transactionsFlow.value = transactionsFlow.value.copy(loading = true)
                         transactionsRepository.listTransactions(accountId, limit = RECENT_LIMIT)
-                            .onSuccess { transactionsFlow.value = it.take(RECENT_LIMIT) }
+                            .onSuccess {
+                                transactionsFlow.value = TransactionsState(
+                                    loading = false,
+                                    items = it.take(RECENT_LIMIT),
+                                )
+                            }
+                            .onFailure {
+                                transactionsFlow.value = transactionsFlow.value.copy(loading = false)
+                            }
                     }
                 }
             }
@@ -102,4 +112,12 @@ data class CardsContent(
     val cards: List<Card>,
     val selectedCardId: String,
     val recentTransactions: List<Transaction>,
+    val transactionsLoading: Boolean = false,
+)
+
+/** Secondary-fetch state for the recent-transactions section (loaded after the cards). */
+@Immutable
+private data class TransactionsState(
+    val loading: Boolean = false,
+    val items: List<Transaction> = emptyList(),
 )

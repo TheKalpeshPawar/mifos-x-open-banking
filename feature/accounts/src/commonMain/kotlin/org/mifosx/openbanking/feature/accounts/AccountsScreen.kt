@@ -30,22 +30,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +63,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.feature.accounts.ui.AccountTypeFilter
 import org.mifosx.openbanking.feature.accounts.ui.AccountsContent
 import org.mifosx.openbanking.feature.accounts.ui.AccountsViewModel
 import template.core.base.store.screen.ScreenState
@@ -81,7 +83,7 @@ fun AccountsScreen(
     viewModel: AccountsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
     Box(modifier = modifier.fillMaxSize()) {
         when (val s = state) {
@@ -100,8 +102,8 @@ fun AccountsScreen(
 
             is ScreenState.Content -> AccountsLoaded(
                 content = s.data,
-                activeFilter = activeFilter,
-                onFilterChanged = viewModel::onFilterChanged,
+                query = searchQuery,
+                onQueryChange = viewModel::onSearchQueryChanged,
                 onAccountClick = onAccountClick,
             )
         }
@@ -122,35 +124,97 @@ fun AccountsScreen(
 @Composable
 private fun AccountsLoaded(
     content: AccountsContent,
-    activeFilter: AccountTypeFilter,
-    onFilterChanged: (AccountTypeFilter) -> Unit,
+    query: String,
+    onQueryChange: (String) -> Unit,
     onAccountClick: (String) -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 96.dp),
-    ) {
-        item { Header() }
-        item {
-            FilterTabs(activeFilter = activeFilter, onFilterChanged = onFilterChanged)
-        }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header + search bar are hoisted OUT of the LazyColumn: a TextField inside a
+        // LazyColumn item loses IME focus every time the list recomposes on query change,
+        // which drops keystrokes. Keeping them in a stable parent Column fixes that.
+        Header()
+        SearchBar(query = query, onQueryChange = onQueryChange)
 
-        if (content.filteredAccounts.isEmpty()) {
-            item { NoMatchRow() }
-        } else {
-            items(content.filteredAccounts, key = { it.id }) { account ->
-                AccountCard(account = account, onClick = { onAccountClick(account.id) })
-            }
-            item {
-                TotalFooter(
-                    count = content.filteredAccounts.size,
-                    total = content.totalBalance,
-                    currency = content.currency,
-                )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 96.dp),
+        ) {
+            if (content.filteredAccounts.isEmpty()) {
+                item { NoMatchRow() }
+            } else {
+                // Group accounts by their owning bank; each group shows its own subtotal,
+                // then the overall total across all banks is shown once at the bottom.
+                val groups = content.filteredAccounts.groupBy { it.bankId }
+                groups.forEach { (bankId, accounts) ->
+                    item(key = "bank-$bankId") {
+                        BankSectionHeader(
+                            bankId = bankId,
+                            count = accounts.size,
+                            total = accounts.sumOf { it.balance.amount.toDoubleOrNull() ?: 0.0 },
+                            currency = accounts.firstOrNull()?.balance?.currency.orEmpty(),
+                        )
+                    }
+                    items(accounts, key = { it.id }) { account ->
+                        AccountCard(account = account, onClick = { onAccountClick(account.id) })
+                    }
+                }
+                item {
+                    TotalFooter(
+                        count = content.filteredAccounts.size,
+                        total = content.totalBalance,
+                        currency = content.currency,
+                    )
+                }
             }
         }
     }
 }
+
+@Composable
+private fun BankSectionHeader(bankId: String, count: Int, total: Double, currency: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
+            Icon(
+                imageVector = Icons.Filled.AccountBalance,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = bankName(bankId),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = if (count == 1) "1 account" else "$count accounts",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Text(
+            text = formatMoney(total, currency),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/** Best-effort human label for an OBP bank id ("ac.bank.uk" -> "Ac Bank Uk"). */
+private fun bankName(bankId: String): String =
+    bankId.ifBlank { "Bank" }
+        .split('.', '-', '_')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { it.replaceFirstChar(Char::uppercaseChar) }
 
 @Composable
 private fun Header() {
@@ -180,38 +244,54 @@ private fun Header() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FilterTabs(
-    activeFilter: AccountTypeFilter,
-    onFilterChanged: (AccountTypeFilter) -> Unit,
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
 ) {
-    Row(
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AccountTypeFilter.entries.forEach { filter ->
-            val selected = filter == activeFilter
-            FilterChip(
-                selected = selected,
-                onClick = { onFilterChanged(filter) },
-                label = { Text(filter.label, style = MaterialTheme.typography.labelMedium) },
-                shape = RoundedCornerShape(20.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = selected,
-                    borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    selectedBorderColor = MaterialTheme.colorScheme.primary,
-                ),
+        placeholder = {
+            Text(
+                text = "Search by name, number or label",
+                style = MaterialTheme.typography.bodyMedium,
             )
-        }
-    }
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        trailingIcon = {
+            if (query.isNotBlank()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    )
 }
 
 @Composable
@@ -352,7 +432,7 @@ private fun NoMatchRow() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "No accounts match this filter.",
+            text = "No accounts match your search.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

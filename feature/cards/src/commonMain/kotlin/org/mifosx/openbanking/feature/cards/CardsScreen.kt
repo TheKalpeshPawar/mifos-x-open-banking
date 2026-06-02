@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.cards
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +37,8 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,8 +50,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -119,13 +124,40 @@ private fun CardsLoaded(
         item { Title() }
         item { CardCarousel(cards = content.cards, onCardClick = onCardClick) }
         item { QuickActions(onDeferred = onDeferred) }
-        if (content.recentTransactions.isNotEmpty()) {
+        if (content.transactionsLoading || content.recentTransactions.isNotEmpty()) {
             item { SectionHeader("Card Transactions") }
-            items(content.recentTransactions, key = { it.id }) { tx ->
-                TransactionRow(tx = tx, onClick = { onTransactionClick(tx) })
+            if (content.transactionsLoading) {
+                item { TransactionsLoading() }
+            } else {
+                items(content.recentTransactions, key = { it.id }) { tx ->
+                    TransactionRow(tx = tx, onClick = { onTransactionClick(tx) })
+                }
             }
         }
         item { OrderNewCardButton(onClick = { onDeferred("Order New Card") }) }
+    }
+}
+
+@Composable
+private fun TransactionsLoading() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = "Loading transactions…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -150,26 +182,49 @@ private fun CardCarousel(cards: List<Card>, onCardClick: (Card) -> Unit) {
     }
 }
 
-private val VisaGradient = listOf(Color(0xFF3D5424), Color(0xFF4C662B), Color(0xFF2D3E1E))
-private val MastercardGradient = listOf(Color(0xFF2C5250), Color(0xFF386663), Color(0xFF1E3A38))
-private val CardNameColor = Color(0xFFCDEDA3).copy(alpha = 0.9f)
+private val CardShape = RoundedCornerShape(20.dp)
+
+/**
+ * Card face gradient + content color derived from the theme so the carousel adapts to
+ * dark/light: Visa keys off `primary`, Mastercard off `secondary`. Three stops are built
+ * by darkening the base toward black, and text uses the matching `on*` role for contrast.
+ */
+private data class CardPalette(val gradient: List<Color>, val onColor: Color)
+
+@Composable
+private fun cardPalette(network: String): CardPalette {
+    val scheme = MaterialTheme.colorScheme
+    val base = if (network.equals("MASTERCARD", ignoreCase = true)) scheme.secondary else scheme.primary
+    val onColor = if (network.equals("MASTERCARD", ignoreCase = true)) scheme.onSecondary else scheme.onPrimary
+    return CardPalette(
+        gradient = listOf(
+            lerp(base, Color.Black, 0.12f),
+            base,
+            lerp(base, Color.Black, 0.38f),
+        ),
+        onColor = onColor,
+    )
+}
 
 @Composable
 private fun PaymentCard(card: Card, onClick: () -> Unit) {
     val isActive = card.enabled && !card.cancelled
-    val gradient = if (card.network.equals("MASTERCARD", ignoreCase = true)) {
-        Brush.linearGradient(MastercardGradient)
-    } else {
-        Brush.linearGradient(VisaGradient)
-    }
+    val palette = cardPalette(card.network)
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = CardShape,
         color = Color.Transparent,
-        modifier = Modifier.width(320.dp).height(200.dp),
+        shadowElevation = 8.dp,
+        modifier = Modifier
+            .shadow(elevation = 10.dp, shape = CardShape, clip = false)
+            .width(320.dp)
+            .height(200.dp),
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().background(gradient, RoundedCornerShape(20.dp)).padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.linearGradient(palette.gradient), CardShape)
+                .padding(24.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -177,7 +232,7 @@ private fun PaymentCard(card: Card, onClick: () -> Unit) {
                 Text(
                     text = card.network.ifBlank { "CARD" }.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
+                    color = palette.onColor,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -185,14 +240,14 @@ private fun PaymentCard(card: Card, onClick: () -> Unit) {
                 Text(
                     text = maskedNumber(card.bankCardNumber),
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = palette.onColor,
                     fontFamily = FontFamily.Monospace,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = card.nameOnCard.uppercase(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = CardNameColor,
+                    color = palette.onColor.copy(alpha = 0.85f),
                 )
             }
         }
@@ -298,11 +353,27 @@ private fun OrderNewCardButton(onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.primary,
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 24.dp)
+            .height(48.dp),
     ) {
-        Icon(Icons.Filled.AddCard, contentDescription = null)
+        Icon(
+            Icons.Filled.AddCard,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(8.dp))
-        Text("Order New Card")
+        Text(
+            text = "Order New Card",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 

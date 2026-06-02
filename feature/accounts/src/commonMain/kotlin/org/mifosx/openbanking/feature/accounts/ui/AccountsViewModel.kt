@@ -27,11 +27,11 @@ import template.core.base.store.screen.emptyIfContent
 /**
  * My Accounts ViewModel. Reads the offline-first [AccountsRepository.accountsStream]
  * (Store5 cache-then-network, auto-refresh on reconnect) and fuses it with a client-side
- * [AccountTypeFilter] — filtering re-derives [AccountsContent] without a new network call.
+ * search query — filtering re-derives [AccountsContent] without a new network call.
  *
  * Exposes a single [ScreenState] so the screen renders loading / content / empty / error /
  * no-network / unauthenticated uniformly. `Empty` means the user has no accounts at all; a
- * filter that matches nothing stays `Content` (tabs remain operable) with an empty list.
+ * search that matches nothing stays `Content` (search bar operable) with an empty list.
  */
 class AccountsViewModel(
     accountsRepository: AccountsRepository,
@@ -39,17 +39,18 @@ class AccountsViewModel(
 
     private val stream = accountsRepository.accountsStream(viewModelScope)
 
-    private val activeFilterFlow = MutableStateFlow(AccountTypeFilter.ALL)
-    val activeFilter: StateFlow<AccountTypeFilter> = activeFilterFlow.asStateFlow()
+    private val queryFlow = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = queryFlow.asStateFlow()
 
     val uiState: StateFlow<ScreenState<AccountsContent>> = stream.state
-        .combineContent(activeFilterFlow) { accounts, filter, _ ->
+        .combineContent(queryFlow) { accounts, query, _ ->
+            val matches = accounts.filter { it.matchesQuery(query) }
             AccountsContent(
-                filteredAccounts = accounts.filter(filter::matches),
-                activeFilter = filter,
+                filteredAccounts = matches,
+                query = query,
                 accountCount = accounts.size,
-                totalBalance = accounts.sumOf { it.balance.amount.toDoubleOrNull() ?: 0.0 },
-                currency = accounts.firstOrNull()?.balance?.currency.orEmpty(),
+                totalBalance = matches.sumOf { it.balance.amount.toDoubleOrNull() ?: 0.0 },
+                currency = matches.firstOrNull()?.balance?.currency.orEmpty(),
             )
         }
         .emptyIfContent { it.accountCount == 0 }
@@ -59,32 +60,32 @@ class AccountsViewModel(
             initialValue = ScreenState.Loading,
         )
 
-    fun onFilterChanged(filter: AccountTypeFilter) = activeFilterFlow.update { filter }
+    fun onSearchQueryChanged(query: String) = queryFlow.update { query }
 
     fun onRetry() = stream.retry()
 
     fun onRefresh() = stream.refresh()
 }
 
-/** Loaded content for the My Accounts screen, including the client-side filter result. */
+/** Loaded content for the My Accounts screen, including the client-side search result. */
 @Immutable
 data class AccountsContent(
     val filteredAccounts: List<Account>,
-    val activeFilter: AccountTypeFilter,
+    val query: String,
     val accountCount: Int,
     val totalBalance: Double,
     val currency: String,
 )
 
-/** Client-side account-type filter for the My Accounts tab row. */
-enum class AccountTypeFilter(val label: String) {
-    ALL("ALL"),
-    CHECKING("CHECKING"),
-    SAVINGS("SAVINGS"),
-    BUSINESS("BUSINESS"),
-    ;
-
-    /** Best-effort match against the OBP `account_type` string. ALL matches everything. */
-    fun matches(account: Account): Boolean =
-        this == ALL || account.accountType.contains(name, ignoreCase = true)
+/**
+ * Client-side free-text match. A blank query matches everything; otherwise the trimmed
+ * query is matched case-insensitively against the account name/label, number, IBAN, the
+ * resolved display identifier, and the account id. OBP `account_type` is a free-form
+ * string (no fixed checking/savings/business enum), so search beats a category filter.
+ */
+fun Account.matchesQuery(query: String): Boolean {
+    val q = query.trim()
+    if (q.isEmpty()) return true
+    return listOf(label, number, iban, displayIdentifier, accountIdOrId)
+        .any { it.contains(q, ignoreCase = true) }
 }
