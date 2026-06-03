@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.data.testutil.testJson
 import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
 import org.mifosx.openbanking.core.model.obp.CounterpartiesResponse
 import org.mifosx.openbanking.core.model.obp.Counterparty
+import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.network.api.PaymentsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.store.payments.provideCounterpartiesStore
@@ -28,8 +29,15 @@ import kotlin.test.assertTrue
 private class FakePaymentsApi(
     var listResult: NetworkResult<CounterpartiesResponse, NetworkError> =
         NetworkResult.Success(CounterpartiesResponse()),
+    var createResult: NetworkResult<Counterparty, NetworkError> =
+        NetworkResult.Success(Counterparty()),
 ) : PaymentsApi {
     override suspend fun listCounterparties(bankId: String, accountId: String) = listResult
+    override suspend fun createCounterparty(
+        bankId: String,
+        accountId: String,
+        request: CreateCounterpartyRequest,
+    ) = createResult
 }
 
 private fun paymentsRepo(api: PaymentsApi): PaymentsRepositoryImpl {
@@ -63,5 +71,39 @@ class PaymentsRepositoryTest {
     fun listBeneficiaries_error_isFailure() = runTest {
         val repo = paymentsRepo(FakePaymentsApi(NetworkResult.Error(NetworkError.SERVER)))
         assertTrue(repo.listBeneficiaries("acc-1").isFailure)
+    }
+
+    @Test
+    fun createBeneficiary_returnsCreatedCounterparty() = runTest {
+        val repo = paymentsRepo(
+            FakePaymentsApi(
+                createResult = NetworkResult.Success(Counterparty(counterpartyId = "new-1", name = "Payee")),
+            ),
+        )
+        val request = CreateCounterpartyRequest(
+            name = "Payee",
+            currency = "GBP",
+            otherAccountRoutingScheme = "IBAN",
+            otherAccountRoutingAddress = "GB29NWBK60161331926819",
+            otherBankRoutingScheme = "BIC",
+            otherBankRoutingAddress = "NWBKGB2L",
+        )
+        val result = repo.createBeneficiary("acc-1", request)
+        assertTrue(result.isSuccess)
+        assertEquals("new-1", result.getOrNull()?.counterpartyId)
+    }
+
+    @Test
+    fun createBeneficiary_error_isFailure() = runTest {
+        val repo = paymentsRepo(FakePaymentsApi(createResult = NetworkResult.Error(NetworkError.SERVER)))
+        val request = CreateCounterpartyRequest(
+            name = "Payee",
+            currency = "GBP",
+            otherAccountRoutingScheme = "IBAN",
+            otherAccountRoutingAddress = "GB29NWBK60161331926819",
+            otherBankRoutingScheme = "BIC",
+            otherBankRoutingAddress = "NWBKGB2L",
+        )
+        assertTrue(repo.createBeneficiary("acc-1", request).isFailure)
     }
 }

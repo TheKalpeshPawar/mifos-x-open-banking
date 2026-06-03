@@ -37,6 +37,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
+import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
@@ -47,6 +48,7 @@ import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
+import org.mifosx.openbanking.placeholder.BeneficiariesRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
@@ -151,6 +153,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 // Non-tab destinations are genuine pushes.
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onViewAllTransactions = { navController.navigate(TransactionsRoute) },
+                onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onDeferred = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message = message, duration = Short)
@@ -183,6 +186,21 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     onCardClick = { navController.navigate(CardDetailRoute) },
                     onTransactionClick = { navController.navigate(TransactionDetailRoute) },
                     onDeferred = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
+                )
+            }
+
+            // Beneficiaries — real feature module. Tapping a beneficiary heads to send-money
+            // (still a Phase 2 placeholder until that feature module lands).
+            composableWithStayTransitions<BeneficiariesRoute> {
+                BeneficiariesScreen(
+                    // Pop Beneficiaries off the back stack BEFORE switching tabs, so returning
+                    // to the Home tab restores the dashboard (not Beneficiaries) and the Home
+                    // nav button works in one tap.
+                    onBeneficiaryClick = {
+                        navController.popBackStack()
+                        navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab)
+                    },
+                    onBack = navController::popBackStack,
                 )
             }
 

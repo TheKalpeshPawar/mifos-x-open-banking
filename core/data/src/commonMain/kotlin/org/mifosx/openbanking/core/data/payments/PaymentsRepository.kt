@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.Counterparty
+import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.network.api.PaymentsApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mobilenativefoundation.store.store5.Store
@@ -26,6 +27,12 @@ interface PaymentsRepository {
     fun beneficiariesStream(accountId: String, scope: CoroutineScope): ScreenDataStream<List<Counterparty>>
 
     suspend fun listBeneficiaries(accountId: String): Result<List<Counterparty>>
+
+    /** Create (add) a beneficiary for the account. */
+    suspend fun createBeneficiary(
+        accountId: String,
+        request: CreateCounterpartyRequest,
+    ): Result<Counterparty>
 }
 
 class PaymentsRepositoryImpl(
@@ -51,4 +58,10 @@ class PaymentsRepositoryImpl(
 
     override suspend fun listBeneficiaries(accountId: String): Result<List<Counterparty>> =
         api.listCounterparties(config.bankId, accountId).toResult().map { it.counterparties }
+
+    override suspend fun createBeneficiary(
+        accountId: String,
+        request: CreateCounterpartyRequest,
+    ): Result<Counterparty> =
+        api.createCounterparty(config.bankId, accountId, request).toResult()
 }

@@ -90,6 +90,7 @@ fun HomeScreen(
     onFindAtm: () -> Unit,
     onViewAllTransactions: () -> Unit,
     onTotalPortfolio: () -> Unit,
+    onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
@@ -116,6 +117,7 @@ fun HomeScreen(
                 onFindAtm = onFindAtm,
                 onViewAllTransactions = onViewAllTransactions,
                 onTotalPortfolio = onTotalPortfolio,
+                onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
         }
@@ -144,6 +146,7 @@ private fun HomeLoaded(
     onFindAtm: () -> Unit,
     onViewAllTransactions: () -> Unit,
     onTotalPortfolio: () -> Unit,
+    onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     val name = content.greetingName.ifBlank { "there" }
@@ -172,6 +175,7 @@ private fun HomeLoaded(
                 account = content.primaryAccount,
                 ownerName = name,
                 onTransfer = onTransfer,
+                onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
         }
@@ -208,6 +212,7 @@ private fun PrimaryAccountCard(
     account: Account?,
     ownerName: String,
     onTransfer: () -> Unit,
+    onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     Card(
@@ -252,7 +257,7 @@ private fun PrimaryAccountCard(
                 QuickChip("Transfer", Modifier.weight(1f), onClick = onTransfer)
                 QuickChip("Pay Bill", Modifier.weight(1f)) { onDeferred("Pay Bill — coming soon") }
                 QuickChip("Top-up", Modifier.weight(1f)) { onDeferred("Top-up — coming soon") }
-                QuickChip("More", Modifier.weight(1f), muted = true) { onDeferred("More actions — coming soon") }
+                QuickChip("Payees", Modifier.weight(1f), onClick = onBeneficiaries)
             }
         }
     }

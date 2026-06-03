@@ -106,6 +106,7 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 fun NavController.navigateToAccounts(navOptions: NavOptions? = null) = navigate(AccountsRoute, navOptions)
 fun NavController.navigateToSendMoney(navOptions: NavOptions? = null) = navigate(SendMoneyRoute, navOptions)
+fun NavController.navigateToBeneficiaries(navOptions: NavOptions? = null) = navigate(BeneficiariesRoute, navOptions)
 fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(CardsRoute, navOptions)
 fun NavController.navigateToFoDashboard(navOptions: NavOptions? = null) = navigate(FoDashboardRoute, navOptions)
 fun NavController.navigateToCustomerSearch(navOptions: NavOptions? = null) = navigate(CustomerSearchRoute, navOptions)
@@ -125,7 +126,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
     composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
-    composableWithStayTransitions<BeneficiariesRoute> { PlaceholderScreen("Beneficiaries") }
+    // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }

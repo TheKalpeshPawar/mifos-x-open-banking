@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.network.api.AgentsApi
 import org.mifosx.openbanking.core.network.api.AtmApi
 import org.mifosx.openbanking.core.network.api.AuthApi
 import org.mifosx.openbanking.core.network.api.AuthRecoveryApi
+import org.mifosx.openbanking.core.network.api.BanksApi
 import org.mifosx.openbanking.core.network.api.CardsApi
 import org.mifosx.openbanking.core.network.api.ConsentsApi
 import org.mifosx.openbanking.core.network.api.CustomerMessagesApi
@@ -38,6 +39,7 @@ import org.mifosx.openbanking.core.network.api.createAgentsApi
 import org.mifosx.openbanking.core.network.api.createAtmApi
 import org.mifosx.openbanking.core.network.api.createAuthApi
 import org.mifosx.openbanking.core.network.api.createAuthRecoveryApi
+import org.mifosx.openbanking.core.network.api.createBanksApi
 import org.mifosx.openbanking.core.network.api.createCardsApi
 import org.mifosx.openbanking.core.network.api.createConsentsApi
 import org.mifosx.openbanking.core.network.api.createCustomerMessagesApi
@@ -71,6 +73,7 @@ val NetworkModule = module {
 
     single<AuthApi> { get<Ktorfit>().createAuthApi() }
     single<AccountsApi> { get<Ktorfit>().createAccountsApi() }
+    single<BanksApi> { get<Ktorfit>().createBanksApi() }
     single<TransactionsApi> { get<Ktorfit>().createTransactionsApi() }
     single<CardsApi> { get<Ktorfit>().createCardsApi() }
     single<PaymentsApi> { get<Ktorfit>().createPaymentsApi() }

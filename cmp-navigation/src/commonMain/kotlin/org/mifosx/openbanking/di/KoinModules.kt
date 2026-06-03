@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.store.di.appStoreModule
 import org.mifosx.openbanking.feature.accounts.di.AccountsModule
+import org.mifosx.openbanking.feature.beneficiaries.di.BeneficiariesModule
 import org.mifosx.openbanking.feature.cards.di.CardsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
@@ -55,6 +56,7 @@ object KoinModules {
             SettingsModule,
             AccountsModule,
             CardsModule,
+            BeneficiariesModule,
         )
     }
 

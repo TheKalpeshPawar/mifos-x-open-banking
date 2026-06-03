@@ -117,6 +117,7 @@ include(":feature:settings")
 include(":feature:login")
 include(":feature:accounts")
 include(":feature:cards")
+include(":feature:beneficiaries")
 
 include(":core-base:analytics")
 include(":core-base:common")

@@ -29,6 +29,8 @@ import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
 import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
+import org.mifosx.openbanking.core.data.banks.BanksRepository
+import org.mifosx.openbanking.core.data.banks.BanksRepositoryImpl
 import org.mifosx.openbanking.core.data.cards.CardsRepository
 import org.mifosx.openbanking.core.data.cards.CardsRepositoryImpl
 import org.mifosx.openbanking.core.data.consents.ConsentsRepository
@@ -142,6 +144,7 @@ val DataModule = module {
             fetchedAtRepository = get(),
         )
     }
+    single<BanksRepository> { BanksRepositoryImpl(api = get()) }
     single<FxRepository> { FxRepositoryImpl(api = get(), config = get()) }
     single<AtmRepository> {
         AtmRepositoryImpl(
