@@ -20,3 +20,11 @@ enum class Platform {
 }
 
 expect fun supportsDynamicTheming(): Boolean
+
+/**
+ * Whether the current platform exposes a biometric authentication path. Drives whether the
+ * Settings "Biometric Login" toggle is enabled. This is a coarse platform-capability signal;
+ * precise hardware enrollment state (BiometricManager.canAuthenticate / LAContext) requires a
+ * platform context and is deferred until biometric login is wired end-to-end.
+ */
+expect fun isBiometricAvailableOnDevice(): Boolean

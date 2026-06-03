@@ -21,6 +21,7 @@ import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.cards.di.CardsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.profile.di.ProfileModule
 import org.mifosx.openbanking.feature.settings.SettingsModule
 import org.mifosx.openbanking.rootnav.RootNavViewModel
 import org.openmf.kmptemplate.BuildKonfig
@@ -50,6 +51,7 @@ object KoinModules {
         includes(
             HomeModule,
             LoginModule,
+            ProfileModule,
             SettingsModule,
             AccountsModule,
             CardsModule,

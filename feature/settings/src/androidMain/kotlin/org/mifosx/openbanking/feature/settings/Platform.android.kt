@@ -20,3 +20,5 @@ actual fun getPlatform(): Platform {
 actual fun supportsDynamicTheming(): Boolean {
     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 }
+
+actual fun isBiometricAvailableOnDevice(): Boolean = true

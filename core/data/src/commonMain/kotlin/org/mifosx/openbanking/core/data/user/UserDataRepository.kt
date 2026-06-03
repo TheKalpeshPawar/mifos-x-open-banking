@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.user
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
@@ -39,6 +40,17 @@ interface UserDataRepository {
 
     val observeScreenCapturePreference: Flow<Boolean>
 
+    // Notification preferences (Settings screen). Defaulted so existing UserDataRepository
+    // fakes/implementers continue to compile; UserDataRepositoryImpl provides the real wiring.
+    val observePushNotificationsEnabled: Flow<Boolean>
+        get() = flowOf(true)
+
+    val observeTransactionAlertsEnabled: Flow<Boolean>
+        get() = flowOf(true)
+
+    val observeMarketingEnabled: Flow<Boolean>
+        get() = flowOf(false)
+
     suspend fun setLanguage(language: LanguageConfig)
 
     suspend fun setThemeBrand(themeBrand: ThemeBrand)
@@ -54,6 +66,12 @@ interface UserDataRepository {
     suspend fun setIsPasscodeEnabled(isPasscodeEnabled: Boolean)
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
+
+    suspend fun setPushNotificationsEnabled(isEnabled: Boolean) = Unit
+
+    suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) = Unit
+
+    suspend fun setMarketingEnabled(isEnabled: Boolean) = Unit
 
     suspend fun setShowOnboarding(showOnboarding: Boolean)
 

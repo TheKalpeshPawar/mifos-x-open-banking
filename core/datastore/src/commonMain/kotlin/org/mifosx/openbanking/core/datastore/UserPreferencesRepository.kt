@@ -39,6 +39,12 @@ interface UserPreferencesRepository {
 
     val observeScreenCapturePreference: Flow<Boolean>
 
+    val observePushNotificationsEnabled: Flow<Boolean>
+
+    val observeTransactionAlertsEnabled: Flow<Boolean>
+
+    val observeMarketingEnabled: Flow<Boolean>
+
     suspend fun setLanguage(language: LanguageConfig)
 
     suspend fun setThemeBrand(themeBrand: ThemeBrand)
@@ -54,6 +60,12 @@ interface UserPreferencesRepository {
     suspend fun setIsPasscodeEnabled(isPasscodeEnabled: Boolean)
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
+
+    suspend fun setPushNotificationsEnabled(isEnabled: Boolean)
+
+    suspend fun setTransactionAlertsEnabled(isEnabled: Boolean)
+
+    suspend fun setMarketingEnabled(isEnabled: Boolean)
 
     suspend fun setShowOnboarding(showOnboarding: Boolean)
 

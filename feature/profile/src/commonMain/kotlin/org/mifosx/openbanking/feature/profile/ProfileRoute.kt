@@ -20,8 +20,14 @@ data object ProfileRoute
 
 fun NavController.navigateToProfile(navOptions: NavOptions? = null) = navigate(ProfileRoute, navOptions)
 
-fun NavGraphBuilder.profileDestination() {
+fun NavGraphBuilder.profileDestination(
+    onBackClick: () -> Unit,
+    onChangePassword: () -> Unit,
+) {
     composableWithStayTransitions<ProfileRoute> {
-        ProfileScreen()
+        ProfileScreen(
+            onBackClick = onBackClick,
+            onChangePassword = onChangePassword,
+        )
     }
 }

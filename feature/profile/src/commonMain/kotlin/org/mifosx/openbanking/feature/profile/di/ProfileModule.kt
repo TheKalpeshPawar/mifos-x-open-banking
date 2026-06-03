@@ -7,8 +7,12 @@
  *
  * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-package org.mifosx.openbanking.feature.settings
+package org.mifosx.openbanking.feature.profile.di
 
-actual fun getPlatform(): Platform = Platform.Wasm
-actual fun supportsDynamicTheming(): Boolean = false
-actual fun isBiometricAvailableOnDevice(): Boolean = false
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
+import org.mifosx.openbanking.feature.profile.ui.ProfileViewModel
+
+val ProfileModule = module {
+    viewModelOf(::ProfileViewModel)
+}

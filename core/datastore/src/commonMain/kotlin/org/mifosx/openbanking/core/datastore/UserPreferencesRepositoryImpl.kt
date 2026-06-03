@@ -38,6 +38,7 @@ private const val SECURE_DATA_KEY = "secure_data_key"
  * On first access, migrates any existing single-store data into the split
  * stores using a write-before-delete strategy to prevent data loss.
  */
+@Suppress("TooManyFunctions") // One setter per persisted preference; intentional flat surface.
 class UserPreferencesRepositoryImpl(
     private val plainSettings: Settings,
     private val secureSettings: Settings,
@@ -120,6 +121,15 @@ class UserPreferencesRepositoryImpl(
     override val observeScreenCapturePreference: Flow<Boolean>
         get() = _userData.map { it.enableScreenCapture }
 
+    override val observePushNotificationsEnabled: Flow<Boolean>
+        get() = _userData.map { it.isPushNotificationsEnabled }
+
+    override val observeTransactionAlertsEnabled: Flow<Boolean>
+        get() = _userData.map { it.isTransactionAlertsEnabled }
+
+    override val observeMarketingEnabled: Flow<Boolean>
+        get() = _userData.map { it.isMarketingEnabled }
+
     private suspend fun updatePreference(transform: (UserData) -> UserData) {
         withContext(dispatcher.io) {
             val current = loadCombinedUserData()
@@ -153,6 +163,15 @@ class UserPreferencesRepositoryImpl(
 
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         updatePreference { it.copy(isBiometricsEnabled = isBiometricsEnabled) }
+
+    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isPushNotificationsEnabled = isEnabled) }
+
+    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isTransactionAlertsEnabled = isEnabled) }
+
+    override suspend fun setMarketingEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isMarketingEnabled = isEnabled) }
 
     override suspend fun setShowOnboarding(showOnboarding: Boolean) =
         updatePreference { it.copy(showOnboarding = showOnboarding) }

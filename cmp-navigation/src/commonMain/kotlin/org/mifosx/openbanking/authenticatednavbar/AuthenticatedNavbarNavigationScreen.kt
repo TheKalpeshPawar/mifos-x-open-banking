@@ -40,8 +40,8 @@ import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
-import org.mifosx.openbanking.feature.settings.notificationDestination
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
@@ -49,6 +49,7 @@ import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
+import org.mifosx.openbanking.placeholder.ChangePasswordRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.TransactionsRoute
@@ -157,9 +158,15 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     }
                 },
             )
-            profileDestination()
-            settingsDestination(onBackClick = navController::popBackStack)
-            notificationDestination(onBackClick = navController::popBackStack)
+            profileDestination(
+                onBackClick = navController::popBackStack,
+                onChangePassword = { navController.navigate(ChangePasswordRoute) },
+            )
+            settingsDestination(
+                onBackClick = navController::popBackStack,
+                onNavigateToProfile = { navController.navigateToProfile() },
+                onNavigateToChangePassword = { navController.navigate(ChangePasswordRoute) },
+            )
 
             // Accounts tab — real feature module (Phase 5). Detail + request-account targets
             // remain Phase 2 placeholders until their own feature modules land.

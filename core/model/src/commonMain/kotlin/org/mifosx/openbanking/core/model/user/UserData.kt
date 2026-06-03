@@ -26,6 +26,11 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
+    // Notification preferences (surfaced on the Settings screen). Defaulted so older
+    // persisted payloads that predate these fields deserialize without data loss.
+    val isPushNotificationsEnabled: Boolean = true,
+    val isTransactionAlertsEnabled: Boolean = true,
+    val isMarketingEnabled: Boolean = false,
     val authToken: String? = null,
 ) {
     companion object {
@@ -43,6 +48,9 @@ data class UserData(
             showOnboarding = false,
             firstTimeUser = false,
             enableScreenCapture = false,
+            isPushNotificationsEnabled = true,
+            isTransactionAlertsEnabled = true,
+            isMarketingEnabled = false,
         )
     }
 }

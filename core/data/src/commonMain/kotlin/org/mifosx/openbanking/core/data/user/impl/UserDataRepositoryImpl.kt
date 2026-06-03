@@ -42,6 +42,15 @@ class UserDataRepositoryImpl(
     override val observeScreenCapturePreference: Flow<Boolean>
         get() = preferencesRepository.observeScreenCapturePreference
 
+    override val observePushNotificationsEnabled: Flow<Boolean>
+        get() = preferencesRepository.observePushNotificationsEnabled
+
+    override val observeTransactionAlertsEnabled: Flow<Boolean>
+        get() = preferencesRepository.observeTransactionAlertsEnabled
+
+    override val observeMarketingEnabled: Flow<Boolean>
+        get() = preferencesRepository.observeMarketingEnabled
+
     override suspend fun setLanguage(language: LanguageConfig) = preferencesRepository.setLanguage(language)
 
     override suspend fun setThemeBrand(themeBrand: ThemeBrand) = preferencesRepository.setThemeBrand(themeBrand)
@@ -62,6 +71,15 @@ class UserDataRepositoryImpl(
 
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         preferencesRepository.setIsBiometricsEnabled(isBiometricsEnabled)
+
+    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) =
+        preferencesRepository.setPushNotificationsEnabled(isEnabled)
+
+    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) =
+        preferencesRepository.setTransactionAlertsEnabled(isEnabled)
+
+    override suspend fun setMarketingEnabled(isEnabled: Boolean) =
+        preferencesRepository.setMarketingEnabled(isEnabled)
 
     override suspend fun setShowOnboarding(showOnboarding: Boolean) =
         preferencesRepository.setShowOnboarding(showOnboarding)
