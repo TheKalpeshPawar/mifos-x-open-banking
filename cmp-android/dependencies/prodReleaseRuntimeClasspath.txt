@@ -21,6 +21,7 @@
 :core:store
 :core:ui
 :feature:accounts
+:feature:beneficiaries
 :feature:cards
 :feature:home
 :feature:login
