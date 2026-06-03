@@ -29,7 +29,6 @@ fun NavController.navigateToSettings(navOptions: NavOptions? = null) =
 fun NavGraphBuilder.settingsDestination(
     onBackClick: () -> Unit,
     onNavigateToProfile: (() -> Unit)? = null,
-    onNavigateToChangePassword: (() -> Unit)? = null,
     onNavigateToAbout: (() -> Unit)? = null,
     onNavigateToTerms: (() -> Unit)? = null,
     onNavigateToPrivacy: (() -> Unit)? = null,
@@ -39,7 +38,6 @@ fun NavGraphBuilder.settingsDestination(
         SettingsScreen(
             onBackClick = onBackClick,
             onNavigateToProfile = onNavigateToProfile,
-            onNavigateToChangePassword = onNavigateToChangePassword,
             onNavigateToAbout = onNavigateToAbout,
             onNavigateToTerms = onNavigateToTerms,
             onNavigateToPrivacy = onNavigateToPrivacy,

@@ -59,7 +59,6 @@ import template.core.base.store.screen.ScreenState
 @Composable
 internal fun ProfileScreen(
     onBackClick: () -> Unit,
-    onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -75,7 +74,6 @@ internal fun ProfileScreen(
 
             is ScreenState.Content -> ProfileForm(
                 content = s.data,
-                onChangePassword = onChangePassword,
                 onLogout = viewModel::onLogout,
             )
 
@@ -87,7 +85,6 @@ internal fun ProfileScreen(
 @Composable
 private fun ProfileForm(
     content: ProfileContent,
-    onChangePassword: () -> Unit,
     onLogout: () -> Unit,
 ) {
     Column(
@@ -103,9 +100,11 @@ private fun ProfileForm(
 
         Spacer(Modifier.height(20.dp))
 
-        // Same width as the Personal Information card above (both inset 20.dp + fillMaxWidth).
+        // Disabled: OBP exposes no working change/reset-password endpoint. Same width as the
+        // Personal Information card above (both inset 20.dp + fillMaxWidth).
         OutlinedButton(
-            onClick = onChangePassword,
+            onClick = {},
+            enabled = false,
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()

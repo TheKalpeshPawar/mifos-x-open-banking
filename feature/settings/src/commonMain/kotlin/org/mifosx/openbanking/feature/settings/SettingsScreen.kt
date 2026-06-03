@@ -95,7 +95,6 @@ internal fun SettingsScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToProfile: (() -> Unit)? = null,
-    onNavigateToChangePassword: (() -> Unit)? = null,
     onNavigateToAbout: (() -> Unit)? = null,
     onNavigateToTerms: (() -> Unit)? = null,
     onNavigateToPrivacy: (() -> Unit)? = null,
@@ -118,7 +117,6 @@ internal fun SettingsScreen(
                 onPushToggled = viewModel::onPushNotificationsToggled,
                 onTransactionAlertsToggled = viewModel::onTransactionAlertsToggled,
                 onBiometricToggled = viewModel::onBiometricToggled,
-                onChangePassword = onNavigateToChangePassword,
                 onAbout = onNavigateToAbout,
                 onTerms = onNavigateToTerms,
                 onPrivacy = onNavigateToPrivacy,
@@ -140,7 +138,6 @@ private fun SettingsContent(
     onPushToggled: () -> Unit,
     onTransactionAlertsToggled: () -> Unit,
     onBiometricToggled: () -> Unit,
-    onChangePassword: (() -> Unit)?,
     onAbout: (() -> Unit)?,
     onTerms: (() -> Unit)?,
     onPrivacy: (() -> Unit)?,
@@ -220,11 +217,12 @@ private fun SettingsContent(
                 testTag = SettingsTestTags.BIOMETRIC_TOGGLE,
             )
             RowDivider()
+            // Disabled: OBP exposes no working change/reset-password path.
             NavRow(
                 leadingIcon = Icons.Outlined.Lock,
                 label = "Change Password",
                 description = "Update your account login password",
-                onClick = onChangePassword,
+                onClick = null,
                 testTag = SettingsTestTags.CHANGE_PASSWORD_ROW,
             )
         }

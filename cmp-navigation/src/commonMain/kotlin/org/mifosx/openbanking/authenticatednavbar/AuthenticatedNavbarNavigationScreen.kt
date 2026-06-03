@@ -49,7 +49,6 @@ import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
-import org.mifosx.openbanking.placeholder.ChangePasswordRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.TransactionsRoute
@@ -160,12 +159,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             profileDestination(
                 onBackClick = navController::popBackStack,
-                onChangePassword = { navController.navigate(ChangePasswordRoute) },
             )
             settingsDestination(
                 onBackClick = navController::popBackStack,
                 onNavigateToProfile = { navController.navigateToProfile() },
-                onNavigateToChangePassword = { navController.navigate(ChangePasswordRoute) },
             )
 
             // Accounts tab — real feature module (Phase 5). Detail + request-account targets
