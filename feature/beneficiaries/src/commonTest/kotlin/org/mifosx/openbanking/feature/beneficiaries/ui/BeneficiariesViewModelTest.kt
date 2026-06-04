@@ -27,6 +27,8 @@ import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionDetails
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
+import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.ScreenState
 import kotlin.test.AfterTest
@@ -41,7 +43,7 @@ private class FakeAccountsRepository(
     override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>> = TODO()
     override suspend fun listAccounts(): Result<List<Account>> = accounts
     override suspend fun myAccounts(): Result<List<Account>> = accounts
-    override suspend fun accountDetail(accountId: String): Result<Account> = TODO()
+    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = TODO()
 }
 
 private class FakePaymentsRepository(
@@ -53,14 +55,43 @@ private class FakePaymentsRepository(
         accountId: String,
         scope: CoroutineScope,
     ): ScreenDataStream<List<Counterparty>> = TODO()
-    override suspend fun listBeneficiaries(accountId: String): Result<List<Counterparty>> = beneficiaries
+    override suspend fun listBeneficiaries(bankId: String, accountId: String): Result<List<Counterparty>> =
+        beneficiaries
+    override suspend fun listTransactionRequests(
+        bankId: String,
+        accountId: String,
+    ): Result<List<TransactionRequestSummary>> = Result.success(emptyList())
     override suspend fun createBeneficiary(
+        bankId: String,
         accountId: String,
         request: CreateCounterpartyRequest,
     ): Result<Counterparty> {
         createCalls++
         return created
     }
+    override suspend fun sendSepaPayment(
+        bankId: String,
+        accountId: String,
+        iban: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> = TODO()
+    override suspend fun sendToCounterparty(
+        bankId: String,
+        accountId: String,
+        counterpartyId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> = TODO()
+    override suspend fun fundsAvailable(
+        bankId: String,
+        accountId: String,
+        amount: String,
+        currency: String,
+    ): Result<Boolean> = TODO()
+    override suspend fun checkIban(iban: String): Result<Boolean> = TODO()
 }
 
 private class FakeTransactionsRepository(

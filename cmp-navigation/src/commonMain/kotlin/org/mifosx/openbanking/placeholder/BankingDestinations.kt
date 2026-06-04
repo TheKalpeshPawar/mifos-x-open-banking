@@ -40,7 +40,25 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object SendMoneyRoute
 
-@Serializable data object SendMoneyConfirmRoute
+@Serializable
+data class SendMoneyAmountRoute(
+    val counterpartyId: String = "",
+    val accountId: String = "",
+)
+
+@Serializable
+data class SendMoneyConfirmRoute(
+    val fromBankId: String,
+    val fromAccountId: String,
+    val fromLabel: String,
+    val amount: String,
+    val currency: String,
+    val counterpartyId: String,
+    val beneficiaryName: String,
+    val beneficiaryBank: String,
+    val iban: String,
+    val reference: String,
+)
 
 @Serializable data object BeneficiariesRoute
 
@@ -124,8 +142,8 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
-    composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
-    composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
+    // SendMoneyRoute + SendMoneyConfirmRoute are real feature modules — registered in
+    // AuthenticatedNavbarNavigationScreen.
     // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }

@@ -108,7 +108,7 @@ class AccountsRepositoryTest {
         val api = FakeAccountsApi(detailResult = NetworkResult.Success(Account(id = "acc-9")))
         val repo = buildRepo(api, config)
 
-        val result = repo.accountDetail("acc-9")
+        val result = repo.accountDetail("bank-9", "acc-9")
 
         assertEquals("acc-9", result.getOrNull()?.id)
     }

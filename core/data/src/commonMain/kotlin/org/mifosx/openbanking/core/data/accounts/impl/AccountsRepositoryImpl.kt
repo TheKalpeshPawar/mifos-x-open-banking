@@ -50,6 +50,8 @@ class AccountsRepositoryImpl(
     override suspend fun myAccounts(): Result<List<Account>> =
         api.myAccounts().toResult().map { it.accounts }
 
-    override suspend fun accountDetail(accountId: String): Result<Account> =
-        api.accountDetail(config.bankId, accountId).toResult()
+    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> =
+        // /my/ detail endpoint: user-scoped, returns balance+currency, works across banks
+        // (the plain accountDetail path 404s for accounts not on the default bank).
+        api.myAccountDetail(bankId.ifBlank { config.bankId }, accountId).toResult()
 }

@@ -30,6 +30,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.toRoute
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import kotlinx.coroutines.launch
@@ -43,6 +44,9 @@ import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
@@ -52,6 +56,9 @@ import org.mifosx.openbanking.placeholder.BeneficiariesRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
+import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
+import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
+import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.TransactionsRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
@@ -189,8 +196,72 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            // Beneficiaries — real feature module. Tapping a beneficiary heads to send-money
-            // (still a Phase 2 placeholder until that feature module lands).
+            // Pay tab — Send Money hub. Pick a recipient/beneficiary → amount entry preselected;
+            // New / Local transfer → amount entry with the beneficiary picker.
+            composableWithStayTransitions<SendMoneyRoute> {
+                SendMoneyHubScreen(
+                    onRecipientSelected = { accountId, id ->
+                        navController.navigate(SendMoneyAmountRoute(counterpartyId = id, accountId = accountId))
+                    },
+                    onNewTransfer = { accountId ->
+                        navController.navigate(SendMoneyAmountRoute(accountId = accountId))
+                    },
+                    onBack = navController::popBackStack,
+                )
+            }
+
+            // Amount entry. Continue carries the validated draft to confirm as type-safe args.
+            composableWithStayTransitions<SendMoneyAmountRoute> { entry ->
+                val a = entry.toRoute<SendMoneyAmountRoute>()
+                SendMoneyScreen(
+                    onContinue = { d ->
+                        navController.navigate(
+                            SendMoneyConfirmRoute(
+                                fromBankId = d.fromBankId,
+                                fromAccountId = d.fromAccountId,
+                                fromLabel = d.fromLabel,
+                                amount = d.amount,
+                                currency = d.currency,
+                                counterpartyId = d.counterpartyId,
+                                beneficiaryName = d.beneficiaryName,
+                                beneficiaryBank = d.beneficiaryBank,
+                                iban = d.iban,
+                                reference = d.reference,
+                            ),
+                        )
+                    },
+                    onBack = navController::popBackStack,
+                    preselectedCounterpartyId = a.counterpartyId,
+                    accountId = a.accountId,
+                )
+            }
+
+            // Confirm Payment — executes the SEPA transfer. On success, clear back to the form,
+            // switch to Home, and surface a snackbar; Edit returns to the form.
+            composableWithStayTransitions<SendMoneyConfirmRoute> { entry ->
+                val r = entry.toRoute<SendMoneyConfirmRoute>()
+                SendMoneyConfirmScreen(
+                    fromBankId = r.fromBankId,
+                    fromAccountId = r.fromAccountId,
+                    fromLabel = r.fromLabel,
+                    amount = r.amount,
+                    currency = r.currency,
+                    counterpartyId = r.counterpartyId,
+                    beneficiaryName = r.beneficiaryName,
+                    beneficiaryBank = r.beneficiaryBank,
+                    iban = r.iban,
+                    reference = r.reference,
+                    onSuccess = { message ->
+                        navController.popBackStack(SendMoneyRoute, inclusive = false)
+                        navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
+                        scope.launch { snackbarHostState.showSnackbar(message) }
+                    },
+                    onEdit = navController::popBackStack,
+                    onBack = navController::popBackStack,
+                )
+            }
+
+            // Beneficiaries — real feature module. Tapping a beneficiary heads to the Pay tab.
             composableWithStayTransitions<BeneficiariesRoute> {
                 BeneficiariesScreen(
                     // Pop Beneficiaries off the back stack BEFORE switching tabs, so returning

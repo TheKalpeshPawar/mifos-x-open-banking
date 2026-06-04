@@ -16,6 +16,7 @@ import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.plugin
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.json.Json
 import template.core.base.network.factory.ResultSuspendConverterFactory
 import template.core.base.network.httpClient
 import template.core.base.network.setupDefaultHttpClient
@@ -40,6 +41,16 @@ fun obpHttpClient(config: ObpConfig, tokenProvider: ObpTokenProvider): HttpClien
     val defaults = setupDefaultHttpClient(
         baseUrl = config.baseUrl,
         loggableHosts = listOf("openbankproject.com"),
+        // encodeDefaults = true so request bodies include default-valued fields (e.g.
+        // `description`, `charge_policy`). OBP requires `description` on transaction-requests;
+        // without this, kotlinx omits default values and OBP returns OBP-10001.
+        jsonConfig = Json {
+            isLenient = true
+            ignoreUnknownKeys = true
+            explicitNulls = false
+            coerceInputValues = true
+            encodeDefaults = true
+        },
     )
     return httpClient {
         defaults(this)

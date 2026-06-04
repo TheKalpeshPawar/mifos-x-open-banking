@@ -24,5 +24,7 @@ interface AccountsRepository {
 
     suspend fun listAccounts(): Result<List<Account>>
     suspend fun myAccounts(): Result<List<Account>>
-    suspend fun accountDetail(accountId: String): Result<Account>
+
+    /** Full detail (incl. balance + currency) for one of the user's accounts at [bankId]. */
+    suspend fun accountDetail(bankId: String, accountId: String): Result<Account>
 }

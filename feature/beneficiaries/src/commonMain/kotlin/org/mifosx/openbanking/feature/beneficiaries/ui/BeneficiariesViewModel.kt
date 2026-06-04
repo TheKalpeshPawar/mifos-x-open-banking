@@ -66,6 +66,7 @@ class BeneficiariesViewModel(
     val sortOrder: StateFlow<SortOrder> = sortFlow.asStateFlow()
 
     private var currentAccountId: String? = null
+    private var currentBankId: String = ""
     private var currentCurrency: String = "GBP"
 
     val uiState: StateFlow<ScreenState<BeneficiariesContent>> =
@@ -120,7 +121,7 @@ class BeneficiariesViewModel(
             isBeneficiary = true,
         )
         viewModelScope.launch {
-            paymentsRepository.createBeneficiary(accountId, request).fold(
+            paymentsRepository.createBeneficiary(currentBankId, accountId, request).fold(
                 onSuccess = {
                     onResult(true)
                     load()
@@ -145,9 +146,10 @@ class BeneficiariesViewModel(
             }
             val accountId = primary.accountIdOrId
             currentAccountId = accountId
+            currentBankId = primary.bankId
             currentCurrency = primary.balance.currency.ifBlank { "GBP" }
 
-            val beneficiaries = paymentsRepository.listBeneficiaries(accountId).getOrElse {
+            val beneficiaries = paymentsRepository.listBeneficiaries(primary.bankId, accountId).getOrElse {
                 rawState.value = RawState.Failed(it)
                 return@launch
             }.filter { it.isBeneficiary }

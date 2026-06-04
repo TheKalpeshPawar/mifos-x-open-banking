@@ -37,6 +37,7 @@ kotlin {
             implementation(projects.feature.accounts)
             implementation(projects.feature.cards)
             implementation(projects.feature.beneficiaries)
+            implementation(projects.feature.sendMoney)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)
