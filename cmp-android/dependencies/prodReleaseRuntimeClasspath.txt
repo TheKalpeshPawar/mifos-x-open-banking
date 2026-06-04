@@ -26,6 +26,7 @@
 :feature:home
 :feature:login
 :feature:profile
+:feature:send-money
 :feature:settings
 androidx.activity:activity-compose:1.12.2
 androidx.activity:activity-ktx:1.12.2
