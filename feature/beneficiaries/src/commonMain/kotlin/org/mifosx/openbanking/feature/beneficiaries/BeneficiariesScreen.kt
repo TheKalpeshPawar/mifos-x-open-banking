@@ -34,6 +34,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonOff
@@ -43,6 +45,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +64,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesContent
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesViewModel
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiaryRow
@@ -94,14 +100,22 @@ fun BeneficiariesScreen(
     onBeneficiaryClick: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    accountId: String = "",
     viewModel: BeneficiariesViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
 
+    LaunchedEffect(accountId) {
+        if (accountId.isNotBlank()) viewModel.onAccountSelected(accountId)
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showAddSheet by remember { mutableStateOf(false) }
+    val selectedAccountLabel = (state as? ScreenState.Content)?.data?.selectedAccount
+        ?.let { it.label.ifBlank { it.accountIdOrId } }
+        .orEmpty()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -147,6 +161,7 @@ fun BeneficiariesScreen(
                     query = query,
                     onQueryChange = viewModel::onSearchQueryChanged,
                     onSort = viewModel::toggleSort,
+                    onAccountSelected = viewModel::onAccountSelected,
                     onBeneficiaryClick = onBeneficiaryClick,
                 )
             }
@@ -155,6 +170,7 @@ fun BeneficiariesScreen(
 
     if (showAddSheet) {
         AddBeneficiarySheet(
+            accountLabel = selectedAccountLabel,
             onDismiss = { showAddSheet = false },
             onSubmit = { name, iban, bic ->
                 viewModel.addBeneficiary(name, iban, bic) { ok ->
@@ -176,10 +192,16 @@ private fun Loaded(
     query: String,
     onQueryChange: (String) -> Unit,
     onSort: () -> Unit,
+    onAccountSelected: (String) -> Unit,
     onBeneficiaryClick: (String) -> Unit,
 ) {
     val showRecent = content.recentlyUsed.isNotEmpty() && query.isBlank()
     Column(modifier = Modifier.fillMaxSize()) {
+        AccountSelector(
+            accounts = content.accounts,
+            selectedAccountId = content.selectedAccountId,
+            onAccountSelected = onAccountSelected,
+        )
         SearchBar(query = query, onQueryChange = onQueryChange)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -199,13 +221,103 @@ private fun Loaded(
             }
             item { AllBeneficiariesHeader(onSort = onSort) }
             if (content.all.isEmpty()) {
-                item { NoMatchRow() }
+                // Distinguish "this account has no payees" from "search matched nothing".
+                item { if (query.isBlank()) NoPayeesRow() else NoMatchRow() }
             } else {
                 items(content.all, key = { it.id }) { row ->
                     AllCard(row = row, onClick = { onBeneficiaryClick(row.id) })
                 }
             }
         }
+    }
+}
+
+/**
+ * From-account selector. Beneficiaries are per-account, so this scopes the whole screen: the list
+ * below + the Add target are the selected account's. Single account → a read-only field; multiple
+ * → a tappable field with a dropdown.
+ */
+@Composable
+private fun AccountSelector(
+    accounts: List<Account>,
+    selectedAccountId: String,
+    onAccountSelected: (String) -> Unit,
+) {
+    val selected = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+        ?: accounts.firstOrNull()
+        ?: return
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Card(
+            onClick = { if (accounts.size > 1) expanded = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                .testTag(BeneficiariesTestTags.ACCOUNT_SELECTOR),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Beneficiaries of",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = selected.label.ifBlank { selected.accountIdOrId },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (accounts.size > 1) {
+                    Icon(
+                        Icons.Filled.ArrowDropDown,
+                        contentDescription = "Choose account",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            accounts.forEach { account ->
+                DropdownMenuItem(
+                    text = { Text(account.label.ifBlank { account.accountIdOrId }) },
+                    onClick = {
+                        onAccountSelected(account.accountIdOrId)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoPayeesRow() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "No beneficiaries on this account yet. Add one, or switch accounts above.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -419,6 +531,7 @@ private fun Chevron() {
 
 @Composable
 private fun AddBeneficiarySheet(
+    accountLabel: String,
     onDismiss: () -> Unit,
     onSubmit: (name: String, iban: String, bankCode: String) -> Unit,
 ) {
@@ -437,6 +550,14 @@ private fun AddBeneficiarySheet(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            if (accountLabel.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Adding to: $accountLabel",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
                 value = name,

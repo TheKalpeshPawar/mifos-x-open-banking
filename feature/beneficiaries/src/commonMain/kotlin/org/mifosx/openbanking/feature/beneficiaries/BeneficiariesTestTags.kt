@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.beneficiaries
 
 /** UI test tags for the Beneficiaries screen. */
 object BeneficiariesTestTags {
+    const val ACCOUNT_SELECTOR = "beneficiary_account_selector"
     const val SEARCH_BAR = "beneficiary_search_bar"
     const val RECENTLY_USED_HEADER = "recently_used_header"
     const val ALL_HEADER = "all_beneficiaries_header"

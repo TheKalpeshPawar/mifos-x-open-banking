@@ -43,20 +43,28 @@ private class FakeAccountsRepository(
     override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>> = TODO()
     override suspend fun listAccounts(): Result<List<Account>> = accounts
     override suspend fun myAccounts(): Result<List<Account>> = accounts
-    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = TODO()
+    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> =
+        accounts.map { list -> list.firstOrNull { it.accountIdOrId == accountId } ?: account() }
 }
 
 private class FakePaymentsRepository(
     var beneficiaries: Result<List<Counterparty>> = Result.success(emptyList()),
     var created: Result<Counterparty> = Result.success(Counterparty()),
     var createCalls: Int = 0,
+    var lastBankId: String = "",
+    var lastAccountId: String = "",
+    var createBankId: String = "",
+    var createAccountId: String = "",
 ) : PaymentsRepository {
     override fun beneficiariesStream(
         accountId: String,
         scope: CoroutineScope,
     ): ScreenDataStream<List<Counterparty>> = TODO()
-    override suspend fun listBeneficiaries(bankId: String, accountId: String): Result<List<Counterparty>> =
-        beneficiaries
+    override suspend fun listBeneficiaries(bankId: String, accountId: String): Result<List<Counterparty>> {
+        lastBankId = bankId
+        lastAccountId = accountId
+        return beneficiaries
+    }
     override suspend fun listTransactionRequests(
         bankId: String,
         accountId: String,
@@ -67,6 +75,8 @@ private class FakePaymentsRepository(
         request: CreateCounterpartyRequest,
     ): Result<Counterparty> {
         createCalls++
+        createBankId = bankId
+        createAccountId = accountId
         return created
     }
     override suspend fun sendSepaPayment(
@@ -197,11 +207,75 @@ class BeneficiariesViewModelTest {
     }
 
     @Test
-    fun load_emptyBeneficiaries_emitsEmpty() = runTest(dispatcher) {
+    fun load_accountWithNoBeneficiaries_emitsContentNotEmpty() = runTest(dispatcher) {
+        // An account with zero payees must stay Content so the account selector remains visible;
+        // Empty is reserved for "no accounts at all".
         val model = vm(beneficiaries = Result.success(emptyList()))
         backgroundScope.launch { model.uiState.collect {} }
         advanceUntilIdle()
+        val content = model.uiState.value
+        assertTrue(content is ScreenState.Content)
+        assertTrue(content.data.all.isEmpty())
+        assertEquals("ac.checking.001", content.data.selectedAccountId)
+    }
+
+    @Test
+    fun load_noAccounts_emitsEmpty() = runTest(dispatcher) {
+        val model = vm(accounts = Result.success(emptyList()))
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
         assertTrue(model.uiState.value is ScreenState.Empty)
+    }
+
+    @Test
+    fun onAccountSelected_reloadsSelectedAccountBeneficiaries() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(Result.success(listOf(beneficiary("b1", "First Acct Payee"))))
+        val model = vm(
+            accounts = Result.success(
+                listOf(
+                    account(id = "acc-1"),
+                    Account(id = "acc-2", bankId = "mifos-x-openbank", balance = AmountOfMoney(currency = "GBP")),
+                ),
+            ),
+            payments = payments,
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("acc-1", (model.uiState.value as ScreenState.Content).data.selectedAccountId)
+
+        payments.beneficiaries = Result.success(listOf(beneficiary("b2", "Second Acct Payee")))
+        model.onAccountSelected("acc-2")
+        advanceUntilIdle()
+
+        val content = model.uiState.value as ScreenState.Content
+        assertEquals("acc-2", content.data.selectedAccountId)
+        assertEquals("mifos-x-openbank", payments.lastBankId)
+        assertEquals("acc-2", payments.lastAccountId)
+        assertEquals("Second Acct Payee", content.data.all.single().name)
+    }
+
+    @Test
+    fun addBeneficiary_usesSelectedAccount() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(Result.success(emptyList()))
+        val model = vm(
+            accounts = Result.success(
+                listOf(
+                    account(id = "acc-1"),
+                    Account(id = "acc-2", bankId = "mifos-x-openbank", balance = AmountOfMoney(currency = "GBP")),
+                ),
+            ),
+            payments = payments,
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onAccountSelected("acc-2")
+        advanceUntilIdle()
+
+        model.addBeneficiary("New Payee", "GB29NWBK60161331926819", "") {}
+        advanceUntilIdle()
+
+        assertEquals("mifos-x-openbank", payments.createBankId)
+        assertEquals("acc-2", payments.createAccountId)
     }
 
     @Test

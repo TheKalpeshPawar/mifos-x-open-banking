@@ -28,6 +28,7 @@ import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.Transaction
@@ -65,6 +66,8 @@ class BeneficiariesViewModel(
     val searchQuery: StateFlow<String> = queryFlow.asStateFlow()
     val sortOrder: StateFlow<SortOrder> = sortFlow.asStateFlow()
 
+    private var accounts: List<Account> = emptyList()
+    private var selectedAccountId: String = ""
     private var currentAccountId: String? = null
     private var currentBankId: String = ""
     private var currentCurrency: String = "GBP"
@@ -74,7 +77,10 @@ class BeneficiariesViewModel(
             when (raw) {
                 is RawState.Loading -> ScreenState.Loading
                 is RawState.Failed -> ScreenState.Error(raw.error)
-                is RawState.Loaded -> projectContent(raw.rows, query, sort)
+                is RawState.Loaded ->
+                    // Empty only when the user has no accounts at all; an account with zero payees
+                    // is still Content (keeps the account selector visible so they can switch).
+                    if (accounts.isEmpty()) ScreenState.Empty else projectContent(raw.rows, query, sort)
             }
         }.stateIn(
             scope = viewModelScope,
@@ -97,6 +103,15 @@ class BeneficiariesViewModel(
     fun onRetry() = load()
 
     fun onRefresh() = load()
+
+    /** Switch the active account: reload that account's beneficiaries (they are per-account). */
+    fun onAccountSelected(accountId: String) {
+        if (accountId == selectedAccountId) return
+        val account = accounts.firstOrNull { it.accountIdOrId == accountId } ?: return
+        selectedAccountId = accountId
+        rawState.value = RawState.Loading
+        viewModelScope.launch { loadForAccount(account) }
+    }
 
     /** Add a beneficiary, then reload on success. [onResult] reports success/failure to the UI. */
     fun addBeneficiary(
@@ -134,33 +149,46 @@ class BeneficiariesViewModel(
     private fun load() {
         rawState.value = RawState.Loading
         viewModelScope.launch {
-            val accounts = accountsRepository.myAccounts().getOrElse {
+            accounts = accountsRepository.myAccounts().getOrElse {
                 rawState.value = RawState.Failed(it)
                 return@launch
             }
-            val primary = accounts.firstOrNull()
-            if (primary == null) {
+            // Default to the checking-type account (else the first); keep the user's selection on reload.
+            val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+                ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
+                ?: accounts.firstOrNull()
+            if (target == null) {
                 currentAccountId = null
+                selectedAccountId = ""
                 rawState.value = RawState.Loaded(emptyList())
                 return@launch
             }
-            val accountId = primary.accountIdOrId
-            currentAccountId = accountId
-            currentBankId = primary.bankId
-            currentCurrency = primary.balance.currency.ifBlank { "GBP" }
-
-            val beneficiaries = paymentsRepository.listBeneficiaries(primary.bankId, accountId).getOrElse {
-                rawState.value = RawState.Failed(it)
-                return@launch
-            }.filter { it.isBeneficiary }
-            // Last-payment + recency are an enhancement — a transactions failure must not
-            // fail the whole screen, so fall back to an empty list.
-            val transactions = transactionsRepository
-                .listTransactions(primary.bankId, accountId, limit = null)
-                .getOrElse { emptyList() }
-
-            rawState.value = RawState.Loaded(buildRows(beneficiaries, transactions))
+            selectedAccountId = target.accountIdOrId
+            loadForAccount(target)
         }
+    }
+
+    private suspend fun loadForAccount(account: Account) {
+        val accountId = account.accountIdOrId
+        currentAccountId = accountId
+        currentBankId = account.bankId
+        // /my/accounts omits balance+currency; resolve the real currency from account detail so a new
+        // counterparty is created in the account's currency (a blind default would be wrong off-EUR).
+        currentCurrency = accountsRepository.accountDetail(account.bankId, accountId).getOrNull()
+            ?.balance?.currency?.takeIf { it.isNotBlank() }
+            ?: account.balance.currency.ifBlank { "GBP" }
+
+        val beneficiaries = paymentsRepository.listBeneficiaries(account.bankId, accountId).getOrElse {
+            rawState.value = RawState.Failed(it)
+            return
+        }.filter { it.isBeneficiary }
+        // Last-payment + recency are an enhancement — a transactions failure must not
+        // fail the whole screen, so fall back to an empty list.
+        val transactions = transactionsRepository
+            .listTransactions(account.bankId, accountId, limit = null)
+            .getOrElse { emptyList() }
+
+        rawState.value = RawState.Loaded(buildRows(beneficiaries, transactions))
     }
 
     private suspend fun buildRows(
@@ -197,7 +225,6 @@ class BeneficiariesViewModel(
         query: String,
         sort: SortOrder,
     ): ScreenState<BeneficiariesContent> {
-        if (rows.isEmpty()) return ScreenState.Empty
         val q = query.trim()
         val filtered = if (q.isEmpty()) rows else rows.filter { it.matches(q) }
         val sorted = when (sort) {
@@ -210,6 +237,8 @@ class BeneficiariesViewModel(
             .take(RECENT_LIMIT)
         return ScreenState.Content(
             data = BeneficiariesContent(
+                accounts = accounts,
+                selectedAccountId = selectedAccountId,
                 recentlyUsed = recentlyUsed,
                 all = sorted,
                 query = query,
@@ -279,12 +308,17 @@ data class LastPayment(
 /** Loaded content for the Beneficiaries screen. */
 @Immutable
 data class BeneficiariesContent(
+    val accounts: List<Account>,
+    val selectedAccountId: String,
     val recentlyUsed: List<BeneficiaryRow>,
     val all: List<BeneficiaryRow>,
     val query: String,
     val sortOrder: SortOrder,
     val totalCount: Int,
-)
+) {
+    val selectedAccount: Account?
+        get() = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+}
 
 /** Masks a long account identifier/IBAN: "GB29NWBK60161331926819" -> "GB29 ··· 6819". */
 internal fun maskIdentifier(identifier: String): String {
