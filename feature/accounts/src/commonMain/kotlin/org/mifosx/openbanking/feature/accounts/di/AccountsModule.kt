@@ -11,8 +11,10 @@ package org.mifosx.openbanking.feature.accounts.di
 
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.accounts.ui.AccountDetailViewModel
 import org.mifosx.openbanking.feature.accounts.ui.AccountsViewModel
 
 val AccountsModule = module {
     viewModelOf(::AccountsViewModel)
+    viewModelOf(::AccountDetailViewModel)
 }

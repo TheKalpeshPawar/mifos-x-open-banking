@@ -30,6 +30,13 @@ interface CustomersRepository {
     suspend fun get(customerId: String): Result<Customer>
     suspend fun create(request: CustomerRequest): Result<Customer>
     suspend fun update(customerId: String, request: CustomerRequest): Result<Customer>
+
+    /**
+     * Legal name of the account holder for the account at ([bankId], [accountId]): resolves the
+     * customer-account-links (preferring the "Owner" relationship) then the customer's legal name.
+     * Returns a blank string when the account has no linked customer.
+     */
+    suspend fun accountHolderName(bankId: String, accountId: String): Result<String>
 }
 
 class CustomersRepositoryImpl(
@@ -61,4 +68,14 @@ class CustomersRepositoryImpl(
 
     override suspend fun update(customerId: String, request: CustomerRequest): Result<Customer> =
         api.updateCustomer(config.bankId, customerId, request).toResult()
+
+    override suspend fun accountHolderName(bankId: String, accountId: String): Result<String> {
+        val resolvedBank = bankId.ifBlank { config.bankId }
+        return api.customerAccountLinks(resolvedBank, accountId).toResult().mapCatching { response ->
+            // Prefer the account owner; fall back to the first linked customer if there is no Owner row.
+            val link = response.links.firstOrNull { it.relationshipType.equals("Owner", ignoreCase = true) }
+                ?: response.links.firstOrNull()
+            if (link == null) "" else api.getCustomer(resolvedBank, link.customerId).toResult().getOrThrow().legalName
+        }
+    }
 }

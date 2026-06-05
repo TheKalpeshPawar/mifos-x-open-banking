@@ -30,6 +30,7 @@ data class Account(
     @SerialName("swift_bic") val swiftBic: String = "",
     val balance: AmountOfMoney = AmountOfMoney(),
     @SerialName("account_routings") val accountRoutings: List<AccountRouting> = emptyList(),
+    @SerialName("account_attributes") val accountAttributes: List<AccountAttribute> = emptyList(),
     val owners: List<AccountOwner> = emptyList(),
 ) {
     /** Stable id across list (`id`) and v7 detail (`account_id`) responses. */
@@ -37,6 +38,15 @@ data class Account(
 
     /** Account type across list (`account_type`) and v7 detail (`product_code`) responses. */
     val typeOrProduct: String get() = accountType.ifBlank { productCode }
+
+    /**
+     * IBAN for this account, if known: the top-level `iban` field (older responses) else the
+     * `IBAN`-scheme routing address. Blank when the account has no IBAN routing.
+     */
+    val ibanOrEmpty: String
+        get() = iban.ifBlank {
+            accountRoutings.firstOrNull { it.scheme.equals("IBAN", ignoreCase = true) }?.address.orEmpty()
+        }
 
     /**
      * Human-facing account identifier for the list/detail rows: prefer IBAN, then the
@@ -56,6 +66,18 @@ data class AccountOwner(
     val id: String = "",
     @SerialName("provider") val provider: String = "",
     @SerialName("display_name") val displayName: String = "",
+)
+
+/**
+ * Product-level attribute attached to an account (OBP `account_attributes`), e.g.
+ * `{name: "MONTHLY_FEE", type: "DOUBLE", value: "25.00"}` or
+ * `{name: "PRIMARY_CCY", type: "STRING", value: "EUR"}`.
+ */
+@Serializable
+data class AccountAttribute(
+    val name: String = "",
+    val type: String = "",
+    val value: String = "",
 )
 
 /** Wrapper for the OBP account-list responses (`{ "accounts": [...] }`). */

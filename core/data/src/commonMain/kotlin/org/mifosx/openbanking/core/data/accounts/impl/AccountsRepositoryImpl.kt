@@ -51,7 +51,7 @@ class AccountsRepositoryImpl(
         api.myAccounts().toResult().map { it.accounts }
 
     override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> =
-        // /my/ detail endpoint: user-scoped, returns balance+currency, works across banks
-        // (the plain accountDetail path 404s for accounts not on the default bank).
-        api.myAccountDetail(bankId.ifBlank { config.bankId }, accountId).toResult()
+        // Owner-view full detail: returns owners + account_attributes (the /my/ core endpoint omits
+        // them). Works across banks; balance/currency present so currency-only callers are unaffected.
+        api.accountDetail(bankId.ifBlank { config.bankId }, accountId).toResult()
 }

@@ -29,8 +29,12 @@ interface AccountsApi {
     @GET("v3.0.0/my/accounts")
     suspend fun myAccounts(): NetworkResult<AccountsResponse, NetworkError>
 
-    /** Full detail for a single account. */
-    @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/account")
+    /**
+     * Full detail for a single account through the owner view: includes owners, account_attributes,
+     * routings, number and balance (the `/my/.../account` core endpoint omits owners + attributes).
+     * Owner view fixed in the path (the no-view `/account` path returns OBP-10404).
+     */
+    @GET("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/account")
     suspend fun accountDetail(
         @Path("bankId") bankId: String,
         @Path("accountId") accountId: String,

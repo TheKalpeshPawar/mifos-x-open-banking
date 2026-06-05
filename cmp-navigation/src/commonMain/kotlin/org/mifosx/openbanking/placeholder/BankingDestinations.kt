@@ -30,7 +30,11 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object AccountsRoute
 
-@Serializable data object AccountDetailRoute
+@Serializable
+data class AccountDetailRoute(
+    val bankId: String = "",
+    val accountId: String = "",
+)
 
 @Serializable data object TransactionsRoute
 
@@ -138,7 +142,7 @@ fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    composableWithStayTransitions<AccountDetailRoute> { PlaceholderScreen("Account detail") }
+    // AccountDetailRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }

@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.accounts.AccountDetailScreen
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
@@ -179,8 +180,19 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             // remain Phase 2 placeholders until their own feature modules land.
             composableWithStayTransitions<AccountsRoute> {
                 AccountsScreen(
-                    onAccountClick = { navController.navigate(AccountDetailRoute) },
+                    onAccountClick = { bankId, accountId ->
+                        navController.navigate(AccountDetailRoute(bankId = bankId, accountId = accountId))
+                    },
                     onRequestNewAccount = { navController.navigate(AccountApplicationsRoute) },
+                )
+            }
+
+            composableWithStayTransitions<AccountDetailRoute> { entry ->
+                val route = entry.toRoute<AccountDetailRoute>()
+                AccountDetailScreen(
+                    bankId = route.bankId,
+                    accountId = route.accountId,
+                    onBack = navController::popBackStack,
                 )
             }
 

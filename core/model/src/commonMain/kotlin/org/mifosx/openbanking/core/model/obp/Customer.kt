@@ -29,6 +29,21 @@ data class CustomersResponse(
     val customers: List<Customer> = emptyList(),
 )
 
+/**
+ * Link between a customer and an account (OBP customer-account-links). `relationshipType` is e.g.
+ * "Owner" or "Director" — an account can have several. The "Owner" link names the account holder.
+ */
+@Serializable
+data class CustomerAccountLink(
+    @SerialName("customer_id") val customerId: String = "",
+    @SerialName("relationship_type") val relationshipType: String = "",
+)
+
+@Serializable
+data class CustomerAccountLinksResponse(
+    val links: List<CustomerAccountLink> = emptyList(),
+)
+
 /** Body for creating / updating a customer. */
 @Serializable
 data class CustomerRequest(

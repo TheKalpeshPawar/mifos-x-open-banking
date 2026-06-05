@@ -87,7 +87,7 @@ private val BusinessAccent = Color(0xFFE8A317)
  */
 @Composable
 fun AccountsScreen(
-    onAccountClick: (accountId: String) -> Unit,
+    onAccountClick: (bankId: String, accountId: String) -> Unit,
     onRequestNewAccount: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AccountsViewModel = koinViewModel(),
@@ -143,7 +143,7 @@ private fun AccountsLoaded(
     content: AccountsContent,
     query: String,
     onQueryChange: (String) -> Unit,
-    onAccountClick: (String) -> Unit,
+    onAccountClick: (bankId: String, accountId: String) -> Unit,
     isRevealed: (String) -> Boolean,
     onToggleReveal: (String) -> Unit,
 ) {
@@ -173,7 +173,7 @@ private fun AccountsLoaded(
                             account = account,
                             revealed = isRevealed(account.id),
                             onToggleReveal = { onToggleReveal(account.id) },
-                            onClick = { onAccountClick(account.id) },
+                            onClick = { onAccountClick(account.bankId, account.id) },
                         )
                     }
                 }
