@@ -26,7 +26,6 @@ import org.mifosx.openbanking.core.store.kyc.provideKycDocumentsStore
 import org.mifosx.openbanking.core.store.messages.provideCustomerMessagesStore
 import org.mifosx.openbanking.core.store.payments.provideCounterpartiesStore
 import org.mifosx.openbanking.core.store.products.provideProductsStore
-import org.mifosx.openbanking.core.store.standingorders.provideStandingOrdersStore
 import org.mifosx.openbanking.core.store.transactions.provideTransactionsStore
 
 /**
@@ -75,9 +74,6 @@ val appStoreModule: Module = module {
     single(AppStoreRegistry.Counterparties) {
         provideCounterpartiesStore(api = get(), config = get(), dao = get(), json = get())
     }
-    single(AppStoreRegistry.StandingOrders) {
-        provideStandingOrdersStore(api = get(), config = get(), dao = get(), json = get())
-    }
     single(AppStoreRegistry.DirectDebits) {
         provideDirectDebitsStore(api = get(), config = get(), dao = get(), json = get())
     }
@@ -107,7 +103,6 @@ val appStoreModule: Module = module {
         mgr.register(get(AppStoreRegistry.Cards))
         mgr.register(get(AppStoreRegistry.UserCards))
         mgr.register(get(AppStoreRegistry.Counterparties))
-        mgr.register(get(AppStoreRegistry.StandingOrders))
         mgr.register(get(AppStoreRegistry.DirectDebits))
         mgr.register(get(AppStoreRegistry.Customers))
         mgr.register(get(AppStoreRegistry.AccountApplications))

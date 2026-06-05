@@ -27,6 +27,10 @@ interface CustomersRepository {
     fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>>
 
     suspend fun list(): Result<List<Customer>>
+
+    /** Customer records belonging to the logged-in user (any bank) — consumer surface. */
+    suspend fun currentUserCustomers(): Result<List<Customer>>
+
     suspend fun get(customerId: String): Result<Customer>
     suspend fun create(request: CustomerRequest): Result<Customer>
     suspend fun update(customerId: String, request: CustomerRequest): Result<Customer>
@@ -59,6 +63,9 @@ class CustomersRepositoryImpl(
 
     override suspend fun list(): Result<List<Customer>> =
         api.listCustomers(config.bankId).toResult().map { it.customers }
+
+    override suspend fun currentUserCustomers(): Result<List<Customer>> =
+        api.currentUserCustomers().toResult().map { it.customers }
 
     override suspend fun get(customerId: String): Result<Customer> =
         api.getCustomer(config.bankId, customerId).toResult()

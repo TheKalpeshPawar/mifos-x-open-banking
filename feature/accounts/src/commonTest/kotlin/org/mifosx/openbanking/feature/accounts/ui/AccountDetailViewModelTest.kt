@@ -53,6 +53,7 @@ private class FakeCustomersRepository(
 ) : CustomersRepository {
     override fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>> = TODO()
     override suspend fun list(): Result<List<Customer>> = TODO()
+    override suspend fun currentUserCustomers(): Result<List<Customer>> = TODO()
     override suspend fun get(customerId: String): Result<Customer> = TODO()
     override suspend fun create(request: CustomerRequest): Result<Customer> = TODO()
     override suspend fun update(customerId: String, request: CustomerRequest): Result<Customer> = TODO()

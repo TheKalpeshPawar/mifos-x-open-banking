@@ -49,6 +49,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
+import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
@@ -59,6 +60,7 @@ import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
+import org.mifosx.openbanking.placeholder.StandingOrdersRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
 import org.mifosx.openbanking.ui.KptRootScaffold
@@ -156,6 +158,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
                 onViewCards = { navController.navigateToTab(AuthenticatedNavBarTabItem.CardsTab) },
                 // Non-tab destinations are genuine pushes.
+                onStandingOrders = { navController.navigate(StandingOrdersRoute) },
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onDeferred = { message ->
@@ -280,6 +283,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     },
                     onBack = navController::popBackStack,
                 )
+            }
+
+            // Standing orders — real feature module. Rows derive from transaction history
+            // (OBP has no read endpoint); the FAB POSTs the real create endpoint.
+            composableWithStayTransitions<StandingOrdersRoute> {
+                StandingOrdersScreen(onBack = navController::popBackStack)
             }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).

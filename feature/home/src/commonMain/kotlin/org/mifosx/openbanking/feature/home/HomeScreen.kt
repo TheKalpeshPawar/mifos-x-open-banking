@@ -27,9 +27,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.SyncAlt
@@ -80,6 +80,7 @@ import kotlin.time.ExperimentalTime
 fun HomeScreen(
     onTransfer: () -> Unit,
     onAccounts: () -> Unit,
+    onStandingOrders: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
@@ -104,7 +105,7 @@ fun HomeScreen(
                 content = s.data,
                 greeting = greeting,
                 onTransfer = onTransfer,
-                onAccounts = onAccounts,
+                onStandingOrders = onStandingOrders,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
@@ -131,7 +132,7 @@ private fun HomeLoaded(
     content: HomeContent,
     greeting: Greeting,
     onTransfer: () -> Unit,
-    onAccounts: () -> Unit,
+    onStandingOrders: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
@@ -170,7 +171,7 @@ private fun HomeLoaded(
         item { SectionHeader("Banking Services") }
         item {
             BankingServices(
-                onAccounts = onAccounts,
+                onStandingOrders = onStandingOrders,
                 onTransfers = onTransfer,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
@@ -297,7 +298,7 @@ private fun SectionHeader(title: String, actionLabel: String? = null, onAction: 
 
 @Composable
 private fun BankingServices(
-    onAccounts: () -> Unit,
+    onStandingOrders: () -> Unit,
     onTransfers: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
@@ -305,7 +306,7 @@ private fun BankingServices(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            ServiceTile("Accounts", Icons.Filled.AccountBalance, Modifier.weight(1f), onAccounts)
+            ServiceTile("Standing Orders", Icons.Filled.EventRepeat, Modifier.weight(1f), onStandingOrders)
             ServiceTile("Transfers", Icons.Filled.SyncAlt, Modifier.weight(1f), onTransfers)
             ServiceTile("Statements", Icons.Filled.Description, Modifier.weight(1f)) { onDeferred("Statements — coming soon") }
         }

@@ -150,7 +150,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     // AuthenticatedNavbarNavigationScreen.
     // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
-    composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }
+    // StandingOrdersRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
     composableWithStayTransitions<StandingOrderEditRoute> { PlaceholderScreen("Edit standing order") }
     composableWithStayTransitions<DirectDebitsRoute> { PlaceholderScreen("Direct debits") }

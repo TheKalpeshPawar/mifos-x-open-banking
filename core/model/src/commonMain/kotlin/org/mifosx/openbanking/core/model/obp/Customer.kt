@@ -16,6 +16,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Customer(
     @SerialName("customer_id") val customerId: String = "",
+    @SerialName("bank_id") val bankId: String = "",
     @SerialName("customer_number") val customerNumber: String = "",
     @SerialName("legal_name") val legalName: String = "",
     @SerialName("mobile_phone_number") val mobilePhoneNumber: String = "",

@@ -29,6 +29,10 @@ interface CustomersApi {
         @Path("bankId") bankId: String,
     ): NetworkResult<CustomersResponse, NetworkError>
 
+    /** Customer records belonging to the LOGGED-IN user (any bank) — consumer surface. */
+    @GET("v4.0.0/users/current/customers")
+    suspend fun currentUserCustomers(): NetworkResult<CustomersResponse, NetworkError>
+
     // v5.1.0: v3.0.0 has no get-customer-by-id route (returns OBP-10404).
     @GET("v5.1.0/banks/{bankId}/customers/{customerId}")
     suspend fun getCustomer(

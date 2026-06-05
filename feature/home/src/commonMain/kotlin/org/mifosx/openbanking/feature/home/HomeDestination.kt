@@ -29,6 +29,7 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 fun NavGraphBuilder.homeGraph(
     onTransfer: () -> Unit,
     onAccounts: () -> Unit,
+    onStandingOrders: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
@@ -41,6 +42,7 @@ fun NavGraphBuilder.homeGraph(
             HomeScreen(
                 onTransfer = onTransfer,
                 onAccounts = onAccounts,
+                onStandingOrders = onStandingOrders,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,

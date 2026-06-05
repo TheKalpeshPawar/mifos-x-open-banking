@@ -351,14 +351,14 @@ private fun AllBeneficiariesHeader(onSort: () -> Unit) {
     }
 }
 
-/** White card with a hairline border and no shadow (tonal lift via surface-on-background). */
+/** Bordered surface-container card at level1 elevation (matches the accounts cards). */
 @Composable
 private fun BeneficiaryCard(tag: String, onClick: () -> Unit, content: @Composable () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)

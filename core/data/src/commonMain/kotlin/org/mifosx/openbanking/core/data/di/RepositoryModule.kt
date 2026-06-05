@@ -129,10 +129,11 @@ val DataModule = module {
     single<StandingOrdersRepository> {
         StandingOrdersRepositoryImpl(
             api = get(),
+            transactionsRepository = get(),
+            customersRepository = get(),
             config = get(),
-            standingOrdersStore = get(AppStoreRegistry.StandingOrders),
-            networkMonitor = get(),
-            fetchedAtRepository = get(),
+            dao = get(),
+            json = get(),
         )
     }
     single<DirectDebitsRepository> {
