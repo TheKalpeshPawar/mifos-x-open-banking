@@ -16,12 +16,8 @@ import de.jensklingenberg.ktorfit.http.POST
 import de.jensklingenberg.ktorfit.http.Path
 import de.jensklingenberg.ktorfit.http.Query
 import org.mifosx.openbanking.core.model.obp.CounterpartiesResponse
-import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.FundsAvailableResponse
-import org.mifosx.openbanking.core.model.obp.IbanCheckRequest
-import org.mifosx.openbanking.core.model.obp.IbanCheckResponse
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestsResponse
@@ -49,14 +45,6 @@ interface PaymentsApi {
     ): NetworkResult<TransactionRequestsResponse, NetworkError>
 
     @Headers("Content-Type: application/json")
-    @POST("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/counterparties")
-    suspend fun createCounterparty(
-        @Path("bankId") bankId: String,
-        @Path("accountId") accountId: String,
-        @Body request: CreateCounterpartyRequest,
-    ): NetworkResult<Counterparty, NetworkError>
-
-    @Headers("Content-Type: application/json")
     @POST("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/transaction-request-types/SEPA/transaction-requests")
     suspend fun createSepaTransactionRequest(
         @Path("bankId") bankId: String,
@@ -80,10 +68,4 @@ interface PaymentsApi {
         @Query("amount") amount: String,
         @Query("currency") currency: String,
     ): NetworkResult<FundsAvailableResponse, NetworkError>
-
-    @Headers("Content-Type: application/json")
-    @POST("v4.0.0/account/check/scheme/iban")
-    suspend fun checkIban(
-        @Body request: IbanCheckRequest,
-    ): NetworkResult<IbanCheckResponse, NetworkError>
 }

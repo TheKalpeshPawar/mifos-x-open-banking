@@ -49,7 +49,6 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
-import org.mifosx.openbanking.placeholder.AccountApplicationsRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
@@ -61,7 +60,6 @@ import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
-import org.mifosx.openbanking.placeholder.TransactionsRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
 import org.mifosx.openbanking.ui.KptRootScaffold
 import org.mifosx.openbanking.ui.ScaffoldNavigationData
@@ -157,10 +155,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onTransfer = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
                 onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
                 onViewCards = { navController.navigateToTab(AuthenticatedNavBarTabItem.CardsTab) },
-                onTotalPortfolio = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
                 // Non-tab destinations are genuine pushes.
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
-                onViewAllTransactions = { navController.navigate(TransactionsRoute) },
                 onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onDeferred = { message ->
                     scope.launch {
@@ -183,7 +179,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     onAccountClick = { bankId, accountId ->
                         navController.navigate(AccountDetailRoute(bankId = bankId, accountId = accountId))
                     },
-                    onRequestNewAccount = { navController.navigate(AccountApplicationsRoute) },
                 )
             }
 

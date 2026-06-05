@@ -33,6 +33,17 @@ interface TransactionsRepository {
     ): ScreenDataStream<List<Transaction>>
 
     suspend fun listTransactions(bankId: String, accountId: String, limit: Int? = null): Result<List<Transaction>>
+
+    /**
+     * Transactions with their attributes inline (OBP v6) — carries CARD_ID / TXN_TYPE so the
+     * caller can filter by card and label by type without per-transaction attribute fetches.
+     */
+    suspend fun listTransactionsWithAttributes(
+        bankId: String,
+        accountId: String,
+        limit: Int? = null,
+    ): Result<List<Transaction>>
+
     suspend fun getTransaction(bankId: String, accountId: String, transactionId: String): Result<Transaction>
 }
 
@@ -62,6 +73,13 @@ class TransactionsRepositoryImpl(
 
     override suspend fun listTransactions(bankId: String, accountId: String, limit: Int?): Result<List<Transaction>> =
         api.listTransactions(bankId, accountId, limit).toResult().map { it.transactions }
+
+    override suspend fun listTransactionsWithAttributes(
+        bankId: String,
+        accountId: String,
+        limit: Int?,
+    ): Result<List<Transaction>> =
+        api.listTransactionsWithAttributes(bankId, accountId, limit).toResult().map { it.transactions }
 
     override suspend fun getTransaction(bankId: String, accountId: String, transactionId: String): Result<Transaction> =
         api.getTransaction(bankId, accountId, transactionId).toResult()

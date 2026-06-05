@@ -25,8 +25,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
@@ -46,8 +47,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -103,6 +106,7 @@ fun CardsScreen(
             is ScreenState.Content -> CardsLoaded(
                 content = s.data,
                 onCardClick = onCardClick,
+                onCardSelected = viewModel::selectCard,
                 onTransactionClick = onTransactionClick,
                 onDeferred = deferred,
             )
@@ -114,6 +118,7 @@ fun CardsScreen(
 private fun CardsLoaded(
     content: CardsContent,
     onCardClick: (Card) -> Unit,
+    onCardSelected: (Card) -> Unit,
     onTransactionClick: (Transaction) -> Unit,
     onDeferred: (String) -> Unit,
 ) {
@@ -122,16 +127,16 @@ private fun CardsLoaded(
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         item { Title() }
-        item { CardCarousel(cards = content.cards, onCardClick = onCardClick) }
+        item { CardCarousel(cards = content.cards, onCardClick = onCardClick, onCardSelected = onCardSelected) }
         item { QuickActions(onDeferred = onDeferred) }
-        if (content.transactionsLoading || content.recentTransactions.isNotEmpty()) {
-            item { SectionHeader("Card Transactions") }
-            if (content.transactionsLoading) {
-                item { TransactionsLoading() }
-            } else {
-                items(content.recentTransactions, key = { it.id }) { tx ->
-                    TransactionRow(tx = tx, onClick = { onTransactionClick(tx) })
-                }
+        item { SectionHeader("Card Transactions") }
+        if (content.transactionsLoading) {
+            item { TransactionsLoading() }
+        } else if (content.recentTransactions.isEmpty()) {
+            item { EmptyTransactionsRow() }
+        } else {
+            items(content.recentTransactions, key = { it.txId }) { tx ->
+                TransactionRow(tx = tx, onClick = { onTransactionClick(tx) })
             }
         }
         item { OrderNewCardButton(onClick = { onDeferred("Order New Card") }) }
@@ -162,6 +167,16 @@ private fun TransactionsLoading() {
 }
 
 @Composable
+private fun EmptyTransactionsRow() {
+    Text(
+        text = "No transactions for this card yet",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+    )
+}
+
+@Composable
 private fun Title() {
     Text(
         text = "My Cards",
@@ -172,13 +187,25 @@ private fun Title() {
 }
 
 @Composable
-private fun CardCarousel(cards: List<Card>, onCardClick: (Card) -> Unit) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+private fun CardCarousel(
+    cards: List<Card>,
+    onCardClick: (Card) -> Unit,
+    onCardSelected: (Card) -> Unit,
+) {
+    val pagerState = rememberPagerState(pageCount = { cards.size })
+    // Swiping to a different card scopes the recent-transactions section to that card.
+    LaunchedEffect(pagerState, cards) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            cards.getOrNull(page)?.let(onCardSelected)
+        }
+    }
+    HorizontalPager(
+        state = pagerState,
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        items(cards, key = { it.bankCardNumber }) { card -> PaymentCard(card = card, onClick = { onCardClick(card) }) }
+        pageSpacing = 16.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) { page ->
+        cards[page].let { card -> PaymentCard(card = card, onClick = { onCardClick(card) }) }
     }
 }
 
@@ -217,7 +244,7 @@ private fun PaymentCard(card: Card, onClick: () -> Unit) {
         shadowElevation = 8.dp,
         modifier = Modifier
             .shadow(elevation = 10.dp, shape = CardShape, clip = false)
-            .width(320.dp)
+            .fillMaxWidth()
             .height(200.dp),
     ) {
         Column(
@@ -333,7 +360,7 @@ private fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = tx.details.posted.take(10),
+                    text = transactionSubtitle(tx),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -451,23 +478,4 @@ private fun ErrorState(onRetry: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = onRetry) { Text("Retry") }
     }
-}
-
-private fun transactionLabel(tx: Transaction): String =
-    tx.details.description.ifBlank { tx.otherAccount.holder.name.ifBlank { "Transaction" } }
-
-/** Masks all but the last four digits of an OBP card number for display. */
-private fun maskedNumber(raw: String): String {
-    val digits = raw.filter { it.isDigit() }
-    val last4 = digits.takeLast(4)
-    return if (last4.isBlank()) raw else "•••• •••• •••• $last4"
-}
-
-private fun formatAmount(amount: String, currency: String): String {
-    val value = amount.toDoubleOrNull()
-    val prefix = if (value != null && value < 0) "−" else ""
-    val abs = value?.let { if (it < 0) -it else it }
-    val number = abs?.let { it.toString() } ?: amount.removePrefix("-")
-    val code = if (currency.isBlank()) "" else " $currency"
-    return "$prefix$number$code".trim()
 }

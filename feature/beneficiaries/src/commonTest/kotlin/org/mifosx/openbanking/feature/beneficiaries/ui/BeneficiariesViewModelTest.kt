@@ -24,7 +24,6 @@ import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionDetails
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
@@ -49,12 +48,8 @@ private class FakeAccountsRepository(
 
 private class FakePaymentsRepository(
     var beneficiaries: Result<List<Counterparty>> = Result.success(emptyList()),
-    var created: Result<Counterparty> = Result.success(Counterparty()),
-    var createCalls: Int = 0,
     var lastBankId: String = "",
     var lastAccountId: String = "",
-    var createBankId: String = "",
-    var createAccountId: String = "",
 ) : PaymentsRepository {
     override fun beneficiariesStream(
         accountId: String,
@@ -69,16 +64,6 @@ private class FakePaymentsRepository(
         bankId: String,
         accountId: String,
     ): Result<List<TransactionRequestSummary>> = Result.success(emptyList())
-    override suspend fun createBeneficiary(
-        bankId: String,
-        accountId: String,
-        request: CreateCounterpartyRequest,
-    ): Result<Counterparty> {
-        createCalls++
-        createBankId = bankId
-        createAccountId = accountId
-        return created
-    }
     override suspend fun sendSepaPayment(
         bankId: String,
         accountId: String,
@@ -101,7 +86,6 @@ private class FakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = TODO()
-    override suspend fun checkIban(iban: String): Result<Boolean> = TODO()
 }
 
 private class FakeTransactionsRepository(
@@ -114,6 +98,11 @@ private class FakeTransactionsRepository(
     ): ScreenDataStream<List<Transaction>> = TODO()
     override suspend fun listTransactions(bankId: String, accountId: String, limit: Int?): Result<List<Transaction>> =
         transactions
+    override suspend fun listTransactionsWithAttributes(
+        bankId: String,
+        accountId: String,
+        limit: Int?,
+    ): Result<List<Transaction>> = transactions
     override suspend fun getTransaction(bankId: String, accountId: String, transactionId: String): Result<Transaction> =
         TODO()
 }
@@ -255,30 +244,6 @@ class BeneficiariesViewModelTest {
     }
 
     @Test
-    fun addBeneficiary_usesSelectedAccount() = runTest(dispatcher) {
-        val payments = FakePaymentsRepository(Result.success(emptyList()))
-        val model = vm(
-            accounts = Result.success(
-                listOf(
-                    account(id = "acc-1"),
-                    Account(id = "acc-2", bankId = "mifos-x-openbank", balance = AmountOfMoney(currency = "GBP")),
-                ),
-            ),
-            payments = payments,
-        )
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onAccountSelected("acc-2")
-        advanceUntilIdle()
-
-        model.addBeneficiary("New Payee", "GB29NWBK60161331926819", "") {}
-        advanceUntilIdle()
-
-        assertEquals("mifos-x-openbank", payments.createBankId)
-        assertEquals("acc-2", payments.createAccountId)
-    }
-
-    @Test
     fun load_accountsFailure_emitsError() = runTest(dispatcher) {
         val model = vm(accounts = Result.failure(RuntimeException("boom")))
         backgroundScope.launch { model.uiState.collect {} }
@@ -334,23 +299,5 @@ class BeneficiariesViewModelTest {
         advanceUntilIdle()
         val content = model.uiState.value as ScreenState.Content
         assertEquals("Zulu", content.data.all.first().name)
-    }
-
-    @Test
-    fun addBeneficiary_success_reloads() = runTest(dispatcher) {
-        val payments = FakePaymentsRepository(
-            beneficiaries = Result.success(listOf(beneficiary("b1", "Existing"))),
-            created = Result.success(Counterparty(counterpartyId = "new")),
-        )
-        val model = vm(payments = payments)
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-
-        var reported: Boolean? = null
-        model.addBeneficiary("New Payee", "GB29NWBK60161331926819", "NWBKGB2L") { reported = it }
-        advanceUntilIdle()
-
-        assertEquals(true, reported)
-        assertEquals(1, payments.createCalls)
     }
 }

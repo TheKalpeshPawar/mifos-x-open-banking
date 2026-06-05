@@ -34,8 +34,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -78,8 +76,8 @@ import template.core.base.store.screen.ScreenState
 
 /**
  * Send Money hub — the Pay tab landing. Lets the user pick a recent recipient or any
- * beneficiary (→ amount entry preselected), or start a new local transfer (→ amount entry
- * with the beneficiary picker).
+ * beneficiary (→ amount entry preselected), or start a new transfer via the "New" avatar
+ * (→ amount entry with the beneficiary picker).
  */
 @Composable
 fun SendMoneyHubScreen(
@@ -180,16 +178,6 @@ private fun HubContent(
                     RecipientAvatar(recipient = r, onClick = { onRecipientSelected(accountId, r.counterpartyId) })
                 }
             }
-        }
-
-        item { Spacer(Modifier.height(8.dp)) }
-        item { SectionLabel("CHOOSE A WAY TO SEND") }
-        item {
-            WayToSendCard(
-                title = "Local transfer",
-                subtitle = "Free · Arrives instantly",
-                onClick = { onNewTransfer(accountId) },
-            )
         }
 
         item { Spacer(Modifier.height(8.dp)) }
@@ -295,7 +283,7 @@ private fun accountLabel(account: Account): String {
 @Composable
 private fun NoBeneficiariesNote() {
     Text(
-        "No payees on this account yet. Add one, or switch accounts above.",
+        "No payees on this account yet. Switch accounts above.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(vertical = 8.dp),
@@ -368,55 +356,6 @@ private fun RecipientAvatar(recipient: HubRecipient, onClick: () -> Unit) {
 }
 
 @Composable
-private fun WayToSendCard(title: String, subtitle: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Send,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
 private fun BeneficiaryListRow(recipient: HubRecipient, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
@@ -480,7 +419,7 @@ private fun EmptyHub(onNewTransfer: () -> Unit) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Add a beneficiary, then send money to them in a tap.",
+            "People you pay will appear here.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

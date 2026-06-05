@@ -37,30 +37,23 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -68,7 +61,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,7 +73,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesContent
@@ -110,13 +101,6 @@ fun BeneficiariesScreen(
         if (accountId.isNotBlank()) viewModel.onAccountSelected(accountId)
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    var showAddSheet by remember { mutableStateOf(false) }
-    val selectedAccountLabel = (state as? ScreenState.Content)?.data?.selectedAccount
-        ?.let { it.label.ifBlank { it.accountIdOrId } }
-        .orEmpty()
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -134,17 +118,6 @@ fun BeneficiariesScreen(
                 ),
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showAddSheet = true },
-                icon = { Icon(Icons.Filled.PersonAdd, contentDescription = null) },
-                text = { Text("Add Beneficiary") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag(BeneficiariesTestTags.ADD_FAB),
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (val s = state) {
@@ -166,23 +139,6 @@ fun BeneficiariesScreen(
                 )
             }
         }
-    }
-
-    if (showAddSheet) {
-        AddBeneficiarySheet(
-            accountLabel = selectedAccountLabel,
-            onDismiss = { showAddSheet = false },
-            onSubmit = { name, iban, bic ->
-                viewModel.addBeneficiary(name, iban, bic) { ok ->
-                    showAddSheet = false
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            if (ok) "Beneficiary added" else "Could not add beneficiary",
-                        )
-                    }
-                }
-            },
-        )
     }
 }
 
@@ -313,7 +269,7 @@ private fun NoPayeesRow() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "No beneficiaries on this account yet. Add one, or switch accounts above.",
+            text = "No beneficiaries on this account yet. Switch accounts above.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -530,75 +486,6 @@ private fun Chevron() {
 }
 
 @Composable
-private fun AddBeneficiarySheet(
-    accountLabel: String,
-    onDismiss: () -> Unit,
-    onSubmit: (name: String, iban: String, bankCode: String) -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-    var iban by remember { mutableStateOf("") }
-    var bic by remember { mutableStateOf("") }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.testTag(BeneficiariesTestTags.ADD_SHEET),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(
-                text = "Add Beneficiary",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (accountLabel.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Adding to: $accountLabel",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = iban,
-                onValueChange = { iban = it },
-                label = { Text("IBAN / account number") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = bic,
-                onValueChange = { bic = it },
-                label = { Text("Bank BIC (optional)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(20.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = { onSubmit(name, iban, bic) },
-                    enabled = name.isNotBlank() && iban.isNotBlank(),
-                ) {
-                    Text("Add")
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-@Composable
 private fun CenteredProgress() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -647,7 +534,7 @@ private fun EmptyState(query: String, onQueryChange: (String) -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Add a beneficiary to start sending money quickly",
+                text = "People you pay will appear here",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

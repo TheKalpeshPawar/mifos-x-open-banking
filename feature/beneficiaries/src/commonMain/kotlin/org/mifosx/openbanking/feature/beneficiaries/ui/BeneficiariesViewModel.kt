@@ -30,7 +30,6 @@ import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.Transaction
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
@@ -68,9 +67,6 @@ class BeneficiariesViewModel(
 
     private var accounts: List<Account> = emptyList()
     private var selectedAccountId: String = ""
-    private var currentAccountId: String? = null
-    private var currentBankId: String = ""
-    private var currentCurrency: String = "GBP"
 
     val uiState: StateFlow<ScreenState<BeneficiariesContent>> =
         combine(rawState, queryFlow, sortFlow) { raw, query, sort ->
@@ -113,39 +109,6 @@ class BeneficiariesViewModel(
         viewModelScope.launch { loadForAccount(account) }
     }
 
-    /** Add a beneficiary, then reload on success. [onResult] reports success/failure to the UI. */
-    fun addBeneficiary(
-        name: String,
-        iban: String,
-        bankCode: String,
-        onResult: (Boolean) -> Unit,
-    ) {
-        val accountId = currentAccountId
-        if (accountId == null || name.isBlank() || iban.isBlank()) {
-            onResult(false)
-            return
-        }
-        val request = CreateCounterpartyRequest(
-            name = name.trim(),
-            description = "",
-            currency = currentCurrency,
-            otherAccountRoutingScheme = "IBAN",
-            otherAccountRoutingAddress = iban.trim().replace(" ", ""),
-            otherBankRoutingScheme = if (bankCode.isBlank()) "OBP" else "BIC",
-            otherBankRoutingAddress = bankCode.trim().ifBlank { "" },
-            isBeneficiary = true,
-        )
-        viewModelScope.launch {
-            paymentsRepository.createBeneficiary(currentBankId, accountId, request).fold(
-                onSuccess = {
-                    onResult(true)
-                    load()
-                },
-                onFailure = { onResult(false) },
-            )
-        }
-    }
-
     private fun load() {
         rawState.value = RawState.Loading
         viewModelScope.launch {
@@ -158,7 +121,6 @@ class BeneficiariesViewModel(
                 ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
                 ?: accounts.firstOrNull()
             if (target == null) {
-                currentAccountId = null
                 selectedAccountId = ""
                 rawState.value = RawState.Loaded(emptyList())
                 return@launch
@@ -170,14 +132,6 @@ class BeneficiariesViewModel(
 
     private suspend fun loadForAccount(account: Account) {
         val accountId = account.accountIdOrId
-        currentAccountId = accountId
-        currentBankId = account.bankId
-        // /my/accounts omits balance+currency; resolve the real currency from account detail so a new
-        // counterparty is created in the account's currency (a blind default would be wrong off-EUR).
-        currentCurrency = accountsRepository.accountDetail(account.bankId, accountId).getOrNull()
-            ?.balance?.currency?.takeIf { it.isNotBlank() }
-            ?: account.balance.currency.ifBlank { "GBP" }
-
         val beneficiaries = paymentsRepository.listBeneficiaries(account.bankId, accountId).getOrElse {
             rawState.value = RawState.Failed(it)
             return

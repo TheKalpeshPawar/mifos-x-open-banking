@@ -16,10 +16,32 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Transaction(
     val id: String = "",
+    @SerialName("transaction_id") val transactionId: String = "",
     @SerialName("this_account") val thisAccount: TransactionAccount = TransactionAccount(),
     @SerialName("other_account") val otherAccount: TransactionCounterparty = TransactionCounterparty(),
     val details: TransactionDetails = TransactionDetails(),
     val metadata: TransactionMetadata = TransactionMetadata(),
+    @SerialName("transaction_attributes") val transactionAttributes: List<TransactionAttribute> = emptyList(),
+) {
+    /** Stable id across v3.0.0 (`id`) and v6.0.0 (`transaction_id`) responses. */
+    val txId: String get() = id.ifBlank { transactionId }
+
+    /** Card that made this transaction — the CARD_ID attribute (= the card's bank_card_number). */
+    val cardId: String? get() = attribute("CARD_ID")
+
+    /** Standard transaction-type short code — the TXN_TYPE attribute (POS/ECOM/ATM/...). */
+    val txnTypeCode: String? get() = attribute("TXN_TYPE")
+
+    private fun attribute(name: String): String? =
+        transactionAttributes.firstOrNull { it.name == name }?.value?.takeIf { it.isNotBlank() }
+}
+
+/** An OBP transaction attribute (name/type/value), returned inline by the v6 transactions endpoint. */
+@Serializable
+data class TransactionAttribute(
+    val name: String = "",
+    val type: String = "",
+    val value: String = "",
 )
 
 @Serializable

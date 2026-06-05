@@ -94,6 +94,3 @@ internal fun initials(name: String): String {
         else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
     }
 }
-
-/** A transaction amount is a credit (incoming) unless its server string is negative. */
-internal fun isCredit(amount: String): Boolean = !amount.trim().startsWith("-")

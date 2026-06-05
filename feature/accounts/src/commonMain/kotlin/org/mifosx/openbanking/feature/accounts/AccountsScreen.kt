@@ -11,7 +11,6 @@ package org.mifosx.openbanking.feature.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,24 +28,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,19 +50,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
@@ -83,28 +70,22 @@ private val BusinessAccent = Color(0xFFE8A317)
 /**
  * My Accounts screen — Consumer accounts tab. Stateful container binding [AccountsViewModel]'s
  * offline-first [ScreenState] to the stateless content. Hosted inside the authenticated navbar
- * scaffold (bottom nav supplied by the host), so this screen owns only its body + FAB.
+ * scaffold (bottom nav supplied by the host), so this screen owns only its body.
  */
 @Composable
 fun AccountsScreen(
     onAccountClick: (bankId: String, accountId: String) -> Unit,
-    onRequestNewAccount: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AccountsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
 
-    // Per-account balance reveal state. `remember` (not Saveable) — it is dropped when the
-    // screen leaves composition (navigating to another tab/screen), so balances default back
-    // to HIDDEN on every fresh entry, as required. Absent/false => hidden.
-    val revealed = remember { mutableStateMapOf<String, Boolean>() }
-
     Box(modifier = modifier.fillMaxSize()) {
         when (val s = state) {
             is ScreenState.Loading -> LoadingState()
 
-            is ScreenState.Empty -> EmptyState(onRequestNewAccount = onRequestNewAccount)
+            is ScreenState.Empty -> EmptyState()
 
             is ScreenState.Error ->
                 ErrorState(onRetry = viewModel::onRetry)
@@ -120,20 +101,7 @@ fun AccountsScreen(
                 query = searchQuery,
                 onQueryChange = viewModel::onSearchQueryChanged,
                 onAccountClick = onAccountClick,
-                isRevealed = { id -> revealed[id] == true },
-                onToggleReveal = { id -> revealed[id] = revealed[id] != true },
             )
-        }
-
-        FloatingActionButton(
-            onClick = onRequestNewAccount,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 80.dp),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Request new account")
         }
     }
 }
@@ -144,8 +112,6 @@ private fun AccountsLoaded(
     query: String,
     onQueryChange: (String) -> Unit,
     onAccountClick: (bankId: String, accountId: String) -> Unit,
-    isRevealed: (String) -> Boolean,
-    onToggleReveal: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Header + search bar are hoisted OUT of the LazyColumn: a TextField inside a
@@ -171,8 +137,6 @@ private fun AccountsLoaded(
                     items(accounts, key = { it.id }) { account ->
                         AccountCard(
                             account = account,
-                            revealed = isRevealed(account.id),
-                            onToggleReveal = { onToggleReveal(account.id) },
                             onClick = { onAccountClick(account.bankId, account.id) },
                         )
                     }
@@ -301,8 +265,6 @@ private fun SearchBar(
 @Composable
 private fun AccountCard(
     account: Account,
-    revealed: Boolean,
-    onToggleReveal: () -> Unit,
     onClick: () -> Unit,
 ) {
     val accent = accentColor(account)
@@ -343,42 +305,8 @@ private fun AccountCard(
                     TypeBadge(account = account)
                 }
                 Spacer(Modifier.height(12.dp))
-                // Balance + currency + hide-toggle flow as one wrapping Text: the eye is an
-                // inline glyph right after the currency, so it shifts with the text across lines
-                // (and the amount may wrap to multiple lines on narrow screens / large numbers).
-                val eyeId = "balanceToggle"
-                val balanceText = buildAnnotatedString {
-                    append(
-                        if (revealed) {
-                            formatMoney(account.balance.amount, account.balance.currency)
-                        } else {
-                            maskedBalance(account.balance.currency)
-                        },
-                    )
-                    append(" ")
-                    appendInlineContent(eyeId, "[toggle]")
-                }
-                val inlineEye = mapOf(
-                    eyeId to InlineTextContent(
-                        Placeholder(
-                            width = 1.2.em,
-                            height = 1.2.em,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = if (revealed) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (revealed) "Hide balance" else "Show balance",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable(onClick = onToggleReveal),
-                        )
-                    },
-                )
                 Text(
-                    text = balanceText,
-                    inlineContent = inlineEye,
+                    text = formatMoney(account.balance.amount, account.balance.currency),
                     style = MaterialTheme.typography.displaySmall,
                     color = balanceColor(account),
                 )
@@ -432,15 +360,6 @@ private fun TypeBadge(account: Account) {
     }
 }
 
-/**
- * Masked balance — only the amount is hidden; the currency keeps the exact same trailing
- * placement as the visible state (formatMoney → "1,234.00 EUR"), so hidden reads "•••••• EUR".
- */
-private fun maskedBalance(currency: String): String {
-    val mask = "••••••"
-    return if (currency.isBlank()) mask else "$mask $currency"
-}
-
 @Composable
 private fun NoMatchRow() {
     Column(
@@ -466,7 +385,7 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun EmptyState(onRequestNewAccount: () -> Unit) {
+private fun EmptyState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -489,15 +408,11 @@ private fun EmptyState(onRequestNewAccount: () -> Unit) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "You don't have any accounts yet. Request a new account to get started.",
+            text = "Your accounts will appear here once your profile is set up.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(onClick = onRequestNewAccount) {
-            Text("Request Account")
-        }
     }
 }
 

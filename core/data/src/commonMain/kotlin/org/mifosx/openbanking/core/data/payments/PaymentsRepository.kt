@@ -16,8 +16,6 @@ import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransferTo
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
-import org.mifosx.openbanking.core.model.obp.IbanCheckRequest
 import org.mifosx.openbanking.core.model.obp.SepaCounterpartyIban
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
@@ -47,13 +45,6 @@ interface PaymentsRepository {
      */
     suspend fun listTransactionRequests(bankId: String, accountId: String): Result<List<TransactionRequestSummary>>
 
-    /** Create (add) a beneficiary for the account at [bankId]. */
-    suspend fun createBeneficiary(
-        bankId: String,
-        accountId: String,
-        request: CreateCounterpartyRequest,
-    ): Result<Counterparty>
-
     /** Send a SEPA payment from [accountId] (at [bankId]) to [iban]. */
     suspend fun sendSepaPayment(
         bankId: String,
@@ -81,9 +72,6 @@ interface PaymentsRepository {
         amount: String,
         currency: String,
     ): Result<Boolean>
-
-    /** Validate an IBAN via the OBP checker. */
-    suspend fun checkIban(iban: String): Result<Boolean>
 }
 
 class PaymentsRepositoryImpl(
@@ -117,13 +105,6 @@ class PaymentsRepositoryImpl(
     ): Result<List<TransactionRequestSummary>> =
         api.listTransactionRequests(bankId.ifBlank { config.bankId }, accountId)
             .toResult().map { it.requests }
-
-    override suspend fun createBeneficiary(
-        bankId: String,
-        accountId: String,
-        request: CreateCounterpartyRequest,
-    ): Result<Counterparty> =
-        api.createCounterparty(bankId.ifBlank { config.bankId }, accountId, request).toResult()
 
     override suspend fun sendSepaPayment(
         bankId: String,
@@ -170,7 +151,4 @@ class PaymentsRepositoryImpl(
         api.checkFundsAvailable(bankId, accountId, amount, currency)
             .toResult()
             .map { it.answer.equals("yes", ignoreCase = true) }
-
-    override suspend fun checkIban(iban: String): Result<Boolean> =
-        api.checkIban(IbanCheckRequest(address = iban)).toResult().map { it.isValid }
 }

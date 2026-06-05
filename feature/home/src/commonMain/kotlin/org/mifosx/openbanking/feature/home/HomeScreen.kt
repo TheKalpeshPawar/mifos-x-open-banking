@@ -23,15 +23,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.HeadsetMic
@@ -63,13 +59,11 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.feature.home.ui.HomeContent
 import org.mifosx.openbanking.feature.home.ui.HomeViewModel
 import org.mifosx.openbanking.feature.home.ui.formatDashboardDate
 import org.mifosx.openbanking.feature.home.ui.formatMoney
 import org.mifosx.openbanking.feature.home.ui.initials
-import org.mifosx.openbanking.feature.home.ui.isCredit
 import org.mifosx.openbanking.feature.home.ui.timeOfDayGreeting
 import template.core.base.store.screen.ScreenState
 import kotlin.time.Clock
@@ -88,8 +82,6 @@ fun HomeScreen(
     onAccounts: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
-    onViewAllTransactions: () -> Unit,
-    onTotalPortfolio: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -115,8 +107,6 @@ fun HomeScreen(
                 onAccounts = onAccounts,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
-                onViewAllTransactions = onViewAllTransactions,
-                onTotalPortfolio = onTotalPortfolio,
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
@@ -144,8 +134,6 @@ private fun HomeLoaded(
     onAccounts: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
-    onViewAllTransactions: () -> Unit,
-    onTotalPortfolio: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
@@ -178,21 +166,6 @@ private fun HomeLoaded(
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
-        }
-        item {
-            TotalPortfolioChip(
-                total = content.totalBalance,
-                currency = content.currency,
-                onClick = onTotalPortfolio,
-            )
-        }
-        item {
-            SectionHeader("Recent Transactions", actionLabel = "View All", onAction = onViewAllTransactions)
-        }
-        if (content.recentTransactions.isEmpty()) {
-            item { EmptyTransactionsRow(loading = content.transactionsLoading) }
-        } else {
-            items(content.recentTransactions, key = { it.id }) { txn -> TransactionRow(txn) }
         }
         item { SectionHeader("Banking Services") }
         item {
@@ -302,40 +275,6 @@ private fun QuickChip(label: String, modifier: Modifier = Modifier, muted: Boole
 }
 
 @Composable
-private fun TotalPortfolioChip(total: Double, currency: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(
-                text = "Total Portfolio",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = formatMoney(total.toString(), currency),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Icon(
-                imageVector = Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
-@Composable
 private fun SectionHeader(title: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -352,82 +291,6 @@ private fun SectionHeader(title: String, actionLabel: String? = null, onAction: 
             TextButton(onClick = onAction) {
                 Text(actionLabel, color = MaterialTheme.colorScheme.primary)
             }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(txn: Transaction) {
-    val credit = isCredit(txn.details.value.amount)
-    val merchant = txn.details.description
-        .ifBlank { txn.otherAccount.holder.name }
-        .ifBlank { "Transaction" }
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        if (credit) {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.primaryContainer
-                        },
-                        CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (credit) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
-                    contentDescription = if (credit) "Credit" else "Debit",
-                    tint = if (credit) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(merchant, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                val subtitle = listOf(txn.details.posted.take(10), txn.details.type)
-                    .filter { it.isNotBlank() }.joinToString(" · ")
-                if (subtitle.isNotBlank()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                }
-            }
-            Text(
-                text = formatMoney(txn.details.value.amount, txn.details.value.currency, signed = true),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (credit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyTransactionsRow(loading: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-        } else {
-            Text(
-                "No recent transactions",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

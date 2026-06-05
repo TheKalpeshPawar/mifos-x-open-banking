@@ -40,6 +40,16 @@ private class FakeTransactionsApi(
         return listResult
     }
 
+    override suspend fun listTransactionsWithAttributes(
+        bankId: String,
+        accountId: String,
+        limit: Int?,
+        offset: Int?,
+    ): NetworkResult<TransactionsResponse, NetworkError> {
+        lastBankId = bankId
+        return listResult
+    }
+
     override suspend fun getTransaction(
         bankId: String,
         accountId: String,

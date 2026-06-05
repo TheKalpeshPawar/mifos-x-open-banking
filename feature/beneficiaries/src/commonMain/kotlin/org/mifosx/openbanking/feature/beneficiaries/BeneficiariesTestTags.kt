@@ -16,10 +16,8 @@ object BeneficiariesTestTags {
     const val RECENTLY_USED_HEADER = "recently_used_header"
     const val ALL_HEADER = "all_beneficiaries_header"
     const val SORT_BUTTON = "sort_button"
-    const val ADD_FAB = "add_beneficiary_fab"
     const val EMPTY_STATE = "beneficiaries_empty_state"
     const val ERROR_STATE = "beneficiaries_error_state"
-    const val ADD_SHEET = "add_beneficiary_sheet"
 
     fun beneficiaryRow(id: String) = "beneficiary_row_$id"
 }

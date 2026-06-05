@@ -104,18 +104,6 @@ data class CounterpartyTransferTo(
     @SerialName("counterparty_id") val counterpartyId: String,
 )
 
-/** Request body for the OBP IBAN checker (`POST /account/check/scheme/iban`). */
-@Serializable
-data class IbanCheckRequest(
-    val address: String,
-)
-
-/** Response from the OBP IBAN checker. */
-@Serializable
-data class IbanCheckResponse(
-    @SerialName("is_valid") val isValid: Boolean = false,
-)
-
 /** Response from the OBP funds-available check (`answer` is "yes" or "no"). */
 @Serializable
 data class FundsAvailableResponse(

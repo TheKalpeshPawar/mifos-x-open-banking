@@ -17,10 +17,7 @@ import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
 import org.mifosx.openbanking.core.model.obp.CounterpartiesResponse
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.FundsAvailableResponse
-import org.mifosx.openbanking.core.model.obp.IbanCheckRequest
-import org.mifosx.openbanking.core.model.obp.IbanCheckResponse
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestsResponse
@@ -38,22 +35,13 @@ private class FakePaymentsApi(
         NetworkResult.Success(CounterpartiesResponse()),
     var requestsResult: NetworkResult<TransactionRequestsResponse, NetworkError> =
         NetworkResult.Success(TransactionRequestsResponse()),
-    var createResult: NetworkResult<Counterparty, NetworkError> =
-        NetworkResult.Success(Counterparty()),
     var sepaResult: NetworkResult<TransactionRequest, NetworkError> =
         NetworkResult.Success(TransactionRequest()),
     var fundsResult: NetworkResult<FundsAvailableResponse, NetworkError> =
         NetworkResult.Success(FundsAvailableResponse(answer = "yes")),
-    var ibanResult: NetworkResult<IbanCheckResponse, NetworkError> =
-        NetworkResult.Success(IbanCheckResponse(isValid = true)),
 ) : PaymentsApi {
     override suspend fun listCounterparties(bankId: String, accountId: String) = listResult
     override suspend fun listTransactionRequests(bankId: String, accountId: String) = requestsResult
-    override suspend fun createCounterparty(
-        bankId: String,
-        accountId: String,
-        request: CreateCounterpartyRequest,
-    ) = createResult
     override suspend fun createSepaTransactionRequest(
         bankId: String,
         accountId: String,
@@ -70,7 +58,6 @@ private class FakePaymentsApi(
         amount: String,
         currency: String,
     ) = fundsResult
-    override suspend fun checkIban(request: IbanCheckRequest) = ibanResult
 }
 
 private fun paymentsRepo(api: PaymentsApi): PaymentsRepositoryImpl {
@@ -104,40 +91,6 @@ class PaymentsRepositoryTest {
     fun listBeneficiaries_error_isFailure() = runTest {
         val repo = paymentsRepo(FakePaymentsApi(NetworkResult.Error(NetworkError.SERVER)))
         assertTrue(repo.listBeneficiaries("bank-1", "acc-1").isFailure)
-    }
-
-    @Test
-    fun createBeneficiary_returnsCreatedCounterparty() = runTest {
-        val repo = paymentsRepo(
-            FakePaymentsApi(
-                createResult = NetworkResult.Success(Counterparty(counterpartyId = "new-1", name = "Payee")),
-            ),
-        )
-        val request = CreateCounterpartyRequest(
-            name = "Payee",
-            currency = "GBP",
-            otherAccountRoutingScheme = "IBAN",
-            otherAccountRoutingAddress = "GB29NWBK60161331926819",
-            otherBankRoutingScheme = "BIC",
-            otherBankRoutingAddress = "NWBKGB2L",
-        )
-        val result = repo.createBeneficiary("bank-1", "acc-1", request)
-        assertTrue(result.isSuccess)
-        assertEquals("new-1", result.getOrNull()?.counterpartyId)
-    }
-
-    @Test
-    fun createBeneficiary_error_isFailure() = runTest {
-        val repo = paymentsRepo(FakePaymentsApi(createResult = NetworkResult.Error(NetworkError.SERVER)))
-        val request = CreateCounterpartyRequest(
-            name = "Payee",
-            currency = "GBP",
-            otherAccountRoutingScheme = "IBAN",
-            otherAccountRoutingAddress = "GB29NWBK60161331926819",
-            otherBankRoutingScheme = "BIC",
-            otherBankRoutingAddress = "NWBKGB2L",
-        )
-        assertTrue(repo.createBeneficiary("bank-1", "acc-1", request).isFailure)
     }
 
     @Test
@@ -178,11 +131,5 @@ class PaymentsRepositoryTest {
         val no = paymentsRepo(FakePaymentsApi(fundsResult = NetworkResult.Success(FundsAvailableResponse("no"))))
         assertEquals(true, yes.fundsAvailable("ac.bank.uk", "acc-1", "10.00", "EUR").getOrNull())
         assertEquals(false, no.fundsAvailable("ac.bank.uk", "acc-1", "10.00", "EUR").getOrNull())
-    }
-
-    @Test
-    fun checkIban_mapsIsValid() = runTest {
-        val repo = paymentsRepo(FakePaymentsApi(ibanResult = NetworkResult.Success(IbanCheckResponse(isValid = true))))
-        assertEquals(true, repo.checkIban("GB29NWBK60161331926819").getOrNull())
     }
 }

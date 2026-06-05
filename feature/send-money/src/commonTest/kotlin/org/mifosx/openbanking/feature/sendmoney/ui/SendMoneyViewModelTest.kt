@@ -22,7 +22,6 @@ import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CreateCounterpartyRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import template.core.base.store.screen.ScreenDataStream
@@ -59,11 +58,6 @@ private class FakePaymentsRepository(
         bankId: String,
         accountId: String,
     ): Result<List<TransactionRequestSummary>> = Result.success(emptyList())
-    override suspend fun createBeneficiary(
-        bankId: String,
-        accountId: String,
-        request: CreateCounterpartyRequest,
-    ): Result<Counterparty> = TODO()
     override suspend fun sendSepaPayment(
         bankId: String,
         accountId: String,
@@ -86,7 +80,6 @@ private class FakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = funds
-    override suspend fun checkIban(iban: String): Result<Boolean> = Result.success(true)
 }
 
 private fun account() = Account(

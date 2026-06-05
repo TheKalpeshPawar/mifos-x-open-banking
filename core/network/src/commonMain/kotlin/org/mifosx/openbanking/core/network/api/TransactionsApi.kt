@@ -28,6 +28,19 @@ interface TransactionsApi {
         @Query("offset") offset: Int? = null,
     ): NetworkResult<TransactionsResponse, NetworkError>
 
+    /**
+     * v6.0.0 "full" transactions — returns `transaction_attributes` inline per transaction
+     * (and `transaction_id`), so per-card filtering (CARD_ID) and type labels (TXN_TYPE) need
+     * no N+1 attribute fetch. Used by the cards screen.
+     */
+    @GET("v6.0.0/banks/{bankId}/accounts/{accountId}/owner/transactions")
+    suspend fun listTransactionsWithAttributes(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+        @Query("limit") limit: Int? = null,
+        @Query("offset") offset: Int? = null,
+    ): NetworkResult<TransactionsResponse, NetworkError>
+
     @GET("v3.0.0/banks/{bankId}/accounts/{accountId}/owner/transactions/{transactionId}/transaction")
     suspend fun getTransaction(
         @Path("bankId") bankId: String,

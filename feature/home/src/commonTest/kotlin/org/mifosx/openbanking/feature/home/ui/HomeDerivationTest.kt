@@ -12,9 +12,7 @@ package org.mifosx.openbanking.feature.home.ui
 import org.mifosx.openbanking.core.model.obp.Account
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class HomeDerivationTest {
 
@@ -91,11 +89,5 @@ class HomeDerivationTest {
         assertEquals("AO", initials("Alex Owusu"))
         assertEquals("A", initials("Alex"))
         assertEquals("", initials("   "))
-    }
-
-    @Test
-    fun isCredit_bySign() {
-        assertTrue(isCredit("3200.00"))
-        assertFalse(isCredit("-42.50"))
     }
 }

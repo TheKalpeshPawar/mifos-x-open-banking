@@ -31,8 +31,6 @@ fun NavGraphBuilder.homeGraph(
     onAccounts: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
-    onViewAllTransactions: () -> Unit,
-    onTotalPortfolio: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
@@ -45,8 +43,6 @@ fun NavGraphBuilder.homeGraph(
                 onAccounts = onAccounts,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
-                onViewAllTransactions = onViewAllTransactions,
-                onTotalPortfolio = onTotalPortfolio,
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
