@@ -9,10 +9,22 @@
  */
 package org.mifosx.openbanking.feature.standingorders.di
 
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.standingorders.ui.CreateStandingOrderViewModel
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersViewModel
 
 val StandingOrdersModule = module {
     viewModelOf(::StandingOrdersViewModel)
+    viewModel { params ->
+        CreateStandingOrderViewModel(
+            standingOrdersRepository = get(),
+            accountsRepository = get(),
+            paymentsRepository = get(),
+            profileRepository = get(),
+            customersRepository = get(),
+            initialAccountId = params.getOrNull<String>() ?: "",
+        )
+    }
 }

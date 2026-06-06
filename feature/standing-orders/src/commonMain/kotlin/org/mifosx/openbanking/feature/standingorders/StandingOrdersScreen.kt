@@ -13,7 +13,6 @@ package org.mifosx.openbanking.feature.standingorders
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,11 +32,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,14 +51,14 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,12 +72,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.StandingOrder
-import org.mifosx.openbanking.feature.standingorders.ui.CreateSheetState
-import org.mifosx.openbanking.feature.standingorders.ui.STANDING_ORDER_FREQUENCIES
+import org.mifosx.openbanking.feature.standingorders.ui.CreateGate
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrderFilter
-import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersContent
+import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersHeader
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersViewModel
+import org.mifosx.openbanking.feature.standingorders.ui.accountDisplayName
 import org.mifosx.openbanking.feature.standingorders.ui.formatDate
 import org.mifosx.openbanking.feature.standingorders.ui.formatMoney
 import template.core.base.store.screen.ScreenState
@@ -83,16 +86,33 @@ import template.core.base.store.screen.ScreenState
 /**
  * Standing Orders screen — recurring outgoing payments for the user's primary account,
  * derived from transaction history (OBP has no read endpoint for standing orders).
- * The extended FAB opens a create sheet that POSTs the real OBP create endpoint.
+ * The extended FAB navigates to the New Standing Order screen.
  */
 @Composable
 fun StandingOrdersScreen(
     onBack: () -> Unit,
+    onCreate: (accountId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingOrdersViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val sheet by viewModel.createSheet.collectAsStateWithLifecycle()
+    val header by viewModel.header.collectAsStateWithLifecycle()
+    val createGate by viewModel.createGate.collectAsStateWithLifecycle()
+
+    // Re-fires when this destination re-enters composition (e.g. returning from the
+    // create screen), so a freshly created order shows up immediately.
+    LaunchedEffect(Unit) { viewModel.onRefresh() }
+
+    LaunchedEffect(createGate) {
+        (createGate as? CreateGate.Ready)?.let { gate ->
+            viewModel.onCreateGateConsumed()
+            onCreate(gate.accountId)
+        }
+    }
+
+    if (createGate is CreateGate.NoPayees) {
+        NoPayeesDialog(onDismiss = viewModel::onCreateGateConsumed)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -120,39 +140,53 @@ fun StandingOrdersScreen(
             )
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (val s = state) {
-                is ScreenState.Loading -> CenteredProgress()
-                is ScreenState.Empty -> EmptyState()
-                is ScreenState.Error -> ErrorState(onRetry = viewModel::onRetry)
-                is ScreenState.NoNetwork -> ErrorState(onRetry = viewModel::onRetry)
-                is ScreenState.Unauthenticated -> ErrorState(onRetry = viewModel::onRetry)
-                is ScreenState.Content -> Loaded(content = s.data, onFilterChanged = viewModel::onFilterChanged)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Pinned header — picker + stats + filter chips stay put (and stats derive
+            // from real data, zeroing out when nothing is loaded) while ONLY the list
+            // below scrolls or shows loading/empty/error.
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                if (header.accounts.isNotEmpty()) {
+                    AccountSelector(
+                        accounts = header.accounts,
+                        selectedAccountId = header.selectedAccountId,
+                        onAccountSelected = viewModel::onAccountSelected,
+                    )
+                }
+                StatsRow(header)
+                FilterChips(selected = header.filter, onFilterChanged = viewModel::onFilterChanged)
+            }
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                when (val s = state) {
+                    is ScreenState.Loading -> CenteredProgress()
+                    is ScreenState.Empty -> EmptyState()
+                    is ScreenState.Error -> ErrorState(onRetry = viewModel::onRetry)
+                    is ScreenState.NoNetwork -> ErrorState(onRetry = viewModel::onRetry)
+                    is ScreenState.Unauthenticated -> ErrorState(onRetry = viewModel::onRetry)
+                    is ScreenState.Content -> OrdersList(
+                        orders = s.data,
+                        filter = header.filter,
+                        fromAccountName = accountDisplayName(header.selectedAccount),
+                    )
+                }
             }
         }
-    }
-
-    if (sheet.visible) {
-        CreateStandingOrderSheet(
-            sheet = sheet,
-            onDismiss = viewModel::onDismissCreate,
-            onSubmit = viewModel::onSubmitCreate,
-        )
     }
 }
 
 @Composable
-private fun Loaded(content: StandingOrdersContent, onFilterChanged: (StandingOrderFilter) -> Unit) {
+private fun OrdersList(
+    orders: List<StandingOrder>,
+    filter: StandingOrderFilter,
+    fromAccountName: String,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
     ) {
-        item { StatsRow(content) }
-        item { FilterChips(selected = content.filter, onFilterChanged = onFilterChanged) }
-        if (content.orders.isEmpty()) {
+        if (orders.isEmpty()) {
             item {
                 Text(
-                    text = "No ${content.filter.name.lowercase()} standing orders",
+                    text = "No ${filter.name.lowercase()} standing orders",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
@@ -160,15 +194,106 @@ private fun Loaded(content: StandingOrdersContent, onFilterChanged: (StandingOrd
                 )
             }
         } else {
-            items(content.orders, key = { it.id }) { order ->
-                StandingOrderCard(order = order)
+            items(orders, key = { it.id }) { order ->
+                StandingOrderCard(order = order, fromAccountName = fromAccountName)
+            }
+        }
+    }
+}
+
+/** Shown when the selected account has no beneficiaries — standing orders pay an existing payee. */
+@Composable
+private fun NoPayeesDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        title = { Text("No payees", fontWeight = FontWeight.SemiBold) },
+        text = {
+            Text(
+                "This account has no beneficiaries yet. Add a beneficiary first — " +
+                    "standing orders pay an existing payee.",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
+        },
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .testTag(StandingOrdersTestTags.NO_PAYEES_DIALOG),
+    )
+}
+
+/** From-account selector — standing orders are per-account, so this scopes the screen. */
+@Composable
+private fun AccountSelector(
+    accounts: List<Account>,
+    selectedAccountId: String,
+    onAccountSelected: (String) -> Unit,
+) {
+    val selected = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+        ?: accounts.firstOrNull()
+        ?: return
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Card(
+            onClick = { if (accounts.size > 1) expanded = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                .testTag(StandingOrdersTestTags.ACCOUNT_SELECTOR),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "From account",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = accountDisplayName(selected),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                if (accounts.size > 1) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = "Change account",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            accounts.forEach { account ->
+                DropdownMenuItem(
+                    text = { Text(accountDisplayName(account)) },
+                    onClick = {
+                        onAccountSelected(account.accountIdOrId)
+                        expanded = false
+                    },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun StatsRow(content: StandingOrdersContent) {
+private fun StatsRow(header: StandingOrdersHeader) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier
@@ -176,9 +301,9 @@ private fun StatsRow(content: StandingOrdersContent) {
             .padding(top = 8.dp, bottom = 14.dp)
             .testTag(StandingOrdersTestTags.TITLE_COUNT_ROW),
     ) {
-        StatCard("ACTIVE", content.activeCount.toString(), Modifier.weight(1f))
-        StatCard("MONTHLY TOTAL", content.monthlyTotal, Modifier.weight(1.3f))
-        StatCard("PAUSED", content.pausedCount.toString(), Modifier.weight(1f))
+        StatCard("ACTIVE", header.activeCount.toString(), Modifier.weight(1f))
+        StatCard("MONTHLY TOTAL", header.monthlyTotal, Modifier.weight(1.3f))
+        StatCard("PAUSED", header.pausedCount.toString(), Modifier.weight(1f))
     }
 }
 
@@ -228,7 +353,7 @@ private fun FilterChips(selected: StandingOrderFilter, onFilterChanged: (Standin
 }
 
 @Composable
-private fun StandingOrderCard(order: StandingOrder) {
+private fun StandingOrderCard(order: StandingOrder, fromAccountName: String) {
     val muted = !order.isActive
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -267,6 +392,14 @@ private fun StandingOrderCard(order: StandingOrder) {
                     .orEmpty()
                 Text(
                     text = "To ${order.counterpartyName}$accountHint",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (fromAccountName.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "From $fromAccountName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -354,110 +487,6 @@ private fun StatusBadge(status: String) {
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = fg)
-    }
-}
-
-@Composable
-private fun CreateStandingOrderSheet(
-    sheet: CreateSheetState,
-    onDismiss: () -> Unit,
-    onSubmit: (counterpartyId: String, amount: String, frequency: String) -> Unit,
-) {
-    var selectedPayeeId by remember { mutableStateOf("") }
-    var payeeExpanded by remember { mutableStateOf(false) }
-    var amount by remember { mutableStateOf("") }
-    var frequency by remember { mutableStateOf("MONTHLY") }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.testTag(StandingOrdersTestTags.CREATE_SHEET),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            Text(
-                text = "New Standing Order",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(16.dp))
-            when {
-                sheet.loadingPayees -> Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
-                sheet.payees.isEmpty() -> Text(
-                    text = "Add a beneficiary first — standing orders pay an existing payee.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 12.dp),
-                )
-                else -> {
-                    val selected = sheet.payees.firstOrNull { it.counterpartyId == selectedPayeeId }
-                    Box {
-                        OutlinedTextField(
-                            value = selected?.name ?: "Select payee",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Pay to") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        // Transparent overlay makes the read-only field a tap target (M3 dropdown idiom).
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable { payeeExpanded = true },
-                        )
-                        DropdownMenu(expanded = payeeExpanded, onDismissRequest = { payeeExpanded = false }) {
-                            sheet.payees.forEach { payee ->
-                                DropdownMenuItem(
-                                    text = { Text(payee.name) },
-                                    onClick = {
-                                        selectedPayeeId = payee.counterpartyId
-                                        payeeExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        STANDING_ORDER_FREQUENCIES.forEach { f ->
-                            FilterChip(
-                                selected = frequency == f,
-                                onClick = { frequency = f },
-                                label = { Text(f.lowercase().replaceFirstChar { it.uppercase() }) },
-                            )
-                        }
-                    }
-                    sheet.error?.let {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedButton(
-                        onClick = { onSubmit(selectedPayeeId, amount, frequency) },
-                        enabled = !sheet.submitting && selectedPayeeId.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(StandingOrdersTestTags.CREATE_SUBMIT),
-                    ) {
-                        Text(if (sheet.submitting) "Creating…" else "Create")
-                    }
-                }
-            }
-            Spacer(Modifier.height(32.dp))
-        }
     }
 }
 

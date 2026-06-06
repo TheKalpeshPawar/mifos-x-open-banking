@@ -12,6 +12,7 @@ package org.mifosx.openbanking.core.data.standingorders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.data.customers.CustomersRepository
+import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.testutil.FakeObpCacheDao
 import org.mifosx.openbanking.core.data.testutil.testJson
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
@@ -21,11 +22,13 @@ import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
 import org.mifosx.openbanking.core.model.obp.CreateStandingOrderResponse
 import org.mifosx.openbanking.core.model.obp.Customer
 import org.mifosx.openbanking.core.model.obp.CustomerRequest
+import org.mifosx.openbanking.core.model.obp.ProfileUpdateRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrderSchedule
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionAttribute
 import org.mifosx.openbanking.core.model.obp.TransactionCounterparty
 import org.mifosx.openbanking.core.model.obp.TransactionDetails
+import org.mifosx.openbanking.core.model.obp.UserProfile
 import org.mifosx.openbanking.core.network.api.StandingOrdersApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import template.core.base.network.NetworkError
@@ -89,51 +92,64 @@ class StandingOrdersRepositoryTest {
     }
 
     private class FakeCustomersRepository(
-        private val holderName: String = "",
+        private val legalName: String = "",
     ) : CustomersRepository {
         override fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>> = TODO("not used")
         override suspend fun list(): Result<List<Customer>> = TODO("not used")
-        override suspend fun currentUserCustomers(): Result<List<Customer>> = TODO("not used")
+        override suspend fun currentUserCustomers(): Result<List<Customer>> =
+            Result.success(listOf(Customer(customerId = "cust-1", bankId = "ac.bank.uk", legalName = legalName)))
         override suspend fun get(customerId: String): Result<Customer> = TODO("not used")
         override suspend fun create(request: CustomerRequest): Result<Customer> = TODO("not used")
         override suspend fun update(customerId: String, request: CustomerRequest): Result<Customer> =
             TODO("not used")
         override suspend fun accountHolderName(bankId: String, accountId: String): Result<String> =
-            Result.success(holderName)
+            TODO("not used")
+    }
+
+    private class FakeProfileRepository(
+        private val username: String = "",
+    ) : ProfileRepository {
+        override suspend fun current(): Result<UserProfile> = Result.success(UserProfile(username = username))
+        override suspend fun update(request: ProfileUpdateRequest): Result<UserProfile> = TODO("not used")
     }
 
     private fun repository(
         transactions: List<Transaction> = emptyList(),
         api: FakeStandingOrdersApi = FakeStandingOrdersApi(),
         dao: FakeObpCacheDao = FakeObpCacheDao(),
-        holderName: String = "",
+        username: String = "",
+        legalName: String = "",
     ) = StandingOrdersRepositoryImpl(
         api = api,
         transactionsRepository = FakeTransactionsRepository(transactions),
-        customersRepository = FakeCustomersRepository(holderName),
+        customersRepository = FakeCustomersRepository(legalName),
+        profileRepository = FakeProfileRepository(username),
         config = config,
         dao = dao,
         json = testJson(),
     )
 
     @Test
-    fun listRecurringResolvesCounterpartyHolderLegalName() = runTest {
+    fun listRecurringSwapsOwnUsernameForLegalName() = runTest {
         val repo = repository(
             transactions = listOf(soTxn("Rent", "-450.00", "2026-06-01")),
-            holderName = "Kalpesh Patel",
+            username = "afternooncoffee",
+            legalName = "Kalpesh Patel",
         )
-        // The transaction holder is the login username; the legal name from
-        // customer-account-links must win.
-        assertEquals("Kalpesh Patel", repo.listRecurring("acc-1").getOrThrow().single().counterpartyName)
+        // Self-transfers carry the login username as holder; the customer legal name must win.
+        val row = repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow().single()
+        assertEquals("Kalpesh Patel", row.counterpartyName)
     }
 
     @Test
-    fun listRecurringKeepsTransactionHolderWhenLookupBlank() = runTest {
+    fun listRecurringKeepsExternalHolderName() = runTest {
         val repo = repository(
             transactions = listOf(soTxn("Rent", "-450.00", "2026-06-01")),
-            holderName = "",
+            username = "someoneelse",
+            legalName = "Kalpesh Patel",
         )
-        assertEquals("afternooncoffee", repo.listRecurring("acc-1").getOrThrow().single().counterpartyName)
+        val row = repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow().single()
+        assertEquals("afternooncoffee", row.counterpartyName)
     }
 
     @Test
@@ -144,7 +160,7 @@ class StandingOrdersRepositoryTest {
                 soTxn("Rent", "-450.00", "2026-06-01"),
             ),
         )
-        val rows = repo.listRecurring("acc-1").getOrThrow()
+        val rows = repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow()
         assertEquals(1, rows.size)
         assertEquals("Rent", rows.single().name)
     }
@@ -156,6 +172,7 @@ class StandingOrdersRepositoryTest {
         val repo = repository(api = api, dao = dao)
 
         val created = repo.create(
+            bankId = "ac.bank.uk",
             accountId = "acc-1",
             name = "Savings Counterparty",
             request = CreateStandingOrderRequest(
@@ -174,7 +191,7 @@ class StandingOrdersRepositoryTest {
         assertEquals("25.00", created.amountValue)
         assertEquals("2026-07-01", created.nextPaymentDate)
 
-        val rows = repo.listRecurring("acc-1").getOrThrow()
+        val rows = repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow()
         assertEquals(listOf("Savings Counterparty"), rows.map { it.name })
     }
 
@@ -184,6 +201,7 @@ class StandingOrdersRepositoryTest {
         val repo = repository(api = api)
 
         val result = repo.create(
+            bankId = "ac.bank.uk",
             accountId = "acc-1",
             name = "X",
             request = CreateStandingOrderRequest(
@@ -197,6 +215,6 @@ class StandingOrdersRepositoryTest {
             ),
         )
         assertTrue(result.isFailure)
-        assertEquals(0, repo.listRecurring("acc-1").getOrThrow().size)
+        assertEquals(0, repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow().size)
     }
 }

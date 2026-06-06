@@ -18,29 +18,21 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.customers.CustomersRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
-import org.mifosx.openbanking.core.model.obp.Customer
-import org.mifosx.openbanking.core.model.obp.CustomerRequest
-import org.mifosx.openbanking.core.model.obp.ProfileUpdateRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
-import org.mifosx.openbanking.core.model.obp.UserProfile
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.ScreenState
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private fun account(id: String = "ac.checking.001") = Account(
@@ -61,26 +53,20 @@ private fun order(name: String, status: String = StandingOrder.STATUS_ACTIVE) = 
     status = status,
 )
 
-private fun payee(id: String = "cp-1", name: String = "Savings Counterparty") = Counterparty(
-    counterpartyId = id,
-    name = name,
-    isBeneficiary = true,
-)
-
 private class FakeStandingOrdersRepository(
     var orders: Result<List<StandingOrder>> = Result.success(emptyList()),
-    var createResult: Result<StandingOrder> = Result.success(order("Created")),
 ) : StandingOrdersRepository {
-    var lastCreateRequest: CreateStandingOrderRequest? = null
-    override suspend fun listRecurring(accountId: String): Result<List<StandingOrder>> = orders
+    var lastAccountId: String = ""
+    override suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>> {
+        lastAccountId = accountId
+        return orders
+    }
     override suspend fun create(
+        bankId: String,
         accountId: String,
         name: String,
         request: CreateStandingOrderRequest,
-    ): Result<StandingOrder> {
-        lastCreateRequest = request
-        return createResult
-    }
+    ): Result<StandingOrder> = TODO("not used")
 }
 
 private class FakeAccountsRepository(
@@ -93,7 +79,7 @@ private class FakeAccountsRepository(
 }
 
 private class FakePaymentsRepository(
-    var beneficiaries: Result<List<Counterparty>> = Result.success(listOf(payee())),
+    var beneficiaries: Result<List<Counterparty>> = Result.success(emptyList()),
 ) : PaymentsRepository {
     override fun beneficiariesStream(accountId: String, scope: CoroutineScope): ScreenDataStream<List<Counterparty>> =
         TODO()
@@ -127,22 +113,6 @@ private class FakePaymentsRepository(
     ): Result<Boolean> = TODO()
 }
 
-private class FakeProfileRepository : ProfileRepository {
-    override suspend fun current(): Result<UserProfile> = Result.success(UserProfile(userId = "user-1"))
-    override suspend fun update(request: ProfileUpdateRequest): Result<UserProfile> = TODO()
-}
-
-private class FakeCustomersRepository : CustomersRepository {
-    override fun customersStream(scope: CoroutineScope): ScreenDataStream<List<Customer>> = TODO()
-    override suspend fun list(): Result<List<Customer>> = TODO()
-    override suspend fun currentUserCustomers(): Result<List<Customer>> =
-        Result.success(listOf(Customer(customerId = "cust-1", bankId = "ac.bank.uk")))
-    override suspend fun get(customerId: String): Result<Customer> = TODO()
-    override suspend fun create(request: CustomerRequest): Result<Customer> = TODO()
-    override suspend fun update(customerId: String, request: CustomerRequest): Result<Customer> = TODO()
-    override suspend fun accountHolderName(bankId: String, accountId: String): Result<String> = TODO()
-}
-
 class StandingOrdersViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -161,8 +131,6 @@ class StandingOrdersViewModelTest {
         standingOrdersRepository = repo,
         accountsRepository = accounts,
         paymentsRepository = payments,
-        profileRepository = FakeProfileRepository(),
-        customersRepository = FakeCustomersRepository(),
     )
 
     @Test
@@ -179,13 +147,15 @@ class StandingOrdersViewModelTest {
             ),
         )
         backgroundScope.launch { model.uiState.collect {} }
+        backgroundScope.launch { model.header.collect {} }
         advanceUntilIdle()
         val state = model.uiState.value
         assertTrue(state is ScreenState.Content)
-        assertEquals(3, state.data.orders.size)
-        assertEquals(2, state.data.activeCount)
-        assertEquals(1, state.data.pausedCount)
-        assertEquals("€90.00", state.data.monthlyTotal)
+        assertEquals(3, state.data.size)
+        val header = model.header.value
+        assertEquals(2, header.activeCount)
+        assertEquals(1, header.pausedCount)
+        assertEquals("€90.00", header.monthlyTotal)
     }
 
     @Test
@@ -202,15 +172,78 @@ class StandingOrdersViewModelTest {
             ),
         )
         backgroundScope.launch { model.uiState.collect {} }
+        backgroundScope.launch { model.header.collect {} }
         advanceUntilIdle()
         model.onFilterChanged(StandingOrderFilter.Paused)
         advanceUntilIdle()
         val state = model.uiState.value as ScreenState.Content
-        assertEquals(listOf("Gym"), state.data.orders.map { it.name })
-        assertEquals(StandingOrderFilter.Paused, state.data.filter)
+        assertEquals(listOf("Gym"), state.data.map { it.name })
+        val header = model.header.value
+        assertEquals(StandingOrderFilter.Paused, header.filter)
         // Stats stay global while filtering.
-        assertEquals(1, state.data.activeCount)
-        assertEquals(1, state.data.pausedCount)
+        assertEquals(1, header.activeCount)
+        assertEquals(1, header.pausedCount)
+    }
+
+    @Test
+    fun onAccountSelected_reloadsOrdersForThatAccount() = runTest(dispatcher) {
+        val repo = FakeStandingOrdersRepository(orders = Result.success(listOf(order("Rent"))))
+        val model = vm(
+            repo = repo,
+            accounts = FakeAccountsRepository(
+                accounts = Result.success(listOf(account(), account(id = "ac.savings.001"))),
+            ),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        backgroundScope.launch { model.header.collect {} }
+        advanceUntilIdle()
+        assertEquals("ac.checking.001", repo.lastAccountId)
+
+        model.onAccountSelected("ac.savings.001")
+        advanceUntilIdle()
+
+        assertEquals("ac.savings.001", repo.lastAccountId)
+        val header = model.header.value
+        assertEquals("ac.savings.001", header.selectedAccountId)
+        assertEquals(2, header.accounts.size)
+    }
+
+    @Test
+    fun header_totalIsPlainSumOfActiveAmounts() = runTest(dispatcher) {
+        val model = vm(
+            repo = FakeStandingOrdersRepository(
+                orders = Result.success(
+                    listOf(
+                        order("Rent").copy(amountValue = "450.00"),
+                        order("Savings").copy(amountValue = "200.00"),
+                        // Weekly amounts count at face value — no per-month normalization.
+                        order("Coffee club").copy(amountValue = "2.00", frequency = "WEEKLY"),
+                        order("Gym", status = StandingOrder.STATUS_PAUSED).copy(amountValue = "12.50"),
+                    ),
+                ),
+            ),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        backgroundScope.launch { model.header.collect {} }
+        advanceUntilIdle()
+        assertEquals("€652.00", model.header.value.monthlyTotal)
+    }
+
+    @Test
+    fun header_zerosStatsWhenLoadFails() = runTest(dispatcher) {
+        val model = vm(
+            repo = FakeStandingOrdersRepository(orders = Result.failure(RuntimeException("boom"))),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        backgroundScope.launch { model.header.collect {} }
+        advanceUntilIdle()
+        assertTrue(model.uiState.value is ScreenState.Error)
+        val header = model.header.value
+        // The pinned header survives the error with stats derived from (no) data.
+        assertEquals(1, header.accounts.size)
+        assertEquals(0, header.activeCount)
+        assertEquals(0, header.pausedCount)
+        assertEquals("€0.00", header.monthlyTotal)
     }
 
     @Test
@@ -222,6 +255,36 @@ class StandingOrdersViewModelTest {
     }
 
     @Test
+    fun onCreateClicked_noPayees_gatesWithDialog() = runTest(dispatcher) {
+        val model = vm(payments = FakePaymentsRepository(beneficiaries = Result.success(emptyList())))
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onCreateClicked()
+        advanceUntilIdle()
+        assertTrue(model.createGate.value is CreateGate.NoPayees)
+        model.onCreateGateConsumed()
+        assertTrue(model.createGate.value is CreateGate.Idle)
+    }
+
+    @Test
+    fun onCreateClicked_withPayees_signalsReadyWithAccount() = runTest(dispatcher) {
+        val model = vm(
+            payments = FakePaymentsRepository(
+                beneficiaries = Result.success(
+                    listOf(Counterparty(counterpartyId = "cp-1", name = "Payee", isBeneficiary = true)),
+                ),
+            ),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onCreateClicked()
+        advanceUntilIdle()
+        val gate = model.createGate.value
+        assertTrue(gate is CreateGate.Ready)
+        assertEquals("ac.checking.001", gate.accountId)
+    }
+
+    @Test
     fun load_failure_emitsError() = runTest(dispatcher) {
         val model = vm(
             repo = FakeStandingOrdersRepository(orders = Result.failure(RuntimeException("boom"))),
@@ -229,79 +292,5 @@ class StandingOrdersViewModelTest {
         backgroundScope.launch { model.uiState.collect {} }
         advanceUntilIdle()
         assertTrue(model.uiState.value is ScreenState.Error)
-    }
-
-    @Test
-    fun onCreateClicked_loadsPayeesIntoSheet() = runTest(dispatcher) {
-        val model = vm()
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-        val sheet = model.createSheet.value
-        assertTrue(sheet.visible)
-        assertFalse(sheet.loadingPayees)
-        assertEquals(listOf("Savings Counterparty"), sheet.payees.map { it.name })
-    }
-
-    @Test
-    fun onSubmitCreate_success_buildsRequestAndRefreshes() = runTest(dispatcher) {
-        val repo = FakeStandingOrdersRepository()
-        val model = vm(repo = repo)
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-
-        repo.orders = Result.success(listOf(order("Savings Counterparty")))
-        model.onSubmitCreate(counterpartyId = "cp-1", amount = "25.00", frequency = "MONTHLY")
-        advanceUntilIdle()
-
-        val request = repo.lastCreateRequest
-        assertNotNull(request)
-        assertEquals("cust-1", request.customerId)
-        assertEquals("user-1", request.userId)
-        assertEquals("cp-1", request.counterpartyId)
-        assertEquals("25.00", request.amount.amount)
-        assertEquals("EUR", request.amount.currency)
-        assertEquals("MONTHLY", request.`when`.frequency)
-        assertFalse(model.createSheet.value.visible)
-        val state = model.uiState.value
-        assertTrue(state is ScreenState.Content)
-        assertEquals(listOf("Savings Counterparty"), state.data.orders.map { it.name })
-    }
-
-    @Test
-    fun onSubmitCreate_invalidAmount_setsErrorWithoutCalling() = runTest(dispatcher) {
-        val repo = FakeStandingOrdersRepository()
-        val model = vm(repo = repo)
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-
-        model.onSubmitCreate(counterpartyId = "cp-1", amount = "abc", frequency = "MONTHLY")
-        advanceUntilIdle()
-
-        assertEquals("Enter a valid amount", model.createSheet.value.error)
-        assertEquals(null, repo.lastCreateRequest)
-    }
-
-    @Test
-    fun onSubmitCreate_failure_keepsSheetWithError() = runTest(dispatcher) {
-        val repo = FakeStandingOrdersRepository(createResult = Result.failure(RuntimeException("denied")))
-        val model = vm(repo = repo)
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-
-        model.onSubmitCreate(counterpartyId = "cp-1", amount = "25.00", frequency = "MONTHLY")
-        advanceUntilIdle()
-
-        val sheet = model.createSheet.value
-        assertTrue(sheet.visible)
-        assertEquals("denied", sheet.error)
-        assertFalse(sheet.submitting)
     }
 }

@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.network.api
 
 import de.jensklingenberg.ktorfit.http.Body
+import de.jensklingenberg.ktorfit.http.Headers
 import de.jensklingenberg.ktorfit.http.POST
 import de.jensklingenberg.ktorfit.http.Path
 import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
@@ -24,6 +25,7 @@ import template.core.base.network.NetworkResult
  */
 interface StandingOrdersApi {
 
+    @Headers("Content-Type: application/json")
     @POST("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/standing-order")
     suspend fun createStandingOrder(
         @Path("bankId") bankId: String,

@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -49,6 +50,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
+import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
@@ -60,6 +62,7 @@ import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
+import org.mifosx.openbanking.placeholder.StandingOrderEditRoute
 import org.mifosx.openbanking.placeholder.StandingOrdersRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
@@ -286,14 +289,29 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             }
 
             // Standing orders — real feature module. Rows derive from transaction history
-            // (OBP has no read endpoint); the FAB POSTs the real create endpoint.
-            composableWithStayTransitions<StandingOrdersRoute> {
-                StandingOrdersScreen(onBack = navController::popBackStack)
-            }
+            // (OBP has no read endpoint); creation is its own screen posting the real endpoint.
+            standingOrdersDestinations(navController)
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()
         }
+    }
+}
+
+private fun NavGraphBuilder.standingOrdersDestinations(navController: NavHostController) {
+    composableWithStayTransitions<StandingOrdersRoute> {
+        StandingOrdersScreen(
+            onBack = navController::popBackStack,
+            onCreate = { accountId -> navController.navigate(StandingOrderEditRoute(accountId)) },
+        )
+    }
+    composableWithStayTransitions<StandingOrderEditRoute> { entry ->
+        val route = entry.toRoute<StandingOrderEditRoute>()
+        CreateStandingOrderScreen(
+            accountId = route.accountId,
+            onBack = navController::popBackStack,
+            onCreated = navController::popBackStack,
+        )
     }
 }
 

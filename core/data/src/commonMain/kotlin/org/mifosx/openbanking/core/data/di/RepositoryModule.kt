@@ -131,6 +131,7 @@ val DataModule = module {
             api = get(),
             transactionsRepository = get(),
             customersRepository = get(),
+            profileRepository = get(),
             config = get(),
             dao = get(),
             json = get(),

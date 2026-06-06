@@ -21,6 +21,7 @@ kotlin {
             implementation(projects.core.data)
             implementation(projects.core.model)
             implementation(projects.core.ui)
+            implementation(projects.coreBase.platform)
             implementation(projects.coreBase.store)
 
             implementation(compose.ui)

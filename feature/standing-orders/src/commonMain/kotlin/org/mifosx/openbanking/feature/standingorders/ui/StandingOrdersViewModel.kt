@@ -20,26 +20,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.customers.CustomersRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
 import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.core.model.obp.AmountOfMoney
-import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
-import org.mifosx.openbanking.core.model.obp.StandingOrderSchedule
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-
-/** OBP standing-order frequencies offered by the create form. */
-val STANDING_ORDER_FREQUENCIES = listOf("WEEKLY", "MONTHLY", "YEARLY")
 
 /** Status filter chips above the list. */
 enum class StandingOrderFilter { All, Active, Paused, Cancelled }
@@ -47,24 +34,53 @@ enum class StandingOrderFilter { All, Active, Paused, Cancelled }
 /**
  * Standing Orders ViewModel. Resolves the user's primary account (checking-first, like
  * Beneficiaries) and loads its recurring payments — DERIVED from transaction history,
- * because OBP exposes no read endpoint for standing orders. The create sheet POSTs the
- * real create endpoint, resolving the caller's user/customer ids on demand.
+ * because OBP exposes no read endpoint for standing orders. Creation lives on its own
+ * screen ([CreateStandingOrderViewModel]).
  */
 class StandingOrdersViewModel(
     private val standingOrdersRepository: StandingOrdersRepository,
     private val accountsRepository: AccountsRepository,
     private val paymentsRepository: PaymentsRepository,
-    private val profileRepository: ProfileRepository,
-    private val customersRepository: CustomersRepository,
 ) : ViewModel() {
 
     private val rawState = MutableStateFlow<RawState>(RawState.Loading)
-    private val createState = MutableStateFlow(CreateSheetState())
     private val filterFlow = MutableStateFlow(StandingOrderFilter.All)
+    private val pickerState = MutableStateFlow(AccountPickerState())
+    private val createGateFlow = MutableStateFlow<CreateGate>(CreateGate.Idle)
 
-    val createSheet: StateFlow<CreateSheetState> = createState.asStateFlow()
+    /** Gate for the New Order FAB: blocks navigation when the account has no payees. */
+    val createGate: StateFlow<CreateGate> = createGateFlow.asStateFlow()
 
-    val uiState: StateFlow<ScreenState<StandingOrdersContent>> =
+    /**
+     * Pinned header (account picker + stats + filter chips) — derived from whatever data
+     * is actually loaded and kept OUTSIDE [uiState], so it stays visible with zeroed
+     * stats while the list below shows loading/empty/error.
+     */
+    val header: StateFlow<StandingOrdersHeader> =
+        combine(rawState, filterFlow, pickerState) { raw, filter, picker ->
+            val orders = (raw as? RawState.Loaded)?.orders.orEmpty()
+            val active = orders.filter { it.isActive }
+            val currency = orders.firstOrNull()?.amountCurrency
+                ?: picker.accounts
+                    .firstOrNull { it.accountIdOrId == picker.selectedAccountId }
+                    ?.balance?.currency
+                    .orEmpty()
+            StandingOrdersHeader(
+                accounts = picker.accounts,
+                selectedAccountId = picker.selectedAccountId,
+                activeCount = active.size,
+                pausedCount = orders.count { it.isPaused },
+                monthlyTotal = formatMoney(monthlyTotalOf(active).toString(), currency),
+                filter = filter,
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = StandingOrdersHeader(),
+        )
+
+    /** List-area state only: the orders visible under the current filter. */
+    val uiState: StateFlow<ScreenState<List<StandingOrder>>> =
         combine(rawState, filterFlow) { raw, filter ->
             when (raw) {
                 is RawState.Loading -> ScreenState.Loading
@@ -74,7 +90,7 @@ class StandingOrdersViewModel(
                         ScreenState.Empty
                     } else {
                         ScreenState.Content(
-                            data = projectContent(raw.orders, filter),
+                            data = filterOrders(raw.orders, filter),
                             freshness = DataFreshness.FRESH,
                         )
                     }
@@ -85,7 +101,8 @@ class StandingOrdersViewModel(
             initialValue = ScreenState.Loading,
         )
 
-    private var account: Account? = null
+    private var accounts: List<Account> = emptyList()
+    private var selectedAccountId: String = ""
 
     init {
         load()
@@ -97,110 +114,77 @@ class StandingOrdersViewModel(
 
     fun onFilterChanged(filter: StandingOrderFilter) = filterFlow.update { filter }
 
-    private fun projectContent(orders: List<StandingOrder>, filter: StandingOrderFilter): StandingOrdersContent {
-        val visible = when (filter) {
+    /**
+     * New Order tapped: standing orders pay an existing payee, so check the selected
+     * account's beneficiaries first — no payees means a dialog instead of the form.
+     */
+    fun onCreateClicked() {
+        if (createGateFlow.value is CreateGate.Checking) return
+        val account = accounts.firstOrNull { it.accountIdOrId == selectedAccountId } ?: return
+        createGateFlow.value = CreateGate.Checking
+        viewModelScope.launch {
+            val payees = paymentsRepository
+                .listBeneficiaries(account.bankId, account.accountIdOrId)
+                .getOrDefault(emptyList())
+                .filter { it.isBeneficiary }
+            createGateFlow.value = if (payees.isEmpty()) {
+                CreateGate.NoPayees
+            } else {
+                CreateGate.Ready(account.accountIdOrId)
+            }
+        }
+    }
+
+    /** Reset the gate after navigating or dismissing the no-payees dialog. */
+    fun onCreateGateConsumed() {
+        createGateFlow.value = CreateGate.Idle
+    }
+
+    /** Switch the active account: standing orders are per-account, so reload for it. */
+    fun onAccountSelected(accountId: String) {
+        if (accountId == selectedAccountId) return
+        val account = accounts.firstOrNull { it.accountIdOrId == accountId } ?: return
+        selectedAccountId = accountId
+        pickerState.value = AccountPickerState(accounts, selectedAccountId)
+        rawState.value = RawState.Loading
+        viewModelScope.launch { loadForAccount(account) }
+    }
+
+    private fun filterOrders(orders: List<StandingOrder>, filter: StandingOrderFilter): List<StandingOrder> =
+        when (filter) {
             StandingOrderFilter.All -> orders
             StandingOrderFilter.Active -> orders.filter { it.isActive }
             StandingOrderFilter.Paused -> orders.filter { it.isPaused }
             StandingOrderFilter.Cancelled -> orders.filter { it.isCancelled }
         }
-        val active = orders.filter { it.isActive }
-        val currency = orders.firstOrNull()?.amountCurrency.orEmpty()
-        return StandingOrdersContent(
-            orders = visible,
-            activeCount = active.size,
-            pausedCount = orders.count { it.isPaused },
-            monthlyTotal = formatMoney(monthlyTotalOf(active).toString(), currency),
-            filter = filter,
-        )
-    }
-
-    /** Opens the create sheet, loading the account's payees as counterparty choices. */
-    fun onCreateClicked() {
-        val acct = account ?: return
-        createState.update { it.copy(visible = true, loadingPayees = true, error = null) }
-        viewModelScope.launch {
-            val payees = paymentsRepository
-                .listBeneficiaries(acct.bankId, acct.accountIdOrId)
-                .getOrDefault(emptyList())
-                .filter { it.isBeneficiary }
-            createState.update { it.copy(loadingPayees = false, payees = payees) }
-        }
-    }
-
-    fun onDismissCreate() = createState.update { CreateSheetState() }
-
-    /** POSTs the standing order, then refreshes the list and closes the sheet. */
-    fun onSubmitCreate(counterpartyId: String, amount: String, frequency: String) {
-        val acct = account
-        val payee = createState.value.payees.firstOrNull { it.counterpartyId == counterpartyId }
-        if (acct == null || payee == null) return
-        val normalized = amount.trim().replace(',', '.')
-        if ((normalized.toDoubleOrNull() ?: 0.0) <= 0.0) {
-            createState.update { it.copy(error = "Enter a valid amount") }
-            return
-        }
-        createState.update { it.copy(submitting = true, error = null) }
-        viewModelScope.launch {
-            buildRequest(acct, counterpartyId, normalized, frequency)
-                .mapCatching { request ->
-                    standingOrdersRepository.create(acct.accountIdOrId, payee.name, request).getOrThrow()
-                }
-                .onSuccess {
-                    createState.value = CreateSheetState()
-                    load()
-                }
-                .onFailure { e ->
-                    createState.update {
-                        it.copy(submitting = false, error = e.message ?: "Could not create standing order")
-                    }
-                }
-        }
-    }
-
-    @OptIn(ExperimentalTime::class)
-    private suspend fun buildRequest(
-        acct: Account,
-        counterpartyId: String,
-        amount: String,
-        frequency: String,
-    ): Result<CreateStandingOrderRequest> = runCatching {
-        val userId = profileRepository.current().getOrThrow().userId
-        val customerId = customersRepository.currentUserCustomers().getOrThrow()
-            .firstOrNull { it.bankId == acct.bankId }
-            ?.customerId
-            ?: error("No customer record at ${acct.bankId}")
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        CreateStandingOrderRequest(
-            customerId = customerId,
-            userId = userId,
-            counterpartyId = counterpartyId,
-            amount = AmountOfMoney(currency = acct.balance.currency.ifBlank { "EUR" }, amount = amount),
-            `when` = StandingOrderSchedule(frequency = frequency),
-            dateSigned = "${today}T00:00:00Z",
-            dateStarts = "${today}T00:00:00Z",
-        )
-    }
 
     private fun load() {
         rawState.value = RawState.Loading
         viewModelScope.launch {
-            val accounts = accountsRepository.myAccounts().getOrElse {
+            accounts = accountsRepository.myAccounts().getOrElse {
                 rawState.value = RawState.Failed(it)
                 return@launch
             }
-            val target = accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
+            // Keep the user's selection across reloads; default to the checking-type account.
+            val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+                ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
                 ?: accounts.firstOrNull()
             if (target == null) {
-                account = null
+                selectedAccountId = ""
+                pickerState.value = AccountPickerState()
                 rawState.value = RawState.Loaded(emptyList())
                 return@launch
             }
-            account = target
-            standingOrdersRepository.listRecurring(target.accountIdOrId)
-                .onSuccess { rawState.value = RawState.Loaded(it) }
-                .onFailure { rawState.value = RawState.Failed(it) }
+            selectedAccountId = target.accountIdOrId
+            pickerState.value = AccountPickerState(accounts, selectedAccountId)
+            loadForAccount(target)
         }
+    }
+
+    private suspend fun loadForAccount(account: Account) {
+        standingOrdersRepository.listRecurring(account.bankId, account.accountIdOrId)
+            .onSuccess { rawState.value = RawState.Loaded(it) }
+            .onFailure { rawState.value = RawState.Failed(it) }
     }
 
     private sealed interface RawState {
@@ -210,40 +194,49 @@ class StandingOrdersViewModel(
     }
 }
 
-/** Loaded content for the Standing Orders screen. */
+/** Account picker state — independent of the list so it stays visible on error/empty. */
 @Immutable
-data class StandingOrdersContent(
-    /** Orders visible under the current [filter]. */
-    val orders: List<StandingOrder>,
-    val activeCount: Int,
-    val pausedCount: Int,
-    /** Formatted monthly-equivalent total across ACTIVE orders, e.g. "€665.99". */
-    val monthlyTotal: String,
-    val filter: StandingOrderFilter,
+data class AccountPickerState(
+    val accounts: List<Account> = emptyList(),
+    val selectedAccountId: String = "",
 )
 
-/** Sum of active orders normalized to a per-month amount. */
-internal fun monthlyTotalOf(active: List<StandingOrder>): Double =
-    active.sumOf { order ->
-        val amount = order.amountValue.toDoubleOrNull() ?: 0.0
-        when (order.frequency.uppercase()) {
-            "DAILY" -> amount * 30
-            "WEEKLY" -> amount * 4
-            "BI-WEEKLY" -> amount * 2
-            "YEARLY" -> amount / 12
-            else -> amount
-        }
+/** Pinned header data: picker + stats (zeroed when nothing is loaded) + active filter. */
+@Immutable
+data class StandingOrdersHeader(
+    val accounts: List<Account> = emptyList(),
+    val selectedAccountId: String = "",
+    val activeCount: Int = 0,
+    val pausedCount: Int = 0,
+    val monthlyTotal: String = "0.00",
+    val filter: StandingOrderFilter = StandingOrderFilter.All,
+) {
+    val selectedAccount: Account?
+        get() = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+}
+
+/** New Order gating: payee check outcome for the selected account. */
+sealed interface CreateGate {
+    data object Idle : CreateGate
+    data object Checking : CreateGate
+    data object NoPayees : CreateGate
+    data class Ready(val accountId: String) : CreateGate
+}
+
+/** Display name for an account: its label, else "{TYPE} ····{last4}". */
+fun accountDisplayName(account: Account?): String = when {
+    account == null -> ""
+    account.label.isNotBlank() -> account.label
+    else -> {
+        val type = account.typeOrProduct.ifBlank { "Account" }
+        val last4 = account.accountIdOrId.filter { it.isLetterOrDigit() }.takeLast(4)
+        "$type ····$last4"
     }
+}
 
-/** Create-sheet UI state: payee choices + submit progress/error. */
-@Immutable
-data class CreateSheetState(
-    val visible: Boolean = false,
-    val loadingPayees: Boolean = false,
-    val payees: List<Counterparty> = emptyList(),
-    val submitting: Boolean = false,
-    val error: String? = null,
-)
+/** Plain sum of the active orders' payment amounts (no frequency normalization). */
+internal fun monthlyTotalOf(active: List<StandingOrder>): Double =
+    active.sumOf { it.amountValue.toDoubleOrNull() ?: 0.0 }
 
 /** Formats an OBP money value ("45.00", "EUR") to a display string ("€45.00"). */
 internal fun formatMoney(amount: String, currency: String): String {
