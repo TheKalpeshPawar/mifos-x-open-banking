@@ -22,6 +22,7 @@ import org.mifosx.openbanking.feature.beneficiaries.di.BeneficiariesModule
 import org.mifosx.openbanking.feature.cards.di.CardsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.pfm.di.PfmModule
 import org.mifosx.openbanking.feature.profile.di.ProfileModule
 import org.mifosx.openbanking.feature.sendmoney.di.SendMoneyModule
 import org.mifosx.openbanking.feature.settings.SettingsModule
@@ -63,6 +64,7 @@ object KoinModules {
             SendMoneyModule,
             StandingOrdersModule,
             TransactionsModule,
+            PfmModule,
         )
     }
 

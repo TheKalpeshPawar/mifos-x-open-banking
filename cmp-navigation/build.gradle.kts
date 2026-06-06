@@ -40,6 +40,7 @@ kotlin {
             implementation(projects.feature.standingOrders)
             implementation(projects.feature.transactions)
             implementation(projects.feature.sendMoney)
+            implementation(projects.feature.pfm)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

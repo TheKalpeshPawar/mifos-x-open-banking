@@ -45,6 +45,7 @@ import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.pfm.PfmDashboardScreen
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
@@ -64,6 +65,7 @@ import org.mifosx.openbanking.placeholder.BeneficiariesRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
+import org.mifosx.openbanking.placeholder.PfmDashboardRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
@@ -172,6 +174,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onStandingOrders = { navController.navigate(StandingOrdersRoute) },
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
+                onInsights = { navController.navigate(PfmDashboardRoute) },
                 onDeferred = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message = message, duration = Short)
@@ -253,6 +256,18 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 
             // Transaction history + detail + tags — real feature modules.
             transactionsDestinations(navController)
+
+            // Spending Insights — real feature module. The account is resolved internally
+            // (persisted default → checking-first); merchants and view-all land on the
+            // transaction history for the inspected account.
+            composableWithStayTransitions<PfmDashboardRoute> {
+                PfmDashboardScreen(
+                    onViewTransactions = { bankId, accountId ->
+                        navController.navigate(TransactionsRoute(bankId = bankId, accountId = accountId))
+                    },
+                    onBack = navController::popBackStack,
+                )
+            }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()

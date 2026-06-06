@@ -30,8 +30,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
@@ -87,6 +87,7 @@ fun HomeScreen(
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
+    onInsights: () -> Unit,
     onDeferred: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
@@ -112,6 +113,7 @@ fun HomeScreen(
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
+                onInsights = onInsights,
                 onDeferred = onDeferred,
                 onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
@@ -140,6 +142,7 @@ private fun HomeLoaded(
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
+    onInsights: () -> Unit,
     onDeferred: (String) -> Unit,
     onDefaultAccountSelected: (Account) -> Unit,
 ) {
@@ -194,6 +197,7 @@ private fun HomeLoaded(
                 onTransfers = onTransfer,
                 onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
+                onInsights = onInsights,
                 onDeferred = onDeferred,
             )
         }
@@ -324,6 +328,7 @@ private fun BankingServices(
     onTransfers: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
+    onInsights: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -335,7 +340,7 @@ private fun BankingServices(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("Cards", Icons.Filled.CreditCard, Modifier.weight(1f), onViewCards)
             ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
-            ServiceTile("Support", Icons.Filled.HeadsetMic, Modifier.weight(1f)) { onDeferred("Support — coming soon") }
+            ServiceTile("Insights", Icons.Filled.PieChart, Modifier.weight(1f), onInsights)
         }
     }
 }

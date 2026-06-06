@@ -34,6 +34,7 @@ import org.mifosx.openbanking.core.network.api.ProfileApi
 import org.mifosx.openbanking.core.network.api.StandingOrdersApi
 import org.mifosx.openbanking.core.network.api.TransactionMetadataApi
 import org.mifosx.openbanking.core.network.api.TransactionsApi
+import org.mifosx.openbanking.core.network.api.UserAttributesApi
 import org.mifosx.openbanking.core.network.api.createAccountApplicationsApi
 import org.mifosx.openbanking.core.network.api.createAccountsApi
 import org.mifosx.openbanking.core.network.api.createAgentsApi
@@ -56,6 +57,7 @@ import org.mifosx.openbanking.core.network.api.createProfileApi
 import org.mifosx.openbanking.core.network.api.createStandingOrdersApi
 import org.mifosx.openbanking.core.network.api.createTransactionMetadataApi
 import org.mifosx.openbanking.core.network.api.createTransactionsApi
+import org.mifosx.openbanking.core.network.api.createUserAttributesApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.network.obp.ObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.PersistentObpTokenProvider
@@ -78,6 +80,7 @@ val NetworkModule = module {
     single<BanksApi> { get<Ktorfit>().createBanksApi() }
     single<TransactionsApi> { get<Ktorfit>().createTransactionsApi() }
     single<TransactionMetadataApi> { get<Ktorfit>().createTransactionMetadataApi() }
+    single<UserAttributesApi> { get<Ktorfit>().createUserAttributesApi() }
     single<CardsApi> { get<Ktorfit>().createCardsApi() }
     single<PaymentsApi> { get<Ktorfit>().createPaymentsApi() }
     single<StandingOrdersApi> { get<Ktorfit>().createStandingOrdersApi() }

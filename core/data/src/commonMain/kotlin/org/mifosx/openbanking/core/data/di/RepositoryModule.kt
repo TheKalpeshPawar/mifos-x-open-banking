@@ -51,6 +51,8 @@ import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepository
 import org.mifosx.openbanking.core.data.messages.CustomerMessagesRepositoryImpl
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepositoryImpl
+import org.mifosx.openbanking.core.data.pfm.BudgetsRepository
+import org.mifosx.openbanking.core.data.pfm.BudgetsRepositoryImpl
 import org.mifosx.openbanking.core.data.pfm.PfmRepository
 import org.mifosx.openbanking.core.data.pfm.PfmRepositoryImpl
 import org.mifosx.openbanking.core.data.products.ProductsRepository
@@ -110,6 +112,7 @@ val DataModule = module {
         )
     }
     single<TransactionMetadataRepository> { TransactionMetadataRepositoryImpl(api = get()) }
+    single<BudgetsRepository> { BudgetsRepositoryImpl(api = get()) }
     single<CardsRepository> {
         CardsRepositoryImpl(
             api = get(),

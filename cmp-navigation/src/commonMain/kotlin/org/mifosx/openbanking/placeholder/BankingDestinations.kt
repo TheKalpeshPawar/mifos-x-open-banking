@@ -175,7 +175,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     // feature modules — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<DirectDebitsRoute> { PlaceholderScreen("Direct debits") }
     composableWithStayTransitions<DirectDebitDetailRoute> { PlaceholderScreen("Direct debit detail") }
-    composableWithStayTransitions<PfmDashboardRoute> { PlaceholderScreen("Insights") }
+    // PfmDashboardRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<FxRatesRoute> { PlaceholderScreen("FX rates") }
     composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
     composableWithStayTransitions<ProductsRoute> { PlaceholderScreen("Products") }

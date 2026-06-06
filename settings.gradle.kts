@@ -121,6 +121,7 @@ include(":feature:beneficiaries")
 include(":feature:standing-orders")
 include(":feature:transactions")
 include(":feature:send-money")
+include(":feature:pfm")
 
 include(":core-base:analytics")
 include(":core-base:common")
