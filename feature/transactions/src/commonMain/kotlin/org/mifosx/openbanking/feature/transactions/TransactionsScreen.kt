@@ -93,6 +93,7 @@ fun TransactionsScreen(
     bankId: String,
     accountId: String,
     onTransactionClick: (String) -> Unit,
+    onPendingClick: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TransactionsViewModel = koinViewModel { parametersOf(bankId, accountId) },
@@ -140,6 +141,7 @@ fun TransactionsScreen(
                     TransactionsList(
                         content = s.data,
                         onTransactionClick = onTransactionClick,
+                        onPendingClick = onPendingClick,
                         onLoadMore = viewModel::onLoadMore,
                     )
                 }
@@ -338,6 +340,7 @@ private fun SummaryColumn(label: String, value: String, color: Color, modifier: 
 private fun TransactionsList(
     content: TransactionsContent,
     onTransactionClick: (String) -> Unit,
+    onPendingClick: (String) -> Unit,
     onLoadMore: () -> Unit,
 ) {
     LazyColumn(
@@ -350,7 +353,7 @@ private fun TransactionsList(
                 SectionHeader("PENDING", Modifier.testTag(TransactionsTestTags.PENDING_HEADER))
             }
             items(content.pending, key = { "p_${it.id}" }) { pending ->
-                PendingRow(pending)
+                PendingRow(pending, onClick = { onPendingClick(pending.id) })
             }
         }
         content.groups.forEach { group ->
@@ -382,8 +385,9 @@ private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PendingRow(pending: PendingPayment) {
+private fun PendingRow(pending: PendingPayment, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),

@@ -53,6 +53,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
+import org.mifosx.openbanking.feature.transactions.TransactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsScreen
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
@@ -67,6 +68,7 @@ import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.placeholder.StandingOrderEditRoute
 import org.mifosx.openbanking.placeholder.StandingOrdersRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
+import org.mifosx.openbanking.placeholder.TransactionTagsRoute
 import org.mifosx.openbanking.placeholder.TransactionsRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
 import org.mifosx.openbanking.ui.KptRootScaffold
@@ -207,12 +209,20 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 
             // Cards tab — real feature module. Carousel + per-account transactions are live;
             // card controls (freeze/limit/PIN/report/order) surface a "coming soon" snackbar
-            // (no consumer OBP endpoint — see CardsViewModel). card-detail + transaction-detail
-            // remain Phase 2 placeholders until their feature modules land.
+            // (no consumer OBP endpoint — see CardsViewModel). card-detail remains a Phase 2
+            // placeholder until its feature module lands.
             composableWithStayTransitions<CardsRoute> {
                 CardsScreen(
                     onCardClick = { navController.navigate(CardDetailRoute) },
-                    onTransactionClick = { navController.navigate(TransactionDetailRoute) },
+                    onTransactionClick = { tx ->
+                        navController.navigate(
+                            TransactionDetailRoute(
+                                bankId = tx.thisAccount.bankId,
+                                accountId = tx.thisAccount.id,
+                                transactionId = tx.txId,
+                            ),
+                        )
+                    },
                     onDeferred = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
                 )
             }
@@ -239,13 +249,45 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             standingOrdersDestinations(navController)
 
             // Transaction history — real feature module. Booked rows + pending (INITIATED)
-            // payments for one account; row taps land on the transaction-detail placeholder.
+            // payments for one account; row taps open the transaction-detail screen.
             composableWithStayTransitions<TransactionsRoute> { entry ->
                 val route = entry.toRoute<TransactionsRoute>()
                 TransactionsScreen(
                     bankId = route.bankId,
                     accountId = route.accountId,
-                    onTransactionClick = { navController.navigate(TransactionDetailRoute) },
+                    onTransactionClick = { transactionId ->
+                        navController.navigate(
+                            TransactionDetailRoute(
+                                bankId = route.bankId,
+                                accountId = route.accountId,
+                                transactionId = transactionId,
+                            ),
+                        )
+                    },
+                    onPendingClick = { requestId ->
+                        navController.navigate(
+                            TransactionDetailRoute(
+                                bankId = route.bankId,
+                                accountId = route.accountId,
+                                requestId = requestId,
+                            ),
+                        )
+                    },
+                    onBack = navController::popBackStack,
+                )
+            }
+
+            // Transaction detail — real feature module (lives in feature:transactions).
+            // Booked rows arrive with transactionId; pending rows with requestId.
+            // Tags & Notes still heads to the Phase 2 transaction-tags placeholder.
+            composableWithStayTransitions<TransactionDetailRoute> { entry ->
+                val route = entry.toRoute<TransactionDetailRoute>()
+                TransactionDetailScreen(
+                    bankId = route.bankId,
+                    accountId = route.accountId,
+                    transactionId = route.transactionId,
+                    requestId = route.requestId,
+                    onManageTags = { navController.navigate(TransactionTagsRoute) },
                     onBack = navController::popBackStack,
                 )
             }

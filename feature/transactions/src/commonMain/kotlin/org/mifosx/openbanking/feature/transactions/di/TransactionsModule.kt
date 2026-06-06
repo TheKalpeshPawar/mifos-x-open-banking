@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.transactions.di
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.transactions.ui.TransactionDetailViewModel
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsViewModel
 
 val TransactionsModule = module {
@@ -21,6 +22,16 @@ val TransactionsModule = module {
             accountsRepository = get(),
             bankId = params.get(0),
             accountId = params.get(1),
+        )
+    }
+    viewModel { params ->
+        TransactionDetailViewModel(
+            transactionsRepository = get(),
+            paymentsRepository = get(),
+            bankId = params.get(0),
+            accountId = params.get(1),
+            transactionId = params.get(2),
+            requestId = params.get(3),
         )
     }
 }
