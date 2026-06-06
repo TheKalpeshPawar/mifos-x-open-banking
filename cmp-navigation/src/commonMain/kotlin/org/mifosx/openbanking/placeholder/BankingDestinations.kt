@@ -84,7 +84,12 @@ data class SendMoneyConfirmRoute(
 
 @Serializable data object StandingOrdersRoute
 
-@Serializable data object StandingOrderDetailRoute
+@Serializable
+data class StandingOrderDetailRoute(
+    val bankId: String = "",
+    val accountId: String = "",
+    val standingOrderId: String = "",
+)
 
 @Serializable data class StandingOrderEditRoute(val accountId: String = "")
 
@@ -162,9 +167,8 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     // AuthenticatedNavbarNavigationScreen.
     // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
-    // StandingOrdersRoute + StandingOrderEditRoute are real feature modules — registered in
-    // AuthenticatedNavbarNavigationScreen.
-    composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
+    // StandingOrdersRoute + StandingOrderEditRoute + StandingOrderDetailRoute are real
+    // feature modules — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<DirectDebitsRoute> { PlaceholderScreen("Direct debits") }
     composableWithStayTransitions<DirectDebitDetailRoute> { PlaceholderScreen("Direct debit detail") }
     composableWithStayTransitions<PfmDashboardRoute> { PlaceholderScreen("Insights") }

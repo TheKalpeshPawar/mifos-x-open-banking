@@ -196,6 +196,51 @@ class StandingOrdersRepositoryTest {
     }
 
     @Test
+    fun detailReturnsOrderWithExecutionsNewestFirst() = runTest {
+        val repo = repository(
+            transactions = listOf(
+                soTxn("Rent", "-450.00", "2026-05-01"),
+                soTxn("Rent", "-450.00", "2026-06-01"),
+                soTxn("Gym", "-30.00", "2026-06-03"),
+            ),
+        )
+        val detail = repo.detail("ac.bank.uk", "acc-1", "so-derived-rent").getOrThrow()
+        assertEquals("Rent", detail.order.name)
+        assertEquals(listOf("2026-06-01", "2026-05-01"), detail.executions.map { it.date })
+        assertEquals("450.00", detail.executions.first().amount)
+        assertEquals("Rent-2026-06-01", detail.executions.first().transactionId)
+    }
+
+    @Test
+    fun detailUnknownIdFails() = runTest {
+        val repo = repository(transactions = listOf(soTxn("Rent", "-450.00", "2026-06-01")))
+        assertTrue(repo.detail("ac.bank.uk", "acc-1", "so-derived-nope").isFailure)
+    }
+
+    @Test
+    fun detailCreatedOrderHasEmptyHistory() = runTest {
+        val repo = repository()
+        repo.create(
+            bankId = "ac.bank.uk",
+            accountId = "acc-1",
+            name = "Savings Counterparty",
+            request = CreateStandingOrderRequest(
+                customerId = "cust-1",
+                userId = "user-1",
+                counterpartyId = "cp-1",
+                amount = AmountOfMoney(currency = "EUR", amount = "25.00"),
+                `when` = StandingOrderSchedule(frequency = "MONTHLY"),
+                dateSigned = "2026-06-05T00:00:00Z",
+                dateStarts = "2026-07-01T00:00:00Z",
+            ),
+        ).getOrThrow()
+
+        val detail = repo.detail("ac.bank.uk", "acc-1", "so-1").getOrThrow()
+        assertEquals("Savings Counterparty", detail.order.name)
+        assertTrue(detail.executions.isEmpty())
+    }
+
+    @Test
     fun createFailureDoesNotPersist() = runTest {
         val api = FakeStandingOrdersApi(response = NetworkResult.Error(NetworkError.UNAUTHORIZED))
         val repo = repository(api = api)

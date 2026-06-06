@@ -52,6 +52,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
+import org.mifosx.openbanking.feature.standingorders.StandingOrderDetailScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
 import org.mifosx.openbanking.feature.transactions.TransactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsScreen
@@ -65,6 +66,7 @@ import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
+import org.mifosx.openbanking.placeholder.StandingOrderDetailRoute
 import org.mifosx.openbanking.placeholder.StandingOrderEditRoute
 import org.mifosx.openbanking.placeholder.StandingOrdersRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
@@ -378,6 +380,15 @@ private fun NavGraphBuilder.standingOrdersDestinations(navController: NavHostCon
         StandingOrdersScreen(
             onBack = navController::popBackStack,
             onCreate = { accountId -> navController.navigate(StandingOrderEditRoute(accountId)) },
+            onOrderClick = { bankId, accountId, standingOrderId ->
+                navController.navigate(
+                    StandingOrderDetailRoute(
+                        bankId = bankId,
+                        accountId = accountId,
+                        standingOrderId = standingOrderId,
+                    ),
+                )
+            },
         )
     }
     composableWithStayTransitions<StandingOrderEditRoute> { entry ->
@@ -386,6 +397,25 @@ private fun NavGraphBuilder.standingOrdersDestinations(navController: NavHostCon
             accountId = route.accountId,
             onBack = navController::popBackStack,
             onCreated = navController::popBackStack,
+        )
+    }
+    // Standing order detail — execution rows drill into the underlying booked transaction.
+    composableWithStayTransitions<StandingOrderDetailRoute> { entry ->
+        val route = entry.toRoute<StandingOrderDetailRoute>()
+        StandingOrderDetailScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            standingOrderId = route.standingOrderId,
+            onExecutionClick = { transactionId ->
+                navController.navigate(
+                    TransactionDetailRoute(
+                        bankId = route.bankId,
+                        accountId = route.accountId,
+                        transactionId = transactionId,
+                    ),
+                )
+            },
+            onBack = navController::popBackStack,
         )
     }
 }

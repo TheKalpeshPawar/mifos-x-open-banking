@@ -14,6 +14,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import org.mifosx.openbanking.core.model.obp.StandingOrder
+import org.mifosx.openbanking.core.model.obp.StandingOrderExecution
 import org.mifosx.openbanking.core.model.obp.Transaction
 
 /** TXN_TYPE code marking a standing-order payment in transaction history. */
@@ -34,11 +35,35 @@ private const val CANCELLED_FACTOR = 3.0
  */
 internal fun deriveStandingOrders(transactions: List<Transaction>, today: LocalDate): List<StandingOrder> =
     transactions
-        .filter { it.txnTypeCode == SO_CODE && (it.details.value.amount.toDoubleOrNull() ?: 0.0) < 0 }
+        .filter { it.isStandingOrderPayment() }
         .groupBy { it.details.description.trim() }
         .filterKeys { it.isNotBlank() }
         .map { (description, series) -> deriveSeries(description, series, today) }
         .sortedWith(compareBy<StandingOrder> { statusRank(it.status) }.thenBy { it.nextPaymentDate })
+
+/**
+ * The observed payments of one derived series, newest first. [standingOrderId] is the
+ * derived series id (`so-derived-…`); created-on-device orders have no booked payments
+ * yet, so an unknown id simply yields an empty history.
+ */
+internal fun deriveExecutions(transactions: List<Transaction>, standingOrderId: String): List<StandingOrderExecution> =
+    transactions
+        .filter { it.isStandingOrderPayment() && seriesId(it.details.description.trim()) == standingOrderId }
+        .sortedByDescending { it.details.completed.ifBlank { it.details.posted } }
+        .map { txn ->
+            StandingOrderExecution(
+                transactionId = txn.txId,
+                date = txn.completedDate()?.toString().orEmpty(),
+                amount = txn.details.value.amount.trimStart('-'),
+                currency = txn.details.value.currency,
+            )
+        }
+
+private fun Transaction.isStandingOrderPayment(): Boolean =
+    txnTypeCode == SO_CODE && (details.value.amount.toDoubleOrNull() ?: 0.0) < 0
+
+private fun seriesId(description: String): String =
+    "so-derived-${description.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')}"
 
 private fun deriveSeries(description: String, series: List<Transaction>, today: LocalDate): StandingOrder {
     val dates = series.mapNotNull { it.completedDate() }.sorted()
@@ -49,7 +74,7 @@ private fun deriveSeries(description: String, series: List<Transaction>, today: 
     val nextDate = lastDate?.plus(periodFor(frequency))
     val amount = latest.details.value.amount.trimStart('-')
     return StandingOrder(
-        id = "so-derived-${description.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')}",
+        id = seriesId(description),
         name = description,
         counterpartyName = latest.otherAccount.holder.name,
         counterpartyAccount = latest.otherAccount.id,

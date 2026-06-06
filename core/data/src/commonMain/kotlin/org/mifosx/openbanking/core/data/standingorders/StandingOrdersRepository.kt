@@ -22,6 +22,8 @@ import org.mifosx.openbanking.core.database.cache.ObpCacheDao
 import org.mifosx.openbanking.core.database.cache.ObpCacheEntity
 import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
+import org.mifosx.openbanking.core.model.obp.StandingOrderDetail
+import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.network.api.StandingOrdersApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import kotlin.time.Clock
@@ -38,6 +40,14 @@ import kotlin.time.ExperimentalTime
  */
 interface StandingOrdersRepository {
     suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>>
+
+    /**
+     * One standing order with its observed execution history (the booked `TXN_TYPE=SO`
+     * transactions of its series, newest first). Created-on-device orders that have not
+     * paid yet return an empty history. Unknown [standingOrderId] → failure.
+     */
+    suspend fun detail(bankId: String, accountId: String, standingOrderId: String): Result<StandingOrderDetail>
+
     suspend fun create(
         bankId: String,
         accountId: String,
@@ -56,19 +66,46 @@ class StandingOrdersRepositoryImpl(
     private val json: Json,
 ) : StandingOrdersRepository {
 
-    @OptIn(ExperimentalTime::class)
     override suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>> {
         val resolvedBank = bankId.ifBlank { config.bankId }
         return transactionsRepository.listTransactionsWithAttributes(resolvedBank, accountId).map { transactions ->
-            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-            val derived = resolveHolderNames(resolvedBank, deriveStandingOrders(transactions, today))
-            val created = readCreated(accountId)
-                // A created order that has started paying shows up as a derived series; drop the local copy.
-                .filter { local -> derived.none { it.name.equals(local.name, ignoreCase = true) } }
-            (created + derived).sortedWith(
-                compareBy<StandingOrder> { statusRank(it.status) }.thenBy { it.nextPaymentDate },
-            )
+            assembleOrders(resolvedBank, accountId, transactions)
         }
+    }
+
+    override suspend fun detail(
+        bankId: String,
+        accountId: String,
+        standingOrderId: String,
+    ): Result<StandingOrderDetail> {
+        val resolvedBank = bankId.ifBlank { config.bankId }
+        return transactionsRepository.listTransactionsWithAttributes(resolvedBank, accountId)
+            .mapCatching { transactions ->
+                val order = assembleOrders(resolvedBank, accountId, transactions)
+                    .firstOrNull { it.id == standingOrderId }
+                    ?: throw NoSuchElementException("Standing order not found: $standingOrderId")
+                StandingOrderDetail(
+                    order = order,
+                    executions = deriveExecutions(transactions, standingOrderId),
+                )
+            }
+    }
+
+    /** Derived series (holder names resolved) merged with locally created orders, list-sorted. */
+    @OptIn(ExperimentalTime::class)
+    private suspend fun assembleOrders(
+        resolvedBank: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): List<StandingOrder> {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        val derived = resolveHolderNames(resolvedBank, deriveStandingOrders(transactions, today))
+        val created = readCreated(accountId)
+            // A created order that has started paying shows up as a derived series; drop the local copy.
+            .filter { local -> derived.none { it.name.equals(local.name, ignoreCase = true) } }
+        return (created + derived).sortedWith(
+            compareBy<StandingOrder> { statusRank(it.status) }.thenBy { it.nextPaymentDate },
+        )
     }
 
     /**

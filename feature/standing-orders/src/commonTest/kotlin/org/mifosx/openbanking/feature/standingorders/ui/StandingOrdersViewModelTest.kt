@@ -30,6 +30,7 @@ import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
+import org.mifosx.openbanking.core.model.obp.StandingOrderDetail
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
@@ -66,6 +67,11 @@ private class FakeStandingOrdersRepository(
     var orders: Result<List<StandingOrder>> = Result.success(emptyList()),
 ) : StandingOrdersRepository {
     var lastAccountId: String = ""
+    override suspend fun detail(
+        bankId: String,
+        accountId: String,
+        standingOrderId: String,
+    ): Result<StandingOrderDetail> = TODO("not used")
     override suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>> {
         lastAccountId = accountId
         return orders

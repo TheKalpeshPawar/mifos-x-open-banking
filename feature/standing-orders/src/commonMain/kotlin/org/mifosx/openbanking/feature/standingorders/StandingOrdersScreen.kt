@@ -92,6 +92,7 @@ import template.core.base.store.screen.ScreenState
 fun StandingOrdersScreen(
     onBack: () -> Unit,
     onCreate: (accountId: String) -> Unit,
+    onOrderClick: (bankId: String, accountId: String, standingOrderId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StandingOrdersViewModel = koinViewModel(),
 ) {
@@ -166,6 +167,10 @@ fun StandingOrdersScreen(
                         orders = s.data,
                         filter = header.filter,
                         fromAccountName = accountDisplayName(header.selectedAccount),
+                        onOrderClick = { orderId ->
+                            val account = header.selectedAccount ?: return@OrdersList
+                            onOrderClick(account.bankId, account.accountIdOrId, orderId)
+                        },
                     )
                 }
             }
@@ -178,6 +183,7 @@ private fun OrdersList(
     orders: List<StandingOrder>,
     filter: StandingOrderFilter,
     fromAccountName: String,
+    onOrderClick: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -195,7 +201,11 @@ private fun OrdersList(
             }
         } else {
             items(orders, key = { it.id }) { order ->
-                StandingOrderCard(order = order, fromAccountName = fromAccountName)
+                StandingOrderCard(
+                    order = order,
+                    fromAccountName = fromAccountName,
+                    onClick = { onOrderClick(order.id) },
+                )
             }
         }
     }
@@ -353,9 +363,10 @@ private fun FilterChips(selected: StandingOrderFilter, onFilterChanged: (Standin
 }
 
 @Composable
-private fun StandingOrderCard(order: StandingOrder, fromAccountName: String) {
+private fun StandingOrderCard(order: StandingOrder, fromAccountName: String, onClick: () -> Unit) {
     val muted = !order.isActive
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

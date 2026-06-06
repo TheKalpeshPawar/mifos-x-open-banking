@@ -54,6 +54,25 @@ data class StandingOrder(
     }
 }
 
+/**
+ * One observed payment of a standing-order series — a booked `TXN_TYPE=SO` transaction.
+ * [transactionId] links back to the underlying transaction for drill-down.
+ */
+data class StandingOrderExecution(
+    val transactionId: String = "",
+    /** ISO date the payment booked. */
+    val date: String = "",
+    /** Absolute amount paid, e.g. "1200.00". */
+    val amount: String = "",
+    val currency: String = "",
+)
+
+/** A standing order with its observed execution history (newest first). */
+data class StandingOrderDetail(
+    val order: StandingOrder = StandingOrder(),
+    val executions: List<StandingOrderExecution> = emptyList(),
+)
+
 /** Request body for OBP v4.0.0 `POST .../owner/standing-order`. */
 @Serializable
 data class CreateStandingOrderRequest(

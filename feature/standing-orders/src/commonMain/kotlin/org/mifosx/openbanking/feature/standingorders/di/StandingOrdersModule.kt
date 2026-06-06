@@ -13,6 +13,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.mifosx.openbanking.feature.standingorders.ui.CreateStandingOrderViewModel
+import org.mifosx.openbanking.feature.standingorders.ui.StandingOrderDetailViewModel
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersViewModel
 
 val StandingOrdersModule = module {
@@ -25,6 +26,14 @@ val StandingOrdersModule = module {
             profileRepository = get(),
             customersRepository = get(),
             initialAccountId = params.getOrNull<String>() ?: "",
+        )
+    }
+    viewModel { params ->
+        StandingOrderDetailViewModel(
+            standingOrdersRepository = get(),
+            bankId = params.get(0),
+            accountId = params.get(1),
+            standingOrderId = params.get(2),
         )
     }
 }

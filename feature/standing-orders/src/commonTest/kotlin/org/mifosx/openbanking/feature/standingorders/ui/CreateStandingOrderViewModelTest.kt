@@ -31,6 +31,7 @@ import org.mifosx.openbanking.core.model.obp.Customer
 import org.mifosx.openbanking.core.model.obp.CustomerRequest
 import org.mifosx.openbanking.core.model.obp.ProfileUpdateRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
+import org.mifosx.openbanking.core.model.obp.StandingOrderDetail
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import org.mifosx.openbanking.core.model.obp.UserProfile
@@ -63,6 +64,11 @@ private class CreateFakeStandingOrdersRepository(
     var createResult: Result<StandingOrder> = Result.success(StandingOrder(id = "so-1")),
 ) : StandingOrdersRepository {
     var lastCreateRequest: CreateStandingOrderRequest? = null
+    override suspend fun detail(
+        bankId: String,
+        accountId: String,
+        standingOrderId: String,
+    ): Result<StandingOrderDetail> = TODO("not used")
     override suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>> =
         Result.success(emptyList())
     override suspend fun create(
