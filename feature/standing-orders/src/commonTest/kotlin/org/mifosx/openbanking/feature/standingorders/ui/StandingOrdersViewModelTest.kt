@@ -11,6 +11,10 @@ package org.mifosx.openbanking.feature.standingorders.ui
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -20,6 +24,7 @@ import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
+import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
@@ -27,6 +32,10 @@ import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
 import org.mifosx.openbanking.core.model.obp.StandingOrder
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
+import org.mifosx.openbanking.core.model.user.DarkThemeConfig
+import org.mifosx.openbanking.core.model.user.LanguageConfig
+import org.mifosx.openbanking.core.model.user.ThemeBrand
+import org.mifosx.openbanking.core.model.user.UserData
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.ScreenState
 import kotlin.test.AfterTest
@@ -113,6 +122,43 @@ private class FakePaymentsRepository(
     ): Result<Boolean> = TODO()
 }
 
+private class FakeUserPreferencesRepository(
+    defaultAccountId: String = "",
+) : UserPreferencesRepository {
+    private val _userData = MutableStateFlow(UserData.DEFAULT.copy(defaultAccountId = defaultAccountId))
+    override val userData: StateFlow<UserData> = _userData
+    override val authToken: String? = null
+    override val passcode: String = ""
+    override val observeLanguage: Flow<LanguageConfig> get() = TODO()
+    override val observeDarkThemeConfig: Flow<DarkThemeConfig> get() = TODO()
+    override val observeDynamicColorPreference: Flow<Boolean> get() = TODO()
+    override val observeScreenCapturePreference: Flow<Boolean> get() = TODO()
+    override val observePushNotificationsEnabled: Flow<Boolean> get() = TODO()
+    override val observeTransactionAlertsEnabled: Flow<Boolean> get() = TODO()
+    override val observeMarketingEnabled: Flow<Boolean> get() = TODO()
+    override val observeDefaultAccountId: Flow<String> = _userData.map { it.defaultAccountId }
+    override suspend fun setLanguage(language: LanguageConfig) = TODO()
+    override suspend fun setThemeBrand(themeBrand: ThemeBrand) = TODO()
+    override suspend fun setDarkThemeConfig(darkThemeConfig: DarkThemeConfig) = TODO()
+    override suspend fun setDynamicColorPreference(useDynamicColor: Boolean) = TODO()
+    override suspend fun setIsAuthenticated(isAuthenticated: Boolean) = TODO()
+    override suspend fun setIsUnlocked(isUnlocked: Boolean) = TODO()
+    override suspend fun setIsPasscodeEnabled(isPasscodeEnabled: Boolean) = TODO()
+    override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) = TODO()
+    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) = TODO()
+    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) = TODO()
+    override suspend fun setMarketingEnabled(isEnabled: Boolean) = TODO()
+    override suspend fun setShowOnboarding(showOnboarding: Boolean) = TODO()
+    override suspend fun setFirstTimeState(firstTimeState: Boolean) = TODO()
+    override suspend fun setPasscode(passcode: String) = TODO()
+    override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) = TODO()
+    override suspend fun setAuthToken(token: String?) = TODO()
+    override suspend fun setDefaultAccountId(accountId: String) {
+        _userData.value = _userData.value.copy(defaultAccountId = accountId)
+    }
+    override suspend fun clearUserData() = TODO()
+}
+
 class StandingOrdersViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -127,11 +173,30 @@ class StandingOrdersViewModelTest {
         repo: FakeStandingOrdersRepository = FakeStandingOrdersRepository(),
         accounts: FakeAccountsRepository = FakeAccountsRepository(),
         payments: FakePaymentsRepository = FakePaymentsRepository(),
+        prefs: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
     ) = StandingOrdersViewModel(
         standingOrdersRepository = repo,
         accountsRepository = accounts,
         paymentsRepository = payments,
+        userPreferencesRepository = prefs,
     )
+
+    @Test
+    fun load_prefersPersistedDefaultAccount() = runTest(dispatcher) {
+        val repo = FakeStandingOrdersRepository()
+        val model = vm(
+            repo = repo,
+            accounts = FakeAccountsRepository(
+                Result.success(
+                    listOf(account(), account("ac.business.001").copy(accountType = "business")),
+                ),
+            ),
+            prefs = FakeUserPreferencesRepository(defaultAccountId = "ac.business.001"),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals("ac.business.001", repo.lastAccountId)
+    }
 
     @Test
     fun load_success_emitsContentWithStats() = runTest(dispatcher) {

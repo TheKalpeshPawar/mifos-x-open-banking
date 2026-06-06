@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
+import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.StandingOrder
 import template.core.base.store.screen.DataFreshness
@@ -40,6 +41,7 @@ enum class StandingOrderFilter { All, Active, Paused, Cancelled }
 class StandingOrdersViewModel(
     private val standingOrdersRepository: StandingOrdersRepository,
     private val accountsRepository: AccountsRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val paymentsRepository: PaymentsRepository,
 ) : ViewModel() {
 
@@ -166,7 +168,9 @@ class StandingOrdersViewModel(
                 return@launch
             }
             // Keep the user's selection across reloads; default to the checking-type account.
+            val defaultId = userPreferencesRepository.userData.value.defaultAccountId
             val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+                ?: accounts.firstOrNull { it.accountIdOrId == defaultId }
                 ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
                 ?: accounts.firstOrNull()
             if (target == null) {

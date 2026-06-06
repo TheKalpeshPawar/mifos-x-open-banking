@@ -45,6 +45,9 @@ interface UserPreferencesRepository {
 
     val observeMarketingEnabled: Flow<Boolean>
 
+    /** The user's default account id (set from the Home hero card); "" when unset. */
+    val observeDefaultAccountId: Flow<String>
+
     suspend fun setLanguage(language: LanguageConfig)
 
     suspend fun setThemeBrand(themeBrand: ThemeBrand)
@@ -74,6 +77,9 @@ interface UserPreferencesRepository {
     suspend fun setPasscode(passcode: String)
 
     suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean)
+
+    /** Persists the default account chosen on the Home hero card. */
+    suspend fun setDefaultAccountId(accountId: String)
 
     /** Persists (or clears, when null) the OBP DirectLogin session token in secure storage. */
     suspend fun setAuthToken(token: String?)

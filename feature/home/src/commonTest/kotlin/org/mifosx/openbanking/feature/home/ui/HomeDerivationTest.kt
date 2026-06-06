@@ -50,6 +50,25 @@ class HomeDerivationTest {
     }
 
     @Test
+    fun primaryAccount_prefersPersistedDefaultOverChecking() {
+        val accounts = listOf(
+            Account(id = "c1", accountType = "CHECKING"),
+            Account(id = "b1", accountType = "BUSINESS"),
+        )
+        assertEquals("b1", accounts.primaryAccount(defaultAccountId = "b1")?.id)
+    }
+
+    @Test
+    fun primaryAccount_ignoresStaleDefaultId() {
+        val accounts = listOf(
+            Account(id = "s1", accountType = "SAVINGS"),
+            Account(id = "c1", accountType = "CHECKING"),
+        )
+        // The persisted default no longer exists — fall back to checking-first.
+        assertEquals("c1", accounts.primaryAccount(defaultAccountId = "gone")?.id)
+    }
+
+    @Test
     fun timeOfDayGreeting_boundaries() {
         assertEquals("Good morning", timeOfDayGreeting(0))
         assertEquals("Good morning", timeOfDayGreeting(11))

@@ -130,6 +130,9 @@ class UserPreferencesRepositoryImpl(
     override val observeMarketingEnabled: Flow<Boolean>
         get() = _userData.map { it.isMarketingEnabled }
 
+    override val observeDefaultAccountId: Flow<String>
+        get() = _userData.map { it.defaultAccountId }
+
     private suspend fun updatePreference(transform: (UserData) -> UserData) {
         withContext(dispatcher.io) {
             val current = loadCombinedUserData()
@@ -187,6 +190,9 @@ class UserPreferencesRepositoryImpl(
 
     override suspend fun setAuthToken(token: String?) =
         updatePreference { it.copy(authToken = token) }
+
+    override suspend fun setDefaultAccountId(accountId: String) =
+        updatePreference { it.copy(defaultAccountId = accountId) }
 
     override suspend fun clearUserData() {
         setIsAuthenticated(false)

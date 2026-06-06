@@ -32,6 +32,9 @@ data class UserData(
     val isTransactionAlertsEnabled: Boolean = true,
     val isMarketingEnabled: Boolean = false,
     val authToken: String? = null,
+    // The user's chosen default account (set from the Home hero card). Empty = no choice yet;
+    // consumers fall back to their checking-first heuristics. Defaulted for older payloads.
+    val defaultAccountId: String = "",
 ) {
     companion object {
         val DEFAULT = UserData(

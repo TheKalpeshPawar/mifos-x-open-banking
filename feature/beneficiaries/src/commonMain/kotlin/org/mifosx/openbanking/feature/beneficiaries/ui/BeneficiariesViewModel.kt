@@ -28,6 +28,7 @@ import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.Transaction
@@ -56,6 +57,7 @@ class BeneficiariesViewModel(
     private val banksRepository: BanksRepository,
     private val transactionsRepository: TransactionsRepository,
     private val accountsRepository: AccountsRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val rawState = MutableStateFlow<RawState>(RawState.Loading)
@@ -117,7 +119,9 @@ class BeneficiariesViewModel(
                 return@launch
             }
             // Default to the checking-type account (else the first); keep the user's selection on reload.
+            val defaultId = userPreferencesRepository.userData.value.defaultAccountId
             val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
+                ?: accounts.firstOrNull { it.accountIdOrId == defaultId }
                 ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
                 ?: accounts.firstOrNull()
             if (target == null) {

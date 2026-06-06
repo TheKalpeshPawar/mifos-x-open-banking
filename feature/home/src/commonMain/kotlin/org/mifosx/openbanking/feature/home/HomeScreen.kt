@@ -44,7 +44,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,6 +61,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.home.ui.HomeContent
 import org.mifosx.openbanking.feature.home.ui.HomeViewModel
 import org.mifosx.openbanking.feature.home.ui.formatDashboardDate
@@ -110,6 +113,7 @@ fun HomeScreen(
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
+                onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
         }
     }
@@ -137,8 +141,22 @@ private fun HomeLoaded(
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
+    onDefaultAccountSelected: (Account) -> Unit,
 ) {
     val name = content.greetingName.ifBlank { "there" }
+    var showAccountPicker by remember { mutableStateOf(false) }
+    if (showAccountPicker) {
+        AccountPickerBottomSheet(
+            accounts = content.accounts,
+            selectedAccountId = content.primaryAccount?.accountIdOrId.orEmpty(),
+            onAccountSelected = { account ->
+                showAccountPicker = false
+                onDefaultAccountSelected(account)
+            },
+            onDismiss = { showAccountPicker = false },
+            title = "Choose default account",
+        )
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
@@ -163,6 +181,7 @@ private fun HomeLoaded(
             PrimaryAccountCard(
                 account = content.primaryAccount,
                 ownerName = name,
+                onClick = { showAccountPicker = true },
                 onTransfer = onTransfer,
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
@@ -185,11 +204,14 @@ private fun HomeLoaded(
 private fun PrimaryAccountCard(
     account: Account?,
     ownerName: String,
+    onClick: () -> Unit,
     onTransfer: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
+    // Tapping the hero card opens the default-account picker sheet.
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

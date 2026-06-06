@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
@@ -37,6 +38,7 @@ class SendMoneyHubViewModel(
     private val accountsRepository: AccountsRepository,
     private val paymentsRepository: PaymentsRepository,
     private val banksRepository: BanksRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val rawState = MutableStateFlow<ScreenState<SendMoneyHubContent>>(ScreenState.Loading)
@@ -71,7 +73,10 @@ class SendMoneyHubViewModel(
                 rawState.value = ScreenState.Error(it)
                 return@launch
             }
-            val primary = accounts.firstOrNull()
+            // Honour the persisted default account (set on the Home hero card) when present.
+            val defaultId = userPreferencesRepository.userData.value.defaultAccountId
+            val primary = accounts.firstOrNull { it.accountIdOrId == defaultId }
+                ?: accounts.firstOrNull()
             if (primary == null) {
                 rawState.value = ScreenState.Empty
                 return@launch
