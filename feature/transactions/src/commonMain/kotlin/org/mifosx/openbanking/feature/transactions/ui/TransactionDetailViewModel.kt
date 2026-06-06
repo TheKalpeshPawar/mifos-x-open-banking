@@ -143,7 +143,7 @@ private fun TransactionRequestSummary.toPendingContent(accountId: String): Trans
 }
 
 /** "2026-05-25T14:32:00Z" → "25 May 2026, 14:32" (empty when the timestamp is unparseable). */
-private fun formatDateTime(iso: String): String {
+internal fun formatDateTime(iso: String): String {
     val date = parseIsoDate(iso) ?: return ""
     val time = iso.substringAfter('T', "").take(5)
     return if (time.isBlank()) formatDate(date) else "${formatDate(date)}, $time"

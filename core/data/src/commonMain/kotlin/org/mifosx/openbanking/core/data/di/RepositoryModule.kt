@@ -59,6 +59,8 @@ import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepositoryImpl
+import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepository
+import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepositoryImpl
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.user.UserDataRepository
@@ -107,6 +109,7 @@ val DataModule = module {
             fetchedAtRepository = get(),
         )
     }
+    single<TransactionMetadataRepository> { TransactionMetadataRepositoryImpl(api = get()) }
     single<CardsRepository> {
         CardsRepositoryImpl(
             api = get(),

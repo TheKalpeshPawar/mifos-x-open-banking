@@ -55,6 +55,7 @@ import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrderDetailScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
 import org.mifosx.openbanking.feature.transactions.TransactionDetailScreen
+import org.mifosx.openbanking.feature.transactions.TransactionTagsScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsScreen
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
@@ -250,49 +251,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             // (OBP has no read endpoint); creation is its own screen posting the real endpoint.
             standingOrdersDestinations(navController)
 
-            // Transaction history — real feature module. Booked rows + pending (INITIATED)
-            // payments for one account; row taps open the transaction-detail screen.
-            composableWithStayTransitions<TransactionsRoute> { entry ->
-                val route = entry.toRoute<TransactionsRoute>()
-                TransactionsScreen(
-                    bankId = route.bankId,
-                    accountId = route.accountId,
-                    onTransactionClick = { transactionId ->
-                        navController.navigate(
-                            TransactionDetailRoute(
-                                bankId = route.bankId,
-                                accountId = route.accountId,
-                                transactionId = transactionId,
-                            ),
-                        )
-                    },
-                    onPendingClick = { requestId ->
-                        navController.navigate(
-                            TransactionDetailRoute(
-                                bankId = route.bankId,
-                                accountId = route.accountId,
-                                requestId = requestId,
-                            ),
-                        )
-                    },
-                    onBack = navController::popBackStack,
-                )
-            }
-
-            // Transaction detail — real feature module (lives in feature:transactions).
-            // Booked rows arrive with transactionId; pending rows with requestId.
-            // Tags & Notes still heads to the Phase 2 transaction-tags placeholder.
-            composableWithStayTransitions<TransactionDetailRoute> { entry ->
-                val route = entry.toRoute<TransactionDetailRoute>()
-                TransactionDetailScreen(
-                    bankId = route.bankId,
-                    accountId = route.accountId,
-                    transactionId = route.transactionId,
-                    requestId = route.requestId,
-                    onManageTags = { navController.navigate(TransactionTagsRoute) },
-                    onBack = navController::popBackStack,
-                )
-            }
+            // Transaction history + detail + tags — real feature modules.
+            transactionsDestinations(navController)
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()
@@ -370,6 +330,69 @@ private fun NavGraphBuilder.sendMoneyDestinations(
                 scope.launch { snackbarHostState.showSnackbar(message) }
             },
             onEdit = navController::popBackStack,
+            onBack = navController::popBackStack,
+        )
+    }
+}
+
+private fun NavGraphBuilder.transactionsDestinations(navController: NavHostController) {
+    // Transaction history — booked rows + pending (INITIATED) payments for one account;
+    // row taps open the transaction-detail screen.
+    composableWithStayTransitions<TransactionsRoute> { entry ->
+        val route = entry.toRoute<TransactionsRoute>()
+        TransactionsScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            onTransactionClick = { transactionId ->
+                navController.navigate(
+                    TransactionDetailRoute(
+                        bankId = route.bankId,
+                        accountId = route.accountId,
+                        transactionId = transactionId,
+                    ),
+                )
+            },
+            onPendingClick = { requestId ->
+                navController.navigate(
+                    TransactionDetailRoute(
+                        bankId = route.bankId,
+                        accountId = route.accountId,
+                        requestId = requestId,
+                    ),
+                )
+            },
+            onBack = navController::popBackStack,
+        )
+    }
+
+    // Transaction detail — booked rows arrive with transactionId; pending rows with requestId.
+    composableWithStayTransitions<TransactionDetailRoute> { entry ->
+        val route = entry.toRoute<TransactionDetailRoute>()
+        TransactionDetailScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            transactionId = route.transactionId,
+            requestId = route.requestId,
+            onManageTags = {
+                navController.navigate(
+                    TransactionTagsRoute(
+                        bankId = route.bankId,
+                        accountId = route.accountId,
+                        transactionId = route.transactionId,
+                    ),
+                )
+            },
+            onBack = navController::popBackStack,
+        )
+    }
+
+    // Tags & Notes — backed by the OBP v1.2.1 transaction-metadata endpoints.
+    composableWithStayTransitions<TransactionTagsRoute> { entry ->
+        val route = entry.toRoute<TransactionTagsRoute>()
+        TransactionTagsScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            transactionId = route.transactionId,
             onBack = navController::popBackStack,
         )
     }

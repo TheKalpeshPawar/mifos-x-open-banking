@@ -50,7 +50,12 @@ data class TransactionDetailRoute(
     val requestId: String = "",
 )
 
-@Serializable data object TransactionTagsRoute
+@Serializable
+data class TransactionTagsRoute(
+    val bankId: String = "",
+    val accountId: String = "",
+    val transactionId: String = "",
+)
 
 @Serializable data object SendMoneyRoute
 
@@ -160,9 +165,8 @@ fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
     // AccountDetailRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
-    // TransactionsRoute + TransactionDetailRoute are real feature modules — registered in
-    // AuthenticatedNavbarNavigationScreen.
-    composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
+    // TransactionsRoute + TransactionDetailRoute + TransactionTagsRoute are real feature
+    // modules — registered in AuthenticatedNavbarNavigationScreen.
     // SendMoneyRoute + SendMoneyConfirmRoute are real feature modules — registered in
     // AuthenticatedNavbarNavigationScreen.
     // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
