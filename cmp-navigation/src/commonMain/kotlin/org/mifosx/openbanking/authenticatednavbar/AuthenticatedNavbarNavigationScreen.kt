@@ -53,6 +53,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
+import org.mifosx.openbanking.feature.transactions.TransactionsScreen
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
@@ -66,6 +67,7 @@ import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.placeholder.StandingOrderEditRoute
 import org.mifosx.openbanking.placeholder.StandingOrdersRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
+import org.mifosx.openbanking.placeholder.TransactionsRoute
 import org.mifosx.openbanking.placeholder.bankingPlaceholderDestinations
 import org.mifosx.openbanking.ui.KptRootScaffold
 import org.mifosx.openbanking.ui.ScaffoldNavigationData
@@ -195,6 +197,11 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     bankId = route.bankId,
                     accountId = route.accountId,
                     onBack = navController::popBackStack,
+                    onViewTransactions = {
+                        navController.navigate(
+                            TransactionsRoute(bankId = route.bankId, accountId = route.accountId),
+                        )
+                    },
                 )
             }
 
@@ -230,6 +237,18 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             // Standing orders — real feature module. Rows derive from transaction history
             // (OBP has no read endpoint); creation is its own screen posting the real endpoint.
             standingOrdersDestinations(navController)
+
+            // Transaction history — real feature module. Booked rows + pending (INITIATED)
+            // payments for one account; row taps land on the transaction-detail placeholder.
+            composableWithStayTransitions<TransactionsRoute> { entry ->
+                val route = entry.toRoute<TransactionsRoute>()
+                TransactionsScreen(
+                    bankId = route.bankId,
+                    accountId = route.accountId,
+                    onTransactionClick = { navController.navigate(TransactionDetailRoute) },
+                    onBack = navController::popBackStack,
+                )
+            }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()

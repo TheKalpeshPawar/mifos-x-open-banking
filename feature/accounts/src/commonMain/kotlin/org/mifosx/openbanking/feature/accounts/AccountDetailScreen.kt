@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,6 +78,7 @@ fun AccountDetailScreen(
     accountId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onViewTransactions: () -> Unit = {},
     viewModel: AccountDetailViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -119,18 +121,59 @@ fun AccountDetailScreen(
                 is ScreenState.NoNetwork -> ErrorState(onRetry = viewModel::onRetry)
                 is ScreenState.Unauthenticated -> ErrorState(onRetry = viewModel::onRetry)
                 is ScreenState.Empty -> ErrorState(onRetry = viewModel::onRetry)
-                is ScreenState.Content -> Loaded(content = s.data, onCopy = onCopy)
+                is ScreenState.Content -> Loaded(
+                    content = s.data,
+                    onCopy = onCopy,
+                    onViewTransactions = onViewTransactions,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun Loaded(content: AccountDetailContent, onCopy: (value: String, what: String) -> Unit) {
+private fun Loaded(
+    content: AccountDetailContent,
+    onCopy: (value: String, what: String) -> Unit,
+    onViewTransactions: () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         HeaderCard(content)
 
-        GroupLabel("ACCOUNT & ROUTING", topPadding = 20)
+        GroupLabel("ACTIVITY", topPadding = 20)
+        Surface(
+            onClick = onViewTransactions,
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Transaction history",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        "Booked and pending payments",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        GroupLabel("ACCOUNT & ROUTING", topPadding = 8)
         InfoCard {
             InfoRow(label = "Account Holder", value = content.holder)
             if (content.accountNumber.isNotBlank()) {

@@ -119,6 +119,7 @@ include(":feature:accounts")
 include(":feature:cards")
 include(":feature:beneficiaries")
 include(":feature:standing-orders")
+include(":feature:transactions")
 include(":feature:send-money")
 
 include(":core-base:analytics")

@@ -51,13 +51,31 @@ data class TransactionRequestSummary(
     val type: String = "",
     val status: String = "",
     val details: TransactionRequestDetails = TransactionRequestDetails(),
+    @SerialName("transaction_ids") val transactionIds: List<String> = emptyList(),
     @SerialName("start_date") val startDate: String = "",
-)
+) {
+    /**
+     * A payment that was initiated but is not booked yet — e.g. above the SCA challenge
+     * threshold, awaiting its TAN. Such requests stay INITIATED with no transaction ids
+     * (the sandbox reports a single blank id).
+     */
+    val isPending: Boolean
+        get() = status.equals("INITIATED", ignoreCase = true) && transactionIds.all { it.isBlank() }
+}
 
 @Serializable
 data class TransactionRequestDetails(
     @SerialName("to_counterparty") val toCounterparty: TransactionRequestToCounterparty? = null,
     @SerialName("to_sepa") val toSepa: TransactionRequestToSepa? = null,
+    @SerialName("to_sandbox_tan") val toSandboxTan: TransactionRequestToSandboxTan? = null,
+    val value: AmountOfMoney = AmountOfMoney(),
+    val description: String = "",
+)
+
+@Serializable
+data class TransactionRequestToSandboxTan(
+    @SerialName("bank_id") val bankId: String = "",
+    @SerialName("account_id") val accountId: String = "",
 )
 
 @Serializable

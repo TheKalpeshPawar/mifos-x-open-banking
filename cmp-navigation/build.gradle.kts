@@ -38,6 +38,7 @@ kotlin {
             implementation(projects.feature.cards)
             implementation(projects.feature.beneficiaries)
             implementation(projects.feature.standingOrders)
+            implementation(projects.feature.transactions)
             implementation(projects.feature.sendMoney)
 
             //put your multiplatform dependencies here
