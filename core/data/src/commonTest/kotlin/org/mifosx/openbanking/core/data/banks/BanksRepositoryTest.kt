@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.banks
 
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.model.obp.Bank
+import org.mifosx.openbanking.core.model.obp.BankAttribute
 import org.mifosx.openbanking.core.network.api.BanksApi
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -57,6 +58,48 @@ class BanksRepositoryTest {
         val api = FakeBanksApi()
         val repo = BanksRepositoryImpl(api)
         assertEquals("", repo.bankName(""))
+        assertEquals(0, api.calls)
+    }
+
+    @Test
+    fun bank_returnsDirectoryEntryWithCountry() = runTest {
+        val repo = BanksRepositoryImpl(
+            FakeBanksApi(
+                NetworkResult.Success(
+                    Bank(
+                        id = "ac.bank.uk",
+                        fullName = "Afternoon Coffee Bank",
+                        attributes = listOf(BankAttribute(name = "SWIFT_BIC", value = "ACMEGB2L")),
+                    ),
+                ),
+            ),
+        )
+        assertEquals("GB", repo.bank("ac.bank.uk")?.countryCode)
+    }
+
+    @Test
+    fun bank_nullOnErrorAndRetriesNextCall() = runTest {
+        val api = FakeBanksApi(NetworkResult.Error(NetworkError.SERVER))
+        val repo = BanksRepositoryImpl(api)
+        assertEquals(null, repo.bank("neon.bank.eu"))
+        repo.bank("neon.bank.eu")
+        assertEquals(2, api.calls)
+    }
+
+    @Test
+    fun bank_cachesSuccess() = runTest {
+        val api = FakeBanksApi(NetworkResult.Success(Bank(id = "neon.bank.eu")))
+        val repo = BanksRepositoryImpl(api)
+        repo.bank("neon.bank.eu")
+        repo.bank("neon.bank.eu")
+        assertEquals(1, api.calls)
+    }
+
+    @Test
+    fun bank_blankReturnsNull() = runTest {
+        val api = FakeBanksApi()
+        val repo = BanksRepositoryImpl(api)
+        assertEquals(null, repo.bank(""))
         assertEquals(0, api.calls)
     }
 }

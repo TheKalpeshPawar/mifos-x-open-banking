@@ -18,9 +18,12 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
+import org.mifosx.openbanking.core.model.obp.Bank
+import org.mifosx.openbanking.core.model.obp.BankAttribute
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
@@ -82,6 +85,19 @@ private class FakePaymentsRepository(
     ): Result<Boolean> = funds
 }
 
+private class FakeBanksRepository(
+    var banks: Map<String, Bank> = mapOf(
+        "ac.bank.uk" to Bank(
+            id = "ac.bank.uk",
+            fullName = "Afternoon Coffee Bank",
+            attributes = listOf(BankAttribute(name = "SWIFT_BIC", value = "ACMEGB2L")),
+        ),
+    ),
+) : BanksRepository {
+    override suspend fun bankName(bankId: String): String = banks[bankId]?.fullName ?: bankId
+    override suspend fun bank(bankId: String): Bank? = banks[bankId]
+}
+
 private fun account() = Account(
     id = "ac.checking.001",
     bankId = "ac.bank.uk",
@@ -112,7 +128,8 @@ class SendMoneyViewModelTest {
         payments: FakePaymentsRepository = FakePaymentsRepository(
             beneficiaries = Result.success(listOf(payee("b1", "TechStart Ltd"))),
         ),
-    ) = SendMoneyViewModel(FakeAccountsRepository(accounts), payments)
+        banks: FakeBanksRepository = FakeBanksRepository(),
+    ) = SendMoneyViewModel(FakeAccountsRepository(accounts), payments, banks)
 
     @Test
     fun load_success_emitsContent() = runTest(dispatcher) {
@@ -166,5 +183,60 @@ class SendMoneyViewModelTest {
         val s = model.uiState.value
         assertTrue(s is ScreenState.Content)
         assertEquals("Insufficient funds in your account.", s.data.formError)
+    }
+
+    @Test
+    fun selectingBeneficiary_autoSelectsRecommendedRail() = runTest(dispatcher) {
+        // EUR account at a GB bank paying a DE IBAN -> SEPA recommended (free, no conversion).
+        val model = vm()
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        advanceUntilIdle()
+
+        val s = model.uiState.value
+        assertTrue(s is ScreenState.Content)
+        assertEquals(PaymentType.SEPA, s.data.paymentType)
+        val sepa = s.data.railAssessments.getValue(PaymentType.SEPA)
+        assertTrue(sepa.eligible)
+        assertNull(sepa.conversionNote)
+        // DE recipient from a GB bank -> domestic disabled with a reason.
+        val domestic = s.data.railAssessments.getValue(PaymentType.DOMESTIC)
+        assertTrue(!domestic.eligible && domestic.reason != null)
+    }
+
+    @Test
+    fun paymentTypeChange_ignoredForIneligibleRail() = runTest(dispatcher) {
+        val model = vm()
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        advanceUntilIdle()
+
+        model.onPaymentTypeChanged(PaymentType.DOMESTIC)
+        advanceUntilIdle()
+
+        val s = model.uiState.value
+        assertTrue(s is ScreenState.Content)
+        assertEquals(PaymentType.SEPA, s.data.paymentType)
+    }
+
+    @Test
+    fun draft_carriesRailAndConversionNote() = runTest(dispatcher) {
+        // GBP source account -> SEPA stays recommended for the DE IBAN, with a conversion note.
+        val gbpAccount = account().copy(balance = AmountOfMoney(currency = "GBP", amount = "100"))
+        val model = vm(accounts = Result.success(listOf(gbpAccount)))
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        model.onAmountChanged("10")
+        advanceUntilIdle()
+
+        var draft: PaymentDraft? = null
+        model.onContinue { draft = it }
+        advanceUntilIdle()
+
+        assertEquals(PaymentType.SEPA, draft?.paymentType)
+        assertEquals("Converted GBP→EUR · FX fee applies", draft?.conversionNote)
     }
 }

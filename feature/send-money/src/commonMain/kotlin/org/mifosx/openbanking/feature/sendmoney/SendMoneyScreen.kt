@@ -63,6 +63,7 @@ import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentDraft
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentType
+import org.mifosx.openbanking.feature.sendmoney.ui.RailAssessment
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyContent
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyViewModel
 import template.core.base.store.screen.ScreenState
@@ -211,14 +212,27 @@ private fun Form(
             PaymentType.entries.forEach { type ->
                 FilterChip(
                     selected = content.paymentType == type,
+                    enabled = content.railAssessments[type]?.eligible != false,
                     onClick = { viewModel.onPaymentTypeChanged(type) },
                     label = { Text(type.label()) },
                     modifier = Modifier.testTag(SendMoneyTestTags.paymentType(type.name)),
                 )
             }
         }
+        content.railAssessments
+            .filterValues { !it.eligible && it.reason != null }
+            .forEach { (type, assessment) ->
+                Text(
+                    "${type.label()} unavailable — ${assessment.reason}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
-        FeeBanner(paymentType = content.paymentType)
+        FeeBanner(
+            paymentType = content.paymentType,
+            assessment = content.railAssessments[content.paymentType],
+        )
 
         content.formError?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -285,7 +299,7 @@ private fun BeneficiaryRow(beneficiary: Counterparty, selected: Boolean, onClick
 }
 
 @Composable
-private fun FeeBanner(paymentType: PaymentType) {
+private fun FeeBanner(paymentType: PaymentType, assessment: RailAssessment?) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -302,11 +316,20 @@ private fun FeeBanner(paymentType: PaymentType) {
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = "Estimated fee: ${feeText(paymentType)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            Column {
+                Text(
+                    text = "Estimated fee: ${assessment?.feeText?.ifBlank { null } ?: feeText(paymentType)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                assessment?.conversionNote?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
         }
     }
 }

@@ -62,6 +62,8 @@ data class SendMoneyConfirmRoute(
     val beneficiaryBank: String,
     val iban: String,
     val reference: String,
+    val paymentType: String = "SEPA",
+    val conversionNote: String = "",
 )
 
 @Serializable data object BeneficiariesRoute

@@ -34,6 +34,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -209,70 +210,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            // Pay tab — Send Money hub. Pick a recipient/beneficiary → amount entry preselected;
-            // New / Local transfer → amount entry with the beneficiary picker.
-            composableWithStayTransitions<SendMoneyRoute> {
-                SendMoneyHubScreen(
-                    onRecipientSelected = { accountId, id ->
-                        navController.navigate(SendMoneyAmountRoute(counterpartyId = id, accountId = accountId))
-                    },
-                    onNewTransfer = { accountId ->
-                        navController.navigate(SendMoneyAmountRoute(accountId = accountId))
-                    },
-                    onBack = navController::popBackStack,
-                )
-            }
-
-            // Amount entry. Continue carries the validated draft to confirm as type-safe args.
-            composableWithStayTransitions<SendMoneyAmountRoute> { entry ->
-                val a = entry.toRoute<SendMoneyAmountRoute>()
-                SendMoneyScreen(
-                    onContinue = { d ->
-                        navController.navigate(
-                            SendMoneyConfirmRoute(
-                                fromBankId = d.fromBankId,
-                                fromAccountId = d.fromAccountId,
-                                fromLabel = d.fromLabel,
-                                amount = d.amount,
-                                currency = d.currency,
-                                counterpartyId = d.counterpartyId,
-                                beneficiaryName = d.beneficiaryName,
-                                beneficiaryBank = d.beneficiaryBank,
-                                iban = d.iban,
-                                reference = d.reference,
-                            ),
-                        )
-                    },
-                    onBack = navController::popBackStack,
-                    preselectedCounterpartyId = a.counterpartyId,
-                    accountId = a.accountId,
-                )
-            }
-
-            // Confirm Payment — executes the SEPA transfer. On success, clear back to the form,
-            // switch to Home, and surface a snackbar; Edit returns to the form.
-            composableWithStayTransitions<SendMoneyConfirmRoute> { entry ->
-                val r = entry.toRoute<SendMoneyConfirmRoute>()
-                SendMoneyConfirmScreen(
-                    fromBankId = r.fromBankId,
-                    fromAccountId = r.fromAccountId,
-                    fromLabel = r.fromLabel,
-                    amount = r.amount,
-                    currency = r.currency,
-                    counterpartyId = r.counterpartyId,
-                    beneficiaryName = r.beneficiaryName,
-                    beneficiaryBank = r.beneficiaryBank,
-                    iban = r.iban,
-                    reference = r.reference,
-                    onSuccess = { message ->
-                        navController.popBackStack(SendMoneyRoute, inclusive = false)
-                        navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
-                        scope.launch { snackbarHostState.showSnackbar(message) }
-                    },
-                    onEdit = navController::popBackStack,
-                    onBack = navController::popBackStack,
-                )
-            }
+            // Pay tab — Send Money hub → amount entry → confirm (rail-routed).
+            sendMoneyDestinations(navController, scope, snackbarHostState)
 
             // Beneficiaries — real feature module. Tapping a beneficiary heads to the Pay tab.
             composableWithStayTransitions<BeneficiariesRoute> {
@@ -295,6 +234,81 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()
         }
+    }
+}
+
+private fun NavGraphBuilder.sendMoneyDestinations(
+    navController: NavHostController,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+) {
+    // Pay tab — Send Money hub. Pick a recipient/beneficiary → amount entry preselected;
+    // New / Local transfer → amount entry with the beneficiary picker.
+    composableWithStayTransitions<SendMoneyRoute> {
+        SendMoneyHubScreen(
+            onRecipientSelected = { accountId, id ->
+                navController.navigate(SendMoneyAmountRoute(counterpartyId = id, accountId = accountId))
+            },
+            onNewTransfer = { accountId ->
+                navController.navigate(SendMoneyAmountRoute(accountId = accountId))
+            },
+            onBack = navController::popBackStack,
+        )
+    }
+
+    // Amount entry. Continue carries the validated draft to confirm as type-safe args.
+    composableWithStayTransitions<SendMoneyAmountRoute> { entry ->
+        val a = entry.toRoute<SendMoneyAmountRoute>()
+        SendMoneyScreen(
+            onContinue = { d ->
+                navController.navigate(
+                    SendMoneyConfirmRoute(
+                        fromBankId = d.fromBankId,
+                        fromAccountId = d.fromAccountId,
+                        fromLabel = d.fromLabel,
+                        amount = d.amount,
+                        currency = d.currency,
+                        counterpartyId = d.counterpartyId,
+                        beneficiaryName = d.beneficiaryName,
+                        beneficiaryBank = d.beneficiaryBank,
+                        iban = d.iban,
+                        reference = d.reference,
+                        paymentType = d.paymentType.name,
+                        conversionNote = d.conversionNote.orEmpty(),
+                    ),
+                )
+            },
+            onBack = navController::popBackStack,
+            preselectedCounterpartyId = a.counterpartyId,
+            accountId = a.accountId,
+        )
+    }
+
+    // Confirm Payment — executes the SEPA transfer. On success, clear back to the form,
+    // switch to Home, and surface a snackbar; Edit returns to the form.
+    composableWithStayTransitions<SendMoneyConfirmRoute> { entry ->
+        val r = entry.toRoute<SendMoneyConfirmRoute>()
+        SendMoneyConfirmScreen(
+            fromBankId = r.fromBankId,
+            fromAccountId = r.fromAccountId,
+            fromLabel = r.fromLabel,
+            amount = r.amount,
+            currency = r.currency,
+            counterpartyId = r.counterpartyId,
+            beneficiaryName = r.beneficiaryName,
+            beneficiaryBank = r.beneficiaryBank,
+            iban = r.iban,
+            reference = r.reference,
+            paymentType = r.paymentType,
+            conversionNote = r.conversionNote,
+            onSuccess = { message ->
+                navController.popBackStack(SendMoneyRoute, inclusive = false)
+                navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
+                scope.launch { snackbarHostState.showSnackbar(message) }
+            },
+            onEdit = navController::popBackStack,
+            onBack = navController::popBackStack,
+        )
     }
 }
 

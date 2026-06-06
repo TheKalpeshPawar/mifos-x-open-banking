@@ -52,12 +52,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.feature.sendmoney.ui.ConfirmUiState
+import org.mifosx.openbanking.feature.sendmoney.ui.PaymentDraft
+import org.mifosx.openbanking.feature.sendmoney.ui.PaymentType
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyConfirmViewModel
 
 /**
- * Confirm Payment screen. Reviews the [args] draft and, on Confirm & Send, executes the
- * SEPA transaction-request. Success bubbles a snackbar message up via [onSuccess] (host
- * navigates home); Edit returns to the form.
+ * Confirm Payment screen. Reviews the [args] draft and, on Confirm & Send, executes it on
+ * the rail the form derived (SEPA by IBAN, else COUNTERPARTY). Success bubbles a snackbar
+ * message up via [onSuccess] (host navigates home); Edit returns to the form.
  */
 @Composable
 fun SendMoneyConfirmScreen(
@@ -75,10 +77,13 @@ fun SendMoneyConfirmScreen(
     onEdit: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    paymentType: String = PaymentType.SEPA.name,
+    conversionNote: String = "",
     viewModel: SendMoneyConfirmViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val formatted = "${currencySymbol(currency)}$amount"
+    val rail = PaymentType.entries.firstOrNull { it.name == paymentType } ?: PaymentType.SEPA
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -131,8 +136,16 @@ fun SendMoneyConfirmScreen(
                     if (beneficiaryBank.isNotBlank()) SummaryRow("Bank", beneficiaryBank, null)
                     SummaryRow("From", fromLabel.ifBlank { "—" }, null)
                     if (reference.isNotBlank()) SummaryRow("Reference", reference, null)
+                    SummaryRow("Sent via", railLabel(rail), null)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     SummaryRow("Fee", "${currencySymbol(currency)}0.00", null)
+                    if (conversionNote.isNotBlank()) {
+                        Text(
+                            conversionNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     TotalRow(label = "Total", value = formatted)
                 }
             }
@@ -162,7 +175,21 @@ fun SendMoneyConfirmScreen(
 
             Button(
                 onClick = {
-                    viewModel.submit(fromBankId, fromAccountId, counterpartyId, amount, currency, reference) {
+                    val draft = PaymentDraft(
+                        fromBankId = fromBankId,
+                        fromAccountId = fromAccountId,
+                        fromLabel = fromLabel,
+                        amount = amount,
+                        currency = currency,
+                        counterpartyId = counterpartyId,
+                        beneficiaryName = beneficiaryName,
+                        beneficiaryBank = beneficiaryBank,
+                        iban = iban,
+                        reference = reference,
+                        paymentType = rail,
+                        conversionNote = conversionNote.ifBlank { null },
+                    )
+                    viewModel.submit(draft) {
                         onSuccess("Payment of $formatted sent to ${beneficiaryName.ifBlank { "beneficiary" }}")
                     }
                 },
@@ -206,6 +233,12 @@ private fun SummaryRow(label: String, value: String, tag: String?) {
             modifier = if (tag != null) Modifier.testTag(tag) else Modifier,
         )
     }
+}
+
+private fun railLabel(type: PaymentType): String = when (type) {
+    PaymentType.SEPA -> "SEPA"
+    PaymentType.DOMESTIC -> "Domestic"
+    PaymentType.INTERNATIONAL -> "International"
 }
 
 @Composable

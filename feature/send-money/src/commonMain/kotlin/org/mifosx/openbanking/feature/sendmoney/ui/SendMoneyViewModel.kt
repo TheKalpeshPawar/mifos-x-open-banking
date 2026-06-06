@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
@@ -41,25 +42,32 @@ data class PaymentDraft(
     val beneficiaryBank: String,
     val iban: String,
     val reference: String,
+    val paymentType: PaymentType = PaymentType.SEPA,
+    val conversionNote: String? = null,
 )
 
 /**
  * Send Money form ViewModel. Loads the user's accounts + the primary account's
  * beneficiaries, holds the form state, and validates on Continue (amount, beneficiary,
  * then a live funds-available check) before producing a [PaymentDraft] for the confirm
- * screen. SEPA requires the payment currency to equal the from-account currency, so the
- * currency tracks the selected account.
+ * screen. The payment rail (SEPA/Domestic/International) is derived per
+ * (account, beneficiary) pair by [PaymentRailClassifier]; the recommended rail is
+ * auto-selected and ineligible rails are disabled with a reason.
  */
 class SendMoneyViewModel(
     private val accountsRepository: AccountsRepository,
     private val paymentsRepository: PaymentsRepository,
+    private val banksRepository: BanksRepository,
 ) : ViewModel() {
 
     private val rawState = MutableStateFlow<RawState>(RawState.Loading)
     private val form = MutableStateFlow(FormState())
+    private val classification = MutableStateFlow(
+        PaymentRailClassifier.classify(sourceCurrency = "EUR", sourceBankCountry = "", beneficiary = null),
+    )
 
     val uiState: StateFlow<ScreenState<SendMoneyContent>> =
-        combine(rawState, form) { raw, f -> project(raw, f) }
+        combine(rawState, form, classification) { raw, f, rails -> project(raw, f, rails) }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -92,11 +100,18 @@ class SendMoneyViewModel(
 
     fun onBeneficiaryQueryChanged(query: String) = form.update { it.copy(query = query) }
 
-    fun onBeneficiarySelected(id: String) = form.update { it.copy(beneficiaryId = id, beneficiaryError = null) }
+    fun onBeneficiarySelected(id: String) {
+        form.update { it.copy(beneficiaryId = id, beneficiaryError = null) }
+        reclassify()
+    }
 
     fun onReferenceChanged(reference: String) = form.update { it.copy(reference = reference.take(MAX_REFERENCE)) }
 
-    fun onPaymentTypeChanged(type: PaymentType) = form.update { it.copy(paymentType = type) }
+    /** Manual rail override — ignored for rails the classifier marked ineligible. */
+    fun onPaymentTypeChanged(type: PaymentType) {
+        if (classification.value.assessments[type]?.eligible == false) return
+        form.update { it.copy(paymentType = type) }
+    }
 
     fun onRetry() = load()
 
@@ -142,6 +157,8 @@ class SendMoneyViewModel(
                     beneficiaryBank = beneficiary.otherBankRoutingAddress,
                     iban = resolveIban(beneficiary),
                     reference = f.reference,
+                    paymentType = f.paymentType,
+                    conversionNote = classification.value.assessments[f.paymentType]?.conversionNote,
                 ),
             )
         }
@@ -187,9 +204,42 @@ class SendMoneyViewModel(
             )
         }
         rawState.value = RawState.Loaded(accounts, beneficiaries)
+        reclassify()
     }
 
-    private fun project(raw: RawState, f: FormState): ScreenState<SendMoneyContent> = when (raw) {
+    /**
+     * Re-derive rail eligibility for the current (account, beneficiary) pair and auto-select
+     * the recommended rail. Bank countries come from cached bank directory lookups.
+     */
+    private fun reclassify() {
+        viewModelScope.launch {
+            val loaded = rawState.value as? RawState.Loaded ?: return@launch
+            val f = form.value
+            val account = loaded.accounts.firstOrNull { it.accountIdOrId == f.accountId }
+                ?: loaded.accounts.firstOrNull()
+                ?: return@launch
+            val beneficiary = loaded.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId }
+            val sourceCountry = banksRepository.bank(account.bankId)?.countryCode.orEmpty()
+            // Only OBP-routed payees need a destination bank lookup; IBAN/BIC carry the country.
+            val destinationCountry = beneficiary
+                ?.takeIf { it.otherBankRoutingScheme.equals("OBP", ignoreCase = true) }
+                ?.let { banksRepository.bank(it.otherBankRoutingAddress)?.countryCode }
+            val result = PaymentRailClassifier.classify(
+                sourceCurrency = f.currency,
+                sourceBankCountry = sourceCountry,
+                beneficiary = beneficiary,
+                destinationBankCountry = destinationCountry,
+            )
+            classification.value = result
+            if (beneficiary != null) form.update { it.copy(paymentType = result.recommended) }
+        }
+    }
+
+    private fun project(
+        raw: RawState,
+        f: FormState,
+        rails: RailClassification,
+    ): ScreenState<SendMoneyContent> = when (raw) {
         is RawState.Loading -> ScreenState.Loading
         is RawState.Failed -> ScreenState.Error(raw.error)
         is RawState.Loaded -> {
@@ -219,6 +269,7 @@ class SendMoneyViewModel(
                         reference = f.reference,
                         query = f.query,
                         paymentType = f.paymentType,
+                        railAssessments = rails.assessments,
                         amountError = f.amountError,
                         beneficiaryError = f.beneficiaryError,
                         formError = f.formError,
@@ -275,6 +326,7 @@ data class SendMoneyContent(
     val reference: String,
     val query: String,
     val paymentType: PaymentType,
+    val railAssessments: Map<PaymentType, RailAssessment>,
     val amountError: String?,
     val beneficiaryError: String?,
     val formError: String?,

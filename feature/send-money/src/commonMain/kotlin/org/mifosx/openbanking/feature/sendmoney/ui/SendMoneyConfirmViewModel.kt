@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
 
 /** Confirm-payment state. */
 sealed interface ConfirmUiState {
@@ -25,8 +26,9 @@ sealed interface ConfirmUiState {
 }
 
 /**
- * Confirm-payment ViewModel. Executes the SEPA transaction-request for the reviewed
- * draft and reports success (→ navigate home) or a typed error message.
+ * Confirm-payment ViewModel. Routes the reviewed draft to the rail the form derived:
+ * SEPA payments go through the SEPA transaction-request (by IBAN); Domestic and
+ * International use the COUNTERPARTY transaction-request (by counterparty id).
  */
 class SendMoneyConfirmViewModel(
     private val paymentsRepository: PaymentsRepository,
@@ -35,24 +37,43 @@ class SendMoneyConfirmViewModel(
     private val _state = MutableStateFlow<ConfirmUiState>(ConfirmUiState.Review)
     val state: StateFlow<ConfirmUiState> = _state.asStateFlow()
 
-    fun submit(
-        bankId: String,
-        accountId: String,
-        counterpartyId: String,
-        amount: String,
-        currency: String,
-        reference: String,
-        onSuccess: () -> Unit,
-    ) {
+    fun submit(draft: PaymentDraft, onSuccess: () -> Unit) {
         if (_state.value == ConfirmUiState.Submitting) return
         _state.value = ConfirmUiState.Submitting
         viewModelScope.launch {
-            paymentsRepository.sendToCounterparty(bankId, accountId, counterpartyId, amount, currency, reference).fold(
+            send(draft).fold(
                 onSuccess = { onSuccess() },
                 onFailure = { _state.value = ConfirmUiState.Failed(errorMessage(it)) },
             )
         }
     }
+
+    private suspend fun send(draft: PaymentDraft): Result<TransactionRequest> {
+        if (draft.paymentType != PaymentType.SEPA || draft.iban.isBlank()) return sendCounterparty(draft)
+        val sepa = paymentsRepository.sendSepaPayment(
+            bankId = draft.fromBankId,
+            accountId = draft.fromAccountId,
+            iban = draft.iban,
+            amount = draft.amount,
+            currency = draft.currency,
+            reference = draft.reference,
+        )
+        // The sandbox can only settle SEPA-by-IBAN when the payee's counterparty carries the
+        // IBAN in its secondary routing AND resolves to a hosted account (OBP-30012/OBP-30074
+        // otherwise). Those payees are still payable by counterparty id, so fall back.
+        val message = sepa.exceptionOrNull()?.message.orEmpty()
+        return if ("OBP-30012" in message || "OBP-30074" in message) sendCounterparty(draft) else sepa
+    }
+
+    private suspend fun sendCounterparty(draft: PaymentDraft): Result<TransactionRequest> =
+        paymentsRepository.sendToCounterparty(
+            bankId = draft.fromBankId,
+            accountId = draft.fromAccountId,
+            counterpartyId = draft.counterpartyId,
+            amount = draft.amount,
+            currency = draft.currency,
+            reference = draft.reference,
+        )
 
     fun reset() {
         _state.value = ConfirmUiState.Review
