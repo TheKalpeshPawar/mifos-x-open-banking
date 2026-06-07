@@ -44,6 +44,7 @@ import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.businessinsights.BusinessInsightsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
+import org.mifosx.openbanking.feature.fxrates.FxRatesScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.pfm.PfmDashboardScreen
@@ -68,6 +69,7 @@ import org.mifosx.openbanking.placeholder.BusinessInsightsRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
+import org.mifosx.openbanking.placeholder.FxRatesRoute
 import org.mifosx.openbanking.placeholder.PfmDashboardRoute
 import org.mifosx.openbanking.placeholder.PfmSettingsRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
@@ -173,13 +175,13 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 // tab's destination onto the Home stack, breaking the Home tab button.
                 onTransfer = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
                 onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
-                onViewCards = { navController.navigateToTab(AuthenticatedNavBarTabItem.CardsTab) },
                 // Non-tab destinations are genuine pushes.
                 onStandingOrders = { navController.navigate(StandingOrdersRoute) },
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onInsights = { navController.navigate(PfmDashboardRoute) },
                 onBusinessInsights = { navController.navigate(BusinessInsightsRoute) },
+                onFxRates = { navController.navigate(FxRatesRoute) },
                 onDeferred = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message = message, duration = Short)
@@ -281,6 +283,16 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 
             composableWithStayTransitions<BusinessInsightsRoute> {
                 BusinessInsightsScreen(onBack = navController::popBackStack)
+            }
+
+            composableWithStayTransitions<FxRatesRoute> {
+                FxRatesScreen(
+                    onSendMoney = {
+                        navController.popBackStack()
+                        navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab)
+                    },
+                    onBack = navController::popBackStack,
+                )
             }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).

@@ -127,6 +127,8 @@ private class PfmFakeFxRepository(
     override suspend fun getRate(from: String, to: String): Result<FxRate> =
         rates[from to to]?.let { Result.success(FxRate(conversionValue = it)) }
             ?: Result.failure(IllegalStateException("no rate $from->$to"))
+
+    override suspend fun supportedCurrencies(): List<String> = listOf("GBP", "EUR")
 }
 
 private class PfmFakeBudgetsRepository(

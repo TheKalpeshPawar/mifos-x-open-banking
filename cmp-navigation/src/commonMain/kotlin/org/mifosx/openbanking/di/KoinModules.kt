@@ -21,6 +21,7 @@ import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.beneficiaries.di.BeneficiariesModule
 import org.mifosx.openbanking.feature.businessinsights.di.BusinessInsightsModule
 import org.mifosx.openbanking.feature.cards.di.CardsModule
+import org.mifosx.openbanking.feature.fxrates.di.FxRatesModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
 import org.mifosx.openbanking.feature.pfm.di.PfmModule
@@ -67,6 +68,7 @@ object KoinModules {
             TransactionsModule,
             PfmModule,
             BusinessInsightsModule,
+            FxRatesModule,
         )
     }
 

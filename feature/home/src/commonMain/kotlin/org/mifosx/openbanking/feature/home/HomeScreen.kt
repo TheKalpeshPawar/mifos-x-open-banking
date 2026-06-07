@@ -27,7 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.LocationOn
@@ -87,11 +87,11 @@ fun HomeScreen(
     onTransfer: () -> Unit,
     onAccounts: () -> Unit,
     onStandingOrders: () -> Unit,
-    onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
+    onFxRates: () -> Unit,
     onDeferred: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
@@ -114,11 +114,11 @@ fun HomeScreen(
                 greeting = greeting,
                 onTransfer = onTransfer,
                 onStandingOrders = onStandingOrders,
-                onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
                 onBusinessInsights = onBusinessInsights,
+                onFxRates = onFxRates,
                 onDeferred = onDeferred,
                 onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
@@ -144,11 +144,11 @@ private fun HomeLoaded(
     greeting: Greeting,
     onTransfer: () -> Unit,
     onStandingOrders: () -> Unit,
-    onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
+    onFxRates: () -> Unit,
     onDeferred: (String) -> Unit,
     onDefaultAccountSelected: (Account) -> Unit,
 ) {
@@ -189,10 +189,10 @@ private fun HomeLoaded(
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 BankingServices(
                     onStandingOrders = onStandingOrders,
-                    onViewCards = onViewCards,
                     onFindAtm = onFindAtm,
                     onInsights = onInsights,
                     onBusinessInsights = onBusinessInsights,
+                    onFxRates = onFxRates,
                     onDeferred = onDeferred,
                 )
             }
@@ -341,10 +341,10 @@ private fun SectionHeader(title: String, actionLabel: String? = null, onAction: 
 @Composable
 private fun BankingServices(
     onStandingOrders: () -> Unit,
-    onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
+    onFxRates: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -354,7 +354,7 @@ private fun BankingServices(
             ServiceTile("Statements", Icons.Filled.Description, Modifier.weight(1f)) { onDeferred("Statements — coming soon") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            ServiceTile("Cards", Icons.Filled.CreditCard, Modifier.weight(1f), onViewCards)
+            ServiceTile("FX Rates", Icons.Filled.CurrencyExchange, Modifier.weight(1f), onFxRates)
             ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
             ServiceTile("Insights", Icons.Filled.PieChart, Modifier.weight(1f), onInsights)
         }

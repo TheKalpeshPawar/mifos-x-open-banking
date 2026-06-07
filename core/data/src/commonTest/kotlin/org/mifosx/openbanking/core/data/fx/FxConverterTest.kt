@@ -23,6 +23,8 @@ private class FxFakeRepository(
         calls++
         return result
     }
+
+    override suspend fun supportedCurrencies(): List<String> = listOf("GBP", "EUR")
 }
 
 class FxConverterTest {

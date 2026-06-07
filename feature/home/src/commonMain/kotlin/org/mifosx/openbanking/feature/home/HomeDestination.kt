@@ -30,11 +30,11 @@ fun NavGraphBuilder.homeGraph(
     onTransfer: () -> Unit,
     onAccounts: () -> Unit,
     onStandingOrders: () -> Unit,
-    onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
+    onFxRates: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     navigation<HomeDestination>(
@@ -45,11 +45,11 @@ fun NavGraphBuilder.homeGraph(
                 onTransfer = onTransfer,
                 onAccounts = onAccounts,
                 onStandingOrders = onStandingOrders,
-                onViewCards = onViewCards,
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
                 onBusinessInsights = onBusinessInsights,
+                onFxRates = onFxRates,
                 onDeferred = onDeferred,
             )
         }

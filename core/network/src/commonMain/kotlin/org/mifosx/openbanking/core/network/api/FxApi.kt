@@ -11,11 +11,12 @@ package org.mifosx.openbanking.core.network.api
 
 import de.jensklingenberg.ktorfit.http.GET
 import de.jensklingenberg.ktorfit.http.Path
+import org.mifosx.openbanking.core.model.obp.CurrenciesResponse
 import org.mifosx.openbanking.core.model.obp.FxRate
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
-/** OBP foreign-exchange endpoint. */
+/** OBP foreign-exchange endpoints (live rate per pair + supported currencies per bank). */
 interface FxApi {
 
     @GET("v3.0.0/banks/{bankId}/fx/{fromCurrencyCode}/{toCurrencyCode}")
@@ -24,4 +25,9 @@ interface FxApi {
         @Path("fromCurrencyCode") fromCurrencyCode: String,
         @Path("toCurrencyCode") toCurrencyCode: String,
     ): NetworkResult<FxRate, NetworkError>
+
+    @GET("v5.1.0/banks/{bankId}/currencies")
+    suspend fun getCurrencies(
+        @Path("bankId") bankId: String,
+    ): NetworkResult<CurrenciesResponse, NetworkError>
 }
