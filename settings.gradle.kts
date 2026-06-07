@@ -122,6 +122,7 @@ include(":feature:standing-orders")
 include(":feature:transactions")
 include(":feature:send-money")
 include(":feature:pfm")
+include(":feature:business-insights")
 
 include(":core-base:analytics")
 include(":core-base:common")

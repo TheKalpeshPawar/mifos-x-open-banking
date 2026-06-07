@@ -41,6 +41,7 @@ kotlin {
             implementation(projects.feature.transactions)
             implementation(projects.feature.sendMoney)
             implementation(projects.feature.pfm)
+            implementation(projects.feature.businessInsights)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

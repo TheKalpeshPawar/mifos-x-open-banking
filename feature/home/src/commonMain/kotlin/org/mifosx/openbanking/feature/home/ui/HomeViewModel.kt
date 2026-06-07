@@ -12,14 +12,18 @@ package org.mifosx.openbanking.feature.home.ui
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.accounts.PfmAccountsService
 import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
+import org.mifosx.openbanking.core.model.pfm.PfmScope
+import org.mifosx.openbanking.core.model.pfm.pfmScope
 import template.core.base.store.screen.ScreenState
 
 /**
@@ -38,13 +42,28 @@ import template.core.base.store.screen.ScreenState
 class HomeViewModel(
     accountsRepository: AccountsRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    pfmAccountsService: PfmAccountsService,
 ) : ViewModel() {
 
     private val stream = accountsRepository.accountsStream(viewModelScope)
 
+    private val hasBusinessAccountsState = MutableStateFlow(false)
+
+    init {
+        viewModelScope.launch {
+            hasBusinessAccountsState.value = pfmAccountsService.classifiedAccounts()
+                .getOrElse { emptyList() }
+                .any { it.pfmScope == PfmScope.BUSINESS }
+        }
+    }
+
     val uiState: StateFlow<ScreenState<HomeContent>> =
-        combine(stream.state, userPreferencesRepository.observeDefaultAccountId) { state, defaultId ->
-            project(state, defaultId)
+        combine(
+            stream.state,
+            userPreferencesRepository.observeDefaultAccountId,
+            hasBusinessAccountsState,
+        ) { state, defaultId, hasBusiness ->
+            project(state, defaultId, hasBusiness)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -62,7 +81,11 @@ class HomeViewModel(
         }
     }
 
-    private fun project(state: ScreenState<List<Account>>, defaultId: String): ScreenState<HomeContent> =
+    private fun project(
+        state: ScreenState<List<Account>>,
+        defaultId: String,
+        hasBusiness: Boolean,
+    ): ScreenState<HomeContent> =
         when (state) {
             is ScreenState.Content -> {
                 val accounts = state.data
@@ -76,6 +99,7 @@ class HomeViewModel(
                             primaryAccount = primary,
                             accounts = accounts,
                             totalAccountCount = accounts.size,
+                            hasBusinessAccounts = hasBusiness,
                         ),
                         freshness = state.freshness,
                         fetchedAt = state.fetchedAt,
@@ -103,4 +127,5 @@ data class HomeContent(
     val primaryAccount: Account?,
     val accounts: List<Account> = emptyList(),
     val totalAccountCount: Int,
+    val hasBusinessAccounts: Boolean = false,
 )

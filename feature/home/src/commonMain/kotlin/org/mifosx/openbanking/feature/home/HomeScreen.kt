@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
@@ -91,6 +92,7 @@ fun HomeScreen(
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
+    onBusinessInsights: () -> Unit,
     onDeferred: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
@@ -117,6 +119,7 @@ fun HomeScreen(
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
+                onBusinessInsights = onBusinessInsights,
                 onDeferred = onDeferred,
                 onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
@@ -146,6 +149,7 @@ private fun HomeLoaded(
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
+    onBusinessInsights: () -> Unit,
     onDeferred: (String) -> Unit,
     onDefaultAccountSelected: (Account) -> Unit,
 ) {
@@ -190,6 +194,8 @@ private fun HomeLoaded(
                     onViewCards = onViewCards,
                     onFindAtm = onFindAtm,
                     onInsights = onInsights,
+                    onBusinessInsights = onBusinessInsights,
+                    showBusinessTile = content.hasBusinessAccounts,
                     onDeferred = onDeferred,
                 )
             }
@@ -342,6 +348,8 @@ private fun BankingServices(
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onInsights: () -> Unit,
+    onBusinessInsights: () -> Unit,
+    showBusinessTile: Boolean,
     onDeferred: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -354,6 +362,13 @@ private fun BankingServices(
             ServiceTile("Cards", Icons.Filled.CreditCard, Modifier.weight(1f), onViewCards)
             ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
             ServiceTile("Insights", Icons.Filled.PieChart, Modifier.weight(1f), onInsights)
+        }
+        if (showBusinessTile) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                ServiceTile("Business", Icons.Filled.Storefront, Modifier.weight(1f), onBusinessInsights)
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+            }
         }
     }
 }

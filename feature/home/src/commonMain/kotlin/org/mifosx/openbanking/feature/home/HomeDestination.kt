@@ -34,6 +34,7 @@ fun NavGraphBuilder.homeGraph(
     onFindAtm: () -> Unit,
     onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
+    onBusinessInsights: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
     navigation<HomeDestination>(
@@ -48,6 +49,7 @@ fun NavGraphBuilder.homeGraph(
                 onFindAtm = onFindAtm,
                 onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
+                onBusinessInsights = onBusinessInsights,
                 onDeferred = onDeferred,
             )
         }
