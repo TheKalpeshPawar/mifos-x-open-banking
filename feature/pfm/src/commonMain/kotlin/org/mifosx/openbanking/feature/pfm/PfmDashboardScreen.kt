@@ -24,10 +24,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ReceiptLong
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -59,23 +58,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.pfm.PfmPeriod
 import org.mifosx.openbanking.core.ui.datepicker.DateRangePickerDialog
-import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.pfm.ui.PfmContent
 import org.mifosx.openbanking.feature.pfm.ui.PfmDashboardViewModel
-import org.mifosx.openbanking.feature.pfm.ui.PfmPeriod
 import template.core.base.store.screen.ScreenState
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /**
- * Spending Insights — period summary, category donut, budgets and top merchants for one
- * account. All analytics run client-side over the sandbox's 50-newest-transactions
- * window; budgets persist as OBP personal-data fields.
+ * Spending Insights — period summary, category donut, budgets and top merchants across
+ * ALL personal accounts, converted into the base currency. All analytics run client-side
+ * over the sandbox's 50-newest-transactions-per-account window; budgets persist as OBP
+ * personal-data fields.
  */
 @Composable
 fun PfmDashboardScreen(
     onViewTransactions: (bankId: String, accountId: String) -> Unit,
+    onOpenSettings: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PfmDashboardViewModel = koinViewModel(),
@@ -101,6 +101,11 @@ fun PfmDashboardScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Tune, contentDescription = "PFM settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
@@ -133,11 +138,10 @@ private fun PfmDashboardContent(
     viewModel: PfmDashboardViewModel,
     onViewTransactions: (String, String) -> Unit,
 ) {
-    var showAccountPicker by remember { mutableStateOf(false) }
     var showRangePicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        PfmAccountRow(content, onClick = { showAccountPicker = true })
+        PfmScopeLine(accountCount = content.accountCount, baseCurrency = content.currency)
         PfmPeriodChips(
             selected = content.period,
             onSelect = viewModel::onPeriodSelected,
@@ -157,10 +161,10 @@ private fun PfmDashboardContent(
             PfmCategorySection(content)
             PfmBudgetRowsSection(content, onSaveBudget = viewModel::onSaveBudget)
             PfmMerchantsSection(content, onMerchantClick = {
-                onViewTransactions(content.bankId, content.selectedAccountId)
+                onViewTransactions(content.navBankId, content.navAccountId)
             })
             TextButton(
-                onClick = { onViewTransactions(content.bankId, content.selectedAccountId) },
+                onClick = { onViewTransactions(content.navBankId, content.navAccountId) },
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .testTag(PfmDashboardTestTags.VIEW_ALL_TRANSACTIONS),
@@ -171,18 +175,6 @@ private fun PfmDashboardContent(
         }
     }
 
-    if (showAccountPicker) {
-        AccountPickerBottomSheet(
-            accounts = content.accounts,
-            selectedAccountId = content.selectedAccountId,
-            onAccountSelected = { account ->
-                showAccountPicker = false
-                viewModel.onAccountSelected(account.accountIdOrId)
-            },
-            onDismiss = { showAccountPicker = false },
-            title = "Insights for account",
-        )
-    }
     if (showRangePicker) {
         val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
         DateRangePickerDialog(
@@ -197,20 +189,16 @@ private fun PfmDashboardContent(
 }
 
 @Composable
-private fun PfmAccountRow(content: PfmContent, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-    ) {
-        AssistChip(
-            onClick = onClick,
-            label = { Text(content.accountLabel) },
-            trailingIcon = {
-                Icon(Icons.Filled.ExpandMore, contentDescription = "Switch account")
-            },
-            modifier = Modifier.testTag(PfmDashboardTestTags.ACCOUNT_SELECTOR),
-        )
-    }
+private fun PfmScopeLine(accountCount: Int, baseCurrency: String) {
+    val accountsLabel = if (accountCount == 1) "1 account" else "$accountCount accounts"
+    Text(
+        text = "All personal accounts · $accountsLabel · $baseCurrency",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .testTag(PfmDashboardTestTags.ACCOUNT_SELECTOR),
+    )
 }
 
 @Composable

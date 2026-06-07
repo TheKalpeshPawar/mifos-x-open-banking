@@ -24,6 +24,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.accounts.PfmAccountsService
+import org.mifosx.openbanking.core.data.fx.FxConverter
+import org.mifosx.openbanking.core.data.fx.FxRepository
 import org.mifosx.openbanking.core.data.pfm.BudgetsRepository
 import org.mifosx.openbanking.core.data.pfm.PfmBudgets
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
@@ -31,10 +34,12 @@ import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.CounterpartyHolder
+import org.mifosx.openbanking.core.model.obp.FxRate
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionAttribute
 import org.mifosx.openbanking.core.model.obp.TransactionCounterparty
 import org.mifosx.openbanking.core.model.obp.TransactionDetails
+import org.mifosx.openbanking.core.model.pfm.PfmPeriod
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
@@ -57,23 +62,29 @@ private fun pfmTxn(
     description: String = "Payment",
     holder: String = "Acme Ltd",
     typeCode: String? = "POS",
+    currency: String = "EUR",
 ) = Transaction(
     id = "$holder-$date-$amount",
     otherAccount = TransactionCounterparty(holder = CounterpartyHolder(name = holder)),
     details = TransactionDetails(
         description = description,
         completed = "${date}T10:00:00Z",
-        value = AmountOfMoney(currency = "EUR", amount = amount),
+        value = AmountOfMoney(currency = currency, amount = amount),
     ),
     transactionAttributes = typeCode?.let { listOf(TransactionAttribute("TXN_TYPE", "STRING", it)) }.orEmpty(),
 )
 
-private fun account(id: String, type: String = "CURRENT", label: String = "Account $id") = Account(
+private fun account(
+    id: String,
+    type: String = "CURRENT",
+    label: String = "Account $id",
+    currency: String = "EUR",
+) = Account(
     id = id,
     label = label,
     bankId = "ac.bank.uk",
     accountType = type,
-    balance = AmountOfMoney(currency = "EUR", amount = "1000.00"),
+    balance = AmountOfMoney(currency = currency, amount = "1000.00"),
 )
 
 private class PfmFakeAccountsRepository(
@@ -82,14 +93,16 @@ private class PfmFakeAccountsRepository(
     override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>> = TODO()
     override suspend fun listAccounts(): Result<List<Account>> = TODO()
     override suspend fun myAccounts(): Result<List<Account>> = accounts
-    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = TODO()
+    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> =
+        Result.failure(IllegalStateException("no detail in fake — list shape carries the type"))
 }
 
 private class PfmFakeTransactionsRepository(
     var result: Result<List<Transaction>> = Result.success(emptyList()),
+    var resultsByAccount: Map<String, Result<List<Transaction>>> = emptyMap(),
 ) : TransactionsRepository {
     var fetches = 0
-    var lastAccountId = ""
+    var fetchedAccountIds = mutableListOf<String>()
     override fun transactionsStream(
         bankId: String,
         accountId: String,
@@ -102,21 +115,36 @@ private class PfmFakeTransactionsRepository(
         limit: Int?,
     ): Result<List<Transaction>> {
         fetches++
-        lastAccountId = accountId
-        return result
+        fetchedAccountIds += accountId
+        return resultsByAccount[accountId] ?: result
     }
     override suspend fun getTransaction(bankId: String, accountId: String, transactionId: String) = TODO()
+}
+
+private class PfmFakeFxRepository(
+    var rates: Map<Pair<String, String>, Double> = mapOf(("GBP" to "EUR") to 1.16278),
+) : FxRepository {
+    override suspend fun getRate(from: String, to: String): Result<FxRate> =
+        rates[from to to]?.let { Result.success(FxRate(conversionValue = it)) }
+            ?: Result.failure(IllegalStateException("no rate $from->$to"))
 }
 
 private class PfmFakeBudgetsRepository(
     var result: Result<PfmBudgets> = Result.success(PfmBudgets()),
     var saveResult: Result<Unit> = Result.success(Unit),
+    var baseCurrencyResult: Result<String?> = Result.success(null),
 ) : BudgetsRepository {
     var saved = mutableListOf<Pair<String, Double>>()
+    var savedBaseCurrencies = mutableListOf<String>()
     override suspend fun budgets(): Result<PfmBudgets> = result
     override suspend fun saveBudget(categoryId: String, amount: Double): Result<Unit> {
         saved += categoryId to amount
         return saveResult
+    }
+    override suspend fun baseCurrency(): Result<String?> = baseCurrencyResult
+    override suspend fun saveBaseCurrency(code: String): Result<Unit> {
+        savedBaseCurrencies += code
+        return Result.success(Unit)
     }
 }
 
@@ -171,10 +199,12 @@ class PfmDashboardViewModelTest {
         transactions: PfmFakeTransactionsRepository = PfmFakeTransactionsRepository(),
         accounts: PfmFakeAccountsRepository = PfmFakeAccountsRepository(),
         budgets: PfmFakeBudgetsRepository = PfmFakeBudgetsRepository(),
+        fx: PfmFakeFxRepository = PfmFakeFxRepository(),
         defaultAccountId: String = "",
     ) = PfmDashboardViewModel(
         transactionsRepository = transactions,
-        accountsRepository = accounts,
+        pfmAccountsService = PfmAccountsService(accounts),
+        fxConverter = FxConverter(fx),
         budgetsRepository = budgets,
         userPreferencesRepository = PfmFakeUserPreferencesRepository(defaultAccountId),
         todayProvider = { TODAY },
@@ -211,14 +241,98 @@ class PfmDashboardViewModelTest {
     }
 
     @Test
-    fun load_prefersDefaultAccount() = runTest(dispatcher) {
+    fun load_aggregatesAcrossAllPersonalAccounts() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            resultsByAccount = mapOf(
+                "acc-1" to Result.success(listOf(pfmTxn("-40.00", holder = "Tesco", description = "Tesco"))),
+                "sav-1" to Result.success(listOf(pfmTxn("-60.00", holder = "Netflix"))),
+            ),
+        )
+        val accounts = PfmFakeAccountsRepository(
+            Result.success(listOf(account("acc-1"), account("sav-1", type = "SAVINGS"))),
+        )
+        val c = content(vm(transactions, accounts))
+        assertEquals(2, c.accountCount)
+        assertEquals(2, transactions.fetches)
+        assertEquals(100.0, c.summary.spent)
+    }
+
+    @Test
+    fun load_excludesBusinessAccountsFromPersonalInsights() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            resultsByAccount = mapOf(
+                "acc-1" to Result.success(listOf(pfmTxn("-40.00"))),
+                "biz-1" to Result.success(listOf(pfmTxn("-9999.00", description = "Payroll April"))),
+            ),
+        )
+        val accounts = PfmFakeAccountsRepository(
+            Result.success(listOf(account("acc-1"), account("biz-1", type = "BUSINESS"))),
+        )
+        val c = content(vm(transactions, accounts))
+        assertEquals(1, c.accountCount)
+        assertEquals(listOf("acc-1"), transactions.fetchedAccountIds)
+        assertEquals(40.0, c.summary.spent)
+    }
+
+    @Test
+    fun load_convertsForeignAmountsIntoBaseCurrency() = runTest(dispatcher) {
+        val rate = 1.16278
+        val transactions = PfmFakeTransactionsRepository(
+            resultsByAccount = mapOf(
+                "acc-1" to Result.success(listOf(pfmTxn("-50.00"))),
+                "gbp-1" to Result.success(listOf(pfmTxn("-100.00", currency = "GBP"))),
+            ),
+        )
+        val accounts = PfmFakeAccountsRepository(
+            Result.success(listOf(account("acc-1"), account("gbp-1", currency = "GBP"))),
+        )
+        val c = content(vm(transactions, accounts))
+        assertEquals("EUR", c.currency)
+        assertEquals(50.0 + 100.0 * rate, c.summary.spent, absoluteTolerance = 0.001)
+    }
+
+    @Test
+    fun load_missingFxRateFallsBackToNativeWithNotice() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            Result.success(listOf(pfmTxn("-100.00", currency = "GBP"))),
+        )
+        val fx = PfmFakeFxRepository(rates = emptyMap())
+        val model = vm(transactions, fx = fx)
+        val c = content(model)
+        assertEquals(100.0, c.summary.spent, absoluteTolerance = 0.001)
+        assertNotNull(model.notice.value)
+    }
+
+    @Test
+    fun load_persistedBaseCurrencyWins() = runTest(dispatcher) {
+        val budgets = PfmFakeBudgetsRepository(baseCurrencyResult = Result.success("GBP"))
+        val fx = PfmFakeFxRepository(rates = mapOf(("EUR" to "GBP") to 0.860011))
+        val transactions = PfmFakeTransactionsRepository(
+            Result.success(listOf(pfmTxn("-100.00"))),
+        )
+        val c = content(vm(transactions, budgets = budgets, fx = fx))
+        assertEquals("GBP", c.currency)
+        assertEquals(86.0011, c.summary.spent, absoluteTolerance = 0.001)
+    }
+
+    @Test
+    fun load_prefersDefaultAccountForNavigation() = runTest(dispatcher) {
         val transactions = PfmFakeTransactionsRepository()
         val accounts = PfmFakeAccountsRepository(
             Result.success(listOf(account("acc-1"), account("acc-2"))),
         )
         val c = content(vm(transactions, accounts, defaultAccountId = "acc-2"))
-        assertEquals("acc-2", c.selectedAccountId)
-        assertEquals("acc-2", transactions.lastAccountId)
+        assertEquals("acc-2", c.navAccountId)
+    }
+
+    @Test
+    fun transfers_appearInCategoriesButNeverInBudgetRows() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            Result.success(listOf(pfmTxn("-500.00", typeCode = "TFR", description = "To savings"))),
+        )
+        val c = content(vm(transactions))
+        assertEquals(listOf("transfers"), c.categories.map { it.id })
+        assertTrue(c.budgetRows.none { it.categoryId == "transfers" })
     }
 
     @Test
@@ -311,28 +425,14 @@ class PfmDashboardViewModelTest {
     }
 
     @Test
-    fun accountSwitch_refetchesTransactions() = runTest(dispatcher) {
-        val transactions = PfmFakeTransactionsRepository()
-        val accounts = PfmFakeAccountsRepository(
-            Result.success(listOf(account("acc-1"), account("acc-2"))),
-        )
-        val model = vm(transactions, accounts)
-        content(model)
-        model.onAccountSelected("acc-2")
-        advanceUntilIdle()
-        assertEquals(2, transactions.fetches)
-        assertEquals("acc-2", transactions.lastAccountId)
-    }
-
-    @Test
-    fun load_transactionsFailureIsErrorThenRetryRecovers() = runTest(dispatcher) {
-        val transactions = PfmFakeTransactionsRepository(Result.failure(RuntimeException("boom")))
-        val model = vm(transactions)
+    fun load_accountsFailureIsErrorThenRetryRecovers() = runTest(dispatcher) {
+        val accounts = PfmFakeAccountsRepository(Result.failure(RuntimeException("boom")))
+        val model = vm(accounts = accounts)
         backgroundScope.launch { model.uiState.collect {} }
         advanceUntilIdle()
         assertTrue(model.uiState.value is ScreenState.Error)
 
-        transactions.result = Result.success(emptyList())
+        accounts.accounts = Result.success(listOf(account("acc-1")))
         model.onRetry()
         advanceUntilIdle()
         assertTrue(model.uiState.value is ScreenState.Content)

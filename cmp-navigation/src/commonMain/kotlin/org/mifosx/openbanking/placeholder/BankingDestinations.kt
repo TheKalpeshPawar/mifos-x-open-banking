@@ -104,6 +104,10 @@ data class StandingOrderDetailRoute(
 
 @Serializable data object PfmDashboardRoute
 
+@Serializable data object PfmSettingsRoute
+
+@Serializable data object BusinessInsightsRoute
+
 @Serializable data object FxRatesRoute
 
 @Serializable data object AtmLocatorRoute

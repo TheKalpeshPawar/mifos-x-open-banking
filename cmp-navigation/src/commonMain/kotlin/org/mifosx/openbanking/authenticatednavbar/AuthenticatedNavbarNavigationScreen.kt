@@ -42,10 +42,12 @@ import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountDetailScreen
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
+import org.mifosx.openbanking.feature.businessinsights.BusinessInsightsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.pfm.PfmDashboardScreen
+import org.mifosx.openbanking.feature.pfm.settings.PfmSettingsScreen
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
@@ -62,10 +64,12 @@ import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
 import org.mifosx.openbanking.placeholder.BeneficiariesRoute
+import org.mifosx.openbanking.placeholder.BusinessInsightsRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.PfmDashboardRoute
+import org.mifosx.openbanking.placeholder.PfmSettingsRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
@@ -175,6 +179,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onInsights = { navController.navigate(PfmDashboardRoute) },
+                onBusinessInsights = { navController.navigate(BusinessInsightsRoute) },
                 onDeferred = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message = message, duration = Short)
@@ -265,8 +270,17 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     onViewTransactions = { bankId, accountId ->
                         navController.navigate(TransactionsRoute(bankId = bankId, accountId = accountId))
                     },
+                    onOpenSettings = { navController.navigate(PfmSettingsRoute) },
                     onBack = navController::popBackStack,
                 )
+            }
+
+            composableWithStayTransitions<PfmSettingsRoute> {
+                PfmSettingsScreen(onBack = navController::popBackStack)
+            }
+
+            composableWithStayTransitions<BusinessInsightsRoute> {
+                BusinessInsightsScreen(onBack = navController::popBackStack)
             }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).

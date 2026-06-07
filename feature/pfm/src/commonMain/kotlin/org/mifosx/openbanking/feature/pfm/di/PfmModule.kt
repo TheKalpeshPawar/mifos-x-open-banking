@@ -11,13 +11,22 @@ package org.mifosx.openbanking.feature.pfm.di
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.pfm.settings.PfmSettingsViewModel
 import org.mifosx.openbanking.feature.pfm.ui.PfmDashboardViewModel
 
 val PfmModule = module {
     viewModel {
         PfmDashboardViewModel(
             transactionsRepository = get(),
-            accountsRepository = get(),
+            pfmAccountsService = get(),
+            fxConverter = get(),
+            budgetsRepository = get(),
+            userPreferencesRepository = get(),
+        )
+    }
+    viewModel {
+        PfmSettingsViewModel(
+            pfmAccountsService = get(),
             budgetsRepository = get(),
             userPreferencesRepository = get(),
         )
