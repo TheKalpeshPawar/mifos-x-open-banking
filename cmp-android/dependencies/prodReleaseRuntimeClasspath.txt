@@ -24,10 +24,13 @@
 :feature:beneficiaries
 :feature:business-insights
 :feature:cards
+:feature:direct-debits
 :feature:fx-rates
 :feature:home
+:feature:legal
 :feature:login
 :feature:pfm
+:feature:products
 :feature:profile
 :feature:send-money
 :feature:settings
