@@ -29,6 +29,10 @@ data class PfmBudgets(
 interface BudgetsRepository {
     suspend fun budgets(): Result<PfmBudgets>
     suspend fun saveBudget(categoryId: String, amount: Double): Result<Unit>
+
+    /** Persisted base currency for the unified personal dashboard, or null when never set. */
+    suspend fun baseCurrency(): Result<String?>
+    suspend fun saveBaseCurrency(code: String): Result<Unit>
 }
 
 class BudgetsRepositoryImpl(
@@ -56,6 +60,19 @@ class BudgetsRepositoryImpl(
             UserAttributeRequest(name = "$PREFIX$categoryId", value = formatAmount(amount)),
         ).toResult().map { }
 
+    override suspend fun baseCurrency(): Result<String?> =
+        api.listPersonalDataFields().toResult().map { response ->
+            response.userAttributes
+                .filter { it.name == BASE_CURRENCY }
+                .maxByOrNull { it.insertDate }
+                ?.value?.takeIf { it.isNotBlank() }
+        }
+
+    override suspend fun saveBaseCurrency(code: String): Result<Unit> =
+        api.createPersonalDataField(
+            UserAttributeRequest(name = BASE_CURRENCY, value = code),
+        ).toResult().map { }
+
     private fun formatAmount(amount: Double): String {
         val cents = kotlin.math.round(amount * 100).toLong()
         return "${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
@@ -64,5 +81,6 @@ class BudgetsRepositoryImpl(
     companion object {
         const val PREFIX = "pfm_budget_"
         const val OVERALL = "overall"
+        const val BASE_CURRENCY = "pfm_base_currency"
     }
 }

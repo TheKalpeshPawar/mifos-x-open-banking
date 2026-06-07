@@ -97,4 +97,31 @@ class BudgetsRepositoryTest {
         assertEquals("350.00", api.lastRequest?.value)
         assertEquals("STRING", api.lastRequest?.type)
     }
+
+    @Test
+    fun baseCurrencyReadsNewestRow() = runTest {
+        val api = FakeUserAttributesApi(
+            attributes = listOf(
+                UserAttribute(name = "pfm_base_currency", value = "EUR", insertDate = "2026-06-01T00:00:00Z"),
+                UserAttribute(name = "pfm_base_currency", value = "GBP", insertDate = "2026-06-05T00:00:00Z"),
+            ),
+        )
+        assertEquals("GBP", BudgetsRepositoryImpl(api).baseCurrency().getOrThrow())
+    }
+
+    @Test
+    fun baseCurrencyNullWhenNeverSet() = runTest {
+        val api = FakeUserAttributesApi(
+            attributes = listOf(UserAttribute(name = "pfm_budget_bills", value = "300.00")),
+        )
+        assertNull(BudgetsRepositoryImpl(api).baseCurrency().getOrThrow())
+    }
+
+    @Test
+    fun saveBaseCurrencyPostsDedicatedField() = runTest {
+        val api = FakeUserAttributesApi()
+        BudgetsRepositoryImpl(api).saveBaseCurrency("EUR").getOrThrow()
+        assertEquals("pfm_base_currency", api.lastRequest?.name)
+        assertEquals("EUR", api.lastRequest?.value)
+    }
 }

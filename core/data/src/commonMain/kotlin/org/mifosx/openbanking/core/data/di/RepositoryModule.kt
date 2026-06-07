@@ -18,6 +18,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.data.accounts.PfmAccountsService
 import org.mifosx.openbanking.core.data.accounts.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.agents.AgentsRepository
 import org.mifosx.openbanking.core.data.agents.AgentsRepositoryImpl
@@ -39,6 +40,7 @@ import org.mifosx.openbanking.core.data.customers.CustomersRepository
 import org.mifosx.openbanking.core.data.customers.CustomersRepositoryImpl
 import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepositoryImpl
+import org.mifosx.openbanking.core.data.fx.FxConverter
 import org.mifosx.openbanking.core.data.fx.FxRepository
 import org.mifosx.openbanking.core.data.fx.FxRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
@@ -154,6 +156,8 @@ val DataModule = module {
     }
     single<BanksRepository> { BanksRepositoryImpl(api = get()) }
     single<FxRepository> { FxRepositoryImpl(api = get(), config = get()) }
+    single { FxConverter(fxRepository = get()) }
+    single { PfmAccountsService(accountsRepository = get()) }
     single<AtmRepository> {
         AtmRepositoryImpl(
             api = get(),

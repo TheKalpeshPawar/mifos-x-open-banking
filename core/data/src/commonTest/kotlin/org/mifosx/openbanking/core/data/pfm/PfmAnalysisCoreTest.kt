@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-package org.mifosx.openbanking.feature.pfm.ui
+package org.mifosx.openbanking.core.data.pfm
 
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
@@ -16,6 +16,8 @@ import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionAttribute
 import org.mifosx.openbanking.core.model.obp.TransactionCounterparty
 import org.mifosx.openbanking.core.model.obp.TransactionDetails
+import org.mifosx.openbanking.core.model.pfm.BUSINESS_TAXONOMY
+import org.mifosx.openbanking.core.model.pfm.PfmPeriod
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,20 +30,19 @@ private fun txn(
     description: String = "Payment",
     holder: String = "Acme Ltd",
     typeCode: String? = "POS",
+    currency: String = "EUR",
 ) = Transaction(
     id = "$holder-$date-$amount",
     otherAccount = TransactionCounterparty(holder = CounterpartyHolder(name = holder)),
     details = TransactionDetails(
         description = description,
         completed = "${date}T10:00:00Z",
-        value = AmountOfMoney(currency = "EUR", amount = amount),
+        value = AmountOfMoney(currency = currency, amount = amount),
     ),
     transactionAttributes = typeCode?.let { listOf(TransactionAttribute("TXN_TYPE", "STRING", it)) }.orEmpty(),
 )
 
-class PfmAnalysisTest {
-
-    // ── periodRange ──────────────────────────────────────────────────────────
+class PfmAnalysisCoreTest {
 
     @Test
     fun periodRange_thisMonth() {
@@ -64,8 +65,6 @@ class PfmAnalysisTest {
         assertEquals(TODAY, end)
     }
 
-    // ── categorize ───────────────────────────────────────────────────────────
-
     @Test
     fun categorize_keywordsBeatTxnType() {
         assertEquals("food-dining", categorize(txn("-10.00", description = "Tesco groceries")).id)
@@ -84,7 +83,19 @@ class PfmAnalysisTest {
         assertEquals("other", categorize(txn("-20.00", typeCode = null)).id)
     }
 
-    // ── analyze ──────────────────────────────────────────────────────────────
+    @Test
+    fun categorize_businessTaxonomyKeywords() {
+        fun bizCategory(description: String, holder: String = "Acme Ltd", typeCode: String = "SANDBOX_TAN"): String {
+            val transaction = txn("-100.00", description = description, holder = holder, typeCode = typeCode)
+            return categorize(transaction, BUSINESS_TAXONOMY).id
+        }
+
+        assertEquals("payroll-contractors", bizCategory("Payroll April"))
+        assertEquals("tax", bizCategory("VAT payment Q1"))
+        assertEquals("rent-facilities", bizCategory("Office rent April"))
+        assertEquals("software-subscriptions", bizCategory("SaaS subscriptions"))
+        assertEquals("other", bizCategory("Card payment", holder = "x", typeCode = "COUNTERPARTY"))
+    }
 
     @Test
     fun analyze_summarySpentReceivedNet() {
@@ -142,7 +153,24 @@ class PfmAnalysisTest {
         assertEquals("Merchant 1", insights.topMerchants.first().name)
         assertEquals(40.0, insights.topMerchants.first().amount)
         assertEquals(2, insights.topMerchants.first().count)
-        // Credits never count as merchants.
         assertTrue(insights.topMerchants.none { it.name == "Employer" })
+    }
+
+    @Test
+    fun analyze_amountOfHookConvertsCurrency() {
+        val rate = 1.16278
+        val insights = analyze(
+            transactions = listOf(
+                txn("-100.00", currency = "GBP"),
+                txn("-50.00", currency = "EUR"),
+            ),
+            start = LocalDate(2026, 6, 1),
+            end = TODAY,
+            amountOf = { txn ->
+                val native = txn.details.value.amount.toDoubleOrNull() ?: 0.0
+                if (txn.details.value.currency == "GBP") native * rate else native
+            },
+        )
+        assertEquals(100.0 * rate + 50.0, insights.summary.spent, absoluteTolerance = 0.001)
     }
 }
