@@ -25,6 +25,7 @@
 :feature:cards
 :feature:home
 :feature:login
+:feature:pfm
 :feature:profile
 :feature:send-money
 :feature:settings
