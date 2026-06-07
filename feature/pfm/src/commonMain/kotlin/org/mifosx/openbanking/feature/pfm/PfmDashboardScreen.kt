@@ -24,9 +24,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -60,6 +62,7 @@ import kotlinx.datetime.todayIn
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.pfm.PfmPeriod
 import org.mifosx.openbanking.core.ui.datepicker.DateRangePickerDialog
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.pfm.ui.PfmContent
 import org.mifosx.openbanking.feature.pfm.ui.PfmDashboardViewModel
 import template.core.base.store.screen.ScreenState
@@ -138,10 +141,11 @@ private fun PfmDashboardContent(
     viewModel: PfmDashboardViewModel,
     onViewTransactions: (String, String) -> Unit,
 ) {
+    var showAccountPicker by remember { mutableStateOf(false) }
     var showRangePicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        PfmScopeLine(accountCount = content.accountCount, baseCurrency = content.currency)
+        PfmScopeChip(content, onClick = { showAccountPicker = true })
         PfmPeriodChips(
             selected = content.period,
             onSelect = viewModel::onPeriodSelected,
@@ -175,6 +179,23 @@ private fun PfmDashboardContent(
         }
     }
 
+    if (showAccountPicker) {
+        AccountPickerBottomSheet(
+            accounts = content.accounts,
+            selectedAccountId = content.selectedAccountId.orEmpty(),
+            onAccountSelected = { account ->
+                showAccountPicker = false
+                viewModel.onAccountFilterSelected(account.accountIdOrId)
+            },
+            onDismiss = { showAccountPicker = false },
+            title = "Insights for",
+            allOptionLabel = "All personal accounts",
+            onAllSelected = {
+                showAccountPicker = false
+                viewModel.onAccountFilterSelected(null)
+            },
+        )
+    }
     if (showRangePicker) {
         val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
         DateRangePickerDialog(
@@ -189,16 +210,26 @@ private fun PfmDashboardContent(
 }
 
 @Composable
-private fun PfmScopeLine(accountCount: Int, baseCurrency: String) {
-    val accountsLabel = if (accountCount == 1) "1 account" else "$accountCount accounts"
-    Text(
-        text = "All personal accounts · $accountsLabel · $baseCurrency",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .padding(horizontal = 20.dp, vertical = 4.dp)
-            .testTag(PfmDashboardTestTags.ACCOUNT_SELECTOR),
-    )
+private fun PfmScopeChip(content: PfmContent, onClick: () -> Unit) {
+    val accountsLabel = if (content.accountCount == 1) "1 account" else "${content.accountCount} accounts"
+    val label = if (content.selectedAccountId == null) {
+        "${content.scopeLabel} · $accountsLabel · ${content.currency}"
+    } else {
+        "${content.scopeLabel} · ${content.currency}"
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+    ) {
+        AssistChip(
+            onClick = onClick,
+            label = { Text(label) },
+            trailingIcon = {
+                Icon(Icons.Filled.ExpandMore, contentDescription = "Choose insights scope")
+            },
+            modifier = Modifier.testTag(PfmDashboardTestTags.ACCOUNT_SELECTOR),
+        )
+    }
 }
 
 @Composable

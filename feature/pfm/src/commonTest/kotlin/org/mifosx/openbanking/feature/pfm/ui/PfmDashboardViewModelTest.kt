@@ -326,6 +326,36 @@ class PfmDashboardViewModelTest {
     }
 
     @Test
+    fun accountFilter_reprojectsSingleAccountWithoutRefetch() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            resultsByAccount = mapOf(
+                "acc-1" to Result.success(listOf(pfmTxn("-40.00", holder = "Tesco", description = "Tesco"))),
+                "acc-2" to Result.success(listOf(pfmTxn("-60.00", holder = "Netflix"))),
+            ),
+        )
+        val accounts = PfmFakeAccountsRepository(
+            Result.success(listOf(account("acc-1"), account("acc-2"))),
+        )
+        val model = vm(transactions, accounts)
+        content(model)
+        model.onAccountFilterSelected("acc-2")
+        advanceUntilIdle()
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertEquals("acc-2", c.selectedAccountId)
+        assertEquals("Account acc-2", c.scopeLabel)
+        assertEquals(60.0, c.summary.spent)
+        assertEquals("acc-2", c.navAccountId)
+        assertEquals(2, transactions.fetches)
+
+        model.onAccountFilterSelected(null)
+        advanceUntilIdle()
+        val all = (model.uiState.value as ScreenState.Content).data
+        assertNull(all.selectedAccountId)
+        assertEquals(100.0, all.summary.spent)
+        assertEquals(2, transactions.fetches)
+    }
+
+    @Test
     fun transfers_appearInCategoriesButNeverInBudgetRows() = runTest(dispatcher) {
         val transactions = PfmFakeTransactionsRepository(
             Result.success(listOf(pfmTxn("-500.00", typeCode = "TFR", description = "To savings"))),
@@ -392,6 +422,27 @@ class PfmDashboardViewModelTest {
         val food = c.budgetRows.first { it.categoryId == "food-dining" }
         assertEquals(150.0, food.limit)
         assertEquals(50, food.percent)
+    }
+
+    @Test
+    fun budgetMeter_ignoresTransfersAndUntaggedButCountsCash() = runTest(dispatcher) {
+        val transactions = PfmFakeTransactionsRepository(
+            Result.success(
+                listOf(
+                    pfmTxn("-75.00", description = "Tesco groceries"),
+                    pfmTxn("-500.00", typeCode = "TFR", description = "To savings"),
+                    pfmTxn("-40.00", typeCode = null, description = "Mystery payment", holder = "zz"),
+                    pfmTxn("-60.00", typeCode = "ATM", description = "Cash withdrawal", holder = "zz"),
+                ),
+            ),
+        )
+        val budgets = PfmFakeBudgetsRepository(
+            Result.success(PfmBudgets(overallLimit = 1000.0)),
+        )
+        val c = content(vm(transactions, budgets = budgets))
+        assertEquals(675.0, c.summary.spent)
+        assertEquals(135.0, c.overallBudget?.spent)
+        assertEquals(14, c.overallBudget?.percent)
     }
 
     @Test

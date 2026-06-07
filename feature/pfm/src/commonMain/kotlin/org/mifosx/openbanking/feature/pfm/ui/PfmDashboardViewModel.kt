@@ -107,6 +107,11 @@ class PfmDashboardViewModel(
         selection.update { it.copy(period = PfmPeriod.CUSTOM, customStart = start, customEnd = end) }
     }
 
+    /** Scopes the dashboard to one personal account (null = all) — pure reprojection, no refetch. */
+    fun onAccountFilterSelected(accountId: String?) {
+        selection.update { it.copy(accountId = accountId) }
+    }
+
     fun onSaveBudget(categoryId: String, amountText: String) {
         val amount = amountText.trim().toDoubleOrNull()
         if (amount == null || amount <= 0) {
@@ -141,17 +146,16 @@ class PfmDashboardViewModel(
             val perAccount = coroutineScope {
                 personal.map { account ->
                     async {
-                        transactionsRepository
+                        account.accountIdOrId to transactionsRepository
                             .listTransactionsWithAttributes(account.bankId, account.accountIdOrId)
                             .getOrElse { emptyList() }
                     }
                 }.awaitAll()
-            }
+            }.toMap()
             val defaultAccount = resolveDefaultAccount(personal)
             val baseCurrency = budgetsRepository.baseCurrency().getOrNull()
                 ?: defaultAccount.balance.currency.ifBlank { "EUR" }
-            val transactions = perAccount.flatten()
-            val rateByCurrency = transactions
+            val rateByCurrency = perAccount.values.flatten()
                 .map { it.details.value.currency }
                 .distinct()
                 .filter { it.isNotBlank() }
@@ -163,7 +167,7 @@ class PfmDashboardViewModel(
             rawState.value = RawState.Loaded(
                 personalAccounts = personal,
                 defaultAccount = defaultAccount,
-                transactions = transactions,
+                transactionsByAccount = perAccount,
                 budgets = budgets,
                 baseCurrency = baseCurrency,
                 rateByCurrency = rateByCurrency,
@@ -182,42 +186,58 @@ class PfmDashboardViewModel(
     private fun project(raw: RawState, sel: Selection): ScreenState<PfmContent> = when (raw) {
         is RawState.Loading -> ScreenState.Loading
         is RawState.Failed -> ScreenState.Error(raw.error)
-        is RawState.Loaded -> {
-            val today = todayProvider()
-            val (start, end) = if (sel.period == PfmPeriod.CUSTOM && sel.customStart != null && sel.customEnd != null) {
-                sel.customStart to sel.customEnd
-            } else {
-                periodRange(sel.period, today)
-            }
-            val amountOf: (Transaction) -> Double = { txn ->
-                val native = txn.details.value.amount.toDoubleOrNull() ?: 0.0
-                native * (raw.rateByCurrency[txn.details.value.currency] ?: 1.0)
-            }
-            val insights = analyze(raw.transactions, start, end, PERSONAL_TAXONOMY, amountOf)
-            ScreenState.Content(
-                data = PfmContent(
-                    accountCount = raw.personalAccounts.size,
-                    navBankId = raw.defaultAccount.bankId,
-                    navAccountId = raw.defaultAccount.accountIdOrId,
-                    period = sel.period,
-                    periodLabel = periodLabel(sel.period, start, end),
-                    currency = raw.baseCurrency,
-                    summary = insights.summary,
-                    categories = insights.categories,
-                    budgetRows = budgetRows(insights, raw.budgets),
-                    overallBudget = raw.budgets.overallLimit?.let { limit ->
-                        OverallBudget(
-                            spent = insights.summary.spent,
-                            limit = limit,
-                            percent = percentOf(insights.summary.spent, limit),
-                        )
-                    },
-                    topMerchants = insights.topMerchants,
-                    hasActivity = insights.summary.spent > 0 || insights.summary.received > 0,
-                ),
-                freshness = DataFreshness.FRESH,
-            )
+        is RawState.Loaded -> ScreenState.Content(
+            data = loadedContent(raw, sel),
+            freshness = DataFreshness.FRESH,
+        )
+    }
+
+    private fun loadedContent(raw: RawState.Loaded, sel: Selection): PfmContent {
+        val today = todayProvider()
+        val (start, end) = if (sel.period == PfmPeriod.CUSTOM && sel.customStart != null && sel.customEnd != null) {
+            sel.customStart to sel.customEnd
+        } else {
+            periodRange(sel.period, today)
         }
+        val amountOf: (Transaction) -> Double = { txn ->
+            val native = txn.details.value.amount.toDoubleOrNull() ?: 0.0
+            native * (raw.rateByCurrency[txn.details.value.currency] ?: 1.0)
+        }
+        val filteredAccount = sel.accountId?.let { id ->
+            raw.personalAccounts.firstOrNull { it.accountIdOrId == id }
+        }
+        val transactions = filteredAccount
+            ?.let { raw.transactionsByAccount[it.accountIdOrId].orEmpty() }
+            ?: raw.transactionsByAccount.values.flatten()
+        val insights = analyze(transactions, start, end, PERSONAL_TAXONOMY, amountOf)
+        val budgetMeterSpent = insights.summary.spent - insights.categories
+            .filter { it.id in BUDGET_METER_EXCLUDED }
+            .sumOf { it.amount }
+        val navAccount = filteredAccount ?: raw.defaultAccount
+        return PfmContent(
+            accounts = raw.personalAccounts,
+            selectedAccountId = filteredAccount?.accountIdOrId,
+            scopeLabel = filteredAccount?.label?.ifBlank { "Account" }
+                ?: "All personal accounts",
+            accountCount = raw.personalAccounts.size,
+            navBankId = navAccount.bankId,
+            navAccountId = navAccount.accountIdOrId,
+            period = sel.period,
+            periodLabel = periodLabel(sel.period, start, end),
+            currency = raw.baseCurrency,
+            summary = insights.summary,
+            categories = insights.categories,
+            budgetRows = budgetRows(insights, raw.budgets),
+            overallBudget = raw.budgets.overallLimit?.let { limit ->
+                OverallBudget(
+                    spent = budgetMeterSpent,
+                    limit = limit,
+                    percent = percentOf(budgetMeterSpent, limit),
+                )
+            },
+            topMerchants = insights.topMerchants,
+            hasActivity = insights.summary.spent > 0 || insights.summary.received > 0,
+        )
     }
 
     private fun budgetRows(insights: PfmInsights, budgets: PfmBudgets): List<BudgetRow> =
@@ -237,6 +257,7 @@ class PfmDashboardViewModel(
         val period: PfmPeriod = PfmPeriod.THIS_MONTH,
         val customStart: LocalDate? = null,
         val customEnd: LocalDate? = null,
+        val accountId: String? = null,
     )
 
     private sealed interface RawState {
@@ -245,7 +266,7 @@ class PfmDashboardViewModel(
         data class Loaded(
             val personalAccounts: List<Account>,
             val defaultAccount: Account,
-            val transactions: List<Transaction>,
+            val transactionsByAccount: Map<String, List<Transaction>>,
             val budgets: PfmBudgets,
             val baseCurrency: String,
             val rateByCurrency: Map<String, Double?>,
@@ -256,12 +277,23 @@ class PfmDashboardViewModel(
         /** Categories that can carry a budget — taxonomy-driven exclusion set. */
         internal val BUDGET_CATEGORIES = PERSONAL_TAXONOMY.categories
             .filter { it.id !in PERSONAL_TAXONOMY.budgetExcludedIds }
+
+        /**
+         * Categories whose spend never counts toward the monthly budget meter: moving money
+         * between own accounts and uncategorised noise are not lifestyle spending. Narrower
+         * than [PERSONAL_TAXONOMY]'s budget-row exclusions — ATM cash withdrawals stay in
+         * the meter because that money does leave the household.
+         */
+        internal val BUDGET_METER_EXCLUDED = setOf("transfers", "other")
     }
 }
 
 /** Loaded content for the Spending Insights dashboard. */
 @Immutable
 data class PfmContent(
+    val accounts: List<Account>,
+    val selectedAccountId: String?,
+    val scopeLabel: String,
     val accountCount: Int,
     val navBankId: String,
     val navAccountId: String,
