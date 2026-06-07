@@ -17,10 +17,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import org.mifosx.openbanking.feature.transactions.categoryLabel
+import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.feature.transactions.formatDate
 import org.mifosx.openbanking.feature.transactions.formatSigned
 import org.mifosx.openbanking.feature.transactions.formatUnsigned
@@ -37,6 +39,7 @@ import template.core.base.store.screen.ScreenState
 class TransactionDetailViewModel(
     private val transactionsRepository: TransactionsRepository,
     private val paymentsRepository: PaymentsRepository,
+    private val counterpartyNameResolver: CounterpartyNameResolver,
     private val bankId: String,
     private val accountId: String,
     private val transactionId: String,
@@ -64,7 +67,15 @@ class TransactionDetailViewModel(
         state.value = ScreenState.Loading
         viewModelScope.launch {
             transactionsRepository.getTransaction(bankId, accountId, transactionId)
-                .onSuccess { state.value = ScreenState.Content(it.toDetailContent(), DataFreshness.FRESH) }
+                .onSuccess { txn ->
+                    val names = runCatching {
+                        counterpartyNameResolver.resolve(bankId, accountId, listOf(txn))
+                    }.getOrDefault(emptyMap())
+                    val placeholder = runCatching {
+                        counterpartyNameResolver.placeholderHolder()
+                    }.getOrDefault("")
+                    state.value = ScreenState.Content(txn.toDetailContent(names, placeholder), DataFreshness.FRESH)
+                }
                 .onFailure { state.value = ScreenState.Error(it) }
         }
     }
@@ -100,15 +111,17 @@ data class TransactionDetailContent(
     val narrative: String,
 )
 
-private fun Transaction.toDetailContent(): TransactionDetailContent {
+private fun Transaction.toDetailContent(
+    counterpartyNames: Map<String, String>,
+    counterpartyPlaceholder: String,
+): TransactionDetailContent {
     val value = details.value.amount.toDoubleOrNull() ?: 0.0
     return TransactionDetailContent(
         amount = formatSigned(value, details.value.currency),
         isDebit = value < 0,
         isPending = false,
         statusLabel = "Completed",
-        counterpartyName = otherAccount.holder.name
-            .ifBlank { details.description }
+        counterpartyName = counterpartyDisplayName(this, counterpartyNames, counterpartyPlaceholder)
             .ifBlank { "Payment" },
         category = categoryLabel(this),
         dateTime = formatDateTime(details.completed.ifBlank { details.posted }),

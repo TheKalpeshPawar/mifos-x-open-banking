@@ -359,7 +359,10 @@ private fun TransactionsList(
         content.groups.forEach { group ->
             item(key = "h_${group.date}") { SectionHeader(formatDate(group.date)) }
             items(group.transactions, key = { it.txId }) { txn ->
-                TransactionRow(txn, onClick = { onTransactionClick(txn.txId) })
+                val counterparty =
+                    counterpartyDisplayName(txn, content.counterpartyNames, content.counterpartyPlaceholder)
+                val title = txn.details.description.ifBlank { counterparty }.ifBlank { "Transaction" }
+                TransactionRow(txn, title = title, onClick = { onTransactionClick(txn.txId) })
             }
         }
         if (content.hasMore) {
@@ -429,7 +432,7 @@ private fun PendingRow(pending: PendingPayment, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
+private fun TransactionRow(txn: Transaction, title: String, onClick: () -> Unit) {
     val amount = txn.details.value.amount.toDoubleOrNull() ?: 0.0
     val debit = amount < 0
     Card(
@@ -446,7 +449,7 @@ private fun TransactionRow(txn: Transaction, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    txn.details.description.ifBlank { txn.otherAccount.holder.name.ifBlank { "Transaction" } },
+                    title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,

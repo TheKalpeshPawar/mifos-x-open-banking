@@ -63,6 +63,8 @@ import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepositoryImpl
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolverImpl
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepositoryImpl
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
@@ -111,6 +113,16 @@ val DataModule = module {
             transactionsStore = get(AppStoreRegistry.Transactions),
             networkMonitor = get(),
             fetchedAtRepository = get(),
+        )
+    }
+    single<CounterpartyNameResolver> {
+        CounterpartyNameResolverImpl(
+            accountsRepository = get(),
+            transactionsRepository = get(),
+            customersRepository = get(),
+            profileRepository = get(),
+            dao = get(),
+            json = get(),
         )
     }
     single<TransactionMetadataRepository> { TransactionMetadataRepositoryImpl(api = get()) }

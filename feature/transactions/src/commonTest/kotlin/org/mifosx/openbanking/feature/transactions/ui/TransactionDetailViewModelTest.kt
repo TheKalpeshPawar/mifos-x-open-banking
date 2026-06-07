@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
 import org.mifosx.openbanking.core.model.obp.Counterparty
@@ -156,6 +157,19 @@ private class DetailFakePaymentsRepository(
     ): Result<Boolean> = TODO()
 }
 
+private class DetailFakeCounterpartyNameResolver(
+    private val names: Map<String, String> = emptyMap(),
+    private val placeholder: String = "afternooncoffee",
+) : CounterpartyNameResolver {
+    override suspend fun resolve(
+        bankId: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): Map<String, String> = names
+
+    override suspend fun placeholderHolder(): String = placeholder
+}
+
 class TransactionDetailViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -171,9 +185,11 @@ class TransactionDetailViewModelTest {
         paymentsRepository: DetailFakePaymentsRepository = DetailFakePaymentsRepository(),
         transactionId: String = "tx-1",
         requestId: String = "",
+        counterpartyNames: Map<String, String> = emptyMap(),
     ) = TransactionDetailViewModel(
         transactionsRepository = repository,
         paymentsRepository = paymentsRepository,
+        counterpartyNameResolver = DetailFakeCounterpartyNameResolver(counterpartyNames),
         bankId = "ac.bank.uk",
         accountId = "ac.checking.0130",
         transactionId = transactionId,
@@ -223,6 +239,26 @@ class TransactionDetailViewModelTest {
             vm(DetailFakeTransactionsRepository(Result.success(detailTxn(holder = "")))),
         )
         assertEquals("Weekly groceries", c.counterpartyName)
+    }
+
+    @Test
+    fun load_placeholderHolderResolvesToDestinationHolderName() = runTest(dispatcher) {
+        val transfer = detailTxn(holder = "afternooncoffee", description = "Monthly savings transfer")
+            .let { it.copy(otherAccount = it.otherAccount.copy(id = "obf-savings")) }
+        val c = content(
+            vm(
+                DetailFakeTransactionsRepository(Result.success(transfer)),
+                counterpartyNames = mapOf("obf-savings" to "Alice Johnson"),
+            ),
+        )
+        assertEquals("Alice Johnson", c.counterpartyName)
+    }
+
+    @Test
+    fun load_unresolvedPlaceholderFallsBackToDescriptionNeverUsername() = runTest(dispatcher) {
+        val transfer = detailTxn(holder = "afternooncoffee", description = "Netflix Subscription")
+        val c = content(vm(DetailFakeTransactionsRepository(Result.success(transfer))))
+        assertEquals("Netflix Subscription", c.counterpartyName)
     }
 
     @Test

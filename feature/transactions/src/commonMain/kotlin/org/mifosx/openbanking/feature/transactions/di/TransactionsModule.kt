@@ -21,6 +21,7 @@ val TransactionsModule = module {
             transactionsRepository = get(),
             paymentsRepository = get(),
             accountsRepository = get(),
+            counterpartyNameResolver = get(),
             bankId = params.get(0),
             accountId = params.get(1),
         )
@@ -29,6 +30,7 @@ val TransactionsModule = module {
         TransactionDetailViewModel(
             transactionsRepository = get(),
             paymentsRepository = get(),
+            counterpartyNameResolver = get(),
             bankId = params.get(0),
             accountId = params.get(1),
             transactionId = params.get(2),
@@ -39,6 +41,7 @@ val TransactionsModule = module {
         TransactionTagsViewModel(
             metadataRepository = get(),
             transactionsRepository = get(),
+            counterpartyNameResolver = get(),
             bankId = params.get(0),
             accountId = params.get(1),
             transactionId = params.get(2),

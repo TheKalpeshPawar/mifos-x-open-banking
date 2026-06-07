@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataSnapshot
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
@@ -110,6 +111,19 @@ private class TagsFakeMetadataRepository(
     }
 }
 
+private class TagsFakeCounterpartyNameResolver(
+    private val names: Map<String, String> = emptyMap(),
+    private val placeholder: String = "afternooncoffee",
+) : CounterpartyNameResolver {
+    override suspend fun resolve(
+        bankId: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): Map<String, String> = names
+
+    override suspend fun placeholderHolder(): String = placeholder
+}
+
 class TransactionTagsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -126,6 +140,7 @@ class TransactionTagsViewModelTest {
     ) = TransactionTagsViewModel(
         metadataRepository = metadata,
         transactionsRepository = transactions,
+        counterpartyNameResolver = TagsFakeCounterpartyNameResolver(),
         bankId = "ac.bank.uk",
         accountId = "ac.checking.001",
         transactionId = "tx-1",

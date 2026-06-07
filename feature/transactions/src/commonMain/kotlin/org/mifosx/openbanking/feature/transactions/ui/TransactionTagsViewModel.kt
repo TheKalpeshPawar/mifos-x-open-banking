@@ -16,8 +16,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.feature.transactions.formatSigned
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
@@ -30,6 +32,7 @@ import template.core.base.store.screen.ScreenState
 class TransactionTagsViewModel(
     private val metadataRepository: TransactionMetadataRepository,
     private val transactionsRepository: TransactionsRepository,
+    private val counterpartyNameResolver: CounterpartyNameResolver,
     private val bankId: String,
     private val accountId: String,
     private val transactionId: String,
@@ -126,10 +129,13 @@ class TransactionTagsViewModel(
                     return@launch
                 }
             val value = transaction.details.value.amount.toDoubleOrNull() ?: 0.0
+            val names = runCatching {
+                counterpartyNameResolver.resolve(bankId, accountId, listOf(transaction))
+            }.getOrDefault(emptyMap())
+            val placeholder = runCatching { counterpartyNameResolver.placeholderHolder() }.getOrDefault("")
             state.value = ScreenState.Content(
                 data = TransactionTagsContent(
-                    merchant = transaction.otherAccount.holder.name
-                        .ifBlank { transaction.details.description }
+                    merchant = counterpartyDisplayName(transaction, names, placeholder)
                         .ifBlank { "Transaction" },
                     amount = formatSigned(value, transaction.details.value.currency),
                     isDebit = value < 0,

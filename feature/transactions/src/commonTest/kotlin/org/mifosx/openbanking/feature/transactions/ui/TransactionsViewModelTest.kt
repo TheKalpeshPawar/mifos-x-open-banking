@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
@@ -50,9 +51,10 @@ private fun txn(
     description: String = "Txn $id",
     holder: String = "Acme Ltd",
     typeCode: String? = "POS",
+    otherId: String = "",
 ) = Transaction(
     id = id,
-    otherAccount = TransactionCounterparty(holder = CounterpartyHolder(name = holder)),
+    otherAccount = TransactionCounterparty(id = otherId, holder = CounterpartyHolder(name = holder)),
     details = TransactionDetails(
         description = description,
         completed = "${date}T00:00:00Z",
@@ -153,6 +155,19 @@ private class TxnFakeAccountsRepository(
     override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = account
 }
 
+private class TxnFakeCounterpartyNameResolver(
+    private val names: Map<String, String> = emptyMap(),
+    private val placeholder: String = "afternooncoffee",
+) : CounterpartyNameResolver {
+    override suspend fun resolve(
+        bankId: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): Map<String, String> = names
+
+    override suspend fun placeholderHolder(): String = placeholder
+}
+
 class TransactionsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -167,12 +182,14 @@ class TransactionsViewModelTest {
         transactions: List<Transaction> = emptyList(),
         requests: List<TransactionRequestSummary> = emptyList(),
         transactionsResult: Result<List<Transaction>>? = null,
+        counterpartyNames: Map<String, String> = emptyMap(),
     ) = TransactionsViewModel(
         transactionsRepository = TxnFakeTransactionsRepository(
             transactionsResult ?: Result.success(transactions),
         ),
         paymentsRepository = TxnFakePaymentsRepository(Result.success(requests)),
         accountsRepository = TxnFakeAccountsRepository(),
+        counterpartyNameResolver = TxnFakeCounterpartyNameResolver(counterpartyNames),
         bankId = "ac.bank.uk",
         accountId = "ac.checking.001",
         todayProvider = { TODAY },
@@ -285,6 +302,40 @@ class TransactionsViewModelTest {
         advanceUntilIdle()
         c = (model.uiState.value as ScreenState.Content).data
         assertEquals(listOf("t2"), c.groups.flatMap { it.transactions }.map { it.txId })
+    }
+
+    @Test
+    fun search_matchesResolvedCounterpartyButNeverThePlaceholder() = runTest(dispatcher) {
+        val model = vm(
+            transactions = listOf(
+                txn(
+                    "t1",
+                    "-200.00",
+                    "2026-06-04",
+                    description = "Monthly transfer",
+                    holder = "afternooncoffee",
+                    otherId = "obf-alice",
+                ),
+                txn(
+                    "t2",
+                    "-9.99",
+                    "2026-06-03",
+                    description = "Subscription",
+                    holder = "afternooncoffee",
+                    otherId = "obf-ext",
+                ),
+            ),
+            counterpartyNames = mapOf("obf-alice" to "Alice Johnson"),
+        )
+        content(model)
+        model.onQueryChanged("alice")
+        advanceUntilIdle()
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertEquals(listOf("t1"), c.groups.flatMap { it.transactions }.map { it.txId })
+
+        model.onQueryChanged("afternooncoffee")
+        advanceUntilIdle()
+        assertTrue(model.uiState.value is ScreenState.Empty)
     }
 
     @Test

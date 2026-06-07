@@ -26,9 +26,11 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
+import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
 import kotlin.time.Clock
@@ -94,6 +96,7 @@ class TransactionsViewModel(
     private val transactionsRepository: TransactionsRepository,
     private val paymentsRepository: PaymentsRepository,
     private val accountsRepository: AccountsRepository,
+    private val counterpartyNameResolver: CounterpartyNameResolver,
     private val bankId: String,
     private val accountId: String,
     private val todayProvider: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
@@ -148,7 +151,17 @@ class TransactionsViewModel(
             val currency = accountsRepository.accountDetail(bankId, accountId)
                 .getOrNull()?.balance?.currency?.takeIf { it.isNotBlank() }
                 ?: transactions.firstOrNull()?.details?.value?.currency.orEmpty().ifBlank { "EUR" }
-            rawState.value = RawState.Loaded(transactions, requests.filter { it.isPending }, currency)
+            val counterpartyNames = runCatching {
+                counterpartyNameResolver.resolve(bankId, accountId, transactions)
+            }.getOrDefault(emptyMap())
+            val placeholder = runCatching { counterpartyNameResolver.placeholderHolder() }.getOrDefault("")
+            rawState.value = RawState.Loaded(
+                transactions = transactions,
+                pendingRequests = requests.filter { it.isPending },
+                currency = currency,
+                counterpartyNames = counterpartyNames,
+                counterpartyPlaceholder = placeholder,
+            )
         }
     }
 
@@ -178,6 +191,8 @@ class TransactionsViewModel(
                 range = f.range,
                 query = f.query,
                 hasMore = booked.size > visible.size,
+                counterpartyNames = raw.counterpartyNames,
+                counterpartyPlaceholder = raw.counterpartyPlaceholder,
             ),
             freshness = DataFreshness.FRESH,
         )
@@ -206,11 +221,8 @@ class TransactionsViewModel(
             }
             .filter { t -> inRange(t.completedDate, f.range) }
             .filter { t ->
-                matches(
-                    "${t.details.description} ${t.otherAccount.holder.name}",
-                    t.details.value.amount,
-                    f.query,
-                )
+                val counterparty = counterpartyDisplayName(t, raw.counterpartyNames, raw.counterpartyPlaceholder)
+                matches("${t.details.description} $counterparty", t.details.value.amount, f.query)
             }
             .sortedByDescending { it.details.completed }
     }
@@ -268,6 +280,8 @@ class TransactionsViewModel(
             val transactions: List<Transaction>,
             val pendingRequests: List<TransactionRequestSummary>,
             val currency: String,
+            val counterpartyNames: Map<String, String> = emptyMap(),
+            val counterpartyPlaceholder: String = "",
         ) : RawState
     }
 
@@ -291,6 +305,8 @@ data class TransactionsContent(
     val range: DateRangeFilter,
     val query: String,
     val hasMore: Boolean,
+    val counterpartyNames: Map<String, String> = emptyMap(),
+    val counterpartyPlaceholder: String = "",
 )
 
 /** The transaction's booked date (completed timestamp), or null when unparseable. */
