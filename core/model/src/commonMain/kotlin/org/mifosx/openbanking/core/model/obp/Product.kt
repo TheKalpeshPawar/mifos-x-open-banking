@@ -12,13 +12,17 @@ package org.mifosx.openbanking.core.model.obp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** OBP bank product. */
+/**
+ * OBP bank product. The v3 endpoint returns the display name under `name` and null
+ * `category`/`family` fields on the sandbox — categorisation is derived client-side
+ * from [code] and [name].
+ */
 @Serializable
 data class Product(
     val code: String = "",
     @SerialName("bank_id") val bankId: String = "",
     @SerialName("parent_product_code") val parentProductCode: String = "",
-    val label: String = "",
+    val name: String = "",
     val category: String = "",
     val family: String = "",
     @SerialName("super_family") val superFamily: String = "",

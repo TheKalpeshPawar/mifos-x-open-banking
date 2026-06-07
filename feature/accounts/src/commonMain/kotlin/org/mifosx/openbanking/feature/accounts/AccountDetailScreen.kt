@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -81,6 +82,7 @@ fun AccountDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onViewTransactions: () -> Unit = {},
+    onViewDirectDebits: () -> Unit = {},
     viewModel: AccountDetailViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -123,6 +125,7 @@ fun AccountDetailScreen(
                     content = s.data,
                     onCopy = onCopy,
                     onViewTransactions = onViewTransactions,
+                    onViewDirectDebits = onViewDirectDebits,
                 )
             }
         }
@@ -134,42 +137,24 @@ private fun Loaded(
     content: AccountDetailContent,
     onCopy: (value: String, what: String) -> Unit,
     onViewTransactions: () -> Unit,
+    onViewDirectDebits: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         HeaderCard(content)
 
         GroupLabel("ACTIVITY", topPadding = 20)
-        Surface(
+        ActivityRow(
+            title = "Transaction history",
+            subtitle = "Booked and pending payments",
             onClick = onViewTransactions,
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Transaction history",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        "Booked and pending payments",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+            bottomPadding = 8.dp,
+        )
+        ActivityRow(
+            title = "Direct debits",
+            subtitle = "Mandates collecting from this account",
+            onClick = onViewDirectDebits,
+            bottomPadding = 16.dp,
+        )
 
         GroupLabel("ACCOUNT & ROUTING", topPadding = 8)
         InfoCard {
@@ -253,6 +238,46 @@ private fun HeaderCard(content: AccountDetailContent) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ActivityRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    bottomPadding: Dp,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = bottomPadding),
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

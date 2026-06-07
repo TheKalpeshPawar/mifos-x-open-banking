@@ -27,30 +27,26 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.homeGraph(
-    onTransfer: () -> Unit,
     onAccounts: () -> Unit,
     onStandingOrders: () -> Unit,
     onFindAtm: () -> Unit,
-    onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
-    onDeferred: (String) -> Unit,
+    onProducts: () -> Unit,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
     ) {
         composableWithStayTransitions<HomeRoute> {
             HomeScreen(
-                onTransfer = onTransfer,
                 onAccounts = onAccounts,
                 onStandingOrders = onStandingOrders,
                 onFindAtm = onFindAtm,
-                onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
                 onBusinessInsights = onBusinessInsights,
                 onFxRates = onFxRates,
-                onDeferred = onDeferred,
+                onProducts = onProducts,
             )
         }
     }

@@ -22,10 +22,11 @@ import template.core.base.store.screen.asScreenStream
 
 /** Read access to OBP bank products. */
 interface ProductsRepository {
-    /** Durable, offline-first stream of the bank's products (cache-then-network). */
+    /** Durable, offline-first stream of the default bank's products (cache-then-network). */
     fun productsStream(scope: CoroutineScope): ScreenDataStream<List<Product>>
 
-    suspend fun listProducts(): Result<List<Product>>
+    /** The product catalogue of [bankId] (the configured default bank when blank). */
+    suspend fun listProducts(bankId: String = ""): Result<List<Product>>
 }
 
 class ProductsRepositoryImpl(
@@ -46,6 +47,6 @@ class ProductsRepositoryImpl(
             isEmpty = { it.isEmpty() },
         )
 
-    override suspend fun listProducts(): Result<List<Product>> =
-        api.listProducts(config.bankId).toResult().map { it.products }
+    override suspend fun listProducts(bankId: String): Result<List<Product>> =
+        api.listProducts(bankId.ifBlank { config.bankId }).toResult().map { it.products }
 }

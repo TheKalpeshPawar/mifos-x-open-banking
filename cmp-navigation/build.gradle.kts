@@ -43,6 +43,9 @@ kotlin {
             implementation(projects.feature.pfm)
             implementation(projects.feature.businessInsights)
             implementation(projects.feature.fxRates)
+            implementation(projects.feature.directDebits)
+            implementation(projects.feature.products)
+            implementation(projects.feature.legal)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

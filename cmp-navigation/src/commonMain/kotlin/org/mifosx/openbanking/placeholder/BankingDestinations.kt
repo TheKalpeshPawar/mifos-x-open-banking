@@ -98,7 +98,7 @@ data class StandingOrderDetailRoute(
 
 @Serializable data class StandingOrderEditRoute(val accountId: String = "")
 
-@Serializable data object DirectDebitsRoute
+@Serializable data class DirectDebitsRoute(val bankId: String = "", val accountId: String = "")
 
 @Serializable data object DirectDebitDetailRoute
 
@@ -177,12 +177,12 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     // StandingOrdersRoute + StandingOrderEditRoute + StandingOrderDetailRoute are real
     // feature modules — registered in AuthenticatedNavbarNavigationScreen.
-    composableWithStayTransitions<DirectDebitsRoute> { PlaceholderScreen("Direct debits") }
+    // DirectDebitsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<DirectDebitDetailRoute> { PlaceholderScreen("Direct debit detail") }
     // PfmDashboardRoute + FxRatesRoute are real feature modules — registered in
     // AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
-    composableWithStayTransitions<ProductsRoute> { PlaceholderScreen("Products") }
+    // ProductsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
 
     composableWithStayTransitions<FoDashboardRoute> { PlaceholderScreen("Dashboard") }
@@ -199,9 +199,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<CustomerMessagesRoute> { PlaceholderScreen("Messages") }
 
     composableWithStayTransitions<ChangePasswordRoute> { PlaceholderScreen("Change password") }
-    composableWithStayTransitions<AboutRoute> { PlaceholderScreen("About") }
-    composableWithStayTransitions<TermsOfServiceRoute> { PlaceholderScreen("Terms of service") }
-    composableWithStayTransitions<PrivacyPolicyRoute> { PlaceholderScreen("Privacy policy") }
-    composableWithStayTransitions<LicensesRoute> { PlaceholderScreen("Licenses") }
+    // AboutRoute + TermsOfServiceRoute + PrivacyPolicyRoute + LicensesRoute are real feature
+    // modules — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ForgotPasswordRoute> { PlaceholderScreen("Forgot password") }
 }

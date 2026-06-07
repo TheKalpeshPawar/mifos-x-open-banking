@@ -24,6 +24,7 @@
 :feature:beneficiaries
 :feature:business-insights
 :feature:cards
+:feature:fx-rates
 :feature:home
 :feature:login
 :feature:pfm

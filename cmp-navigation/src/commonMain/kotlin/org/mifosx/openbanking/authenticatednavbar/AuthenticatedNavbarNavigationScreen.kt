@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.SnackbarDuration.Indefinite
-import androidx.compose.material3.SnackbarDuration.Short
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -44,11 +43,17 @@ import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.businessinsights.BusinessInsightsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
+import org.mifosx.openbanking.feature.directdebits.DirectDebitsScreen
 import org.mifosx.openbanking.feature.fxrates.FxRatesScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.legal.AboutScreen
+import org.mifosx.openbanking.feature.legal.LicensesScreen
+import org.mifosx.openbanking.feature.legal.PrivacyPolicyScreen
+import org.mifosx.openbanking.feature.legal.TermsOfServiceScreen
 import org.mifosx.openbanking.feature.pfm.PfmDashboardScreen
 import org.mifosx.openbanking.feature.pfm.settings.PfmSettingsScreen
+import org.mifosx.openbanking.feature.products.ProductsScreen
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
@@ -61,6 +66,7 @@ import org.mifosx.openbanking.feature.standingorders.StandingOrdersScreen
 import org.mifosx.openbanking.feature.transactions.TransactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionTagsScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsScreen
+import org.mifosx.openbanking.placeholder.AboutRoute
 import org.mifosx.openbanking.placeholder.AccountDetailRoute
 import org.mifosx.openbanking.placeholder.AccountsRoute
 import org.mifosx.openbanking.placeholder.AtmLocatorRoute
@@ -68,16 +74,21 @@ import org.mifosx.openbanking.placeholder.BeneficiariesRoute
 import org.mifosx.openbanking.placeholder.BusinessInsightsRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
+import org.mifosx.openbanking.placeholder.DirectDebitsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.FxRatesRoute
+import org.mifosx.openbanking.placeholder.LicensesRoute
 import org.mifosx.openbanking.placeholder.PfmDashboardRoute
 import org.mifosx.openbanking.placeholder.PfmSettingsRoute
+import org.mifosx.openbanking.placeholder.PrivacyPolicyRoute
+import org.mifosx.openbanking.placeholder.ProductsRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
 import org.mifosx.openbanking.placeholder.StandingOrderDetailRoute
 import org.mifosx.openbanking.placeholder.StandingOrderEditRoute
 import org.mifosx.openbanking.placeholder.StandingOrdersRoute
+import org.mifosx.openbanking.placeholder.TermsOfServiceRoute
 import org.mifosx.openbanking.placeholder.TransactionDetailRoute
 import org.mifosx.openbanking.placeholder.TransactionTagsRoute
 import org.mifosx.openbanking.placeholder.TransactionsRoute
@@ -172,20 +183,14 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             homeGraph(
                 // Tab targets switch tabs (navigateToTab) — navigate(route) would push another
                 // tab's destination onto the Home stack, breaking the Home tab button.
-                onTransfer = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
                 onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
                 // Non-tab destinations are genuine pushes.
                 onStandingOrders = { navController.navigate(StandingOrdersRoute) },
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
-                onBeneficiaries = { navController.navigate(BeneficiariesRoute) },
                 onInsights = { navController.navigate(PfmDashboardRoute) },
                 onBusinessInsights = { navController.navigate(BusinessInsightsRoute) },
                 onFxRates = { navController.navigate(FxRatesRoute) },
-                onDeferred = { message ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message = message, duration = Short)
-                    }
-                },
+                onProducts = { navController.navigate(ProductsRoute) },
             )
             profileDestination(
                 onBackClick = navController::popBackStack,
@@ -193,7 +198,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             settingsDestination(
                 onBackClick = navController::popBackStack,
                 onNavigateToProfile = { navController.navigateToProfile() },
+                onNavigateToAbout = { navController.navigate(AboutRoute) },
+                onNavigateToTerms = { navController.navigate(TermsOfServiceRoute) },
+                onNavigateToPrivacy = { navController.navigate(PrivacyPolicyRoute) },
+                onNavigateToLicenses = { navController.navigate(LicensesRoute) },
             )
+            legalDestinations(navController)
 
             // Accounts tab — real feature module (Phase 5). Detail + request-account targets
             // remain Phase 2 placeholders until their own feature modules land.
@@ -214,6 +224,11 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                     onViewTransactions = {
                         navController.navigate(
                             TransactionsRoute(bankId = route.bankId, accountId = route.accountId),
+                        )
+                    },
+                    onViewDirectDebits = {
+                        navController.navigate(
+                            DirectDebitsRoute(bankId = route.bankId, accountId = route.accountId),
                         )
                     },
                 )
@@ -294,9 +309,38 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
+            composableWithStayTransitions<DirectDebitsRoute> { entry ->
+                val route = entry.toRoute<DirectDebitsRoute>()
+                DirectDebitsScreen(
+                    bankId = route.bankId,
+                    accountId = route.accountId,
+                    onBack = navController::popBackStack,
+                )
+            }
+
+            composableWithStayTransitions<ProductsRoute> {
+                ProductsScreen(onBack = navController::popBackStack)
+            }
+
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()
         }
+    }
+}
+
+/** About / Terms / Privacy / Licenses — static feature/legal screens reached from Settings. */
+private fun NavGraphBuilder.legalDestinations(navController: NavHostController) {
+    composableWithStayTransitions<AboutRoute> {
+        AboutScreen(onBack = navController::popBackStack)
+    }
+    composableWithStayTransitions<TermsOfServiceRoute> {
+        TermsOfServiceScreen(onBack = navController::popBackStack)
+    }
+    composableWithStayTransitions<PrivacyPolicyRoute> {
+        PrivacyPolicyScreen(onBack = navController::popBackStack)
+    }
+    composableWithStayTransitions<LicensesRoute> {
+        LicensesScreen(onBack = navController::popBackStack)
     }
 }
 

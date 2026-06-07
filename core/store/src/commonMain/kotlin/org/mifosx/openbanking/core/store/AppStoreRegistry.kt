@@ -50,9 +50,6 @@ object AppStoreRegistry : StoreRegistry() {
     /** Per-account counterparties / payees (Store5, keyed by accountId). */
     val Counterparties = store("counterparties")
 
-    /** Per-account direct-debit mandates (Store5, keyed by accountId). */
-    val DirectDebits = store("direct-debits")
-
     /** Bank customers, field-officer surface (Store5, keyed by Unit). */
     val Customers = store("customers")
 

@@ -159,11 +159,9 @@ val DataModule = module {
     }
     single<DirectDebitsRepository> {
         DirectDebitsRepositoryImpl(
-            api = get(),
-            config = get(),
-            directDebitsStore = get(AppStoreRegistry.DirectDebits),
-            networkMonitor = get(),
-            fetchedAtRepository = get(),
+            transactionsRepository = get(),
+            dao = get(),
+            json = get(),
         )
     }
     single<BanksRepository> { BanksRepositoryImpl(api = get()) }

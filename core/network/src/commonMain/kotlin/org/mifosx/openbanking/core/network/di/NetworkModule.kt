@@ -23,7 +23,6 @@ import org.mifosx.openbanking.core.network.api.CardsApi
 import org.mifosx.openbanking.core.network.api.ConsentsApi
 import org.mifosx.openbanking.core.network.api.CustomerMessagesApi
 import org.mifosx.openbanking.core.network.api.CustomersApi
-import org.mifosx.openbanking.core.network.api.DirectDebitsApi
 import org.mifosx.openbanking.core.network.api.FxApi
 import org.mifosx.openbanking.core.network.api.KycApi
 import org.mifosx.openbanking.core.network.api.MeetingsApi
@@ -46,7 +45,6 @@ import org.mifosx.openbanking.core.network.api.createCardsApi
 import org.mifosx.openbanking.core.network.api.createConsentsApi
 import org.mifosx.openbanking.core.network.api.createCustomerMessagesApi
 import org.mifosx.openbanking.core.network.api.createCustomersApi
-import org.mifosx.openbanking.core.network.api.createDirectDebitsApi
 import org.mifosx.openbanking.core.network.api.createFxApi
 import org.mifosx.openbanking.core.network.api.createKycApi
 import org.mifosx.openbanking.core.network.api.createMeetingsApi
@@ -84,7 +82,6 @@ val NetworkModule = module {
     single<CardsApi> { get<Ktorfit>().createCardsApi() }
     single<PaymentsApi> { get<Ktorfit>().createPaymentsApi() }
     single<StandingOrdersApi> { get<Ktorfit>().createStandingOrdersApi() }
-    single<DirectDebitsApi> { get<Ktorfit>().createDirectDebitsApi() }
     single<FxApi> { get<Ktorfit>().createFxApi() }
     single<AtmApi> { get<Ktorfit>().createAtmApi() }
     single<ProductsApi> { get<Ktorfit>().createProductsApi() }

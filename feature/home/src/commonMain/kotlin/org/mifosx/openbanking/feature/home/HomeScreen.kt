@@ -27,8 +27,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CurrencyExchange
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PieChart
@@ -39,7 +39,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -84,15 +83,13 @@ import kotlin.time.ExperimentalTime
  */
 @Composable
 fun HomeScreen(
-    onTransfer: () -> Unit,
     onAccounts: () -> Unit,
     onStandingOrders: () -> Unit,
     onFindAtm: () -> Unit,
-    onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
-    onDeferred: (String) -> Unit,
+    onProducts: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -112,14 +109,12 @@ fun HomeScreen(
             is ScreenState.Content -> HomeLoaded(
                 content = s.data,
                 greeting = greeting,
-                onTransfer = onTransfer,
                 onStandingOrders = onStandingOrders,
                 onFindAtm = onFindAtm,
-                onBeneficiaries = onBeneficiaries,
                 onInsights = onInsights,
                 onBusinessInsights = onBusinessInsights,
                 onFxRates = onFxRates,
-                onDeferred = onDeferred,
+                onProducts = onProducts,
                 onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
         }
@@ -142,14 +137,12 @@ private fun rememberGreeting(): Greeting = remember {
 private fun HomeLoaded(
     content: HomeContent,
     greeting: Greeting,
-    onTransfer: () -> Unit,
     onStandingOrders: () -> Unit,
     onFindAtm: () -> Unit,
-    onBeneficiaries: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
-    onDeferred: (String) -> Unit,
+    onProducts: () -> Unit,
     onDefaultAccountSelected: (Account) -> Unit,
 ) {
     val name = content.greetingName.ifBlank { "there" }
@@ -177,9 +170,6 @@ private fun HomeLoaded(
                 ownerName = name,
                 greeting = greeting,
                 onClick = { showAccountPicker = true },
-                onTransfer = onTransfer,
-                onBeneficiaries = onBeneficiaries,
-                onDeferred = onDeferred,
             )
         }
         item {
@@ -193,7 +183,7 @@ private fun HomeLoaded(
                     onInsights = onInsights,
                     onBusinessInsights = onBusinessInsights,
                     onFxRates = onFxRates,
-                    onDeferred = onDeferred,
+                    onProducts = onProducts,
                 )
             }
         }
@@ -202,8 +192,8 @@ private fun HomeLoaded(
 
 /**
  * Full-bleed home hero on the reusable [HeroGradientCard] surface — greeting, owner
- * avatar, default account, balance and quick actions; square corners so the gradient
- * owns the whole top of the screen. Tapping it opens the default-account picker sheet.
+ * avatar, default account and balance; square corners so the gradient owns the whole
+ * top of the screen. Tapping it opens the default-account picker sheet.
  */
 @Composable
 private fun PrimaryAccountCard(
@@ -211,9 +201,6 @@ private fun PrimaryAccountCard(
     ownerName: String,
     greeting: Greeting,
     onClick: () -> Unit,
-    onTransfer: () -> Unit,
-    onBeneficiaries: () -> Unit,
-    onDeferred: (String) -> Unit,
 ) {
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     HeroGradientCard(
@@ -267,13 +254,6 @@ private fun PrimaryAccountCard(
                 fontWeight = FontWeight.Bold,
                 color = onPrimary,
             )
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeroChip("Transfer", Modifier.weight(1f), onClick = onTransfer)
-                HeroChip("Pay Bill", Modifier.weight(1f)) { onDeferred("Pay Bill — coming soon") }
-                HeroChip("Top-up", Modifier.weight(1f)) { onDeferred("Top-up — coming soon") }
-                HeroChip("Payees", Modifier.weight(1f), onClick = onBeneficiaries)
-            }
         }
     }
 }
@@ -292,28 +272,6 @@ private fun HeroAvatar(initials: String) {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onPrimary,
         )
-    }
-}
-
-@Composable
-private fun HeroChip(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val onPrimary = MaterialTheme.colorScheme.onPrimary
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.16f),
-        contentColor = onPrimary,
-        modifier = modifier.height(32.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-                color = onPrimary,
-            )
-        }
     }
 }
 
@@ -345,13 +303,13 @@ private fun BankingServices(
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
-    onDeferred: (String) -> Unit,
+    onProducts: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("Standing Orders", Icons.Filled.EventRepeat, Modifier.weight(1f), onStandingOrders)
             ServiceTile("Business", Icons.Filled.Storefront, Modifier.weight(1f), onBusinessInsights)
-            ServiceTile("Statements", Icons.Filled.Description, Modifier.weight(1f)) { onDeferred("Statements — coming soon") }
+            ServiceTile("Products", Icons.Filled.Category, Modifier.weight(1f), onProducts)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("FX Rates", Icons.Filled.CurrencyExchange, Modifier.weight(1f), onFxRates)
