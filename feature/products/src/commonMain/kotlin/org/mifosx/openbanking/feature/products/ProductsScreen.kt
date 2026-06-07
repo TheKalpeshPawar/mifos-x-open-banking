@@ -12,7 +12,6 @@
 package org.mifosx.openbanking.feature.products
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,20 +22,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +64,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.picker.PickerBottomSheet
+import org.mifosx.openbanking.core.ui.picker.PickerSheetOption
 import org.mifosx.openbanking.feature.products.ui.ProductCategory
 import org.mifosx.openbanking.feature.products.ui.ProductRow
 import org.mifosx.openbanking.feature.products.ui.ProductScope
@@ -69,7 +75,8 @@ import template.core.base.store.screen.ScreenState
 
 /**
  * Products — per-bank product catalogues for every bank the user holds an account at,
- * split into Personal and Business tabs. Cards show the product name, category badge and
+ * split into Personal and Business tabs. The bank is switched via a selector pill that
+ * opens the shared picker bottom sheet. Cards show the product name, category badge and
  * description; products that publish a more-info URL open it in the platform browser.
  */
 @Composable
@@ -119,23 +126,31 @@ fun ProductsScreen(
 
 @Composable
 private fun ProductsCatalogue(content: ProductsContent, viewModel: ProductsViewModel) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        ) {
-            content.banks.forEach { bank ->
-                FilterChip(
-                    selected = content.selectedBankId == bank.id,
-                    onClick = { viewModel.onBankSelected(bank.id) },
-                    label = { Text(bank.name) },
-                    modifier = Modifier.testTag(ProductsTestTags.bankChip(bank.id)),
+    var showBankPicker by remember { mutableStateOf(false) }
+    if (showBankPicker) {
+        PickerBottomSheet(
+            options = content.banks.map { bank ->
+                PickerSheetOption(
+                    id = bank.id,
+                    label = bank.name,
+                    testTag = ProductsTestTags.bankOption(bank.id),
                 )
-            }
-        }
+            },
+            selectedId = content.selectedBankId,
+            onOptionSelected = { option ->
+                showBankPicker = false
+                viewModel.onBankSelected(option.id)
+            },
+            onDismiss = { showBankPicker = false },
+            title = "Choose bank",
+            sheetTestTag = ProductsTestTags.BANK_SHEET,
+        )
+    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        BankSelector(
+            name = content.banks.firstOrNull { it.id == content.selectedBankId }?.name.orEmpty(),
+            onClick = { showBankPicker = true },
+        )
         TabRow(
             selectedTabIndex = ProductScope.entries.indexOf(content.scope),
             containerColor = MaterialTheme.colorScheme.background,
@@ -175,6 +190,50 @@ private fun ProductsCatalogue(content: ProductsContent, viewModel: ProductsViewM
                     ProductCard(product)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Compact pill showing whose catalogue is on screen; tapping it opens the bank picker
+ * sheet. Renders even when the user banks at a single institution so the catalogue's
+ * source stays visible.
+ */
+@Composable
+private fun BankSelector(name: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+            .testTag(ProductsTestTags.BANK_SELECTOR),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Icon(
+                Icons.Outlined.AccountBalance,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = "Change bank",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

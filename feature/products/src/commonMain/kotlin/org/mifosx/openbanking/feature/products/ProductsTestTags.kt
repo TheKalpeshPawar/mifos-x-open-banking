@@ -15,7 +15,11 @@ import org.mifosx.openbanking.feature.products.ui.ProductScope
 object ProductsTestTags {
     const val TITLE = "products_title"
 
-    fun bankChip(bankId: String) = "products_bank_${bankId.lowercase()}"
+    const val BANK_SELECTOR = "products_bank_selector"
+
+    const val BANK_SHEET = "products_bank_sheet"
+
+    fun bankOption(bankId: String) = "products_bank_${bankId.lowercase()}"
 
     fun scopeTab(scope: ProductScope) = "products_tab_${scope.name.lowercase()}"
 

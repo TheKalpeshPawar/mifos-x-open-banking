@@ -7,43 +7,17 @@
  *
  * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package org.mifosx.openbanking.core.ui.picker
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import org.mifosx.openbanking.core.model.obp.Account
 
 /**
- * Reusable account picker bottom sheet. Lists [accounts] with a divider between rows;
- * the row matching [selectedAccountId] carries a check. Selecting a row reports the
- * account and dismisses; swiping down / tapping outside calls [onDismiss].
+ * Reusable account picker bottom sheet — an [Account]-typed front for [PickerBottomSheet].
+ * Lists [accounts] with the shared row treatment (label, balance as supporting text,
+ * check on the row matching [selectedAccountId]). Selecting a row reports the account
+ * and the caller dismisses; swiping down / tapping outside calls [onDismiss].
  *
  * When [allOptionLabel] and [onAllSelected] are both provided, an aggregate row renders
  * above the account list; it carries the check when [selectedAccountId] is blank.
@@ -59,124 +33,45 @@ fun AccountPickerBottomSheet(
     allOptionLabel: String? = null,
     onAllSelected: (() -> Unit)? = null,
 ) {
-    val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier.testTag(AccountPickerTestTags.SHEET),
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
-        // Scrollable so long account lists never clip mid-row at the sheet fold (a clipped
-        // row reads as a stray divider line below the last visible account).
-        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-            if (allOptionLabel != null && onAllSelected != null) {
-                item(key = "account_picker_all") {
-                    Column {
-                        AllAccountsRow(
-                            label = allOptionLabel,
-                            selected = selectedAccountId.isBlank(),
-                            onClick = onAllSelected,
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                        )
-                    }
-                }
-            }
-            itemsIndexed(accounts, key = { _, account -> account.accountIdOrId }) { index, account ->
-                Column {
-                    AccountRow(
-                        account = account,
-                        selected = account.accountIdOrId == selectedAccountId,
-                        onClick = { onAccountSelected(account) },
-                    )
-                    // Divider BETWEEN rows only — never under the last account.
-                    if (index < accounts.lastIndex) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                        )
-                    }
-                }
-            }
+    val options = buildList {
+        if (allOptionLabel != null && onAllSelected != null) {
+            add(
+                PickerSheetOption(
+                    id = "",
+                    label = allOptionLabel,
+                    testTag = AccountPickerTestTags.ALL_ROW,
+                ),
+            )
         }
-    }
-}
-
-@Composable
-private fun AllAccountsRow(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp)
-            .testTag(AccountPickerTestTags.ALL_ROW),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (selected) {
-            Spacer(Modifier.width(12.dp))
-            Icon(
-                Icons.Filled.CheckCircle,
-                contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
+        accounts.forEach { account ->
+            add(
+                PickerSheetOption(
+                    id = account.accountIdOrId,
+                    label = accountPickerDisplayName(account),
+                    supportingText = account.balance
+                        .takeIf { it.currency.isNotBlank() }
+                        ?.let { "${it.currency} ${it.amount}" }
+                        .orEmpty(),
+                    testTag = AccountPickerTestTags.row(account.accountIdOrId),
+                ),
             )
         }
     }
-}
-
-@Composable
-private fun AccountRow(account: Account, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 14.dp)
-            .testTag(AccountPickerTestTags.row(account.accountIdOrId)),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                accountPickerDisplayName(account),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            val balance = account.balance
-            if (balance.currency.isNotBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "${balance.currency} ${balance.amount}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    PickerBottomSheet(
+        options = options,
+        selectedId = selectedAccountId,
+        onOptionSelected = { option ->
+            if (option.id.isBlank()) {
+                onAllSelected?.invoke()
+            } else {
+                accounts.firstOrNull { it.accountIdOrId == option.id }?.let(onAccountSelected)
             }
-        }
-        if (selected) {
-            Spacer(Modifier.width(12.dp))
-            Icon(
-                Icons.Filled.CheckCircle,
-                contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
+        },
+        onDismiss = onDismiss,
+        title = title,
+        modifier = modifier,
+        sheetTestTag = AccountPickerTestTags.SHEET,
+    )
 }
 
 /** Label fallback shared with the per-feature pickers: label, else "type ····last4". */
