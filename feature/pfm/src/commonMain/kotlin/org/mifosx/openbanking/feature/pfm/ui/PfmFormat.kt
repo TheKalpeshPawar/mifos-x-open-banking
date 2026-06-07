@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.pfm.ui
 
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 
 /** "1029.8", "EUR" → "€1029.80". */
 internal fun formatMoney(value: Double, currency: String): String {
@@ -27,5 +28,13 @@ internal fun currencySymbol(currency: String): String = when (currency.uppercase
 }
 
 internal fun Long.toLocalDate(): LocalDate = LocalDate.fromEpochDays((this / MILLIS_PER_DAY).toInt())
+
+internal fun LocalDate.toEpochMillis(): Long = toEpochDays() * MILLIS_PER_DAY
+
+/** "2026-05-01" → "1 May 2026". */
+internal fun formatShortDate(date: LocalDate): String {
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    return "${date.day} ${months[date.month.number - 1]} ${date.year}"
+}
 
 private const val MILLIS_PER_DAY = 86_400_000L

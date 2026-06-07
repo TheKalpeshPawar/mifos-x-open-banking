@@ -49,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +63,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
+import org.mifosx.openbanking.core.ui.card.HeroGradientCard
 import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.home.ui.HomeContent
 import org.mifosx.openbanking.feature.home.ui.HomeViewModel
@@ -162,131 +165,141 @@ private fun HomeLoaded(
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+        contentPadding = PaddingValues(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Column {
-                Text(
-                    text = "${greeting.line}, $name",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = greeting.date,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
         item {
             PrimaryAccountCard(
                 account = content.primaryAccount,
                 ownerName = name,
+                greeting = greeting,
                 onClick = { showAccountPicker = true },
                 onTransfer = onTransfer,
                 onBeneficiaries = onBeneficiaries,
                 onDeferred = onDeferred,
             )
         }
-        item { SectionHeader("Banking Services") }
         item {
-            BankingServices(
-                onStandingOrders = onStandingOrders,
-                onTransfers = onTransfer,
-                onViewCards = onViewCards,
-                onFindAtm = onFindAtm,
-                onInsights = onInsights,
-                onDeferred = onDeferred,
-            )
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) { SectionHeader("Banking Services") }
+        }
+        item {
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                BankingServices(
+                    onStandingOrders = onStandingOrders,
+                    onTransfers = onTransfer,
+                    onViewCards = onViewCards,
+                    onFindAtm = onFindAtm,
+                    onInsights = onInsights,
+                    onDeferred = onDeferred,
+                )
+            }
         }
     }
 }
 
+/**
+ * Full-bleed home hero on the reusable [HeroGradientCard] surface — greeting, owner
+ * avatar, default account, balance and quick actions; square corners so the gradient
+ * owns the whole top of the screen. Tapping it opens the default-account picker sheet.
+ */
 @Composable
 private fun PrimaryAccountCard(
     account: Account?,
     ownerName: String,
+    greeting: Greeting,
     onClick: () -> Unit,
     onTransfer: () -> Unit,
     onBeneficiaries: () -> Unit,
     onDeferred: (String) -> Unit,
 ) {
-    // Tapping the hero card opens the default-account picker sheet.
-    Card(
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    HeroGradientCard(
+        shape = RectangleShape,
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = account?.label?.ifBlank { "Account" } ?: "Account",
+                        text = greeting.line,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = onPrimary.copy(alpha = 0.85f),
                     )
                     Text(
-                        text = account?.displayIdentifier?.ifBlank { "—" } ?: "—",
+                        text = "Hello, $ownerName",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = onPrimary,
+                    )
+                    Text(
+                        text = greeting.date,
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = onPrimary.copy(alpha = 0.7f),
                     )
                 }
-                Avatar(initials = initials(ownerName))
+                HeroAvatar(initials = initials(ownerName))
             }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = account?.label?.ifBlank { "Account" } ?: "Account",
+                style = MaterialTheme.typography.labelMedium,
+                color = onPrimary.copy(alpha = 0.85f),
+            )
+            Text(
+                text = account?.displayIdentifier?.ifBlank { "—" } ?: "—",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = onPrimary.copy(alpha = 0.65f),
+            )
             Spacer(Modifier.height(12.dp))
             Text(
                 text = "Available Balance",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = onPrimary.copy(alpha = 0.8f),
             )
             Text(
                 text = formatMoney(account?.balance?.amount.orEmpty(), account?.balance?.currency.orEmpty()),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = onPrimary,
             )
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuickChip("Transfer", Modifier.weight(1f), onClick = onTransfer)
-                QuickChip("Pay Bill", Modifier.weight(1f)) { onDeferred("Pay Bill — coming soon") }
-                QuickChip("Top-up", Modifier.weight(1f)) { onDeferred("Top-up — coming soon") }
-                QuickChip("Payees", Modifier.weight(1f), onClick = onBeneficiaries)
+                HeroChip("Transfer", Modifier.weight(1f), onClick = onTransfer)
+                HeroChip("Pay Bill", Modifier.weight(1f)) { onDeferred("Pay Bill — coming soon") }
+                HeroChip("Top-up", Modifier.weight(1f)) { onDeferred("Top-up — coming soon") }
+                HeroChip("Payees", Modifier.weight(1f), onClick = onBeneficiaries)
             }
         }
     }
 }
 
 @Composable
-private fun Avatar(initials: String) {
+private fun HeroAvatar(initials: String) {
     Box(
         modifier = Modifier
             .size(40.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            .background(Color.White.copy(alpha = 0.22f), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = initials,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
 
 @Composable
-private fun QuickChip(label: String, modifier: Modifier = Modifier, muted: Boolean = false, onClick: () -> Unit) {
+private fun HeroChip(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = Color.White.copy(alpha = 0.16f),
+        contentColor = onPrimary,
         modifier = modifier.height(32.dp),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp)) {
@@ -295,7 +308,7 @@ private fun QuickChip(label: String, modifier: Modifier = Modifier, muted: Boole
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
                 textAlign = TextAlign.Center,
-                color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                color = onPrimary,
             )
         }
     }

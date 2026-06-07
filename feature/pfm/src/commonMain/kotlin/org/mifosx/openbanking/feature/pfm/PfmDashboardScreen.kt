@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 
 package org.mifosx.openbanking.feature.pfm
 
@@ -29,8 +29,6 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -44,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,13 +56,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.datepicker.DateRangePickerDialog
 import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.pfm.ui.PfmContent
 import org.mifosx.openbanking.feature.pfm.ui.PfmDashboardViewModel
 import org.mifosx.openbanking.feature.pfm.ui.PfmPeriod
-import org.mifosx.openbanking.feature.pfm.ui.toLocalDate
 import template.core.base.store.screen.ScreenState
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Spending Insights — period summary, category donut, budgets and top merchants for one
@@ -183,12 +184,14 @@ private fun PfmDashboardContent(
         )
     }
     if (showRangePicker) {
-        PfmCustomRangeDialog(
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        DateRangePickerDialog(
             onDismiss = { showRangePicker = false },
-            onConfirm = { start, end ->
+            onApply = { start, end ->
                 showRangePicker = false
                 viewModel.onCustomRangeSelected(start, end)
             },
+            maxDate = today,
         )
     }
 }
@@ -232,29 +235,6 @@ private fun PfmPeriodChips(
                     .testTag(PfmDashboardTestTags.periodChip(period.name)),
             )
         }
-    }
-}
-
-@Composable
-private fun PfmCustomRangeDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (kotlinx.datetime.LocalDate, kotlinx.datetime.LocalDate) -> Unit,
-) {
-    val pickerState = rememberDateRangePickerState()
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val start = pickerState.selectedStartDateMillis ?: return@TextButton
-                    val end = pickerState.selectedEndDateMillis ?: return@TextButton
-                    onConfirm(start.toLocalDate(), end.toLocalDate())
-                },
-            ) { Text("Apply") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DateRangePicker(state = pickerState, showModeToggle = false, modifier = Modifier.height(420.dp))
     }
 }
 

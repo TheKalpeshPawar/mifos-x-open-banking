@@ -14,7 +14,6 @@ package org.mifosx.openbanking.feature.sendmoney
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -167,17 +165,11 @@ private fun HubContent(
         item { Spacer(Modifier.height(8.dp)) }
         item { SectionLabel("RECENT RECIPIENTS") }
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                NewRecipientAvatar(onClick = { onNewTransfer(accountId) })
-                content.recentRecipients.forEach { r ->
-                    RecipientAvatar(recipient = r, onClick = { onRecipientSelected(accountId, r.counterpartyId) })
-                }
-            }
+            RecipientsGrid(
+                recipients = content.recentRecipients,
+                onNewTransfer = { onNewTransfer(accountId) },
+                onRecipientSelected = { counterpartyId -> onRecipientSelected(accountId, counterpartyId) },
+            )
         }
 
         item { Spacer(Modifier.height(8.dp)) }
@@ -299,6 +291,42 @@ private fun SectionLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
+}
+
+/**
+ * Recent recipients as a wrapping grid of [RECIPIENT_GRID_COLUMNS] columns: the
+ * "New" cell first, then one cell per recipient. Built from chunked rows so it can sit
+ * inside a LazyColumn item; partial rows pad with empty cells to keep alignment.
+ */
+@Composable
+private fun RecipientsGrid(
+    recipients: List<HubRecipient>,
+    onNewTransfer: () -> Unit,
+    onRecipientSelected: (counterpartyId: String) -> Unit,
+) {
+    val cells: List<HubRecipient?> = listOf<HubRecipient?>(null) + recipients
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        cells.chunked(RECIPIENT_GRID_COLUMNS).forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                row.forEach { recipient ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (recipient == null) {
+                            NewRecipientAvatar(onClick = onNewTransfer)
+                        } else {
+                            RecipientAvatar(
+                                recipient = recipient,
+                                onClick = { onRecipientSelected(recipient.counterpartyId) },
+                            )
+                        }
+                    }
+                }
+                repeat(RECIPIENT_GRID_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
 }
 
 @Composable
@@ -480,3 +508,5 @@ private fun errorBody(error: Throwable): String = when ((error as? ObpException)
     "SERIALIZATION" -> "We received an unexpected response from your bank. Try again."
     else -> "We couldn't load this account's recipients. Try again, or switch to another account."
 }
+
+private const val RECIPIENT_GRID_COLUMNS = 4

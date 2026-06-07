@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.card.HeroGradientCard
 import org.mifosx.openbanking.feature.accounts.ui.AccountDetailContent
 import org.mifosx.openbanking.feature.accounts.ui.AccountDetailViewModel
 import org.mifosx.openbanking.feature.accounts.ui.AttributeRow
@@ -103,11 +105,7 @@ fun AccountDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -221,37 +219,39 @@ private fun Loaded(
 
 @Composable
 private fun HeaderCard(content: AccountDetailContent) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    HeroGradientCard(
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
     ) {
-        Text(
-            text = content.accountLabel,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = content.balanceDisplay,
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-        if (content.currency.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.primary,
-            ) {
-                Text(
-                    text = content.currency,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                )
+        Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 28.dp)) {
+            Text(
+                text = content.accountLabel,
+                style = MaterialTheme.typography.titleSmall,
+                color = onPrimary.copy(alpha = 0.8f),
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = content.balanceDisplay,
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = onPrimary,
+            )
+            if (content.currency.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color.White.copy(alpha = 0.18f),
+                    contentColor = onPrimary,
+                ) {
+                    Text(
+                        text = content.currency,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = onPrimary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
         }
     }

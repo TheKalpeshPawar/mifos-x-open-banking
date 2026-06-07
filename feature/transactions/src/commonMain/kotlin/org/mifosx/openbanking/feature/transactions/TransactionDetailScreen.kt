@@ -195,7 +195,9 @@ private fun AmountHero(content: TransactionDetailContent) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(20.dp))
             .padding(horizontal = 20.dp, vertical = 28.dp)
             .testTag(TransactionDetailTestTags.AMOUNT_HERO),
     ) {
