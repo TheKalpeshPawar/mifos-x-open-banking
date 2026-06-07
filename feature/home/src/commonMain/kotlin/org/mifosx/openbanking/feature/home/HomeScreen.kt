@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -190,12 +189,10 @@ private fun HomeLoaded(
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 BankingServices(
                     onStandingOrders = onStandingOrders,
-                    onTransfers = onTransfer,
                     onViewCards = onViewCards,
                     onFindAtm = onFindAtm,
                     onInsights = onInsights,
                     onBusinessInsights = onBusinessInsights,
-                    showBusinessTile = content.hasBusinessAccounts,
                     onDeferred = onDeferred,
                 )
             }
@@ -344,31 +341,22 @@ private fun SectionHeader(title: String, actionLabel: String? = null, onAction: 
 @Composable
 private fun BankingServices(
     onStandingOrders: () -> Unit,
-    onTransfers: () -> Unit,
     onViewCards: () -> Unit,
     onFindAtm: () -> Unit,
     onInsights: () -> Unit,
     onBusinessInsights: () -> Unit,
-    showBusinessTile: Boolean,
     onDeferred: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("Standing Orders", Icons.Filled.EventRepeat, Modifier.weight(1f), onStandingOrders)
-            ServiceTile("Transfers", Icons.Filled.SyncAlt, Modifier.weight(1f), onTransfers)
+            ServiceTile("Business", Icons.Filled.Storefront, Modifier.weight(1f), onBusinessInsights)
             ServiceTile("Statements", Icons.Filled.Description, Modifier.weight(1f)) { onDeferred("Statements — coming soon") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("Cards", Icons.Filled.CreditCard, Modifier.weight(1f), onViewCards)
             ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
             ServiceTile("Insights", Icons.Filled.PieChart, Modifier.weight(1f), onInsights)
-        }
-        if (showBusinessTile) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                ServiceTile("Business", Icons.Filled.Storefront, Modifier.weight(1f), onBusinessInsights)
-                Spacer(Modifier.weight(1f))
-                Spacer(Modifier.weight(1f))
-            }
         }
     }
 }
