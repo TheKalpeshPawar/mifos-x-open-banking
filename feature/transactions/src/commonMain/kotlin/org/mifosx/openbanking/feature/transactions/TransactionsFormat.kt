@@ -79,7 +79,3 @@ internal fun formatDate(date: LocalDate): String {
     val month = date.month.name.lowercase().replaceFirstChar { it.uppercase() }
     return "${date.day} $month ${date.year}"
 }
-
-internal fun Long.toLocalDate(): LocalDate = LocalDate.fromEpochDays((this / MILLIS_PER_DAY).toInt())
-
-private const val MILLIS_PER_DAY = 86_400_000L

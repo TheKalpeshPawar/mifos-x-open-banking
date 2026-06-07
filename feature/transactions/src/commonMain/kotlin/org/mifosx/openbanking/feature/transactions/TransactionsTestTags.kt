@@ -11,12 +11,13 @@ package org.mifosx.openbanking.feature.transactions
 
 object TransactionsTestTags {
     const val SEARCH_BAR = "transactions_search_bar"
-    const val DATE_RANGE_CHIP = "transactions_date_range_chip"
+    const val DATE_CHIPS_ROW = "transactions_date_chips_row"
     const val FILTER_CHIPS_ROW = "transactions_filter_chips_row"
     const val SUMMARY_CARD = "transactions_summary_card"
     const val PENDING_HEADER = "transactions_pending_header"
     const val LOAD_MORE = "transactions_load_more"
     fun filterChip(name: String) = "transactions_filter_$name"
+    fun rangeChip(name: String) = "transactions_range_$name"
     fun row(id: String) = "transaction_row_$id"
     fun pendingRow(id: String) = "pending_row_$id"
 }

@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 
 package org.mifosx.openbanking.feature.transactions
 
@@ -31,17 +31,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -56,7 +51,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,9 +65,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.mifosx.openbanking.core.model.obp.Transaction
+import org.mifosx.openbanking.core.ui.datepicker.DateRangePickerDialog
+import org.mifosx.openbanking.feature.transactions.ui.DateRangeFilter
 import org.mifosx.openbanking.feature.transactions.ui.DateRangePreset
 import org.mifosx.openbanking.feature.transactions.ui.MonthlySummary
 import org.mifosx.openbanking.feature.transactions.ui.PendingPayment
@@ -82,11 +80,14 @@ import org.mifosx.openbanking.feature.transactions.ui.TransactionsContent
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsViewModel
 import org.mifosx.openbanking.feature.transactions.ui.completedDate
 import template.core.base.store.screen.ScreenState
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
- * Transaction History for one account. Pinned header (search + date range + type chips);
- * pending payments (initiated, awaiting SCA confirmation) sit muted above the booked,
- * date-grouped rows. Pagination is client-side, 10 rows per Load More.
+ * Transaction History for one account. Pinned header (search, type chips, then a date-window
+ * chip row — presets plus a Custom chip backed by the shared date-range dialog); pending
+ * payments (initiated, awaiting SCA confirmation) sit muted above the booked, date-grouped
+ * rows. Pagination is client-side, 10 rows per Load More.
  */
 @Composable
 fun TransactionsScreen(
@@ -126,7 +127,7 @@ fun TransactionsScreen(
                     EmptyState(onClear = {
                         viewModel.onQueryChanged("")
                         viewModel.onFilterChanged(TransactionTypeFilter.ALL)
-                        viewModel.onRangePresetSelected(DateRangePreset.ALL)
+                        viewModel.onRangePresetSelected(DateRangePreset.LAST_90_DAYS)
                     })
                 }
                 is ScreenState.Error,
@@ -163,104 +164,69 @@ private fun Header(content: TransactionsContent?, viewModel: TransactionsViewMod
             modifier = Modifier.fillMaxWidth().testTag(TransactionsTestTags.SEARCH_BAR),
         )
         Spacer(Modifier.height(10.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-        ) {
-            DateRangeChip(
-                label = content?.range?.label ?: DateRangePreset.LAST_30_DAYS.label,
-                onPreset = viewModel::onRangePresetSelected,
-                onCustom = viewModel::onCustomRangeSelected,
-            )
-            TypeChips(selected = content?.filter ?: TransactionTypeFilter.ALL, viewModel = viewModel)
-        }
+        TypeChips(selected = content?.filter ?: TransactionTypeFilter.ALL, viewModel = viewModel)
+        Spacer(Modifier.height(8.dp))
+        DateChips(
+            range = content?.range ?: DateRangeFilter(),
+            onPreset = viewModel::onRangePresetSelected,
+            onCustom = viewModel::onCustomRangeSelected,
+        )
         Spacer(Modifier.height(10.dp))
         content?.summary?.let { SummaryCard(it) }
     }
 }
 
+/**
+ * Date-window chip row — one chip per preset plus a Custom chip that opens the shared
+ * [DateRangePickerDialog] (future days disabled). The Custom chip shows the picked
+ * bounds while a custom range is active; re-tapping it reopens the dialog pre-filled.
+ */
 @Composable
-private fun DateRangeChip(
-    label: String,
+private fun DateChips(
+    range: DateRangeFilter,
     onPreset: (DateRangePreset) -> Unit,
     onCustom: (LocalDate, LocalDate) -> Unit,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
     var pickerOpen by remember { mutableStateOf(false) }
-
-    Box {
-        FilterChip(
-            selected = false,
-            onClick = { menuOpen = true },
-            label = { Text(label) },
-            leadingIcon = {
-                Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
-            },
-            trailingIcon = {
-                Icon(Icons.Filled.ExpandMore, contentDescription = null, modifier = Modifier.size(18.dp))
-            },
-            modifier = Modifier.testTag(TransactionsTestTags.DATE_RANGE_CHIP),
-        )
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            DateRangePreset.entries.filter { it != DateRangePreset.CUSTOM }.forEach { preset ->
-                DropdownMenuItem(
-                    text = { Text(preset.label) },
-                    onClick = {
-                        menuOpen = false
-                        onPreset(preset)
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text("Custom…") },
-                onClick = {
-                    menuOpen = false
-                    pickerOpen = true
+    val customActive = range.preset == DateRangePreset.CUSTOM
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .testTag(TransactionsTestTags.DATE_CHIPS_ROW),
+    ) {
+        DateRangePreset.entries.forEach { preset ->
+            val isCustom = preset == DateRangePreset.CUSTOM
+            FilterChip(
+                selected = range.preset == preset,
+                onClick = { if (isCustom) pickerOpen = true else onPreset(preset) },
+                label = { Text(if (isCustom && customActive) range.label else preset.label) },
+                leadingIcon = if (isCustom) {
+                    {
+                        Icon(
+                            Icons.Filled.DateRange,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                } else {
+                    null
                 },
+                modifier = Modifier.testTag(TransactionsTestTags.rangeChip(preset.name)),
             )
         }
     }
-
     if (pickerOpen) {
-        CustomRangeDialog(
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        DateRangePickerDialog(
             onDismiss = { pickerOpen = false },
-            onConfirm = { start, end ->
+            onApply = { start, end ->
                 pickerOpen = false
                 onCustom(start, end)
             },
-        )
-    }
-}
-
-@Composable
-private fun CustomRangeDialog(onDismiss: () -> Unit, onConfirm: (LocalDate, LocalDate) -> Unit) {
-    val pickerState = rememberDateRangePickerState()
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                enabled = pickerState.selectedStartDateMillis != null && pickerState.selectedEndDateMillis != null,
-                onClick = {
-                    val start = pickerState.selectedStartDateMillis ?: return@TextButton
-                    val end = pickerState.selectedEndDateMillis ?: return@TextButton
-                    onConfirm(start.toLocalDate(), end.toLocalDate())
-                },
-            ) { Text("Apply") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DateRangePicker(
-            state = pickerState,
-            title = {
-                Text(
-                    "Select date range",
-                    modifier = Modifier.padding(start = 24.dp, top = 16.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            showModeToggle = false,
-            modifier = Modifier.weight(1f),
+            initialFrom = range.start.takeIf { customActive },
+            initialTo = range.end.takeIf { customActive },
+            maxDate = today,
         )
     }
 }
@@ -269,7 +235,9 @@ private fun CustomRangeDialog(onDismiss: () -> Unit, onConfirm: (LocalDate, Loca
 private fun TypeChips(selected: TransactionTypeFilter, viewModel: TransactionsViewModel) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.testTag(TransactionsTestTags.FILTER_CHIPS_ROW),
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .testTag(TransactionsTestTags.FILTER_CHIPS_ROW),
     ) {
         TransactionTypeFilter.entries.forEach { filter ->
             FilterChip(

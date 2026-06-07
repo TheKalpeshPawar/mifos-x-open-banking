@@ -38,10 +38,10 @@ import kotlin.time.Clock
 enum class TransactionTypeFilter { ALL, DEBIT, CREDIT, PENDING }
 
 enum class DateRangePreset(val label: String, val days: Int?) {
-    LAST_7_DAYS("Last 7 Days", 7),
-    LAST_30_DAYS("Last 30 Days", 30),
-    LAST_90_DAYS("Last 90 Days", 90),
-    ALL("All Time", null),
+    LAST_7_DAYS("7 days", 7),
+    LAST_30_DAYS("30 days", 30),
+    LAST_60_DAYS("60 days", 60),
+    LAST_90_DAYS("90 days", 90),
     CUSTOM("Custom", null),
 }
 

@@ -390,6 +390,22 @@ class TransactionsViewModelTest {
     }
 
     @Test
+    fun dateRange_presetLast60DaysIncludesBeyond30() = runTest(dispatcher) {
+        val model = vm(
+            transactions = listOf(
+                txn("within60", "-5.00", "2026-04-20"),
+                txn("outside60", "-5.00", "2026-03-25"),
+            ),
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onRangePresetSelected(DateRangePreset.LAST_60_DAYS)
+        advanceUntilIdle()
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertEquals(listOf("within60"), c.groups.flatMap { it.transactions }.map { it.txId })
+    }
+
+    @Test
     fun dateRange_customBoundsApplied() = runTest(dispatcher) {
         val model = vm(
             transactions = listOf(
