@@ -2234,6 +2234,7 @@
 |    |    +--- org.jetbrains.androidx.navigation:navigation-compose:2.9.1 (*)
 |    |    +--- io.github.vinceglb:filekit-dialogs-compose:0.12.0 (*)
 |    |    +--- io.github.vinceglb:filekit-core:0.12.0 (*)
+|    |    +--- org.jetbrains.kotlinx:kotlinx-datetime:0.7.1 (*)
 |    |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
 |    +--- project :core-base:ui (*)
 |    +--- project :core:designsystem (*)
