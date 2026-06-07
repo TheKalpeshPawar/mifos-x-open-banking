@@ -97,19 +97,18 @@ internal fun AuthenticatedNavbarNavigationScreen(
     ),
     viewModel: AuthenticatedNavbarNavigationViewModel = koinViewModel(),
 ) {
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
 
     val message = stringResource(Res.string.not_connected)
     LaunchedEffect(isOffline) {
         if (isOffline) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    duration = Indefinite,
-                )
-            }
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = Indefinite,
+            )
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
         }
     }
 
