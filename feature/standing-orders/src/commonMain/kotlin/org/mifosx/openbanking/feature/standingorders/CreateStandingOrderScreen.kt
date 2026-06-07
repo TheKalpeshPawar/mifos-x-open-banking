@@ -68,6 +68,8 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.mifosx.openbanking.core.model.obp.Account
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.standingorders.ui.CreateStandingOrderViewModel
 import org.mifosx.openbanking.feature.standingorders.ui.STANDING_ORDER_FREQUENCIES
 import org.mifosx.openbanking.feature.standingorders.ui.recurrenceHint
@@ -132,12 +134,13 @@ fun CreateStandingOrderScreen(
                 .padding(horizontal = 16.dp),
         ) {
             if (form.sourceAccountName.isNotBlank()) {
-                Text(
-                    text = "From ${form.sourceAccountName}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 12.dp),
+                SourceAccountField(
+                    accounts = form.accounts,
+                    selectedAccountId = form.selectedAccountId,
+                    label = form.sourceAccountName,
+                    onAccountSelected = viewModel::onSourceAccountSelected,
                 )
+                Spacer(Modifier.height(12.dp))
             }
             PayeeField(
                 payees = form.payees.map { it.counterpartyId to it.name },
@@ -222,6 +225,43 @@ fun CreateStandingOrderScreen(
             }
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * Source-account field. Tapping it opens the shared account picker sheet; switching
+ * accounts reloads the payee list (a standing order pays a counterparty of its source
+ * account, so payees always track the selected account).
+ */
+@Composable
+private fun SourceAccountField(
+    accounts: List<Account>,
+    selectedAccountId: String,
+    label: String,
+    onAccountSelected: (Account) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    Box {
+        OutlinedTextField(
+            value = label,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("From account") },
+            trailingIcon = { Icon(Icons.Filled.ExpandMore, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().testTag(StandingOrdersTestTags.CREATE_SOURCE_ACCOUNT),
+        )
+        Box(modifier = Modifier.matchParentSize().clickable { showPicker = true })
+    }
+    if (showPicker) {
+        AccountPickerBottomSheet(
+            accounts = accounts,
+            selectedAccountId = selectedAccountId,
+            onAccountSelected = { account ->
+                showPicker = false
+                onAccountSelected(account)
+            },
+            onDismiss = { showPicker = false },
+        )
     }
 }
 

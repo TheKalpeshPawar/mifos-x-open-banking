@@ -66,6 +66,26 @@ class CreateStandingOrderViewModel(
     fun onPayeeSelected(counterpartyId: String) =
         formState.update { it.copy(selectedPayeeId = counterpartyId, error = null) }
 
+    /**
+     * Switch the source account. Reloads the payee list for the chosen account and keeps the
+     * selected payee only if the new account also owns it (a standing order pays a counterparty
+     * of its source account).
+     */
+    fun onSourceAccountSelected(selected: Account) {
+        if (selected.accountIdOrId == formState.value.selectedAccountId) return
+        account = selected
+        formState.update {
+            it.copy(
+                selectedAccountId = selected.accountIdOrId,
+                sourceAccountName = accountDisplayName(selected),
+                currency = selected.balance.currency.ifBlank { "EUR" },
+                loadingPayees = true,
+                error = null,
+            )
+        }
+        viewModelScope.launch { loadPayeesFor(selected) }
+    }
+
     fun onAmountChanged(amount: String) = formState.update { it.copy(amount = amount, error = null) }
 
     fun onFrequencySelected(frequency: String) =
@@ -154,6 +174,7 @@ class CreateStandingOrderViewModel(
             }
             formState.update {
                 it.copy(
+                    accounts = accounts,
                     selectedAccountId = target.accountIdOrId,
                     sourceAccountName = accountDisplayName(target),
                     currency = target.balance.currency.ifBlank { "EUR" },
@@ -168,15 +189,24 @@ class CreateStandingOrderViewModel(
             .listBeneficiaries(target.bankId, target.accountIdOrId)
             .getOrDefault(emptyList())
             .filter { it.isBeneficiary }
-        formState.update { it.copy(loadingPayees = false, payees = payees) }
+        formState.update { current ->
+            val keepSelection = payees.any { it.counterpartyId == current.selectedPayeeId }
+            current.copy(
+                loadingPayees = false,
+                payees = payees,
+                selectedPayeeId = if (keepSelection) current.selectedPayeeId else "",
+            )
+        }
     }
 }
 
 /** Form state for the New Standing Order screen. */
 @Immutable
 data class CreateStandingOrderForm(
+    /** Every account the user can pay from — feeds the source-account picker sheet. */
+    val accounts: List<Account> = emptyList(),
     val selectedAccountId: String = "",
-    /** Display name of the source account (shown in the screen subtitle). */
+    /** Display name of the source account (shown in the source-account field). */
     val sourceAccountName: String = "",
     val loadingPayees: Boolean = true,
     val payees: List<Counterparty> = emptyList(),

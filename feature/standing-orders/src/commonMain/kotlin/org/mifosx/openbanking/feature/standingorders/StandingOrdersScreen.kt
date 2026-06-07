@@ -43,8 +43,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -74,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.StandingOrder
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.standingorders.ui.CreateGate
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrderFilter
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersHeader
@@ -244,61 +243,60 @@ private fun AccountSelector(
     val selected = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
         ?: accounts.firstOrNull()
         ?: return
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Card(
-            onClick = { if (accounts.size > 1) expanded = true },
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                .testTag(StandingOrdersTestTags.ACCOUNT_SELECTOR),
+    var showPicker by remember { mutableStateOf(false) }
+    Card(
+        onClick = { if (accounts.size > 1) showPicker = true },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .testTag(StandingOrdersTestTags.ACCOUNT_SELECTOR),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Icon(
+                imageVector = Icons.Filled.AccountBalance,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "From account",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = accountDisplayName(selected),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            if (accounts.size > 1) {
                 Icon(
-                    imageVector = Icons.Filled.AccountBalance,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "From account",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = accountDisplayName(selected),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                if (accounts.size > 1) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowDropDown,
-                        contentDescription = "Change account",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            accounts.forEach { account ->
-                DropdownMenuItem(
-                    text = { Text(accountDisplayName(account)) },
-                    onClick = {
-                        onAccountSelected(account.accountIdOrId)
-                        expanded = false
-                    },
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = "Change account",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
+    }
+    if (showPicker) {
+        AccountPickerBottomSheet(
+            accounts = accounts,
+            selectedAccountId = selected.accountIdOrId,
+            onAccountSelected = { account ->
+                showPicker = false
+                onAccountSelected(account.accountIdOrId)
+            },
+            onDismiss = { showPicker = false },
+        )
     }
 }
 

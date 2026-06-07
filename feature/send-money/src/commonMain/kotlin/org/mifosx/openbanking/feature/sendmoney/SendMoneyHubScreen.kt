@@ -38,8 +38,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.ObpException
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.sendmoney.ui.HubRecipient
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyHubContent
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyHubViewModel
@@ -197,58 +196,56 @@ private fun AccountSelector(
         AccountField(label = accountLabel(selected))
         return
     }
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            onClick = { expanded = true },
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth(),
+    var showPicker by remember { mutableStateOf(false) }
+    Surface(
+        onClick = { showPicker = true },
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Filled.AccountBalance,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Icon(
+                Icons.Filled.AccountBalance,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "From account",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "From account",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        accountLabel(selected),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Icon(
-                    Icons.Filled.ArrowDropDown,
-                    contentDescription = "Choose account",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(
+                    accountLabel(selected),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = "Choose account",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            accounts.forEach { account ->
-                DropdownMenuItem(
-                    text = { Text(accountLabel(account)) },
-                    onClick = {
-                        onAccountSelected(account.accountIdOrId)
-                        expanded = false
-                    },
-                )
-            }
-        }
+    }
+    if (showPicker) {
+        AccountPickerBottomSheet(
+            accounts = accounts,
+            selectedAccountId = selected.accountIdOrId,
+            onAccountSelected = { account ->
+                showPicker = false
+                onAccountSelected(account.accountIdOrId)
+            },
+            onDismiss = { showPicker = false },
+        )
     }
 }
 

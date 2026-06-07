@@ -16,6 +16,7 @@ object StandingOrdersTestTags {
     const val ACTIVE_COUNT_CHIP = "active_count_chip"
     const val ORDER_CARD = "standing_order_card"
     const val CREATE_FAB = "create_standing_order_fab"
+    const val CREATE_SOURCE_ACCOUNT = "create_standing_order_source_account"
     const val CREATE_PAYEE = "create_standing_order_payee"
     const val CREATE_AMOUNT = "create_standing_order_amount"
     const val CREATE_START_DATE = "create_standing_order_start_date"

@@ -198,6 +198,47 @@ class CreateStandingOrderViewModelTest {
     }
 
     @Test
+    fun sourceAccountSwitch_reloadsPayees_andClearsStaleSelection() = runTest(dispatcher) {
+        val payments = CreateFakePaymentsRepository()
+        val model = vm(
+            payments = payments,
+            accounts = CreateFakeAccountsRepository(
+                accounts = Result.success(listOf(checkingAccount(), checkingAccount(id = "ac.savings.001"))),
+            ),
+        )
+        backgroundScope.launch { model.form.collect {} }
+        advanceUntilIdle()
+        model.onPayeeSelected("cp-1")
+
+        payments.beneficiaries = Result.success(listOf(payee(id = "cp-9", name = "Gym Membership")))
+        model.onSourceAccountSelected(checkingAccount(id = "ac.savings.001"))
+        advanceUntilIdle()
+
+        val form = model.form.value
+        assertEquals("ac.savings.001", form.selectedAccountId)
+        assertEquals(listOf("cp-9"), form.payees.map { it.counterpartyId })
+        assertEquals("", form.selectedPayeeId)
+        assertFalse(form.loadingPayees)
+    }
+
+    @Test
+    fun sourceAccountSwitch_keepsPayee_whenNewAccountAlsoOwnsIt() = runTest(dispatcher) {
+        val model = vm(
+            accounts = CreateFakeAccountsRepository(
+                accounts = Result.success(listOf(checkingAccount(), checkingAccount(id = "ac.savings.001"))),
+            ),
+        )
+        backgroundScope.launch { model.form.collect {} }
+        advanceUntilIdle()
+        model.onPayeeSelected("cp-1")
+
+        model.onSourceAccountSelected(checkingAccount(id = "ac.savings.001"))
+        advanceUntilIdle()
+
+        assertEquals("cp-1", model.form.value.selectedPayeeId)
+    }
+
+    @Test
     fun submit_invalidAmount_setsErrorWithoutCalling() = runTest(dispatcher) {
         val repo = CreateFakeStandingOrdersRepository()
         val model = vm(repo = repo)

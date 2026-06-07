@@ -11,6 +11,7 @@
 
 package org.mifosx.openbanking.feature.sendmoney
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CloudOff
@@ -48,6 +50,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Counterparty
+import org.mifosx.openbanking.core.ui.picker.AccountPickerBottomSheet
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentDraft
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentType
 import org.mifosx.openbanking.feature.sendmoney.ui.RailAssessment
@@ -146,7 +151,11 @@ private fun Form(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AccountSelector(selected = content.selectedAccount)
+        AccountSelector(
+            accounts = content.accounts,
+            selected = content.selectedAccount,
+            onAccountSelected = { viewModel.setAccount(it.accountIdOrId) },
+        )
 
         OutlinedTextField(
             value = content.amount,
@@ -253,20 +262,42 @@ private fun Form(
     }
 }
 
+/**
+ * From-account field. Tapping it opens the shared account picker sheet; switching accounts
+ * reloads that account's beneficiaries (a counterparty is only valid on its owning account,
+ * so the payee list always tracks the selected account).
+ */
 @Composable
-private fun AccountSelector(selected: Account) {
-    // Read-only: payments send from the account that owns the beneficiaries (no switching —
-    // a counterparty is only valid on its owning account).
-    OutlinedTextField(
-        value = accountLabel(selected),
-        onValueChange = {},
-        readOnly = true,
-        enabled = false,
-        label = { Text("From Account") },
-        leadingIcon = { Icon(Icons.Filled.AccountBalance, contentDescription = null) },
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.FROM_ACCOUNT),
-    )
+private fun AccountSelector(
+    accounts: List<Account>,
+    selected: Account,
+    onAccountSelected: (Account) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    Box {
+        OutlinedTextField(
+            value = accountLabel(selected),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("From Account") },
+            leadingIcon = { Icon(Icons.Filled.AccountBalance, contentDescription = null) },
+            trailingIcon = { Icon(Icons.Filled.ExpandMore, contentDescription = null) },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.FROM_ACCOUNT),
+        )
+        Box(modifier = Modifier.matchParentSize().clickable { showPicker = true })
+    }
+    if (showPicker) {
+        AccountPickerBottomSheet(
+            accounts = accounts,
+            selectedAccountId = selected.accountIdOrId,
+            onAccountSelected = { account ->
+                showPicker = false
+                onAccountSelected(account)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
 }
 
 @Composable

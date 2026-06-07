@@ -143,6 +143,36 @@ class SendMoneyViewModelTest {
     }
 
     @Test
+    fun setAccount_switchesBeneficiaries_andDropsForeignPayee() = runTest(dispatcher) {
+        val savings = Account(
+            id = "ac.savings.001",
+            bankId = "ac.bank.uk",
+            label = "Savings",
+            balance = AmountOfMoney(currency = "EUR", amount = "50"),
+        )
+        val payments = FakePaymentsRepository(
+            beneficiaries = Result.success(listOf(payee("b1", "TechStart Ltd"))),
+        )
+        val model = vm(
+            accounts = Result.success(listOf(account(), savings)),
+            payments = payments,
+        )
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        advanceUntilIdle()
+
+        payments.beneficiaries = Result.success(listOf(payee("b2", "Acme Supplies")))
+        model.setAccount("ac.savings.001")
+        advanceUntilIdle()
+
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertEquals("ac.savings.001", c.selectedAccount.accountIdOrId)
+        assertEquals(listOf("b2"), c.beneficiaries.map { it.counterpartyId })
+        assertNull(c.selectedBeneficiary)
+    }
+
+    @Test
     fun continue_producesDraft_whenValid() = runTest(dispatcher) {
         val model = vm()
         backgroundScope.launch { model.uiState.collect {} }
