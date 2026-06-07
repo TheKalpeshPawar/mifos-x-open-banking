@@ -22,6 +22,7 @@
 :core:ui
 :feature:accounts
 :feature:beneficiaries
+:feature:business-insights
 :feature:cards
 :feature:home
 :feature:login
