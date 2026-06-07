@@ -23,6 +23,7 @@ import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import org.mifosx.openbanking.feature.transactions.categoryLabel
 import org.mifosx.openbanking.feature.transactions.formatDate
 import org.mifosx.openbanking.feature.transactions.formatSigned
+import org.mifosx.openbanking.feature.transactions.formatUnsigned
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
 
@@ -120,11 +121,14 @@ private fun Transaction.toDetailContent(): TransactionDetailContent {
     )
 }
 
-/** A transaction-request awaiting SCA confirmation — always an outgoing (debit) payment. */
+/**
+ * A transaction-request awaiting SCA confirmation — an outgoing payment whose money has
+ * NOT left the account yet, so the amount renders unsigned rather than as a debit.
+ */
 private fun TransactionRequestSummary.toPendingContent(accountId: String): TransactionDetailContent {
     val value = details.value.amount.trimStart('-').toDoubleOrNull() ?: 0.0
     return TransactionDetailContent(
-        amount = formatSigned(-value, details.value.currency),
+        amount = formatUnsigned(value, details.value.currency),
         isDebit = true,
         isPending = true,
         statusLabel = "Awaiting confirmation",

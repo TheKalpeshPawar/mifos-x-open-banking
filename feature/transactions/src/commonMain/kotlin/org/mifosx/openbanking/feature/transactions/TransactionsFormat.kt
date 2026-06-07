@@ -44,6 +44,16 @@ internal fun formatSigned(amount: Double, currency: String): String {
     return "$sign${symbol(currency)}${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
 }
 
+/**
+ * Amount without a sign prefix, for money that has not moved yet — pending
+ * transaction-requests must not read as debited from the account.
+ */
+internal fun formatUnsigned(amount: Double, currency: String): String {
+    val abs = if (amount < 0) -amount else amount
+    val cents = kotlin.math.round(abs * 100).toLong()
+    return "${symbol(currency)}${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
+}
+
 internal fun symbol(currency: String): String = when (currency.uppercase()) {
     "GBP" -> "£"
     "EUR" -> "€"

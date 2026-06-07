@@ -44,6 +44,9 @@ import org.mifosx.openbanking.core.model.obp.Account
  * Reusable account picker bottom sheet. Lists [accounts] with a divider between rows;
  * the row matching [selectedAccountId] carries a check. Selecting a row reports the
  * account and dismisses; swiping down / tapping outside calls [onDismiss].
+ *
+ * When [allOptionLabel] and [onAllSelected] are both provided, an aggregate row renders
+ * above the account list; it carries the check when [selectedAccountId] is blank.
  */
 @Composable
 fun AccountPickerBottomSheet(
@@ -53,6 +56,8 @@ fun AccountPickerBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     title: String = "Choose account",
+    allOptionLabel: String? = null,
+    onAllSelected: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(
@@ -71,6 +76,21 @@ fun AccountPickerBottomSheet(
         // Scrollable so long account lists never clip mid-row at the sheet fold (a clipped
         // row reads as a stray divider line below the last visible account).
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+            if (allOptionLabel != null && onAllSelected != null) {
+                item(key = "account_picker_all") {
+                    Column {
+                        AllAccountsRow(
+                            label = allOptionLabel,
+                            selected = selectedAccountId.isBlank(),
+                            onClick = onAllSelected,
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                        )
+                    }
+                }
+            }
             itemsIndexed(accounts, key = { _, account -> account.accountIdOrId }) { index, account ->
                 Column {
                     AccountRow(
@@ -87,6 +107,35 @@ fun AccountPickerBottomSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AllAccountsRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 14.dp)
+            .testTag(AccountPickerTestTags.ALL_ROW),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Spacer(Modifier.width(12.dp))
+            Icon(
+                Icons.Filled.CheckCircle,
+                contentDescription = "Selected",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -142,5 +191,6 @@ fun accountPickerDisplayName(account: Account): String = when {
 
 object AccountPickerTestTags {
     const val SHEET = "account_picker_sheet"
+    const val ALL_ROW = "account_picker_row_all"
     fun row(id: String) = "account_picker_row_$id"
 }

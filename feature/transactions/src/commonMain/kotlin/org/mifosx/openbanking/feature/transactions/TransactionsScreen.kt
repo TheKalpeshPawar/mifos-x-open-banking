@@ -419,7 +419,7 @@ private fun PendingRow(pending: PendingPayment, onClick: () -> Unit) {
                 )
             }
             Text(
-                "-${symbol(pending.currency)}${pending.amount.trimStart('-')}",
+                "${symbol(pending.currency)}${pending.amount.trimStart('-')}",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

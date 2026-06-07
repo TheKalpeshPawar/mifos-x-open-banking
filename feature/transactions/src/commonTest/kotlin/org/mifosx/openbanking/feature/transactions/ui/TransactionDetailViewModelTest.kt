@@ -271,7 +271,7 @@ class TransactionDetailViewModelTest {
     @Test
     fun pendingLoad_derivesPendingContent() = runTest(dispatcher) {
         val c = content(vm(transactionId = "", requestId = "req-1"))
-        assertEquals("-€1500.00", c.amount)
+        assertEquals("€1500.00", c.amount)
         assertTrue(c.isDebit)
         assertTrue(c.isPending)
         assertEquals("Awaiting confirmation", c.statusLabel)
