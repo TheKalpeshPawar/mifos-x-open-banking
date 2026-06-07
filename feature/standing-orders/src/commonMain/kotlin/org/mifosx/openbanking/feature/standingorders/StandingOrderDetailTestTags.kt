@@ -10,8 +10,6 @@
 package org.mifosx.openbanking.feature.standingorders
 
 object StandingOrderDetailTestTags {
-    const val HEADER = "standing_order_detail_header"
-    const val STATUS_BADGE = "standing_order_detail_status_badge"
     const val RECIPIENT_CARD = "standing_order_detail_recipient_card"
     const val SCHEDULE_CARD = "standing_order_detail_schedule_card"
     const val AMOUNT_CARD = "standing_order_detail_amount_card"

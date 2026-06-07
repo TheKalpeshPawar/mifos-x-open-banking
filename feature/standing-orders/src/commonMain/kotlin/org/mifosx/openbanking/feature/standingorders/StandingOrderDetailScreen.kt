@@ -12,7 +12,6 @@
 package org.mifosx.openbanking.feature.standingorders
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -153,7 +152,6 @@ private fun SodContent(
     onNotify: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        SodHeader(content)
         Spacer(Modifier.height(16.dp))
         SodRecipientCard(content)
         Spacer(Modifier.height(12.dp))
@@ -165,41 +163,6 @@ private fun SodContent(
         Spacer(Modifier.height(16.dp))
         SodActions(content, onNotify)
         Spacer(Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun SodHeader(content: StandingOrderDetailContent) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 20.dp, vertical = 24.dp)
-            .testTag(StandingOrderDetailTestTags.HEADER),
-    ) {
-        Text(
-            content.name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-        Spacer(Modifier.height(8.dp))
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.testTag(StandingOrderDetailTestTags.STATUS_BADGE),
-        ) {
-            Text(
-                content.statusLabel,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (content.isActive) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
-            )
-        }
     }
 }
 
@@ -223,6 +186,8 @@ private fun SodScheduleCard(content: StandingOrderDetailContent) {
         title = "SCHEDULE",
         modifier = Modifier.testTag(StandingOrderDetailTestTags.SCHEDULE_CARD),
     ) {
+        SodRow("Status", content.statusLabel, highlight = content.isActive)
+        SodDivider()
         SodRow("Frequency", content.frequencyLabel)
         if (content.startedOn.isNotBlank()) {
             SodDivider()
