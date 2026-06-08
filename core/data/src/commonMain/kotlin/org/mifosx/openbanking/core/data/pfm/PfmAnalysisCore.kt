@@ -26,10 +26,16 @@ import org.mifosx.openbanking.core.model.pfm.PfmTaxonomy
  * Resolves the spend category for one transaction. Keyword matches (description and
  * counterparty name) win over TXN_TYPE fallbacks because the sandbox tags most card
  * payments POS regardless of what they were for. Matching is token-prefix, not
- * substring — "netflix" must not match the "tfl" keyword.
+ * substring — "netflix" must not match the "tfl" keyword. [counterpartyName] defaults to the
+ * raw holder name; callers pass a resolved counterparty so the login-username placeholder
+ * never pollutes the keyword tokens.
  */
-fun categorize(txn: Transaction, taxonomy: PfmTaxonomy = PERSONAL_TAXONOMY): PfmCategory {
-    val tokens = "${txn.details.description} ${txn.otherAccount.holder.name}"
+fun categorize(
+    txn: Transaction,
+    taxonomy: PfmTaxonomy = PERSONAL_TAXONOMY,
+    counterpartyName: String = txn.otherAccount.holder.name,
+): PfmCategory {
+    val tokens = "${txn.details.description} $counterpartyName"
         .lowercase()
         .split(Regex("[^a-z0-9]+"))
         .filter { it.isNotBlank() }
@@ -55,7 +61,10 @@ fun periodRange(period: PfmPeriod, today: LocalDate): Pair<LocalDate, LocalDate>
 /**
  * Derives summary, category breakdown and top merchants for transactions in [start]..[end].
  * [taxonomy] selects the category set; [amountOf] maps a transaction to its signed amount —
- * callers inject FX conversion here, and the default returns the native amount.
+ * callers inject FX conversion here, and the default returns the native amount. [displayName]
+ * maps a transaction to its counterparty name for categorisation and merchant grouping — the
+ * default returns the raw holder name, while callers inject counterparty resolution so the OBP
+ * login-username placeholder is never grouped or rendered as a merchant.
  */
 fun analyze(
     transactions: List<Transaction>,
@@ -63,6 +72,7 @@ fun analyze(
     end: LocalDate,
     taxonomy: PfmTaxonomy = PERSONAL_TAXONOMY,
     amountOf: (Transaction) -> Double = { it.details.value.amount.toDoubleOrNull() ?: 0.0 },
+    displayName: (Transaction) -> String = { it.otherAccount.holder.name },
 ): PfmInsights {
     val inPeriod = transactions.filter { txn ->
         val date = txn.bookedDate() ?: return@filter false
@@ -73,7 +83,7 @@ fun analyze(
     val received = inPeriod.filter { amountOf(it) > 0 }.sumOf { amountOf(it) }
 
     val categories = debits
-        .groupBy { categorize(it, taxonomy) }
+        .groupBy { categorize(it, taxonomy, displayName(it)) }
         .map { (def, txns) -> def to txns.sumOf { -amountOf(it) } }
         .sortedByDescending { it.second }
         .map { (def, amount) ->
@@ -86,7 +96,7 @@ fun analyze(
         }
 
     val merchants = debits
-        .groupBy { it.otherAccount.holder.name.ifBlank { it.details.description }.ifBlank { "Unknown" } }
+        .groupBy { displayName(it).ifBlank { it.details.description }.ifBlank { "Unknown" } }
         .map { (name, txns) ->
             MerchantSpend(name = name, count = txns.size, amount = txns.sumOf { -amountOf(it) })
         }

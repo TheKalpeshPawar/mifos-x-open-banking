@@ -20,20 +20,6 @@ internal fun TransactionTypeFilter.label(): String = when (this) {
     TransactionTypeFilter.PENDING -> "Pending"
 }
 
-/**
- * Counterparty display name for a transaction. HARD RULE: the OBP placeholder holder (the
- * LOGIN USERNAME, stamped on transfers between the user's own accounts) is NEVER rendered —
- * a resolved destination holder name wins, then a real (non-placeholder) holder, then the
- * transaction description. May return "" when nothing is known; callers pick a final default.
- */
-internal fun counterpartyDisplayName(
-    txn: Transaction,
-    resolvedNames: Map<String, String>,
-    placeholder: String,
-): String = resolvedNames[txn.otherAccount.id]
-    ?: txn.otherAccount.holder.name.takeIf { it.isNotBlank() && it != placeholder }
-    ?: txn.details.description
-
 /** Human label for the TXN_TYPE attribute short code (falls back to the OBP detail type). */
 internal fun categoryLabel(txn: Transaction): String = when (txn.txnTypeCode) {
     "POS" -> "Card payment"

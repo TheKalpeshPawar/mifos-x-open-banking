@@ -33,7 +33,9 @@ import org.mifosx.openbanking.core.data.pfm.BudgetsRepository
 import org.mifosx.openbanking.core.data.pfm.PfmBudgets
 import org.mifosx.openbanking.core.data.pfm.analyze
 import org.mifosx.openbanking.core.data.pfm.periodRange
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Transaction
@@ -66,6 +68,7 @@ class PfmDashboardViewModel(
     private val fxConverter: FxConverter,
     private val budgetsRepository: BudgetsRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val counterpartyNameResolver: CounterpartyNameResolver,
     private val todayProvider: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) : ViewModel() {
 
@@ -152,6 +155,23 @@ class PfmDashboardViewModel(
                     }
                 }.awaitAll()
             }.toMap()
+            // Counterparty resolution is per account; merge the maps (keys are obfuscated
+            // other_account ids, unique per counterparty) so merchant grouping never keys on the
+            // login-username placeholder. A resolve failure degrades to raw names, never the screen.
+            val counterpartyNames = buildMap {
+                personal.forEach { account ->
+                    val resolved = runCatching {
+                        counterpartyNameResolver.resolve(
+                            account.bankId,
+                            account.accountIdOrId,
+                            perAccount[account.accountIdOrId].orEmpty(),
+                        )
+                    }.getOrDefault(emptyMap())
+                    putAll(resolved)
+                }
+            }
+            val counterpartyPlaceholder =
+                runCatching { counterpartyNameResolver.placeholderHolder() }.getOrDefault("")
             val defaultAccount = resolveDefaultAccount(personal)
             val baseCurrency = budgetsRepository.baseCurrency().getOrNull()
                 ?: defaultAccount.balance.currency.ifBlank { "EUR" }
@@ -171,6 +191,8 @@ class PfmDashboardViewModel(
                 budgets = budgets,
                 baseCurrency = baseCurrency,
                 rateByCurrency = rateByCurrency,
+                counterpartyNames = counterpartyNames,
+                counterpartyPlaceholder = counterpartyPlaceholder,
             )
         }
     }
@@ -209,7 +231,10 @@ class PfmDashboardViewModel(
         val transactions = filteredAccount
             ?.let { raw.transactionsByAccount[it.accountIdOrId].orEmpty() }
             ?: raw.transactionsByAccount.values.flatten()
-        val insights = analyze(transactions, start, end, PERSONAL_TAXONOMY, amountOf)
+        val displayName: (Transaction) -> String = {
+            counterpartyDisplayName(it, raw.counterpartyNames, raw.counterpartyPlaceholder)
+        }
+        val insights = analyze(transactions, start, end, PERSONAL_TAXONOMY, amountOf, displayName)
         val budgetMeterSpent = insights.summary.spent - insights.categories
             .filter { it.id in BUDGET_METER_EXCLUDED }
             .sumOf { it.amount }
@@ -270,6 +295,8 @@ class PfmDashboardViewModel(
             val budgets: PfmBudgets,
             val baseCurrency: String,
             val rateByCurrency: Map<String, Double?>,
+            val counterpartyNames: Map<String, String>,
+            val counterpartyPlaceholder: String,
         ) : RawState
     }
 

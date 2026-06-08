@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.accounts.PfmAccountsService
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
@@ -38,6 +39,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private val TODAY = LocalDate(2026, 6, 6)
+
+/** Resolution is exercised by the engine's own tests; these tests fold raw names. */
+private object NoopCounterpartyNameResolver : CounterpartyNameResolver {
+    override suspend fun resolve(
+        bankId: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): Map<String, String> = emptyMap()
+
+    override suspend fun placeholderHolder(): String = ""
+}
 
 private fun bizTxn(
     amount: String,
@@ -113,6 +125,7 @@ class BusinessInsightsViewModelTest {
     ) = BusinessInsightsViewModel(
         pfmAccountsService = PfmAccountsService(accounts),
         transactionsRepository = transactions,
+        counterpartyNameResolver = NoopCounterpartyNameResolver,
         todayProvider = { TODAY },
     )
 

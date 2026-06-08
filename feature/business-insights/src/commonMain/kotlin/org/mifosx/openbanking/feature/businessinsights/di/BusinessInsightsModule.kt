@@ -18,6 +18,7 @@ val BusinessInsightsModule = module {
         BusinessInsightsViewModel(
             pfmAccountsService = get(),
             transactionsRepository = get(),
+            counterpartyNameResolver = get(),
         )
     }
 }

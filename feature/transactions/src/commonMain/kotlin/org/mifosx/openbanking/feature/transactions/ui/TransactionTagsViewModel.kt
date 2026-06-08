@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionMetadataRepository
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
-import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.feature.transactions.formatSigned
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState

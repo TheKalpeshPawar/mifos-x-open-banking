@@ -173,4 +173,31 @@ class PfmAnalysisCoreTest {
         )
         assertEquals(100.0 * rate + 50.0, insights.summary.spent, absoluteTolerance = 0.001)
     }
+
+    @Test
+    fun analyze_displayNameHookKeepsPlaceholderOutOfMerchants() {
+        val placeholder = "afternooncoffee"
+        val transactions = listOf(
+            txn("-40.00", holder = placeholder),
+            txn("-15.00", holder = "Tesco"),
+        )
+        val insights = analyze(
+            transactions = transactions,
+            start = LocalDate(2026, 6, 1),
+            end = TODAY,
+            displayName = { txn ->
+                if (txn.otherAccount.holder.name == placeholder) "Jane Doe" else txn.otherAccount.holder.name
+            },
+        )
+        assertTrue(insights.topMerchants.none { it.name == placeholder })
+        assertEquals("Jane Doe", insights.topMerchants.first().name)
+    }
+
+    @Test
+    fun categorize_usesResolvedCounterpartyNameForKeywords() {
+        // Raw holder is the login-username placeholder; the resolved name carries the keyword.
+        val txn = txn("-9.99", description = "Card payment", holder = "afternooncoffee", typeCode = "POS")
+        assertEquals("shopping", categorize(txn).id)
+        assertEquals("entertainment", categorize(txn, counterpartyName = "Netflix").id)
+    }
 }

@@ -29,6 +29,7 @@ import org.mifosx.openbanking.core.data.fx.FxConverter
 import org.mifosx.openbanking.core.data.fx.FxRepository
 import org.mifosx.openbanking.core.data.pfm.BudgetsRepository
 import org.mifosx.openbanking.core.data.pfm.PfmBudgets
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
 import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
 import org.mifosx.openbanking.core.model.obp.Account
@@ -55,6 +56,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private val TODAY = LocalDate(2026, 6, 6)
+
+/** Resolution is exercised by the engine's own tests; the dashboard tests fold raw names. */
+private object NoopCounterpartyNameResolver : CounterpartyNameResolver {
+    override suspend fun resolve(
+        bankId: String,
+        accountId: String,
+        transactions: List<Transaction>,
+    ): Map<String, String> = emptyMap()
+
+    override suspend fun placeholderHolder(): String = ""
+}
 
 private fun pfmTxn(
     amount: String,
@@ -209,6 +221,7 @@ class PfmDashboardViewModelTest {
         fxConverter = FxConverter(fx),
         budgetsRepository = budgets,
         userPreferencesRepository = PfmFakeUserPreferencesRepository(defaultAccountId),
+        counterpartyNameResolver = NoopCounterpartyNameResolver,
         todayProvider = { TODAY },
     )
 

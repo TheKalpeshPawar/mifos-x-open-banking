@@ -28,9 +28,9 @@ import org.mifosx.openbanking.core.data.accounts.AccountsRepository
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
-import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
 import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenState
 import kotlin.time.Clock

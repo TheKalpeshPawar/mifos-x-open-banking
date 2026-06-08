@@ -26,7 +26,9 @@ import kotlinx.datetime.todayIn
 import org.mifosx.openbanking.core.data.accounts.PfmAccountsService
 import org.mifosx.openbanking.core.data.pfm.analyze
 import org.mifosx.openbanking.core.data.pfm.periodRange
+import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.core.model.obp.Account
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.pfm.BUSINESS_TAXONOMY
@@ -48,6 +50,7 @@ import kotlin.time.Clock
 class BusinessInsightsViewModel(
     private val pfmAccountsService: PfmAccountsService,
     private val transactionsRepository: TransactionsRepository,
+    private val counterpartyNameResolver: CounterpartyNameResolver,
     private val todayProvider: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) : ViewModel() {
 
@@ -111,7 +114,20 @@ class BusinessInsightsViewModel(
                     rawState.value = RawState.Failed(it)
                     return@launch
                 }
-            rawState.value = RawState.Loaded(account, business, transactions)
+            // Resolve counterparties so the login-username placeholder never surfaces as a
+            // merchant; a failure degrades to raw names rather than failing the screen.
+            val counterpartyNames = runCatching {
+                counterpartyNameResolver.resolve(account.bankId, account.accountIdOrId, transactions)
+            }.getOrDefault(emptyMap())
+            val counterpartyPlaceholder =
+                runCatching { counterpartyNameResolver.placeholderHolder() }.getOrDefault("")
+            rawState.value = RawState.Loaded(
+                account = account,
+                businessAccounts = business,
+                transactions = transactions,
+                counterpartyNames = counterpartyNames,
+                counterpartyPlaceholder = counterpartyPlaceholder,
+            )
         }
     }
 
@@ -126,7 +142,10 @@ class BusinessInsightsViewModel(
             } else {
                 periodRange(sel.period, today)
             }
-            val insights = analyze(raw.transactions, start, end, BUSINESS_TAXONOMY)
+            val displayName: (Transaction) -> String = {
+                counterpartyDisplayName(it, raw.counterpartyNames, raw.counterpartyPlaceholder)
+            }
+            val insights = analyze(raw.transactions, start, end, BUSINESS_TAXONOMY, displayName = displayName)
             val expenseCategories = insights.categories.filterNot { it.id == INCOME_CATEGORY_ID }
             ScreenState.Content(
                 data = BizContent(
@@ -163,6 +182,8 @@ class BusinessInsightsViewModel(
             val account: Account,
             val businessAccounts: List<Account>,
             val transactions: List<Transaction>,
+            val counterpartyNames: Map<String, String>,
+            val counterpartyPlaceholder: String,
         ) : RawState
     }
 }

@@ -69,6 +69,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.ui.datepicker.DateRangePickerDialog
 import org.mifosx.openbanking.feature.transactions.ui.DateRangeFilter

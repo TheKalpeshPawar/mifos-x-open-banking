@@ -19,10 +19,10 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
 import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
+import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import org.mifosx.openbanking.feature.transactions.categoryLabel
-import org.mifosx.openbanking.feature.transactions.counterpartyDisplayName
 import org.mifosx.openbanking.feature.transactions.formatDate
 import org.mifosx.openbanking.feature.transactions.formatSigned
 import org.mifosx.openbanking.feature.transactions.formatUnsigned

@@ -41,6 +41,24 @@ interface CounterpartyNameResolver {
 }
 
 /**
+ * Counterparty display name for a transaction. HARD RULE: the OBP placeholder holder (the
+ * LOGIN USERNAME, stamped on transfers between the user's own accounts) is NEVER rendered —
+ * a resolved destination holder name wins, then a real (non-placeholder) holder, then the
+ * transaction description. May return "" when nothing is known; callers pick a final default.
+ *
+ * [resolvedNames] is the [CounterpartyNameResolver.resolve] map (keyed by `other_account.id`)
+ * and [placeholder] is [CounterpartyNameResolver.placeholderHolder]. Shared across the
+ * transactions UI and the PFM analysis engine so every surface folds the placeholder the same way.
+ */
+fun counterpartyDisplayName(
+    txn: Transaction,
+    resolvedNames: Map<String, String>,
+    placeholder: String,
+): String = resolvedNames[txn.otherAccount.id]
+    ?: txn.otherAccount.holder.name.takeIf { it.isNotBlank() && it != placeholder }
+    ?: txn.details.description
+
+/**
  * Mirror-join implementation. OBP obfuscates `other_account.id` (stable hash, no lookup
  * endpoint), but a transfer between the user's own accounts books a mirrored transaction on
  * the destination account — same description, same completed timestamp, negated amount. The

@@ -22,6 +22,7 @@ val PfmModule = module {
             fxConverter = get(),
             budgetsRepository = get(),
             userPreferencesRepository = get(),
+            counterpartyNameResolver = get(),
         )
     }
     viewModel {
