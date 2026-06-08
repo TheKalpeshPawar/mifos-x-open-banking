@@ -42,7 +42,7 @@ class AndroidApp : Application(), SingletonImageLoader.Factory, KoinComponent {
 
     override fun onCreate() {
         super.onCreate()
-        initKoin {
+        initKoin(appVersion = versionData) {
             androidContext(this@AndroidApp)
             androidLogger()
         }

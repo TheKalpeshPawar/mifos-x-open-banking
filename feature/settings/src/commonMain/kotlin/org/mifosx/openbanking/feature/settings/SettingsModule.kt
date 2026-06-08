@@ -10,12 +10,20 @@
 package org.mifosx.openbanking.feature.settings
 
 import org.koin.compose.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mifosx.openbanking.feature.settings.ui.SettingsViewModel
 
 val SettingsModule = module {
     // Explicit factory (not viewModelOf): SettingsViewModel takes a `biometricAvailable: Boolean`
-    // and `appVersion: String` with platform defaults that are NOT in the Koin graph. viewModelOf
-    // would try to resolve them and fail (NoDefinitionFoundException). Inject only the repositories.
-    viewModel { SettingsViewModel(userDataRepository = get(), profileRepository = get()) }
+    // with a platform default that is NOT in the Koin graph, so viewModelOf would fail
+    // (NoDefinitionFoundException). The "appVersion" string IS provided by the platform entry
+    // point (named qualifier), falling back to the baseline marker when a platform supplies none.
+    viewModel {
+        SettingsViewModel(
+            userDataRepository = get(),
+            profileRepository = get(),
+            appVersion = get<String>(named("appVersion")).ifBlank { "v1.0.0" },
+        )
+    }
 }

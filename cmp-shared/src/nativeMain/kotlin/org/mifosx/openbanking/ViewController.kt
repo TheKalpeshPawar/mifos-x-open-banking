@@ -11,6 +11,7 @@ package org.mifosx.openbanking
 
 import androidx.compose.ui.window.ComposeUIViewController
 import org.mifosx.openbanking.utils.initKoin
+import platform.Foundation.NSBundle
 import platform.Foundation.NSUserDefaults
 import platform.QuartzCore.CALayer
 import platform.UIKit.UIApplication
@@ -19,9 +20,13 @@ import platform.UIKit.UIUserInterfaceStyle
 
 private var secureTextField: UITextField? = null
 
+/** Marketing version from the iOS bundle (CFBundleShortVersionString), blank when unavailable. */
+private fun bundleAppVersion(): String =
+    NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: ""
+
 fun viewController() = ComposeUIViewController(
     configure = {
-        initKoin()
+        initKoin(appVersion = bundleAppVersion())
     },
 ) {
     SharedApp(

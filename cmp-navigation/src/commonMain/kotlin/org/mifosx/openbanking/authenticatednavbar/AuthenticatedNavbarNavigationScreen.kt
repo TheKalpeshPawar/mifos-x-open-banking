@@ -36,7 +36,9 @@ import cmp.navigation.generated.resources.not_connected
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.qualifier.named
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountDetailScreen
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
@@ -333,7 +335,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 /** About / Terms / Privacy / Licenses — static feature/legal screens reached from Settings. */
 private fun NavGraphBuilder.legalDestinations(navController: NavHostController) {
     composableWithStayTransitions<AboutRoute> {
-        AboutScreen(onBack = navController::popBackStack)
+        AboutScreen(
+            onBack = navController::popBackStack,
+            appVersion = koinInject<String>(named("appVersion")).ifBlank { "1.0.0" },
+        )
     }
     composableWithStayTransitions<TermsOfServiceRoute> {
         TermsOfServiceScreen(onBack = navController::popBackStack)

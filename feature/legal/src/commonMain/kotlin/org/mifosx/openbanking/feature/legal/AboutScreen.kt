@@ -204,8 +204,6 @@ private fun AboutAppInfoCard(appVersion: String) {
         AboutSectionHeader("App")
         AboutValueRow(label = "Version", value = appVersion)
         AboutRowDivider()
-        AboutValueRow(label = "Build", value = "2026.05.001")
-        AboutRowDivider()
         AboutValueRow(label = "License", value = "MPL-2.0")
         AboutRowDivider()
         AboutValueRow(label = "Platform", value = "Kotlin Multiplatform")
