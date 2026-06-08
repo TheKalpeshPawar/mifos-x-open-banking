@@ -12,7 +12,11 @@ package org.mifosx.openbanking.core.model.obp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** OBP ATM location. */
+/**
+ * OBP ATM location. [isAccessible] and [hasDepositCapability] arrive as the strings
+ * `"true"`/`"false"` on the sandbox; read them through [accessible] / [acceptsDeposits].
+ * The per-day opening hours (`monday`…`sunday`) are sibling fields on the ATM object.
+ */
 @Serializable
 data class Atm(
     val id: String = "",
@@ -20,13 +24,34 @@ data class Atm(
     val name: String = "",
     val address: PostalAddress = PostalAddress(),
     val location: GeoLocation = GeoLocation(),
+    @SerialName("more_info") val moreInfo: String = "",
+    @SerialName("is_accessible") val isAccessible: String = "",
+    @SerialName("has_deposit_capability") val hasDepositCapability: String = "",
+    val monday: OpeningHours? = null,
+    val tuesday: OpeningHours? = null,
+    val wednesday: OpeningHours? = null,
+    val thursday: OpeningHours? = null,
+    val friday: OpeningHours? = null,
+    val saturday: OpeningHours? = null,
+    val sunday: OpeningHours? = null,
+) {
+    val accessible: Boolean get() = isAccessible.equals("true", ignoreCase = true)
+    val acceptsDeposits: Boolean get() = hasDepositCapability.equals("true", ignoreCase = true)
+    val week: List<OpeningHours> get() = listOfNotNull(monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+}
+
+@Serializable
+data class OpeningHours(
+    @SerialName("opening_time") val openingTime: String = "",
+    @SerialName("closing_time") val closingTime: String = "",
 )
 
 @Serializable
 data class PostalAddress(
-    val line1: String = "",
-    val line2: String = "",
+    @SerialName("line_1") val line1: String = "",
+    @SerialName("line_2") val line2: String = "",
     val city: String = "",
+    val county: String = "",
     @SerialName("postcode") val postCode: String = "",
     @SerialName("country_code") val countryCode: String = "",
 )

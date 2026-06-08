@@ -40,6 +40,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountDetailScreen
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
+import org.mifosx.openbanking.feature.atmlocator.AtmLocatorScreen
+import org.mifosx.openbanking.feature.atmlocator.platform.isAtmLocatorSupported
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.businessinsights.BusinessInsightsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
@@ -193,6 +195,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onBusinessInsights = { navController.navigate(BusinessInsightsRoute) },
                 onFxRates = { navController.navigate(FxRatesRoute) },
                 onProducts = { navController.navigate(ProductsRoute) },
+                showFindAtm = isAtmLocatorSupported(),
             )
             profileDestination(
                 onBackClick = navController::popBackStack,
@@ -315,6 +318,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 
             composableWithStayTransitions<ProductsRoute> {
                 ProductsScreen(onBack = navController::popBackStack)
+            }
+
+            composableWithStayTransitions<AtmLocatorRoute> {
+                AtmLocatorScreen(onBack = navController::popBackStack)
             }
 
             // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).

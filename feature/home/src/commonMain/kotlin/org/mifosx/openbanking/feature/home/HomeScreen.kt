@@ -91,6 +91,7 @@ fun HomeScreen(
     onFxRates: () -> Unit,
     onProducts: () -> Unit,
     modifier: Modifier = Modifier,
+    showFindAtm: Boolean = true,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,6 +116,7 @@ fun HomeScreen(
                 onBusinessInsights = onBusinessInsights,
                 onFxRates = onFxRates,
                 onProducts = onProducts,
+                showFindAtm = showFindAtm,
                 onDefaultAccountSelected = viewModel::onDefaultAccountSelected,
             )
         }
@@ -143,6 +145,7 @@ private fun HomeLoaded(
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
     onProducts: () -> Unit,
+    showFindAtm: Boolean,
     onDefaultAccountSelected: (Account) -> Unit,
 ) {
     val name = content.greetingName.ifBlank { "there" }
@@ -184,6 +187,7 @@ private fun HomeLoaded(
                     onBusinessInsights = onBusinessInsights,
                     onFxRates = onFxRates,
                     onProducts = onProducts,
+                    showFindAtm = showFindAtm,
                 )
             }
         }
@@ -304,6 +308,7 @@ private fun BankingServices(
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
     onProducts: () -> Unit,
+    showFindAtm: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -313,7 +318,11 @@ private fun BankingServices(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ServiceTile("FX Rates", Icons.Filled.CurrencyExchange, Modifier.weight(1f), onFxRates)
-            ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
+            if (showFindAtm) {
+                ServiceTile("Find ATM", Icons.Filled.LocationOn, Modifier.weight(1f), onFindAtm)
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
             ServiceTile("Insights", Icons.Filled.PieChart, Modifier.weight(1f), onInsights)
         }
     }

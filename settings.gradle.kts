@@ -127,6 +127,7 @@ include(":feature:fx-rates")
 include(":feature:direct-debits")
 include(":feature:products")
 include(":feature:legal")
+include(":feature:atm-locator")
 
 include(":core-base:analytics")
 include(":core-base:common")

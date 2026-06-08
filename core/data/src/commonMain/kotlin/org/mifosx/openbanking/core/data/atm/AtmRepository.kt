@@ -10,6 +10,9 @@
 package org.mifosx.openbanking.core.data.atm
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.Atm
@@ -26,6 +29,13 @@ interface AtmRepository {
     fun atmsStream(scope: CoroutineScope): ScreenDataStream<List<Atm>>
 
     suspend fun listAtms(): Result<List<Atm>>
+
+    /**
+     * ATMs across every bank in [bankIds], fetched in parallel and flattened. A bank whose
+     * fetch fails contributes nothing rather than failing the whole call; the result fails
+     * only when [bankIds] is empty or every bank fetch fails.
+     */
+    suspend fun atmsForBanks(bankIds: List<String>): Result<List<Atm>>
 }
 
 class AtmRepositoryImpl(
@@ -48,4 +58,19 @@ class AtmRepositoryImpl(
 
     override suspend fun listAtms(): Result<List<Atm>> =
         api.listAtms(config.bankId).toResult().map { it.atms }
+
+    override suspend fun atmsForBanks(bankIds: List<String>): Result<List<Atm>> {
+        val banks = bankIds.filter { it.isNotBlank() }.distinct()
+        if (banks.isEmpty()) return Result.failure(IllegalArgumentException("No banks to query for ATMs"))
+        val results = coroutineScope {
+            banks.map { bankId -> async { api.listAtms(bankId).toResult().map { it.atms } } }.awaitAll()
+        }
+        return if (results.all { it.isFailure }) {
+            Result.failure(results.firstNotNullOf { it.exceptionOrNull() })
+        } else {
+            Result.success(results.flatMap { it.getOrDefaultList() }.distinctBy { it.id })
+        }
+    }
+
+    private fun Result<List<Atm>>.getOrDefaultList(): List<Atm> = getOrElse { emptyList() }
 }

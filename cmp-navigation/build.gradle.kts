@@ -46,6 +46,7 @@ kotlin {
             implementation(projects.feature.directDebits)
             implementation(projects.feature.products)
             implementation(projects.feature.legal)
+            implementation(projects.feature.atmLocator)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

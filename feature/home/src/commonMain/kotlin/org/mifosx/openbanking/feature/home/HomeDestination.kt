@@ -34,6 +34,7 @@ fun NavGraphBuilder.homeGraph(
     onBusinessInsights: () -> Unit,
     onFxRates: () -> Unit,
     onProducts: () -> Unit,
+    showFindAtm: Boolean = true,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
@@ -47,6 +48,7 @@ fun NavGraphBuilder.homeGraph(
                 onBusinessInsights = onBusinessInsights,
                 onFxRates = onFxRates,
                 onProducts = onProducts,
+                showFindAtm = showFindAtm,
             )
         }
     }

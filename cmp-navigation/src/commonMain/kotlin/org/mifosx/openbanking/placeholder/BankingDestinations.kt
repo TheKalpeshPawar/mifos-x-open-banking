@@ -185,7 +185,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     // DirectDebitsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     // PfmDashboardRoute + FxRatesRoute are real feature modules — registered in
     // AuthenticatedNavbarNavigationScreen.
-    composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
     // ProductsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
 
