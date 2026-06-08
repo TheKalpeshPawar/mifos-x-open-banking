@@ -92,6 +92,25 @@ data class ScaChallengeRoute(
     val type: String,
     val requestId: String,
     val challengeId: String,
+    val amount: String = "",
+    val currency: String = "",
+    val beneficiaryName: String = "",
+    val fromLabel: String = "",
+)
+
+/** Success screen shown after a payment books — both the immediate and post-SCA completion land here. */
+@Serializable
+data class PaymentResultRoute(
+    val amount: String,
+    val currency: String,
+    val beneficiaryName: String,
+    val fromLabel: String,
+    val transactionId: String,
+    val chargeAmount: String,
+    val chargeCurrency: String,
+    val status: String,
+    val fromBankId: String,
+    val fromAccountId: String,
 )
 
 @Serializable data object BeneficiariesRoute

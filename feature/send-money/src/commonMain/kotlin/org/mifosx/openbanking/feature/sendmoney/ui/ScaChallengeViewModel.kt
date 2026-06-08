@@ -18,8 +18,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
 
-/** Everything needed to answer one payment's SCA challenge, carried across the navigation hop. */
+/**
+ * Everything needed to answer one payment's SCA challenge, carried across the navigation hop. The
+ * display fields ([amount]..[fromLabel]) are passed straight through to the payment-result screen.
+ */
 @Immutable
 data class ScaChallengeArgs(
     val bankId: String,
@@ -27,6 +31,10 @@ data class ScaChallengeArgs(
     val type: String,
     val requestId: String,
     val challengeId: String,
+    val amount: String,
+    val currency: String,
+    val beneficiaryName: String,
+    val fromLabel: String,
 )
 
 /** Confirm-challenge UI state — the entered code plus submit/error flags. */
@@ -60,7 +68,7 @@ class ScaChallengeViewModel(
         _state.update { it.copy(answer = value, errorMessage = null) }
     }
 
-    fun onSubmit(onCompleted: () -> Unit) {
+    fun onSubmit(onCompleted: (TransactionRequest) -> Unit) {
         val current = _state.value
         if (!current.isAnswerValid || current.isSubmitting) return
         _state.update { it.copy(isSubmitting = true, errorMessage = null) }
@@ -69,7 +77,7 @@ class ScaChallengeViewModel(
                 .fold(
                     onSuccess = { request ->
                         if (request.status.equals("COMPLETED", ignoreCase = true)) {
-                            onCompleted()
+                            onCompleted(request)
                         } else {
                             _state.update {
                                 it.copy(

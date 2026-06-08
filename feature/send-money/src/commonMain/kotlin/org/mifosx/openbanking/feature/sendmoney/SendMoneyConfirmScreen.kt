@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.feature.sendmoney.ui.ConfirmUiState
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentDraft
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentType
@@ -75,7 +76,7 @@ fun SendMoneyConfirmScreen(
     beneficiaryBank: String,
     iban: String,
     reference: String,
-    onSuccess: (String) -> Unit,
+    onCompleted: (TransactionRequest) -> Unit,
     onChallengeRequired: (ScaChallengeArgs) -> Unit,
     onEdit: () -> Unit,
     onBack: () -> Unit,
@@ -198,11 +199,7 @@ fun SendMoneyConfirmScreen(
                     )
                     viewModel.submit(
                         draft = draft,
-                        onCompleted = {
-                            onSuccess(
-                                "Payment of $formatted sent to ${beneficiaryName.ifBlank { "beneficiary" }}",
-                            )
-                        },
+                        onCompleted = onCompleted,
                         onChallengeRequired = onChallengeRequired,
                     )
                 },

@@ -44,7 +44,7 @@ class SendMoneyConfirmViewModel(
      */
     fun submit(
         draft: PaymentDraft,
-        onCompleted: () -> Unit,
+        onCompleted: (TransactionRequest) -> Unit,
         onChallengeRequired: (ScaChallengeArgs) -> Unit,
     ) {
         if (_state.value == ConfirmUiState.Submitting) return
@@ -62,10 +62,14 @@ class SendMoneyConfirmViewModel(
                                 type = request.type,
                                 requestId = request.id,
                                 challengeId = challenge.id,
+                                amount = draft.amount,
+                                currency = draft.currency,
+                                beneficiaryName = draft.beneficiaryName,
+                                fromLabel = draft.fromLabel,
                             ),
                         )
                     } else {
-                        onCompleted()
+                        onCompleted(request)
                     }
                 },
                 onFailure = { _state.value = ConfirmUiState.Failed(errorMessage(it)) },

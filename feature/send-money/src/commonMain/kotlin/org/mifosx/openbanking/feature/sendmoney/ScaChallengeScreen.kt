@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.feature.sendmoney.ui.ScaChallengeViewModel
 
 /**
@@ -58,7 +59,7 @@ fun ScaChallengeScreen(
     type: String,
     requestId: String,
     challengeId: String,
-    onCompleted: () -> Unit,
+    onCompleted: (TransactionRequest) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ScaChallengeViewModel = koinViewModel {

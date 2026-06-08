@@ -39,6 +39,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.qualifier.named
+import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.AccountDetailScreen
 import org.mifosx.openbanking.feature.accounts.AccountsScreen
@@ -61,6 +62,7 @@ import org.mifosx.openbanking.feature.pfm.settings.PfmSettingsScreen
 import org.mifosx.openbanking.feature.products.ProductsScreen
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
+import org.mifosx.openbanking.feature.sendmoney.PaymentResultScreen
 import org.mifosx.openbanking.feature.sendmoney.ScaChallengeScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
@@ -86,6 +88,7 @@ import org.mifosx.openbanking.placeholder.DirectDebitsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.FxRatesRoute
 import org.mifosx.openbanking.placeholder.LicensesRoute
+import org.mifosx.openbanking.placeholder.PaymentResultRoute
 import org.mifosx.openbanking.placeholder.PfmDashboardRoute
 import org.mifosx.openbanking.placeholder.PfmSettingsRoute
 import org.mifosx.openbanking.placeholder.PrivacyPolicyRoute
@@ -265,7 +268,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             }
 
             // Pay tab — Send Money hub → amount entry → confirm (rail-routed).
-            sendMoneyDestinations(navController, scope, snackbarHostState)
+            sendMoneyDestinations(navController)
 
             // Beneficiaries — real feature module. Tapping a beneficiary heads to the Pay tab.
             composableWithStayTransitions<BeneficiariesRoute> {
@@ -356,8 +359,6 @@ private fun NavGraphBuilder.legalDestinations(navController: NavHostController) 
 
 private fun NavGraphBuilder.sendMoneyDestinations(
     navController: NavHostController,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
 ) {
     // Pay tab — Send Money hub. Pick a recipient/beneficiary → amount entry preselected;
     // New / Local transfer → amount entry with the beneficiary picker.
@@ -422,10 +423,18 @@ private fun NavGraphBuilder.sendMoneyDestinations(
             paymentType = r.paymentType,
             conversionNote = r.conversionNote,
             sandboxTan = if (r.useSandboxTan) SandboxTanDestination(r.toBankId, r.toAccountId) else null,
-            onSuccess = { message ->
-                navController.popBackStack(SendMoneyRoute, inclusive = false)
-                navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
-                scope.launch { snackbarHostState.showSnackbar(message) }
+            onCompleted = { request ->
+                navController.navigate(
+                    paymentResultRoute(
+                        request = request,
+                        amount = r.amount,
+                        currency = r.currency,
+                        beneficiaryName = r.beneficiaryName,
+                        fromLabel = r.fromLabel,
+                        fromBankId = r.fromBankId,
+                        fromAccountId = r.fromAccountId,
+                    ),
+                )
             },
             onChallengeRequired = { args ->
                 navController.navigate(
@@ -435,6 +444,10 @@ private fun NavGraphBuilder.sendMoneyDestinations(
                         type = args.type,
                         requestId = args.requestId,
                         challengeId = args.challengeId,
+                        amount = args.amount,
+                        currency = args.currency,
+                        beneficiaryName = args.beneficiaryName,
+                        fromLabel = args.fromLabel,
                     ),
                 )
             },
@@ -443,8 +456,8 @@ private fun NavGraphBuilder.sendMoneyDestinations(
         )
     }
 
-    // SCA challenge — answer the one-time code for a payment that returned INITIATED, then clear
-    // back to the form, switch to Home and confirm with a snackbar.
+    // SCA challenge — answer the one-time code for a payment that returned INITIATED, then show the
+    // payment-result screen carrying the original display fields + the booked transaction.
     composableWithStayTransitions<ScaChallengeRoute> { entry ->
         val c = entry.toRoute<ScaChallengeRoute>()
         ScaChallengeScreen(
@@ -453,15 +466,73 @@ private fun NavGraphBuilder.sendMoneyDestinations(
             type = c.type,
             requestId = c.requestId,
             challengeId = c.challengeId,
-            onCompleted = {
-                navController.popBackStack(SendMoneyRoute, inclusive = false)
-                navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
-                scope.launch { snackbarHostState.showSnackbar("Payment confirmed and sent.") }
+            onCompleted = { request ->
+                navController.navigate(
+                    paymentResultRoute(
+                        request = request,
+                        amount = c.amount,
+                        currency = c.currency,
+                        beneficiaryName = c.beneficiaryName,
+                        fromLabel = c.fromLabel,
+                        fromBankId = c.bankId,
+                        fromAccountId = c.accountId,
+                    ),
+                )
             },
             onBack = navController::popBackStack,
         )
     }
+
+    // Payment result — success summary; "View transaction" opens the booked row, "Done" returns home.
+    composableWithStayTransitions<PaymentResultRoute> { entry ->
+        val p = entry.toRoute<PaymentResultRoute>()
+        PaymentResultScreen(
+            amount = p.amount,
+            currency = p.currency,
+            beneficiaryName = p.beneficiaryName,
+            fromLabel = p.fromLabel,
+            transactionId = p.transactionId,
+            chargeAmount = p.chargeAmount,
+            chargeCurrency = p.chargeCurrency,
+            status = p.status,
+            onViewTransaction = {
+                navController.navigate(
+                    TransactionDetailRoute(
+                        bankId = p.fromBankId,
+                        accountId = p.fromAccountId,
+                        transactionId = p.transactionId,
+                    ),
+                )
+            },
+            onDone = {
+                navController.popBackStack(SendMoneyRoute, inclusive = false)
+                navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
+            },
+        )
+    }
 }
+
+/** Builds the payment-result route from the original display fields + the booked [request]. */
+private fun paymentResultRoute(
+    request: TransactionRequest,
+    amount: String,
+    currency: String,
+    beneficiaryName: String,
+    fromLabel: String,
+    fromBankId: String,
+    fromAccountId: String,
+) = PaymentResultRoute(
+    amount = amount,
+    currency = currency,
+    beneficiaryName = beneficiaryName,
+    fromLabel = fromLabel,
+    transactionId = request.transactionIds.firstOrNull().orEmpty(),
+    chargeAmount = request.charge.value.amount,
+    chargeCurrency = request.charge.value.currency,
+    status = request.status,
+    fromBankId = fromBankId,
+    fromAccountId = fromAccountId,
+)
 
 private fun NavGraphBuilder.transactionsDestinations(navController: NavHostController) {
     // Transaction history — booked rows + pending (INITIATED) payments for one account;
