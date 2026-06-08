@@ -18,4 +18,11 @@ data class ObpConfig(
     val baseUrl: String = "https://apisandbox.openbankproject.com/obp/",
     val bankId: String = "ac.bank.uk",
     val consumerKey: String = "",
-)
+) {
+    /**
+     * True when pointed at an OBP sandbox. Gates the sandbox-only SANDBOX_TAN payment rail, whose
+     * challenge can be self-answered by the maker (real-payment rails enforce maker/checker, so the
+     * challenge would otherwise be uncompletable by a single user — OBP-30279).
+     */
+    val isSandbox: Boolean get() = baseUrl.contains("sandbox", ignoreCase = true)
+}

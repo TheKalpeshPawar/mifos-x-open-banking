@@ -124,6 +124,23 @@ private class CreateFakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = TODO()
+    override suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> = TODO()
+    override suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest> = TODO()
 }
 
 private class CreateFakeProfileRepository : ProfileRepository {

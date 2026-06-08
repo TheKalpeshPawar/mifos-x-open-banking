@@ -37,18 +37,58 @@ class SendMoneyConfirmViewModel(
     private val _state = MutableStateFlow<ConfirmUiState>(ConfirmUiState.Review)
     val state: StateFlow<ConfirmUiState> = _state.asStateFlow()
 
-    fun submit(draft: PaymentDraft, onSuccess: () -> Unit) {
+    /**
+     * Submits the reviewed draft. A payment above the bank's SCA threshold comes back INITIATED with
+     * a challenge — [onChallengeRequired] then carries the user to the code-entry screen; an
+     * immediately-settled payment calls [onCompleted].
+     */
+    fun submit(
+        draft: PaymentDraft,
+        onCompleted: () -> Unit,
+        onChallengeRequired: (ScaChallengeArgs) -> Unit,
+    ) {
         if (_state.value == ConfirmUiState.Submitting) return
         _state.value = ConfirmUiState.Submitting
         viewModelScope.launch {
             send(draft).fold(
-                onSuccess = { onSuccess() },
+                onSuccess = { request ->
+                    val challenge = request.challenge
+                    if (request.requiresChallenge && challenge != null) {
+                        _state.value = ConfirmUiState.Review
+                        onChallengeRequired(
+                            ScaChallengeArgs(
+                                bankId = draft.fromBankId,
+                                accountId = draft.fromAccountId,
+                                type = request.type,
+                                requestId = request.id,
+                                challengeId = challenge.id,
+                            ),
+                        )
+                    } else {
+                        onCompleted()
+                    }
+                },
                 onFailure = { _state.value = ConfirmUiState.Failed(errorMessage(it)) },
             )
         }
     }
 
-    private suspend fun send(draft: PaymentDraft): Result<TransactionRequest> {
+    private suspend fun send(draft: PaymentDraft): Result<TransactionRequest> =
+        if (draft.useSandboxTan) {
+            paymentsRepository.sendToSandboxTan(
+                bankId = draft.fromBankId,
+                accountId = draft.fromAccountId,
+                toBankId = draft.toBankId,
+                toAccountId = draft.toAccountId,
+                amount = draft.amount,
+                currency = draft.currency,
+                reference = draft.reference,
+            )
+        } else {
+            sendViaRail(draft)
+        }
+
+    private suspend fun sendViaRail(draft: PaymentDraft): Result<TransactionRequest> {
         if (draft.paymentType != PaymentType.SEPA || draft.iban.isBlank()) return sendCounterparty(draft)
         val sepa = paymentsRepository.sendSepaPayment(
             bankId = draft.fromBankId,

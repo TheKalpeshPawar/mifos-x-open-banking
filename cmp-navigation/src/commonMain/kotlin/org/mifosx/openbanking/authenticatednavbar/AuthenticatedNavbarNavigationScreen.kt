@@ -61,9 +61,11 @@ import org.mifosx.openbanking.feature.pfm.settings.PfmSettingsScreen
 import org.mifosx.openbanking.feature.products.ProductsScreen
 import org.mifosx.openbanking.feature.profile.navigateToProfile
 import org.mifosx.openbanking.feature.profile.profileDestination
+import org.mifosx.openbanking.feature.sendmoney.ScaChallengeScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyConfirmScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyHubScreen
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyScreen
+import org.mifosx.openbanking.feature.sendmoney.ui.SandboxTanDestination
 import org.mifosx.openbanking.feature.settings.settingsDestination
 import org.mifosx.openbanking.feature.standingorders.CreateStandingOrderScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrderDetailScreen
@@ -88,6 +90,7 @@ import org.mifosx.openbanking.placeholder.PfmDashboardRoute
 import org.mifosx.openbanking.placeholder.PfmSettingsRoute
 import org.mifosx.openbanking.placeholder.PrivacyPolicyRoute
 import org.mifosx.openbanking.placeholder.ProductsRoute
+import org.mifosx.openbanking.placeholder.ScaChallengeRoute
 import org.mifosx.openbanking.placeholder.SendMoneyAmountRoute
 import org.mifosx.openbanking.placeholder.SendMoneyConfirmRoute
 import org.mifosx.openbanking.placeholder.SendMoneyRoute
@@ -389,6 +392,9 @@ private fun NavGraphBuilder.sendMoneyDestinations(
                         reference = d.reference,
                         paymentType = d.paymentType.name,
                         conversionNote = d.conversionNote.orEmpty(),
+                        useSandboxTan = d.useSandboxTan,
+                        toBankId = d.toBankId,
+                        toAccountId = d.toAccountId,
                     ),
                 )
             },
@@ -415,12 +421,43 @@ private fun NavGraphBuilder.sendMoneyDestinations(
             reference = r.reference,
             paymentType = r.paymentType,
             conversionNote = r.conversionNote,
+            sandboxTan = if (r.useSandboxTan) SandboxTanDestination(r.toBankId, r.toAccountId) else null,
             onSuccess = { message ->
                 navController.popBackStack(SendMoneyRoute, inclusive = false)
                 navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
                 scope.launch { snackbarHostState.showSnackbar(message) }
             },
+            onChallengeRequired = { args ->
+                navController.navigate(
+                    ScaChallengeRoute(
+                        bankId = args.bankId,
+                        accountId = args.accountId,
+                        type = args.type,
+                        requestId = args.requestId,
+                        challengeId = args.challengeId,
+                    ),
+                )
+            },
             onEdit = navController::popBackStack,
+            onBack = navController::popBackStack,
+        )
+    }
+
+    // SCA challenge — answer the one-time code for a payment that returned INITIATED, then clear
+    // back to the form, switch to Home and confirm with a snackbar.
+    composableWithStayTransitions<ScaChallengeRoute> { entry ->
+        val c = entry.toRoute<ScaChallengeRoute>()
+        ScaChallengeScreen(
+            bankId = c.bankId,
+            accountId = c.accountId,
+            type = c.type,
+            requestId = c.requestId,
+            challengeId = c.challengeId,
+            onCompleted = {
+                navController.popBackStack(SendMoneyRoute, inclusive = false)
+                navController.navigateToTab(AuthenticatedNavBarTabItem.HomeTab)
+                scope.launch { snackbarHostState.showSnackbar("Payment confirmed and sent.") }
+            },
             onBack = navController::popBackStack,
         )
     }

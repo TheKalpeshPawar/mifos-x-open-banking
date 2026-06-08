@@ -14,11 +14,14 @@ import org.mifosx.openbanking.core.data.testutil.FakeObpCacheDao
 import org.mifosx.openbanking.core.data.testutil.NoopFetchedAt
 import org.mifosx.openbanking.core.data.testutil.testJson
 import org.mifosx.openbanking.core.data.testutil.testNetworkMonitor
+import org.mifosx.openbanking.core.model.obp.ChallengeAnswerBody
 import org.mifosx.openbanking.core.model.obp.CounterpartiesResponse
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.FundsAvailableResponse
+import org.mifosx.openbanking.core.model.obp.SandboxTanTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
+import org.mifosx.openbanking.core.model.obp.TransactionChallenge
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestsResponse
 import org.mifosx.openbanking.core.network.api.PaymentsApi
@@ -39,9 +42,16 @@ private class FakePaymentsApi(
         NetworkResult.Success(TransactionRequest()),
     var fundsResult: NetworkResult<FundsAvailableResponse, NetworkError> =
         NetworkResult.Success(FundsAvailableResponse(answer = "yes")),
+    var getRequestResult: NetworkResult<TransactionRequest, NetworkError> =
+        NetworkResult.Success(TransactionRequest()),
+    var answerResult: NetworkResult<TransactionRequest, NetworkError> =
+        NetworkResult.Success(TransactionRequest()),
+    var sandboxTanResult: NetworkResult<TransactionRequest, NetworkError> =
+        NetworkResult.Success(TransactionRequest()),
 ) : PaymentsApi {
     override suspend fun listCounterparties(bankId: String, accountId: String) = listResult
     override suspend fun listTransactionRequests(bankId: String, accountId: String) = requestsResult
+    override suspend fun getTransactionRequest(bankId: String, accountId: String, requestId: String) = getRequestResult
     override suspend fun createSepaTransactionRequest(
         bankId: String,
         accountId: String,
@@ -58,6 +68,31 @@ private class FakePaymentsApi(
         amount: String,
         currency: String,
     ) = fundsResult
+    var lastAnswerEndpoint: String? = null
+    override suspend fun answerTransactionRequestChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        request: ChallengeAnswerBody,
+    ): NetworkResult<TransactionRequest, NetworkError> {
+        lastAnswerEndpoint = "v4"
+        return answerResult
+    }
+    override suspend fun createSandboxTanTransactionRequest(
+        bankId: String,
+        accountId: String,
+        request: SandboxTanTransactionRequestBody,
+    ) = sandboxTanResult
+    override suspend fun answerSandboxTanChallenge(
+        bankId: String,
+        accountId: String,
+        requestId: String,
+        request: ChallengeAnswerBody,
+    ): NetworkResult<TransactionRequest, NetworkError> {
+        lastAnswerEndpoint = "v2.1-sandboxtan"
+        return answerResult
+    }
 }
 
 private fun paymentsRepo(api: PaymentsApi): PaymentsRepositoryImpl {
@@ -123,6 +158,49 @@ class PaymentsRepositoryTest {
     fun sendToCounterparty_error_isFailure() = runTest {
         val repo = paymentsRepo(FakePaymentsApi(sepaResult = NetworkResult.Error(NetworkError.SERVER)))
         assertTrue(repo.sendToCounterparty("ac.bank.uk", "acc-1", "cp-1", "10.00", "EUR", "r").isFailure)
+    }
+
+    @Test
+    fun send_initiatedWithoutChallenge_refetchesChallenge() = runTest {
+        val repo = paymentsRepo(
+            FakePaymentsApi(
+                sepaResult = NetworkResult.Success(
+                    TransactionRequest(id = "tr-3", type = "COUNTERPARTY", status = "INITIATED"),
+                ),
+                getRequestResult = NetworkResult.Success(
+                    TransactionRequest(
+                        id = "tr-3",
+                        status = "INITIATED",
+                        challenge = TransactionChallenge(id = "ch-9"),
+                    ),
+                ),
+            ),
+        )
+        val result = repo.sendToCounterparty("ac.bank.uk", "acc-1", "cp-1", "5000", "EUR", "rent")
+        assertEquals("ch-9", result.getOrNull()?.challenge?.id)
+        assertTrue(result.getOrNull()?.requiresChallenge == true)
+    }
+
+    @Test
+    fun sendToSandboxTan_success_returnsRequest() = runTest {
+        val repo = paymentsRepo(
+            FakePaymentsApi(
+                sandboxTanResult = NetworkResult.Success(TransactionRequest(id = "tr-st", status = "COMPLETED")),
+            ),
+        )
+        val result = repo.sendToSandboxTan("ac.bank.uk", "acc-1", "ac.bank.uk", "ac.savings.001", "1200", "EUR", "r")
+        assertTrue(result.isSuccess)
+        assertEquals("COMPLETED", result.getOrNull()?.status)
+    }
+
+    @Test
+    fun answerChallenge_routesByType() = runTest {
+        val api = FakePaymentsApi()
+        val repo = paymentsRepo(api)
+        repo.answerChallenge("ac.bank.uk", "acc-1", "SANDBOX_TAN", "tr-1", "ch-1", "123")
+        assertEquals("v2.1-sandboxtan", api.lastAnswerEndpoint)
+        repo.answerChallenge("ac.bank.uk", "acc-1", "COUNTERPARTY", "tr-2", "ch-2", "123")
+        assertEquals("v4", api.lastAnswerEndpoint)
     }
 
     @Test

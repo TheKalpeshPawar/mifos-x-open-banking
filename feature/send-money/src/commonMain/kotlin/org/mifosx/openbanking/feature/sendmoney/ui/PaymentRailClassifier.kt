@@ -23,12 +23,24 @@ data class RailAssessment(
     val feeText: String = "",
 )
 
+/** An OBP-hosted payee resolved to {bank, account} so it can be paid via the SANDBOX_TAN rail. */
+@Immutable
+data class SandboxTanDestination(val bankId: String, val accountId: String)
+
 /** Per-rail assessments plus the rail the app auto-selects. */
 @Immutable
 data class RailClassification(
     val assessments: Map<PaymentType, RailAssessment>,
     val recommended: PaymentType,
+    /**
+     * Non-null only on a sandbox build for an OBP-hosted payee: the payment is routed through
+     * SANDBOX_TAN (whose challenge the maker can self-answer) and the other rails are disabled.
+     */
+    val sandboxTan: SandboxTanDestination? = null,
 )
+
+/** Amount (in the account currency, EUR on the sandbox) at/above which OBP issues an SCA challenge. */
+const val SANDBOX_SCA_THRESHOLD = 1000.0
 
 /**
  * Derives which payment rails a (source account, beneficiary) pair qualifies for, mirroring how
@@ -47,8 +59,24 @@ object PaymentRailClassifier {
         sourceBankCountry: String,
         beneficiary: Counterparty?,
         destinationBankCountry: String? = null,
+        isSandbox: Boolean = false,
     ): RailClassification {
-        if (beneficiary == null) return neutral(sourceCurrency)
+        // On a sandbox build, an OBP-hosted payee is paid via SANDBOX_TAN so the SCA self-completes;
+        // the production rails are disabled for that payee.
+        val obpDest = if (isSandbox && beneficiary != null) beneficiary.obpDestination() else null
+        return when {
+            obpDest != null -> sandboxTanClassification(obpDest)
+            beneficiary == null -> neutral(sourceCurrency)
+            else -> classifyRails(sourceCurrency, sourceBankCountry, beneficiary, destinationBankCountry)
+        }
+    }
+
+    private fun classifyRails(
+        sourceCurrency: String,
+        sourceBankCountry: String,
+        beneficiary: Counterparty,
+        destinationBankCountry: String?,
+    ): RailClassification {
         val iban = beneficiary.ibanOrEmpty()
         val recipientCountry = recipientCountry(beneficiary, iban, destinationBankCountry)
         val domestic = assessDomestic(sourceBankCountry, recipientCountry)
@@ -61,6 +89,20 @@ object PaymentRailClassifier {
                 PaymentType.INTERNATIONAL to international,
             ),
             recommended = recommend(sourceCurrency, beneficiary.currency, domestic, sepa, international),
+        )
+    }
+
+    /** An OBP-hosted payee: SANDBOX_TAN is the only rail; the others are disabled with a note. */
+    private fun sandboxTanClassification(dest: SandboxTanDestination): RailClassification {
+        val reason = "Sent instantly as an internal bank transfer"
+        return RailClassification(
+            assessments = mapOf(
+                PaymentType.SEPA to RailAssessment(eligible = false, reason = reason),
+                PaymentType.DOMESTIC to RailAssessment(eligible = false, reason = reason),
+                PaymentType.INTERNATIONAL to RailAssessment(eligible = false, reason = reason),
+            ),
+            recommended = PaymentType.SEPA,
+            sandboxTan = dest,
         )
     }
 
@@ -161,6 +203,22 @@ object PaymentRailClassifier {
         "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
         "AD", "CH", "GB", "GI", "IS", "LI", "MC", "NO", "SM", "VA",
     )
+}
+
+/**
+ * The OBP-hosted destination when both bank and account routing schemes are OBP — i.e. the payee is
+ * an account on an OBP bank, payable by {bank_id, account_id} via SANDBOX_TAN. Null otherwise
+ * (external/IBAN-only payees).
+ */
+internal fun Counterparty.obpDestination(): SandboxTanDestination? {
+    val bothObp = otherBankRoutingScheme.equals("OBP", ignoreCase = true) &&
+        otherAccountRoutingScheme.equals("OBP", ignoreCase = true)
+    val hasAddresses = otherBankRoutingAddress.isNotBlank() && otherAccountRoutingAddress.isNotBlank()
+    return if (bothObp && hasAddresses) {
+        SandboxTanDestination(bankId = otherBankRoutingAddress, accountId = otherAccountRoutingAddress)
+    } else {
+        null
+    }
 }
 
 /** The beneficiary's IBAN from primary or secondary routing, or "" when absent. */

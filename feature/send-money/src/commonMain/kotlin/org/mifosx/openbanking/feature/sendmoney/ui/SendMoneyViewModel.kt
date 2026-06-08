@@ -44,6 +44,10 @@ data class PaymentDraft(
     val reference: String,
     val paymentType: PaymentType = PaymentType.SEPA,
     val conversionNote: String? = null,
+    /** Sandbox-only: route via SANDBOX_TAN to the OBP-hosted [toBankId]/[toAccountId]. */
+    val useSandboxTan: Boolean = false,
+    val toBankId: String = "",
+    val toAccountId: String = "",
 )
 
 /**
@@ -58,6 +62,8 @@ class SendMoneyViewModel(
     private val accountsRepository: AccountsRepository,
     private val paymentsRepository: PaymentsRepository,
     private val banksRepository: BanksRepository,
+    /** True on a sandbox build — enables the SANDBOX_TAN internal-transfer rail + external-payee block. */
+    private val isSandbox: Boolean,
 ) : ViewModel() {
 
     private val rawState = MutableStateFlow<RawState>(RawState.Loading)
@@ -125,11 +131,22 @@ class SendMoneyViewModel(
             ?: loaded.accounts.firstOrNull()
         val beneficiary = loaded.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId }
         val amountValue = f.amount.toDoubleOrNull() ?: 0.0
+        val sandboxTan = classification.value.sandboxTan
 
         val amountError = if (amountValue <= 0.0) "Please enter a valid amount greater than 0" else null
         val beneficiaryError = if (beneficiary == null) "Please select a valid beneficiary" else null
-        if (account == null || beneficiary == null || amountError != null) {
-            form.update { it.copy(amountError = amountError, beneficiaryError = beneficiaryError) }
+        // On the sandbox, an above-threshold payment to a payee SANDBOX_TAN can't reach (external /
+        // IBAN-only) would hit maker/checker and stick, so block it before the confirm screen.
+        val sandboxBlocked = sandboxBlocks(beneficiary, sandboxTan, amountValue)
+        val invalid = account == null || beneficiary == null || amountError != null
+        if (invalid || sandboxBlocked) {
+            form.update {
+                it.copy(
+                    amountError = amountError,
+                    beneficiaryError = beneficiaryError,
+                    formError = if (sandboxBlocked) SANDBOX_BLOCK_MESSAGE else it.formError,
+                )
+            }
             return
         }
 
@@ -159,6 +176,9 @@ class SendMoneyViewModel(
                     reference = f.reference,
                     paymentType = f.paymentType,
                     conversionNote = classification.value.assessments[f.paymentType]?.conversionNote,
+                    useSandboxTan = sandboxTan != null,
+                    toBankId = sandboxTan?.bankId.orEmpty(),
+                    toAccountId = sandboxTan?.accountId.orEmpty(),
                 ),
             )
         }
@@ -229,6 +249,7 @@ class SendMoneyViewModel(
                 sourceBankCountry = sourceCountry,
                 beneficiary = beneficiary,
                 destinationBankCountry = destinationCountry,
+                isSandbox = isSandbox,
             )
             classification.value = result
             if (beneficiary != null) form.update { it.copy(paymentType = result.recommended) }
@@ -257,13 +278,17 @@ class SendMoneyViewModel(
                         it.name.contains(q, true) || it.otherAccountRoutingAddress.contains(q, true)
                     }
                 }
+                val selectedBeneficiary = raw.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId }
+                val amountVal = f.amount.toDoubleOrNull() ?: 0.0
+                val sandboxBlockReason =
+                    if (sandboxBlocks(selectedBeneficiary, rails.sandboxTan, amountVal)) SANDBOX_BLOCK_MESSAGE else null
                 ScreenState.Content(
                     data = SendMoneyContent(
                         accounts = raw.accounts,
                         selectedAccount = selectedAccount,
                         beneficiaries = filtered,
                         recentBeneficiaries = raw.beneficiaries.take(RECENT_LIMIT),
-                        selectedBeneficiary = raw.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId },
+                        selectedBeneficiary = selectedBeneficiary,
                         amount = f.amount,
                         currency = f.currency,
                         reference = f.reference,
@@ -274,11 +299,22 @@ class SendMoneyViewModel(
                         beneficiaryError = f.beneficiaryError,
                         formError = f.formError,
                         submitting = f.submitting,
+                        useSandboxTan = rails.sandboxTan != null,
+                        sandboxBlockReason = sandboxBlockReason,
                     ),
                     freshness = DataFreshness.FRESH,
                 )
             }
         }
+    }
+
+    /**
+     * Sandbox-only: an above-threshold payment to a payee SANDBOX_TAN can't reach (no resolvable OBP
+     * account) must be blocked — the production rail would stick on maker/checker.
+     */
+    private fun sandboxBlocks(beneficiary: Counterparty?, dest: SandboxTanDestination?, amount: Double): Boolean {
+        if (!isSandbox || beneficiary == null) return false
+        return dest == null && amount >= SANDBOX_SCA_THRESHOLD
     }
 
     private fun resolveIban(cp: Counterparty): String = when {
@@ -310,6 +346,8 @@ class SendMoneyViewModel(
     private companion object {
         const val MAX_REFERENCE = 35
         const val RECENT_LIMIT = 5
+        const val SANDBOX_BLOCK_MESSAGE =
+            "On the sandbox, amounts this large can only be sent to accounts within the bank."
     }
 }
 
@@ -331,7 +369,12 @@ data class SendMoneyContent(
     val beneficiaryError: String?,
     val formError: String?,
     val submitting: Boolean,
+    /** Sandbox-only: this payee is paid as an internal transfer — hide the rail chips. */
+    val useSandboxTan: Boolean = false,
+    /** Sandbox-only: non-null when the amount can't be sent to this (external) payee; blocks Send. */
+    val sandboxBlockReason: String? = null,
 ) {
     val continueEnabled: Boolean
-        get() = !submitting && amount.toDoubleOrNull()?.let { it > 0.0 } == true && selectedBeneficiary != null
+        get() = !submitting && sandboxBlockReason == null &&
+            amount.toDoubleOrNull()?.let { it > 0.0 } == true && selectedBeneficiary != null
 }

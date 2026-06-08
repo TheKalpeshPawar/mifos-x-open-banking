@@ -25,12 +25,29 @@ data class TransactionRequest(
     @SerialName("transaction_ids") val transactionIds: List<String> = emptyList(),
     val charge: TransactionCharge = TransactionCharge(),
     @SerialName("start_date") val startDate: String = "",
-)
+    val challenge: TransactionChallenge? = null,
+) {
+    /**
+     * True when the payment was initiated but needs a Strong Customer Authentication answer before
+     * it books — OBP returns a [challenge] and keeps the request INITIATED until it is answered.
+     */
+    val requiresChallenge: Boolean
+        get() = status.equals("INITIATED", ignoreCase = true) &&
+            challenge != null && challenge.id.isNotBlank()
+}
 
 @Serializable
 data class TransactionCharge(
     val summary: String = "",
     val value: AmountOfMoney = AmountOfMoney(),
+)
+
+/** SCA challenge attached to an INITIATED transaction-request — the OTP/TAN the user must answer. */
+@Serializable
+data class TransactionChallenge(
+    val id: String = "",
+    @SerialName("allowed_attempts") val allowedAttempts: Int = 0,
+    @SerialName("challenge_type") val challengeType: String = "",
 )
 
 /**
@@ -120,6 +137,31 @@ data class CounterpartyTransactionRequestBody(
 @Serializable
 data class CounterpartyTransferTo(
     @SerialName("counterparty_id") val counterpartyId: String,
+)
+
+/** Body for answering a transaction-request SCA challenge — [id] is the challenge id. */
+@Serializable
+data class ChallengeAnswerBody(
+    val id: String,
+    val answer: String,
+)
+
+/**
+ * Request body for the SANDBOX_TAN transaction-request (sandbox only). Pays an OBP-hosted account by
+ * [bank_id][SandboxTanTo.bankId] + [account_id][SandboxTanTo.accountId]. Its challenge is created and
+ * answered through the v2.1.0 endpoints, which do not enforce maker/checker.
+ */
+@Serializable
+data class SandboxTanTransactionRequestBody(
+    val to: SandboxTanTo,
+    val value: AmountOfMoney,
+    val description: String = "",
+)
+
+@Serializable
+data class SandboxTanTo(
+    @SerialName("bank_id") val bankId: String,
+    @SerialName("account_id") val accountId: String,
 )
 
 /** Response from the OBP funds-available check (`answer` is "yes" or "no"). */

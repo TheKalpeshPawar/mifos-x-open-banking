@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.network.di
 
 import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.HttpClient
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.api.AccountApplicationsApi
 import org.mifosx.openbanking.core.network.api.AccountsApi
@@ -69,6 +70,9 @@ import org.mifosx.openbanking.core.network.obp.obpKtorfit
  */
 val NetworkModule = module {
     single { ObpConfig(consumerKey = getProperty("obp_consumer_key", "")) }
+    // Plain Boolean so feature modules can gate the sandbox-only SANDBOX_TAN rail without depending
+    // on core:network (where ObpConfig lives).
+    single(named("isSandbox")) { get<ObpConfig>().isSandbox }
     single<ObpTokenProvider> { PersistentObpTokenProvider(preferences = get()) }
     single<HttpClient> { obpHttpClient(config = get(), tokenProvider = get()) }
     single<Ktorfit> { obpKtorfit(client = get()) }

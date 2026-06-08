@@ -83,6 +83,23 @@ private class FakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = funds
+    override suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> = Result.success(TransactionRequest())
+    override suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest> = Result.success(TransactionRequest())
 }
 
 private class FakeBanksRepository(
@@ -113,6 +130,17 @@ private fun payee(id: String, name: String) = Counterparty(
     isBeneficiary = true,
 )
 
+/** An OBP-hosted (in-bank) payee — routable via SANDBOX_TAN. */
+private fun obpPayee(id: String, name: String) = Counterparty(
+    counterpartyId = id,
+    name = name,
+    otherBankRoutingScheme = "OBP",
+    otherBankRoutingAddress = "ac.bank.uk",
+    otherAccountRoutingScheme = "OBP",
+    otherAccountRoutingAddress = "ac.savings.001",
+    isBeneficiary = true,
+)
+
 class SendMoneyViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -129,7 +157,8 @@ class SendMoneyViewModelTest {
             beneficiaries = Result.success(listOf(payee("b1", "TechStart Ltd"))),
         ),
         banks: FakeBanksRepository = FakeBanksRepository(),
-    ) = SendMoneyViewModel(FakeAccountsRepository(accounts), payments, banks)
+        isSandbox: Boolean = false,
+    ) = SendMoneyViewModel(FakeAccountsRepository(accounts), payments, banks, isSandbox)
 
     @Test
     fun load_success_emitsContent() = runTest(dispatcher) {
@@ -249,6 +278,75 @@ class SendMoneyViewModelTest {
         val s = model.uiState.value
         assertTrue(s is ScreenState.Content)
         assertEquals(PaymentType.SEPA, s.data.paymentType)
+    }
+
+    @Test
+    fun sandbox_obpPayee_routesViaSandboxTan_andDisablesRails() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(beneficiaries = Result.success(listOf(obpPayee("o1", "Costa"))))
+        val model = vm(payments = payments, isSandbox = true)
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("o1")
+        model.onAmountChanged("1200")
+        advanceUntilIdle()
+
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertTrue(c.useSandboxTan)
+        assertTrue(!c.railAssessments.getValue(PaymentType.SEPA).eligible)
+
+        var draft: PaymentDraft? = null
+        model.onContinue { draft = it }
+        advanceUntilIdle()
+        assertTrue(draft?.useSandboxTan == true)
+        assertEquals("ac.bank.uk", draft?.toBankId)
+        assertEquals("ac.savings.001", draft?.toAccountId)
+    }
+
+    @Test
+    fun sandbox_externalPayee_aboveThreshold_blocks() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(beneficiaries = Result.success(listOf(payee("b1", "Tesco"))))
+        val model = vm(payments = payments, isSandbox = true)
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        model.onAmountChanged("1200")
+        advanceUntilIdle()
+
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertTrue(c.sandboxBlockReason != null)
+        assertTrue(!c.continueEnabled)
+
+        var draft: PaymentDraft? = null
+        model.onContinue { draft = it }
+        advanceUntilIdle()
+        assertNull(draft)
+    }
+
+    @Test
+    fun sandbox_externalPayee_belowThreshold_usesNormalRail() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(beneficiaries = Result.success(listOf(payee("b1", "Tesco"))))
+        val model = vm(payments = payments, isSandbox = true)
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("b1")
+        model.onAmountChanged("500")
+        advanceUntilIdle()
+
+        val c = (model.uiState.value as ScreenState.Content).data
+        assertTrue(!c.useSandboxTan)
+        assertNull(c.sandboxBlockReason)
+    }
+
+    @Test
+    fun nonSandbox_obpPayee_keepsNormalRails() = runTest(dispatcher) {
+        val payments = FakePaymentsRepository(beneficiaries = Result.success(listOf(obpPayee("o1", "Costa"))))
+        val model = vm(payments = payments, isSandbox = false)
+        backgroundScope.launch { model.uiState.collect {} }
+        advanceUntilIdle()
+        model.onBeneficiarySelected("o1")
+        advanceUntilIdle()
+
+        assertTrue(!(model.uiState.value as ScreenState.Content).data.useSandboxTan)
     }
 
     @Test

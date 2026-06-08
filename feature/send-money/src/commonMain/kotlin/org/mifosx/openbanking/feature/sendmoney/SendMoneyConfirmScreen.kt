@@ -54,6 +54,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.feature.sendmoney.ui.ConfirmUiState
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentDraft
 import org.mifosx.openbanking.feature.sendmoney.ui.PaymentType
+import org.mifosx.openbanking.feature.sendmoney.ui.SandboxTanDestination
+import org.mifosx.openbanking.feature.sendmoney.ui.ScaChallengeArgs
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyConfirmViewModel
 
 /**
@@ -74,11 +76,13 @@ fun SendMoneyConfirmScreen(
     iban: String,
     reference: String,
     onSuccess: (String) -> Unit,
+    onChallengeRequired: (ScaChallengeArgs) -> Unit,
     onEdit: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     paymentType: String = PaymentType.SEPA.name,
     conversionNote: String = "",
+    sandboxTan: SandboxTanDestination? = null,
     viewModel: SendMoneyConfirmViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -136,7 +140,7 @@ fun SendMoneyConfirmScreen(
                     if (beneficiaryBank.isNotBlank()) SummaryRow("Bank", beneficiaryBank, null)
                     SummaryRow("From", fromLabel.ifBlank { "—" }, null)
                     if (reference.isNotBlank()) SummaryRow("Reference", reference, null)
-                    SummaryRow("Sent via", railLabel(rail), null)
+                    SummaryRow("Sent via", if (sandboxTan != null) "Internal transfer" else railLabel(rail), null)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     SummaryRow("Fee", "${currencySymbol(currency)}0.00", null)
                     if (conversionNote.isNotBlank()) {
@@ -188,10 +192,19 @@ fun SendMoneyConfirmScreen(
                         reference = reference,
                         paymentType = rail,
                         conversionNote = conversionNote.ifBlank { null },
+                        useSandboxTan = sandboxTan != null,
+                        toBankId = sandboxTan?.bankId.orEmpty(),
+                        toAccountId = sandboxTan?.accountId.orEmpty(),
                     )
-                    viewModel.submit(draft) {
-                        onSuccess("Payment of $formatted sent to ${beneficiaryName.ifBlank { "beneficiary" }}")
-                    }
+                    viewModel.submit(
+                        draft = draft,
+                        onCompleted = {
+                            onSuccess(
+                                "Payment of $formatted sent to ${beneficiaryName.ifBlank { "beneficiary" }}",
+                            )
+                        },
+                        onChallengeRequired = onChallengeRequired,
+                    )
                 },
                 enabled = state != ConfirmUiState.Submitting && counterpartyId.isNotBlank(),
                 shape = RoundedCornerShape(12.dp),

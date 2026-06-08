@@ -79,6 +79,19 @@ data class SendMoneyConfirmRoute(
     val reference: String,
     val paymentType: String = "SEPA",
     val conversionNote: String = "",
+    val useSandboxTan: Boolean = false,
+    val toBankId: String = "",
+    val toAccountId: String = "",
+)
+
+/** Strong Customer Authentication step for a payment that came back INITIATED with a challenge. */
+@Serializable
+data class ScaChallengeRoute(
+    val bankId: String,
+    val accountId: String,
+    val type: String,
+    val requestId: String,
+    val challengeId: String,
 )
 
 @Serializable data object BeneficiariesRoute
@@ -145,8 +158,6 @@ data class DirectDebitDetailRoute(
 
 @Serializable data object CustomerMessagesRoute
 
-@Serializable data object ChangePasswordRoute
-
 @Serializable data object AboutRoute
 
 @Serializable data object TermsOfServiceRoute
@@ -201,7 +212,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<MeetingsRoute> { PlaceholderScreen("Meetings") }
     composableWithStayTransitions<CustomerMessagesRoute> { PlaceholderScreen("Messages") }
 
-    composableWithStayTransitions<ChangePasswordRoute> { PlaceholderScreen("Change password") }
     // AboutRoute + TermsOfServiceRoute + PrivacyPolicyRoute + LicensesRoute are real feature
     // modules — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ForgotPasswordRoute> { PlaceholderScreen("Forgot password") }

@@ -13,9 +13,12 @@ import kotlinx.coroutines.CoroutineScope
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.obp.toResult
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
+import org.mifosx.openbanking.core.model.obp.ChallengeAnswerBody
 import org.mifosx.openbanking.core.model.obp.Counterparty
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransferTo
+import org.mifosx.openbanking.core.model.obp.SandboxTanTo
+import org.mifosx.openbanking.core.model.obp.SandboxTanTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.SepaCounterpartyIban
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
@@ -65,6 +68,20 @@ interface PaymentsRepository {
         reference: String,
     ): Result<TransactionRequest>
 
+    /**
+     * Sandbox-only: send to an OBP-hosted account ([toBankId], [toAccountId]) via the SANDBOX_TAN
+     * rail, whose challenge the maker can self-answer (unlike SEPA/COUNTERPARTY maker/checker).
+     */
+    suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest>
+
     /** True when the account has the requested funds available. */
     suspend fun fundsAvailable(
         bankId: String,
@@ -72,6 +89,20 @@ interface PaymentsRepository {
         amount: String,
         currency: String,
     ): Result<Boolean>
+
+    /**
+     * Answers the SCA challenge for an INITIATED transaction-request, completing the payment. [type]
+     * is the transaction-request type (SEPA / COUNTERPARTY), [requestId] the request id and
+     * [challengeId] the challenge id — both returned by the create-request response.
+     */
+    suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest>
 }
 
 class PaymentsRepositoryImpl(
@@ -113,8 +144,8 @@ class PaymentsRepositoryImpl(
         amount: String,
         currency: String,
         reference: String,
-    ): Result<TransactionRequest> =
-        api.createSepaTransactionRequest(
+    ): Result<TransactionRequest> {
+        val result = api.createSepaTransactionRequest(
             bankId = bankId,
             accountId = accountId,
             request = SepaTransactionRequestBody(
@@ -123,6 +154,8 @@ class PaymentsRepositoryImpl(
                 description = reference.ifBlank { "Payment" },
             ),
         ).toResult()
+        return enrichChallenge(result, bankId, accountId)
+    }
 
     override suspend fun sendToCounterparty(
         bankId: String,
@@ -131,8 +164,8 @@ class PaymentsRepositoryImpl(
         amount: String,
         currency: String,
         reference: String,
-    ): Result<TransactionRequest> =
-        api.createCounterpartyTransactionRequest(
+    ): Result<TransactionRequest> {
+        val result = api.createCounterpartyTransactionRequest(
             bankId = bankId,
             accountId = accountId,
             request = CounterpartyTransactionRequestBody(
@@ -141,6 +174,31 @@ class PaymentsRepositoryImpl(
                 description = reference.ifBlank { "Payment" },
             ),
         ).toResult()
+        return enrichChallenge(result, bankId, accountId)
+    }
+
+    /**
+     * The create response does not inline the SCA challenge, so an INITIATED payment with no
+     * challenge is re-fetched here to populate its `challenge.id` — the value needed to answer it.
+     */
+    private suspend fun enrichChallenge(
+        result: Result<TransactionRequest>,
+        bankId: String,
+        accountId: String,
+    ): Result<TransactionRequest> {
+        val request = result.getOrNull()
+        val needsLookup = request != null &&
+            request.status.equals("INITIATED", ignoreCase = true) &&
+            request.challenge == null &&
+            request.id.isNotBlank()
+        if (!needsLookup) return result
+        val fetched = api.getTransactionRequest(bankId, accountId, request!!.id).toResult().getOrNull()
+        return if (fetched?.challenge != null) {
+            Result.success(request.copy(challenge = fetched.challenge))
+        } else {
+            result
+        }
+    }
 
     override suspend fun fundsAvailable(
         bankId: String,
@@ -151,4 +209,45 @@ class PaymentsRepositoryImpl(
         api.checkFundsAvailable(bankId, accountId, amount, currency)
             .toResult()
             .map { it.answer.equals("yes", ignoreCase = true) }
+
+    override suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> {
+        val result = api.createSandboxTanTransactionRequest(
+            bankId = bankId,
+            accountId = accountId,
+            request = SandboxTanTransactionRequestBody(
+                to = SandboxTanTo(bankId = toBankId, accountId = toAccountId),
+                value = AmountOfMoney(currency = currency, amount = amount),
+                description = reference.ifBlank { "Payment" },
+            ),
+        ).toResult()
+        return enrichChallenge(result, bankId, accountId)
+    }
+
+    /**
+     * SANDBOX_TAN challenges are answered through the v2.1.0 endpoint (no maker/checker); all other
+     * rails use the v4.0.0 endpoint.
+     */
+    override suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest> {
+        val body = ChallengeAnswerBody(id = challengeId, answer = answer)
+        return if (type.equals("SANDBOX_TAN", ignoreCase = true)) {
+            api.answerSandboxTanChallenge(bankId, accountId, requestId, body).toResult()
+        } else {
+            api.answerTransactionRequestChallenge(bankId, accountId, type, requestId, body).toResult()
+        }
+    }
 }

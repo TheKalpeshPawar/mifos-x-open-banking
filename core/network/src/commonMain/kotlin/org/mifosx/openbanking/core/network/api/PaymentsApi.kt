@@ -15,9 +15,11 @@ import de.jensklingenberg.ktorfit.http.Headers
 import de.jensklingenberg.ktorfit.http.POST
 import de.jensklingenberg.ktorfit.http.Path
 import de.jensklingenberg.ktorfit.http.Query
+import org.mifosx.openbanking.core.model.obp.ChallengeAnswerBody
 import org.mifosx.openbanking.core.model.obp.CounterpartiesResponse
 import org.mifosx.openbanking.core.model.obp.CounterpartyTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.FundsAvailableResponse
+import org.mifosx.openbanking.core.model.obp.SandboxTanTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.SepaTransactionRequestBody
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestsResponse
@@ -44,6 +46,17 @@ interface PaymentsApi {
         @Path("accountId") accountId: String,
     ): NetworkResult<TransactionRequestsResponse, NetworkError>
 
+    /**
+     * A single transaction-request by id. The SCA challenge is NOT inlined in the create response,
+     * so an INITIATED payment must be re-fetched here to obtain its `challenge.id` before answering.
+     */
+    @GET("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/transaction-requests/{requestId}")
+    suspend fun getTransactionRequest(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+        @Path("requestId") requestId: String,
+    ): NetworkResult<TransactionRequest, NetworkError>
+
     @Headers("Content-Type: application/json")
     @POST("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/transaction-request-types/SEPA/transaction-requests")
     suspend fun createSepaTransactionRequest(
@@ -68,4 +81,44 @@ interface PaymentsApi {
         @Query("amount") amount: String,
         @Query("currency") currency: String,
     ): NetworkResult<FundsAvailableResponse, NetworkError>
+
+    /**
+     * Answers the SCA challenge for an INITIATED transaction-request, completing the payment. The
+     * body carries the challenge id and the user's answer (any positive integer in the sandbox).
+     */
+    @Suppress("MaxLineLength")
+    @Headers("Content-Type: application/json")
+    @POST("v4.0.0/banks/{bankId}/accounts/{accountId}/owner/transaction-request-types/{type}/transaction-requests/{requestId}/challenge")
+    suspend fun answerTransactionRequestChallenge(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+        @Path("type") type: String,
+        @Path("requestId") requestId: String,
+        @Body request: ChallengeAnswerBody,
+    ): NetworkResult<TransactionRequest, NetworkError>
+
+    /**
+     * SANDBOX_TAN payment to an OBP-hosted account (sandbox only). Uses the v2.1.0 endpoint because
+     * its challenge — created and answered through [answerSandboxTanChallenge] — does not enforce
+     * maker/checker, so the maker can self-complete the SCA.
+     */
+    @Headers("Content-Type: application/json")
+    @POST("v2.1.0/banks/{bankId}/accounts/{accountId}/owner/transaction-request-types/SANDBOX_TAN/transaction-requests")
+    @Suppress("MaxLineLength")
+    suspend fun createSandboxTanTransactionRequest(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+        @Body request: SandboxTanTransactionRequestBody,
+    ): NetworkResult<TransactionRequest, NetworkError>
+
+    /** Answers a SANDBOX_TAN challenge via v2.1.0 (no maker/checker enforcement). */
+    @Suppress("MaxLineLength")
+    @Headers("Content-Type: application/json")
+    @POST("v2.1.0/banks/{bankId}/accounts/{accountId}/owner/transaction-request-types/SANDBOX_TAN/transaction-requests/{requestId}/challenge")
+    suspend fun answerSandboxTanChallenge(
+        @Path("bankId") bankId: String,
+        @Path("accountId") accountId: String,
+        @Path("requestId") requestId: String,
+        @Body request: ChallengeAnswerBody,
+    ): NetworkResult<TransactionRequest, NetworkError>
 }

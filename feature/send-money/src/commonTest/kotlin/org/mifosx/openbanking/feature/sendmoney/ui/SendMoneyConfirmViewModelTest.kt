@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.payments.PaymentsRepository
 import org.mifosx.openbanking.core.model.obp.Counterparty
+import org.mifosx.openbanking.core.model.obp.TransactionChallenge
 import org.mifosx.openbanking.core.model.obp.TransactionRequest
 import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
 import template.core.base.store.screen.ScreenDataStream
@@ -25,14 +26,18 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private class ConfirmFakePaymentsRepository(
     var sepaResult: Result<TransactionRequest> = Result.success(TransactionRequest(status = "COMPLETED")),
     var counterpartyResult: Result<TransactionRequest> = Result.success(TransactionRequest(status = "COMPLETED")),
+    var sandboxTanResult: Result<TransactionRequest> = Result.success(TransactionRequest(status = "COMPLETED")),
 ) : PaymentsRepository {
     var sepaCalls = 0
     var counterpartyCalls = 0
+    var sandboxTanCalls = 0
+    var lastSandboxTanTo: Pair<String, String>? = null
 
     override fun beneficiariesStream(
         accountId: String,
@@ -72,6 +77,27 @@ private class ConfirmFakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = Result.success(true)
+    override suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> {
+        sandboxTanCalls++
+        lastSandboxTanTo = toBankId to toAccountId
+        return sandboxTanResult
+    }
+    override suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest> = Result.success(TransactionRequest(status = "COMPLETED"))
 }
 
 private fun confirmDraft(type: PaymentType, iban: String = "DE89370400440532099999") = PaymentDraft(
@@ -103,7 +129,7 @@ class SendMoneyConfirmViewModelTest {
         val payments = ConfirmFakePaymentsRepository()
         val model = SendMoneyConfirmViewModel(payments)
         var success = false
-        model.submit(confirmDraft(PaymentType.SEPA)) { success = true }
+        model.submit(confirmDraft(PaymentType.SEPA), onCompleted = { success = true }, onChallengeRequired = {})
         advanceUntilIdle()
         assertTrue(success)
         assertEquals(1, payments.sepaCalls)
@@ -115,7 +141,7 @@ class SendMoneyConfirmViewModelTest {
         val payments = ConfirmFakePaymentsRepository()
         val model = SendMoneyConfirmViewModel(payments)
         var success = false
-        model.submit(confirmDraft(PaymentType.DOMESTIC)) { success = true }
+        model.submit(confirmDraft(PaymentType.DOMESTIC), onCompleted = { success = true }, onChallengeRequired = {})
         advanceUntilIdle()
         assertTrue(success)
         assertEquals(0, payments.sepaCalls)
@@ -126,7 +152,7 @@ class SendMoneyConfirmViewModelTest {
     fun sepaWithoutIban_fallsBackToCounterparty() = runTest(dispatcher) {
         val payments = ConfirmFakePaymentsRepository()
         val model = SendMoneyConfirmViewModel(payments)
-        model.submit(confirmDraft(PaymentType.SEPA, iban = "")) {}
+        model.submit(confirmDraft(PaymentType.SEPA, iban = ""), onCompleted = {}, onChallengeRequired = {})
         advanceUntilIdle()
         assertEquals(0, payments.sepaCalls)
         assertEquals(1, payments.counterpartyCalls)
@@ -139,7 +165,7 @@ class SendMoneyConfirmViewModelTest {
         )
         val model = SendMoneyConfirmViewModel(payments)
         var success = false
-        model.submit(confirmDraft(PaymentType.SEPA)) { success = true }
+        model.submit(confirmDraft(PaymentType.SEPA), onCompleted = { success = true }, onChallengeRequired = {})
         advanceUntilIdle()
         assertTrue(success)
         assertEquals(1, payments.sepaCalls)
@@ -152,10 +178,59 @@ class SendMoneyConfirmViewModelTest {
             sepaResult = Result.failure(IllegalStateException("OBP-40003: currency mismatch")),
         )
         val model = SendMoneyConfirmViewModel(payments)
-        model.submit(confirmDraft(PaymentType.SEPA)) {}
+        model.submit(confirmDraft(PaymentType.SEPA), onCompleted = {}, onChallengeRequired = {})
         advanceUntilIdle()
         assertEquals(1, payments.sepaCalls)
         assertEquals(0, payments.counterpartyCalls)
         assertTrue(model.state.value is ConfirmUiState.Failed)
+    }
+
+    @Test
+    fun initiatedWithChallenge_routesToChallenge() = runTest(dispatcher) {
+        val payments = ConfirmFakePaymentsRepository(
+            counterpartyResult = Result.success(
+                TransactionRequest(
+                    id = "req-1",
+                    type = "COUNTERPARTY",
+                    status = "INITIATED",
+                    challenge = TransactionChallenge(id = "ch-1"),
+                ),
+            ),
+        )
+        val model = SendMoneyConfirmViewModel(payments)
+        var completed = false
+        var challenge: ScaChallengeArgs? = null
+        model.submit(
+            confirmDraft(PaymentType.DOMESTIC),
+            onCompleted = { completed = true },
+            onChallengeRequired = { challenge = it },
+        )
+        advanceUntilIdle()
+        assertFalse(completed)
+        assertEquals("req-1", challenge?.requestId)
+        assertEquals("ch-1", challenge?.challengeId)
+        assertEquals("COUNTERPARTY", challenge?.type)
+    }
+
+    @Test
+    fun sandboxTanDraft_routesToSandboxTanRail() = runTest(dispatcher) {
+        val payments = ConfirmFakePaymentsRepository()
+        val model = SendMoneyConfirmViewModel(payments)
+        var completed = false
+        model.submit(
+            confirmDraft(PaymentType.DOMESTIC).copy(
+                useSandboxTan = true,
+                toBankId = "ac.bank.uk",
+                toAccountId = "ac.savings.001",
+            ),
+            onCompleted = { completed = true },
+            onChallengeRequired = {},
+        )
+        advanceUntilIdle()
+        assertTrue(completed)
+        assertEquals(1, payments.sandboxTanCalls)
+        assertEquals(0, payments.sepaCalls)
+        assertEquals(0, payments.counterpartyCalls)
+        assertEquals("ac.bank.uk" to "ac.savings.001", payments.lastSandboxTanTo)
     }
 }

@@ -142,6 +142,23 @@ private class TxnFakePaymentsRepository(
         amount: String,
         currency: String,
     ): Result<Boolean> = Result.success(true)
+    override suspend fun sendToSandboxTan(
+        bankId: String,
+        accountId: String,
+        toBankId: String,
+        toAccountId: String,
+        amount: String,
+        currency: String,
+        reference: String,
+    ): Result<TransactionRequest> = Result.success(TransactionRequest())
+    override suspend fun answerChallenge(
+        bankId: String,
+        accountId: String,
+        type: String,
+        requestId: String,
+        challengeId: String,
+        answer: String,
+    ): Result<TransactionRequest> = Result.success(TransactionRequest())
 }
 
 private class TxnFakeAccountsRepository(

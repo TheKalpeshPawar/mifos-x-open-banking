@@ -217,32 +217,44 @@ private fun Form(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PaymentType.entries.forEach { type ->
-                FilterChip(
-                    selected = content.paymentType == type,
-                    enabled = content.railAssessments[type]?.eligible != false,
-                    onClick = { viewModel.onPaymentTypeChanged(type) },
-                    label = { Text(type.label()) },
-                    modifier = Modifier.testTag(SendMoneyTestTags.paymentType(type.name)),
-                )
+        if (content.useSandboxTan) {
+            // OBP-hosted payee — the rail choice doesn't apply; it's an instant internal transfer.
+            Text(
+                "Internal bank transfer — sent instantly within the bank.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PaymentType.entries.forEach { type ->
+                    FilterChip(
+                        selected = content.paymentType == type,
+                        enabled = content.railAssessments[type]?.eligible != false,
+                        onClick = { viewModel.onPaymentTypeChanged(type) },
+                        label = { Text(type.label()) },
+                        modifier = Modifier.testTag(SendMoneyTestTags.paymentType(type.name)),
+                    )
+                }
             }
+            content.railAssessments
+                .filterValues { !it.eligible && it.reason != null }
+                .forEach { (type, assessment) ->
+                    Text(
+                        "${type.label()} unavailable — ${assessment.reason}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+            FeeBanner(
+                paymentType = content.paymentType,
+                assessment = content.railAssessments[content.paymentType],
+            )
         }
-        content.railAssessments
-            .filterValues { !it.eligible && it.reason != null }
-            .forEach { (type, assessment) ->
-                Text(
-                    "${type.label()} unavailable — ${assessment.reason}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
 
-        FeeBanner(
-            paymentType = content.paymentType,
-            assessment = content.railAssessments[content.paymentType],
-        )
-
+        content.sandboxBlockReason?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         content.formError?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
