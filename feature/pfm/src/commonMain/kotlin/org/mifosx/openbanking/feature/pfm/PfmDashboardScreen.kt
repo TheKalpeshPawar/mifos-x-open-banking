@@ -24,10 +24,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -264,7 +264,7 @@ private fun PfmNoActivity() {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 48.dp),
     ) {
         Icon(
-            Icons.Outlined.ReceiptLong,
+            Icons.AutoMirrored.Outlined.ReceiptLong,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
