@@ -29,8 +29,11 @@ class ForgotPasswordViewModel(
 
     override fun handleAction(action: ForgotPasswordAction) {
         when (action) {
-            is ForgotPasswordAction.IdentifierChanged ->
-                updateState { copy(identifier = action.value, errorMessage = null) }
+            is ForgotPasswordAction.UsernameChanged ->
+                updateState { copy(username = action.value, errorMessage = null) }
+
+            is ForgotPasswordAction.EmailChanged ->
+                updateState { copy(email = action.value, errorMessage = null) }
 
             ForgotPasswordAction.SubmitClicked -> onSubmit()
 
@@ -46,7 +49,7 @@ class ForgotPasswordViewModel(
         if (!current.isFormValid || current.isSubmitting || current.isSuccess) return
         updateState { copy(isSubmitting = true, errorMessage = null) }
         viewModelScope.launch {
-            val result = authRecoveryRepository.initiateReset(current.identifier.trim())
+            val result = authRecoveryRepository.initiateReset(current.username.trim(), current.email.trim())
             sendAction(ForgotPasswordAction.Internal.ResetResultReceive(result))
         }
     }
@@ -80,12 +83,13 @@ private fun Throwable.toResetErrorMessage(): String =
 /** Immutable UI state for the Forgot Password screen (mirrors the feature SPEC State Model). */
 @Immutable
 data class ForgotPasswordState(
-    val identifier: String = "",
+    val username: String = "",
+    val email: String = "",
     val isSubmitting: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
 ) {
-    val isFormValid: Boolean get() = identifier.isNotBlank()
+    val isFormValid: Boolean get() = username.isNotBlank() && email.isNotBlank()
 }
 
 /** One-shot navigation events for the Forgot Password screen. */
@@ -95,7 +99,8 @@ sealed interface ForgotPasswordEvent {
 
 /** Actions accepted by [ForgotPasswordViewModel]. */
 sealed interface ForgotPasswordAction {
-    data class IdentifierChanged(val value: String) : ForgotPasswordAction
+    data class UsernameChanged(val value: String) : ForgotPasswordAction
+    data class EmailChanged(val value: String) : ForgotPasswordAction
     data object SubmitClicked : ForgotPasswordAction
     data object BackToLoginClicked : ForgotPasswordAction
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.obp.ProfileUpdateRequest
@@ -32,6 +33,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -109,6 +111,21 @@ private class FakeProfileRepository(
     override suspend fun update(request: ProfileUpdateRequest): Result<UserProfile> = result
 }
 
+private class FakeAuthRecoveryRepository(
+    var initiateResult: Result<String> = Result.success("ok"),
+) : AuthRecoveryRepository {
+    var lastUsername: String? = null
+    var lastEmail: String? = null
+    override suspend fun initiateReset(username: String, email: String): Result<String> {
+        lastUsername = username
+        lastEmail = email
+        return initiateResult
+    }
+
+    override suspend fun confirmReset(token: String, newPassword: String): Result<String> =
+        Result.success("ok")
+}
+
 class SettingsViewModelTest {
 
     private val dispatcher = UnconfinedTestDispatcher()
@@ -122,11 +139,19 @@ class SettingsViewModelTest {
     private fun content(vm: SettingsViewModel): SettingsUiState =
         (vm.uiState.value as ScreenState.Content).data
 
+    private fun settingsVm(
+        userData: UserDataRepository = FakeUserDataRepository(),
+        profile: ProfileRepository = FakeProfileRepository(),
+        recovery: AuthRecoveryRepository = FakeAuthRecoveryRepository(),
+        biometricAvailable: Boolean = true,
+    ) = SettingsViewModel(userData, profile, recovery, biometricAvailable = biometricAvailable)
+
     @Test
     fun initialState_hydratesDefaults_andClearsLoading() = runTest {
         val vm = SettingsViewModel(
             FakeUserDataRepository(),
             FakeProfileRepository(),
+            FakeAuthRecoveryRepository(),
             biometricAvailable = true,
             appVersion = "v1.0.0",
         )
@@ -145,7 +170,7 @@ class SettingsViewModelTest {
     @Test
     fun onDarkModeToggled_enablesDarkTheme() = runTest {
         val repo = FakeUserDataRepository()
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onDarkModeToggled()
         assertTrue(content(vm).isDarkModeEnabled)
         assertEquals(DarkThemeConfig.DARK, repo.userData.value.darkThemeConfig)
@@ -157,7 +182,7 @@ class SettingsViewModelTest {
     @Test
     fun onLanguageSelected_persistsMappedLocale() = runTest {
         val repo = FakeUserDataRepository()
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onLanguageSelected("es")
         assertEquals("es", content(vm).selectedLanguage)
         assertEquals(LanguageConfig.SPANISH, repo.userData.value.appLanguage)
@@ -166,7 +191,7 @@ class SettingsViewModelTest {
     @Test
     fun onPushNotificationsToggled_flipsPersistedValue() = runTest {
         val repo = FakeUserDataRepository()
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onPushNotificationsToggled()
         assertFalse(content(vm).isPushNotificationsEnabled)
         assertFalse(repo.userData.value.isPushNotificationsEnabled)
@@ -175,7 +200,7 @@ class SettingsViewModelTest {
     @Test
     fun onTransactionAlertsToggled_flipsPersistedValue() = runTest {
         val repo = FakeUserDataRepository()
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onTransactionAlertsToggled()
         assertFalse(content(vm).isTransactionAlertsEnabled)
         assertFalse(repo.userData.value.isTransactionAlertsEnabled)
@@ -184,7 +209,7 @@ class SettingsViewModelTest {
     @Test
     fun onBiometricToggled_persistsBiometricFlag() = runTest {
         val repo = FakeUserDataRepository()
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onBiometricToggled()
         assertTrue(content(vm).isBiometricLoginEnabled)
         assertTrue(repo.userData.value.isBiometricsEnabled)
@@ -192,13 +217,13 @@ class SettingsViewModelTest {
 
     @Test
     fun biometricUnavailable_reflectedInState() = runTest {
-        val vm = SettingsViewModel(FakeUserDataRepository(), FakeProfileRepository(), biometricAvailable = false)
+        val vm = settingsVm(biometricAvailable = false)
         assertFalse(content(vm).isBiometricAvailableOnDevice)
     }
 
     @Test
     fun profileHeader_populatesFromRepository() = runTest {
-        val vm = SettingsViewModel(FakeUserDataRepository(), FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm()
         val s = content(vm)
         assertEquals("Aisha Saleh", s.profileName)
         assertEquals("aisha.s@example.com", s.profileEmail)
@@ -208,8 +233,23 @@ class SettingsViewModelTest {
     @Test
     fun onSignOut_setsUnauthenticated() = runTest {
         val repo = FakeUserDataRepository(UserData.DEFAULT.copy(isAuthenticated = true))
-        val vm = SettingsViewModel(repo, FakeProfileRepository(), biometricAvailable = true)
+        val vm = settingsVm(repo)
         vm.onSignOut()
         assertFalse(repo.userData.value.isAuthenticated)
+    }
+
+    @Test
+    fun onResetPassword_requestsResetForProfileIdentity() = runTest {
+        val recovery = FakeAuthRecoveryRepository(initiateResult = Result.success("sent"))
+        val vm = settingsVm(recovery = recovery)
+        vm.onResetPassword()
+        assertEquals("Aisha Saleh", recovery.lastUsername)
+        assertEquals("aisha.s@example.com", recovery.lastEmail)
+        assertEquals(
+            "If your account is valid, a password reset link has been emailed to aisha.s@example.com.",
+            vm.resetMessage.value,
+        )
+        vm.onResetMessageConsumed()
+        assertNull(vm.resetMessage.value)
     }
 }

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
@@ -43,6 +44,7 @@ import template.core.base.store.screen.ScreenState
 class SettingsViewModel(
     private val userDataRepository: UserDataRepository,
     private val profileRepository: ProfileRepository,
+    private val authRecoveryRepository: AuthRecoveryRepository,
     private val biometricAvailable: Boolean = isBiometricAvailableOnDevice(),
     private val appVersion: String = "v1.0.0",
 ) : ViewModel() {
@@ -51,6 +53,14 @@ class SettingsViewModel(
 
     private val _uiState = MutableStateFlow<ScreenState<SettingsUiState>>(ScreenState.Loading)
     val uiState: StateFlow<ScreenState<SettingsUiState>> = _uiState.asStateFlow()
+
+    // OBP has no authenticated change-password; the only path is an email-based reset, which needs
+    // both the username and email of the signed-in user (captured from the loaded profile).
+    private var resetUsername: String = ""
+    private var resetEmail: String = ""
+
+    private val resetMessageState = MutableStateFlow<String?>(null)
+    val resetMessage: StateFlow<String?> = resetMessageState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -70,6 +80,8 @@ class SettingsViewModel(
                 .onSuccess { profile ->
                     val name = profile.username.ifBlank { profile.email.substringBefore('@') }
                         .ifBlank { "Mifos User" }
+                    resetUsername = profile.username
+                    resetEmail = profile.email
                     profileFlow.value = ProfileHeader(
                         name = name,
                         email = profile.email,
@@ -116,6 +128,33 @@ class SettingsViewModel(
     /** Logs the user out. RootNavViewModel observes [UserDataRepository.userData] and routes to auth. */
     fun onSignOut() {
         viewModelScope.launch { userDataRepository.setIsAuthenticated(false) }
+    }
+
+    /**
+     * Requests a password-reset email for the signed-in user. OBP completes the reset via the emailed
+     * link, so this only kicks off the email; the result is surfaced through [resetMessage].
+     */
+    fun onResetPassword() {
+        val username = resetUsername
+        val email = resetEmail
+        if (username.isBlank() || email.isBlank()) {
+            resetMessageState.value = "We couldn't read your profile. Please try again."
+            return
+        }
+        viewModelScope.launch {
+            authRecoveryRepository.initiateReset(username, email)
+                .onSuccess {
+                    resetMessageState.value =
+                        "If your account is valid, a password reset link has been emailed to $email."
+                }
+                .onFailure {
+                    resetMessageState.value = "Couldn't start a password reset. Please try again."
+                }
+        }
+    }
+
+    fun onResetMessageConsumed() {
+        resetMessageState.value = null
     }
 }
 

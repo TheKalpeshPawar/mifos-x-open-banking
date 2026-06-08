@@ -12,27 +12,24 @@ package org.mifosx.openbanking.core.model.obp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Body for initiating a password reset (forgot-password). */
+/**
+ * Body for requesting a password-reset email (OBP `users/password-reset-url`). OBP looks the user
+ * up by both [username] and [email]; they are distinct fields and must both match a real account.
+ */
 @Serializable
 data class PasswordResetRequest(
+    val username: String,
     val email: String,
 )
 
-/** Body for completing a password reset with the emailed token. */
+/** Body for completing a password reset with the emailed token (OBP `users/password`). */
 @Serializable
 data class PasswordResetConfirmRequest(
     val token: String,
     @SerialName("new_password") val newPassword: String,
 )
 
-/** Body for changing the authenticated user's password. */
-@Serializable
-data class ChangePasswordRequest(
-    @SerialName("current_password") val currentPassword: String,
-    @SerialName("new_password") val newPassword: String,
-)
-
-/** Generic single-message OBP response (reset/change-password acknowledgements). */
+/** Generic single-message OBP response (reset acknowledgements). */
 @Serializable
 data class MessageResponse(
     val message: String = "",

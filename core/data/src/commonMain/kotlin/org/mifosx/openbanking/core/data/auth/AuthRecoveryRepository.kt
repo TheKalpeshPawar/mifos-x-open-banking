@@ -10,28 +10,23 @@
 package org.mifosx.openbanking.core.data.auth
 
 import org.mifosx.openbanking.core.data.obp.toResult
-import org.mifosx.openbanking.core.model.obp.ChangePasswordRequest
 import org.mifosx.openbanking.core.model.obp.PasswordResetConfirmRequest
 import org.mifosx.openbanking.core.model.obp.PasswordResetRequest
 import org.mifosx.openbanking.core.network.api.AuthRecoveryApi
 
-/** Password recovery (forgot-password) + authenticated password change. */
+/** Password recovery — request a reset email and (for completeness) complete it with the token. */
 interface AuthRecoveryRepository {
-    suspend fun initiateReset(email: String): Result<String>
+    suspend fun initiateReset(username: String, email: String): Result<String>
     suspend fun confirmReset(token: String, newPassword: String): Result<String>
-    suspend fun changePassword(currentPassword: String, newPassword: String): Result<String>
 }
 
 class AuthRecoveryRepositoryImpl(
     private val api: AuthRecoveryApi,
 ) : AuthRecoveryRepository {
 
-    override suspend fun initiateReset(email: String): Result<String> =
-        api.initiateReset(PasswordResetRequest(email)).toResult().map { it.message }
+    override suspend fun initiateReset(username: String, email: String): Result<String> =
+        api.initiateReset(PasswordResetRequest(username, email)).toResult().map { it.message }
 
     override suspend fun confirmReset(token: String, newPassword: String): Result<String> =
         api.confirmReset(PasswordResetConfirmRequest(token, newPassword)).toResult().map { it.message }
-
-    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<String> =
-        api.changePassword(ChangePasswordRequest(currentPassword, newPassword)).toResult().map { it.message }
 }

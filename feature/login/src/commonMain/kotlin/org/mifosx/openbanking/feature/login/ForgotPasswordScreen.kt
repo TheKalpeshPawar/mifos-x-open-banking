@@ -151,7 +151,7 @@ private fun ForgotPasswordContent(
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = "Enter your username or email address and we'll send you a link to reset your password.",
+                text = "Enter your username and email address and we'll send you a link to reset your password.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -159,10 +159,27 @@ private fun ForgotPasswordContent(
             )
 
             OutlinedTextField(
-                value = state.identifier,
-                onValueChange = { onAction(ForgotPasswordAction.IdentifierChanged(it)) },
-                label = { Text("Username or Email") },
-                placeholder = { Text("e.g. john.doe or john@example.com") },
+                value = state.username,
+                onValueChange = { onAction(ForgotPasswordAction.UsernameChanged(it)) },
+                label = { Text("Username") },
+                placeholder = { Text("e.g. john.doe") },
+                singleLine = true,
+                enabled = !state.isSubmitting,
+                isError = state.errorMessage != null,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    imeAction = ImeAction.Next,
+                ),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.email,
+                onValueChange = { onAction(ForgotPasswordAction.EmailChanged(it)) },
+                label = { Text("Email") },
+                placeholder = { Text("e.g. john@example.com") },
                 singleLine = true,
                 enabled = !state.isSubmitting,
                 isError = state.errorMessage != null,

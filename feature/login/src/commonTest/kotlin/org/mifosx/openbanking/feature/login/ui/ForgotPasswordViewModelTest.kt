@@ -29,19 +29,16 @@ import kotlin.test.assertTrue
 private class FakeAuthRecoveryRepository(
     var initiateResult: Result<String> = Result.success("ok"),
 ) : AuthRecoveryRepository {
+    var lastUsername: String? = null
     var lastEmail: String? = null
-    override suspend fun initiateReset(email: String): Result<String> {
+    override suspend fun initiateReset(username: String, email: String): Result<String> {
+        lastUsername = username
         lastEmail = email
         return initiateResult
     }
 
     override suspend fun confirmReset(token: String, newPassword: String): Result<String> =
         Result.success("ok")
-
-    override suspend fun changePassword(
-        currentPassword: String,
-        newPassword: String,
-    ): Result<String> = Result.success("ok")
 }
 
 class ForgotPasswordViewModelTest {
@@ -62,10 +59,12 @@ class ForgotPasswordViewModelTest {
         ForgotPasswordViewModel(repo)
 
     @Test
-    fun submitDisabledUntilIdentifierPresent() = runTest {
+    fun submitDisabledUntilBothFieldsPresent() = runTest {
         val vm = viewModel()
         assertFalse(vm.stateFlow.value.isFormValid)
-        vm.trySendAction(ForgotPasswordAction.IdentifierChanged("alice@example.com"))
+        vm.trySendAction(ForgotPasswordAction.UsernameChanged("alice"))
+        assertFalse(vm.stateFlow.value.isFormValid)
+        vm.trySendAction(ForgotPasswordAction.EmailChanged("alice@example.com"))
         assertTrue(vm.stateFlow.value.isFormValid)
     }
 
@@ -73,10 +72,12 @@ class ForgotPasswordViewModelTest {
     fun successSwapsToConfirmation() = runTest {
         val repo = FakeAuthRecoveryRepository(initiateResult = Result.success("sent"))
         val vm = viewModel(repo)
-        vm.trySendAction(ForgotPasswordAction.IdentifierChanged("alice@example.com"))
+        vm.trySendAction(ForgotPasswordAction.UsernameChanged("alice"))
+        vm.trySendAction(ForgotPasswordAction.EmailChanged("alice@example.com"))
         vm.trySendAction(ForgotPasswordAction.SubmitClicked)
 
         val state = vm.stateFlow.value
+        assertEquals("alice", repo.lastUsername)
         assertEquals("alice@example.com", repo.lastEmail)
         assertTrue(state.isSuccess)
         assertFalse(state.isSubmitting)
@@ -89,7 +90,8 @@ class ForgotPasswordViewModelTest {
             initiateResult = Result.failure(ObpException(reason = "NOT_FOUND")),
         )
         val vm = viewModel(repo)
-        vm.trySendAction(ForgotPasswordAction.IdentifierChanged("ghost"))
+        vm.trySendAction(ForgotPasswordAction.UsernameChanged("ghost"))
+        vm.trySendAction(ForgotPasswordAction.EmailChanged("ghost@example.com"))
         vm.trySendAction(ForgotPasswordAction.SubmitClicked)
 
         val state = vm.stateFlow.value
@@ -107,7 +109,8 @@ class ForgotPasswordViewModelTest {
             initiateResult = Result.failure(ObpException(reason = "TOO_MANY_REQUESTS")),
         )
         val vm = viewModel(repo)
-        vm.trySendAction(ForgotPasswordAction.IdentifierChanged("alice@example.com"))
+        vm.trySendAction(ForgotPasswordAction.UsernameChanged("alice"))
+        vm.trySendAction(ForgotPasswordAction.EmailChanged("alice@example.com"))
         vm.trySendAction(ForgotPasswordAction.SubmitClicked)
 
         assertEquals(

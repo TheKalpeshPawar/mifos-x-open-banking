@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +52,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -102,6 +104,9 @@ internal fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val resetMessage by viewModel.resetMessage.collectAsStateWithLifecycle()
+    var showResetDialog by remember { mutableStateOf(false) }
+    val email = (state as? ScreenState.Content)?.data?.profileEmail.orEmpty()
 
     KptScaffold(
         title = "Settings",
@@ -117,6 +122,7 @@ internal fun SettingsScreen(
                 onPushToggled = viewModel::onPushNotificationsToggled,
                 onTransactionAlertsToggled = viewModel::onTransactionAlertsToggled,
                 onBiometricToggled = viewModel::onBiometricToggled,
+                onResetPassword = { showResetDialog = true },
                 onAbout = onNavigateToAbout,
                 onTerms = onNavigateToTerms,
                 onPrivacy = onNavigateToPrivacy,
@@ -127,6 +133,50 @@ internal fun SettingsScreen(
             else -> SettingsLoading()
         }
     }
+
+    if (showResetDialog) {
+        ResetPasswordDialog(
+            email = email,
+            onConfirm = {
+                showResetDialog = false
+                viewModel.onResetPassword()
+            },
+            onDismiss = { showResetDialog = false },
+        )
+    }
+
+    resetMessage?.let { message ->
+        ResetMessageDialog(message = message, onDismiss = viewModel::onResetMessageConsumed)
+    }
+}
+
+@Composable
+private fun ResetPasswordDialog(email: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Reset password?") },
+        text = {
+            Text(
+                if (email.isBlank()) {
+                    "We'll email you a link to reset your password."
+                } else {
+                    "We'll email a password reset link to $email."
+                },
+            )
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Send link") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun ResetMessageDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Password reset") },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    )
 }
 
 @Composable
@@ -138,6 +188,7 @@ private fun SettingsContent(
     onPushToggled: () -> Unit,
     onTransactionAlertsToggled: () -> Unit,
     onBiometricToggled: () -> Unit,
+    onResetPassword: () -> Unit,
     onAbout: (() -> Unit)?,
     onTerms: (() -> Unit)?,
     onPrivacy: (() -> Unit)?,
@@ -217,12 +268,12 @@ private fun SettingsContent(
                 testTag = SettingsTestTags.BIOMETRIC_TOGGLE,
             )
             RowDivider()
-            // Disabled: OBP exposes no working change/reset-password path.
+            // OBP has no in-app change-password; this requests an email-based reset instead.
             NavRow(
                 leadingIcon = Icons.Outlined.Lock,
-                label = "Change Password",
-                description = "Update your account login password",
-                onClick = null,
+                label = "Reset Password",
+                description = "Email yourself a password reset link",
+                onClick = onResetPassword,
                 testTag = SettingsTestTags.CHANGE_PASSWORD_ROW,
             )
         }

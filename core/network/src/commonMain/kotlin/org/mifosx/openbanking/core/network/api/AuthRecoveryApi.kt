@@ -11,28 +11,27 @@ package org.mifosx.openbanking.core.network.api
 
 import de.jensklingenberg.ktorfit.http.Body
 import de.jensklingenberg.ktorfit.http.POST
-import org.mifosx.openbanking.core.model.obp.ChangePasswordRequest
 import org.mifosx.openbanking.core.model.obp.MessageResponse
 import org.mifosx.openbanking.core.model.obp.PasswordResetConfirmRequest
 import org.mifosx.openbanking.core.model.obp.PasswordResetRequest
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
-/** OBP password recovery + change endpoints. */
+/**
+ * OBP password-recovery endpoints. OBP has no authenticated self-service change-password; the only
+ * password mutation is the email-based reset: request a reset URL (anonymous), then complete it with
+ * the emailed token. The reset is completed via the emailed web link, so [confirmReset] is currently
+ * unused by the app.
+ */
 interface AuthRecoveryApi {
 
-    @POST("v4.0.0/auth/password/reset/initiate")
+    @POST("v6.0.0/users/password-reset-url")
     suspend fun initiateReset(
         @Body request: PasswordResetRequest,
     ): NetworkResult<MessageResponse, NetworkError>
 
-    @POST("v4.0.0/auth/password/reset/confirm")
+    @POST("v6.0.0/users/password")
     suspend fun confirmReset(
         @Body request: PasswordResetConfirmRequest,
-    ): NetworkResult<MessageResponse, NetworkError>
-
-    @POST("v4.0.0/users/current/password")
-    suspend fun changePassword(
-        @Body request: ChangePasswordRequest,
     ): NetworkResult<MessageResponse, NetworkError>
 }

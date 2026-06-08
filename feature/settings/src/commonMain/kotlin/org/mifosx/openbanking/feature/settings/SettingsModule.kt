@@ -23,6 +23,7 @@ val SettingsModule = module {
         SettingsViewModel(
             userDataRepository = get(),
             profileRepository = get(),
+            authRecoveryRepository = get(),
             appVersion = get<String>(named("appVersion")).ifBlank { "v1.0.0" },
         )
     }
