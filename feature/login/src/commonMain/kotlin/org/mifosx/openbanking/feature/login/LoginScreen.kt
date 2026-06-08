@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.login
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -32,9 +34,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,8 +47,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -54,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.designsystem.icon.AppIcons
+import org.mifosx.openbanking.core.ui.card.HeroGradientCard
 import org.mifosx.openbanking.feature.login.ui.LoginAction
 import org.mifosx.openbanking.feature.login.ui.LoginEvent
 import org.mifosx.openbanking.feature.login.ui.LoginState
@@ -122,34 +129,102 @@ private fun LoginForm(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        LoginHero()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+                .offset(y = (-28).dp)
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = AppIcons.Bank,
-                contentDescription = "Mifos X logo",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(80.dp)
-                    .padding(bottom = 16.dp),
+            LoginCard(state = state, onAction = onAction)
+            LoginAlternativeAuth(state = state, onAction = onAction)
+            Text(
+                text = "Powered by Mifos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp, bottom = 40.dp),
+            )
+        }
+    }
+}
+
+/** Green gradient hero with the Mifos X badge + welcome copy. Reuses the shared [HeroGradientCard]. */
+@Composable
+private fun LoginHero(modifier: Modifier = Modifier) {
+    HeroGradientCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 72.dp, bottom = 56.dp, start = 24.dp, end = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = Color.White.copy(alpha = 0.18f),
+            ) {
+                Text(
+                    text = "Mifos X",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 16.dp),
+                )
+            }
+            Text(
+                text = "Welcome back",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = "Welcome Back",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(bottom = 32.dp)
-                    .semantics { heading() },
+                text = "Sign in to your sandbox account",
+                style = MaterialTheme.typography.bodyMedium,
+                color = LocalContentColor.current.copy(alpha = 0.85f),
             )
+        }
+    }
+}
 
+/** The white "Direct Login" card: username + password + Sign In. */
+@Composable
+private fun LoginCard(
+    state: LoginState,
+    onAction: (LoginAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Direct Login",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            val fieldColors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary,
+            )
             OutlinedTextField(
                 value = state.username,
                 onValueChange = { onAction(LoginAction.UsernameChanged(it)) },
@@ -162,11 +237,10 @@ private fun LoginForm(
                     capitalization = KeyboardCapitalization.None,
                     imeAction = ImeAction.Next,
                 ),
+                colors = fieldColors,
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(16.dp))
-
             OutlinedTextField(
                 value = state.password,
                 onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
@@ -196,15 +270,11 @@ private fun LoginForm(
                         )
                     }
                 },
+                colors = fieldColors,
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = state.rememberMe,
                     onCheckedChange = { onAction(LoginAction.RememberMeToggled) },
@@ -218,18 +288,14 @@ private fun LoginForm(
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
-
             if (state.errorMessage != null) {
-                Spacer(Modifier.height(16.dp))
                 ErrorBanner(message = state.errorMessage)
             }
-
-            Spacer(Modifier.height(24.dp))
             Button(
                 onClick = { onAction(LoginAction.DirectLoginClicked) },
                 enabled = state.isFormValid && !state.isLoading,
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(
@@ -238,22 +304,10 @@ private fun LoginForm(
                         modifier = Modifier.size(20.dp),
                     )
                 } else {
-                    Text("Sign In", style = MaterialTheme.typography.labelLarge)
+                    Text("Login", style = MaterialTheme.typography.labelLarge)
                 }
             }
-
-            LoginAlternativeAuth(state = state, onAction = onAction)
         }
-
-        Text(
-            text = "Powered by Mifos",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 40.dp),
-        )
     }
 }
 
@@ -275,6 +329,7 @@ private fun LoginAlternativeAuth(
             onClick = { onAction(LoginAction.OAuthLoginClicked) },
             enabled = !state.isLoading,
             shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
