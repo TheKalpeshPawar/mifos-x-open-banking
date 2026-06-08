@@ -13,6 +13,7 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
+import org.mifosx.openbanking.core.model.obp.DirectDebitCollection
 import org.mifosx.openbanking.core.model.obp.DirectDebitMandate
 import org.mifosx.openbanking.core.model.obp.Transaction
 
@@ -21,6 +22,9 @@ private const val DD_CODE = "DD"
 
 /** A mandate renders CANCELLED once no collection arrived within 1.5x its period. */
 private const val INACTIVE_FACTOR = 1.5
+
+/** How many of the most recent collections a mandate carries for its detail history. */
+private const val RECENT_COLLECTIONS_CAP = 6
 
 /**
  * Derives direct-debit mandates from transaction history. OBP has no read endpoint for
@@ -62,8 +66,24 @@ private fun deriveMandate(description: String, series: List<Transaction>, today:
         nextCollectionDate = lastDate?.plus(periodFor(frequency))?.toString().orEmpty(),
         status = statusFor(lastDate, frequency, today),
         mandateReference = mandateReference(merchant, dates.firstOrNull()),
+        firstCollectionDate = dates.firstOrNull()?.toString().orEmpty(),
+        recentCollections = recentCollectionsOf(series),
     )
 }
+
+/** Most-recent-first collection history for a series, bounded to [RECENT_COLLECTIONS_CAP]. */
+private fun recentCollectionsOf(series: List<Transaction>): List<DirectDebitCollection> =
+    series
+        .mapNotNull { txn -> txn.completedDate()?.let { it to txn } }
+        .sortedByDescending { it.first }
+        .take(RECENT_COLLECTIONS_CAP)
+        .map { (date, txn) ->
+            DirectDebitCollection(
+                date = date.toString(),
+                amountValue = txn.details.value.amount.trimStart('-'),
+                amountCurrency = txn.details.value.currency,
+            )
+        }
 
 /** "British Gas — energy" → "British Gas"; descriptions without a dash pass through. */
 private fun merchantNameOf(description: String): String =

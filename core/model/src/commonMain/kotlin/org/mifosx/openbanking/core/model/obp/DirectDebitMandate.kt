@@ -32,6 +32,10 @@ data class DirectDebitMandate(
     val status: String = STATUS_ACTIVE,
     /** Stable display reference ("DD-{initials}-{first collection yyyyMMdd}"). */
     val mandateReference: String = "",
+    /** First observed collection date (ISO date, "" when unknown) — the mandate's effective start. */
+    val firstCollectionDate: String = "",
+    /** Observed collections for this series, most recent first; bounded to the latest few. */
+    val recentCollections: List<DirectDebitCollection> = emptyList(),
 ) {
     val isActive: Boolean get() = status == STATUS_ACTIVE
 
@@ -40,3 +44,15 @@ data class DirectDebitMandate(
         const val STATUS_CANCELLED = "CANCELLED"
     }
 }
+
+/**
+ * One observed direct-debit collection in a mandate's history. Derived from a booked
+ * `TXN_TYPE=DD` transaction, so every collection here has settled — [amountValue] is the
+ * unsigned magnitude on [date] (ISO date).
+ */
+@Serializable
+data class DirectDebitCollection(
+    val date: String = "",
+    val amountValue: String = "",
+    val amountCurrency: String = "",
+)

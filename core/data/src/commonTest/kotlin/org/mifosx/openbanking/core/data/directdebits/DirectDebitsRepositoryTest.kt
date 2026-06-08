@@ -139,6 +139,34 @@ class DirectDebitsRepositoryTest {
     }
 
     @Test
+    fun firstCollectionDateAndRecentHistoryDerived() = runTest {
+        val gas = repository(
+            transactions = listOf(
+                txn("British Gas — energy", "-68.90", recentDate(48)),
+                txn("British Gas — energy", "-70.10", recentDate(18)),
+            ),
+        ).listMandates("ac.bank.uk", "acc-1").getOrThrow()
+            .first { it.merchantName == "British Gas" }
+        assertEquals(recentDate(48), gas.firstCollectionDate)
+        assertEquals(2, gas.recentCollections.size)
+        assertEquals(recentDate(18), gas.recentCollections.first().date)
+        assertEquals("70.10", gas.recentCollections.first().amountValue)
+        assertEquals("EUR", gas.recentCollections.first().amountCurrency)
+        assertEquals(recentDate(48), gas.recentCollections.last().date)
+    }
+
+    @Test
+    fun recentCollectionsCappedAtSixMostRecent() = runTest {
+        val series = (0 until 8).map { i -> txn("Acme Cloud", "-9.99", recentDate(i * 30)) }
+        val acme = repository(transactions = series).listMandates("ac.bank.uk", "acc-1").getOrThrow()
+            .first { it.merchantName == "Acme Cloud" }
+        assertEquals(6, acme.recentCollections.size)
+        assertEquals(recentDate(0), acme.recentCollections.first().date)
+        assertEquals(recentDate(150), acme.recentCollections.last().date)
+        assertEquals(recentDate(210), acme.firstCollectionDate)
+    }
+
+    @Test
     fun cancelPersistsAcrossRepositoryInstances() = runTest {
         val dao = FakeObpCacheDao()
         val first = repository(dao = dao)

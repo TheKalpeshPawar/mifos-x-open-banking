@@ -77,6 +77,7 @@ fun DirectDebitsScreen(
     modifier: Modifier = Modifier,
     bankId: String = "",
     accountId: String = "",
+    onMandateClick: (String) -> Unit = {},
     viewModel: DirectDebitsViewModel = koinViewModel { parametersOf(bankId, accountId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -112,14 +113,22 @@ fun DirectDebitsScreen(
                 is ScreenState.NoNetwork,
                 is ScreenState.Unauthenticated,
                 -> DdErrorState(onRetry = viewModel::onRetry)
-                is ScreenState.Content -> DdMandateList(content = s.data, viewModel = viewModel)
+                is ScreenState.Content -> DdMandateList(
+                    content = s.data,
+                    viewModel = viewModel,
+                    onMandateClick = onMandateClick,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun DdMandateList(content: DirectDebitsContent, viewModel: DirectDebitsViewModel) {
+private fun DdMandateList(
+    content: DirectDebitsContent,
+    viewModel: DirectDebitsViewModel,
+    onMandateClick: (String) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp),
@@ -152,7 +161,11 @@ private fun DdMandateList(content: DirectDebitsContent, viewModel: DirectDebitsV
             }
         }
         items(content.mandates, key = { it.id }) { mandate ->
-            DdMandateCard(mandate, onCancel = { viewModel.onCancelRequested(mandate.id) })
+            DdMandateCard(
+                mandate,
+                onClick = { onMandateClick(mandate.id) },
+                onCancel = { viewModel.onCancelRequested(mandate.id) },
+            )
         }
     }
 
@@ -166,8 +179,9 @@ private fun DdMandateList(content: DirectDebitsContent, viewModel: DirectDebitsV
 }
 
 @Composable
-private fun DdMandateCard(mandate: DirectDebitRow, onCancel: () -> Unit) {
+private fun DdMandateCard(mandate: DirectDebitRow, onClick: () -> Unit, onCancel: () -> Unit) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (mandate.isActive) {

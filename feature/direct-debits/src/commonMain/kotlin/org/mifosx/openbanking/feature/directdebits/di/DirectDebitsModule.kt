@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.directdebits.di
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitDetailViewModel
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsViewModel
 
 val DirectDebitsModule = module {
@@ -21,6 +22,15 @@ val DirectDebitsModule = module {
             userPreferencesRepository = get(),
             bankId = params.get(0),
             accountId = params.get(1),
+        )
+    }
+    viewModel { params ->
+        DirectDebitDetailViewModel(
+            directDebitsRepository = get(),
+            accountsRepository = get(),
+            bankId = params.get(0),
+            accountId = params.get(1),
+            mandateId = params.get(2),
         )
     }
 }

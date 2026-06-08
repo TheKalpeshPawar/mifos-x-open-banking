@@ -43,6 +43,7 @@ import org.mifosx.openbanking.feature.accounts.AccountsScreen
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesScreen
 import org.mifosx.openbanking.feature.businessinsights.BusinessInsightsScreen
 import org.mifosx.openbanking.feature.cards.CardsScreen
+import org.mifosx.openbanking.feature.directdebits.DirectDebitDetailScreen
 import org.mifosx.openbanking.feature.directdebits.DirectDebitsScreen
 import org.mifosx.openbanking.feature.fxrates.FxRatesScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
@@ -74,6 +75,7 @@ import org.mifosx.openbanking.placeholder.BeneficiariesRoute
 import org.mifosx.openbanking.placeholder.BusinessInsightsRoute
 import org.mifosx.openbanking.placeholder.CardDetailRoute
 import org.mifosx.openbanking.placeholder.CardsRoute
+import org.mifosx.openbanking.placeholder.DirectDebitDetailRoute
 import org.mifosx.openbanking.placeholder.DirectDebitsRoute
 import org.mifosx.openbanking.placeholder.FoDashboardRoute
 import org.mifosx.openbanking.placeholder.FxRatesRoute
@@ -309,14 +311,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            composableWithStayTransitions<DirectDebitsRoute> { entry ->
-                val route = entry.toRoute<DirectDebitsRoute>()
-                DirectDebitsScreen(
-                    bankId = route.bankId,
-                    accountId = route.accountId,
-                    onBack = navController::popBackStack,
-                )
-            }
+            directDebitsDestinations(navController)
 
             composableWithStayTransitions<ProductsRoute> {
                 ProductsScreen(onBack = navController::popBackStack)
@@ -477,6 +472,40 @@ private fun NavGraphBuilder.transactionsDestinations(navController: NavHostContr
             bankId = route.bankId,
             accountId = route.accountId,
             transactionId = route.transactionId,
+            onBack = navController::popBackStack,
+        )
+    }
+}
+
+private fun NavGraphBuilder.directDebitsDestinations(navController: NavHostController) {
+    composableWithStayTransitions<DirectDebitsRoute> { entry ->
+        val route = entry.toRoute<DirectDebitsRoute>()
+        DirectDebitsScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            onBack = navController::popBackStack,
+            onMandateClick = { mandateId ->
+                navController.navigate(
+                    DirectDebitDetailRoute(
+                        bankId = route.bankId,
+                        accountId = route.accountId,
+                        mandateId = mandateId,
+                    ),
+                )
+            },
+        )
+    }
+    composableWithStayTransitions<DirectDebitDetailRoute> { entry ->
+        val route = entry.toRoute<DirectDebitDetailRoute>()
+        DirectDebitDetailScreen(
+            bankId = route.bankId,
+            accountId = route.accountId,
+            mandateId = route.mandateId,
+            onViewAllPayments = {
+                navController.navigate(
+                    TransactionsRoute(bankId = route.bankId, accountId = route.accountId),
+                )
+            },
             onBack = navController::popBackStack,
         )
     }
