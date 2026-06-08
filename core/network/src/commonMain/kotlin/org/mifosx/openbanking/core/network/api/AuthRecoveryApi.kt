@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.network.api
 
 import de.jensklingenberg.ktorfit.http.Body
+import de.jensklingenberg.ktorfit.http.Headers
 import de.jensklingenberg.ktorfit.http.POST
 import org.mifosx.openbanking.core.model.obp.MessageResponse
 import org.mifosx.openbanking.core.model.obp.PasswordResetConfirmRequest
@@ -25,11 +26,13 @@ import template.core.base.network.NetworkResult
  */
 interface AuthRecoveryApi {
 
+    @Headers("Content-Type: application/json")
     @POST("v6.0.0/users/password-reset-url")
     suspend fun initiateReset(
         @Body request: PasswordResetRequest,
     ): NetworkResult<MessageResponse, NetworkError>
 
+    @Headers("Content-Type: application/json")
     @POST("v6.0.0/users/password")
     suspend fun confirmReset(
         @Body request: PasswordResetConfirmRequest,
