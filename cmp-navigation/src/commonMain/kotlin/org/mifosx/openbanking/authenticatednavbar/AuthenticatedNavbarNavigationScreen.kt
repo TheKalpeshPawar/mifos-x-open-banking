@@ -253,15 +253,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             composableWithStayTransitions<CardsRoute> {
                 CardsScreen(
                     onCardClick = { navController.navigate(CardDetailRoute) },
-                    onTransactionClick = { tx ->
-                        navController.navigate(
-                            TransactionDetailRoute(
-                                bankId = tx.thisAccount.bankId,
-                                accountId = tx.thisAccount.id,
-                                transactionId = tx.txId,
-                            ),
-                        )
-                    },
                     onDeferred = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
                 )
             }

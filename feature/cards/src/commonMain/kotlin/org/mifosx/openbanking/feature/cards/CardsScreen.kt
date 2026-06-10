@@ -11,7 +11,6 @@ package org.mifosx.openbanking.feature.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,29 +22,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.CreditCardOff
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.ReportProblem
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,7 +46,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,7 +53,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.obp.Card
-import org.mifosx.openbanking.core.model.obp.Transaction
 import org.mifosx.openbanking.feature.cards.ui.CardsContent
 import org.mifosx.openbanking.feature.cards.ui.CardsViewModel
 import template.core.base.store.screen.ScreenState
@@ -73,16 +60,15 @@ import template.core.base.store.screen.ScreenState
 /**
  * My Cards screen — Consumer cards hub. Stateful container binding [CardsViewModel]'s
  * offline-first [ScreenState] to the stateless content. Hosted inside the authenticated
- * navbar scaffold (bottom nav supplied by the host); owns its body, the card carousel,
- * quick-action controls, recent card transactions, and the Order New Card affordance.
+ * navbar scaffold (bottom nav supplied by the host); owns its body, the card carousel, and a
+ * details card describing the currently-selected card.
  *
- * Deferred controls (Freeze / Set Limit / View PIN / Report Lost / Order New Card) surface
- * a "coming soon" snackbar — see [CardsViewModel] for the OBP capability rationale.
+ * Ordering a new card is deferred (see [CardsViewModel] for the OBP capability rationale): the
+ * empty-state CTA surfaces a "coming soon" snackbar.
  */
 @Composable
 fun CardsScreen(
     onCardClick: (Card) -> Unit,
-    onTransactionClick: (Transaction) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CardsViewModel = koinViewModel(),
     onDeferred: (String) -> Unit = {},
@@ -107,8 +93,6 @@ fun CardsScreen(
                 content = s.data,
                 onCardClick = onCardClick,
                 onCardSelected = viewModel::selectCard,
-                onTransactionClick = onTransactionClick,
-                onDeferred = deferred,
             )
         }
     }
@@ -119,8 +103,6 @@ private fun CardsLoaded(
     content: CardsContent,
     onCardClick: (Card) -> Unit,
     onCardSelected: (Card) -> Unit,
-    onTransactionClick: (Transaction) -> Unit,
-    onDeferred: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -128,52 +110,13 @@ private fun CardsLoaded(
     ) {
         item { Title() }
         item { CardCarousel(cards = content.cards, onCardClick = onCardClick, onCardSelected = onCardSelected) }
-        item { QuickActions(onDeferred = onDeferred) }
-        item { SectionHeader("Card Transactions") }
-        if (content.transactionsLoading) {
-            item { TransactionsLoading() }
-        } else if (content.recentTransactions.isEmpty()) {
-            item { EmptyTransactionsRow() }
-        } else {
-            items(content.recentTransactions, key = { it.txId }) { tx ->
-                TransactionRow(tx = tx, onClick = { onTransactionClick(tx) })
-            }
+        item { Spacer(Modifier.height(16.dp)) }
+        item {
+            val card = content.cards.firstOrNull { it.bankCardNumber == content.selectedCardId }
+                ?: content.cards.first()
+            CardDetailsCard(card = card)
         }
-        item { OrderNewCardButton(onClick = { onDeferred("Order New Card") }) }
     }
-}
-
-@Composable
-private fun TransactionsLoading() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary,
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = "Loading transactions…",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun EmptyTransactionsRow() {
-    Text(
-        text = "No transactions for this card yet",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
-    )
 }
 
 @Composable
@@ -193,7 +136,7 @@ private fun CardCarousel(
     onCardSelected: (Card) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { cards.size })
-    // Swiping to a different card scopes the recent-transactions section to that card.
+    // Swiping to a different card scopes the details card to that card.
     LaunchedEffect(pagerState, cards) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
             cards.getOrNull(page)?.let(onCardSelected)
@@ -300,109 +243,64 @@ private fun StatusChip(active: Boolean) {
     }
 }
 
+/**
+ * Details for the currently-selected card — a label/value list with no dividers between rows
+ * (per design). Sourced entirely from the OBP [Card] model; blank fields render as an em dash.
+ */
 @Composable
-private fun QuickActions(onDeferred: (String) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        QuickAction(Icons.Filled.AcUnit, "Freeze", MaterialTheme.colorScheme.primary) { onDeferred("Freeze") }
-        QuickAction(Icons.Filled.Tune, "Set Limit", MaterialTheme.colorScheme.primary) { onDeferred("Set Limit") }
-        QuickAction(Icons.Filled.Password, "View PIN", MaterialTheme.colorScheme.primary) { onDeferred("View PIN") }
-        QuickAction(Icons.Filled.ReportProblem, "Report Lost", MaterialTheme.colorScheme.error) {
-            onDeferred("Report Lost")
-        }
-    }
-}
-
-@Composable
-private fun QuickAction(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = label, tint = tint)
-            Spacer(Modifier.height(6.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = tint)
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 8.dp),
-    )
-}
-
-@Composable
-private fun TransactionRow(tx: Transaction, onClick: () -> Unit) {
+private fun CardDetailsCard(card: Card) {
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 0.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = transactionLabel(tx),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = transactionSubtitle(tx),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = formatAmount(tx.details.value.amount, tx.details.value.currency),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.error,
+                text = "Card Details",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.height(4.dp))
+            CardDetailRow("Card Holder", card.nameOnCard.ifBlank { "—" })
+            CardDetailRow("Card Number", maskedNumber(card.bankCardNumber))
+            CardDetailRow("Expires", card.expiresDate.ifBlank { "—" })
+            CardDetailRow("Card Type", card.cardType.ifBlank { "—" })
+            CardDetailRow("Network", card.network.ifBlank { "—" })
+            CardDetailRow("Status", cardStatusLabel(card))
+            CardDetailRow("Linked Account", card.account.label.ifBlank { "—" })
         }
     }
 }
 
 @Composable
-private fun OrderNewCardButton(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary,
-        ),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 24.dp)
-            .height(48.dp),
+private fun CardDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            Icons.Filled.AddCard,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(8.dp))
         Text(
-            text = "Order New Card",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+/** Human-readable card status from the OBP flags, richer than the carousel's Active/Frozen chip. */
+private fun cardStatusLabel(card: Card): String = when {
+    card.cancelled -> "Cancelled"
+    card.onHotList -> "Reported lost"
+    card.enabled -> "Active"
+    else -> "Frozen"
 }
 
 @Composable
