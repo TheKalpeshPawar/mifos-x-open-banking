@@ -55,9 +55,11 @@ kotlin {
         ios.deploymentTarget = "16.0"
         podfile = project.file("../cmp-ios/Podfile")
 
-        // Native MapLibre SDK that maplibre-compose's iOS target links against (ATM locator map).
+        // Native MapLibre SDK for maplibre-compose's iOS target (ATM locator map); the pin must equal
+        // maplibre-compose's maplibreIosVersion — its cinterop is ABI-locked to that native version, so a
+        // looser pin links an older binary missing the expected arm64 symbols.
         pod("MapLibre") {
-            version = "~> 6.17"
+            version = "6.25.1"
         }
 
         framework {
