@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
+import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.obp.ObpException
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
@@ -37,21 +38,23 @@ import kotlin.test.assertTrue
 
 private class FakeObpAuthRepository(
     var loginResult: Result<Unit> = Result.success(Unit),
-    var oidcResult: Result<Unit> = Result.success(Unit),
+    var prepareResult: Result<String> = Result.success("https://oidc.example/auth?state=s"),
+    var completeResult: Result<Unit> = Result.success(Unit),
 ) : ObpAuthRepository {
     var lastUsername: String? = null
+    var lastCompleteCode: String? = null
     override suspend fun login(username: String, password: String): Result<Unit> {
         lastUsername = username
         return loginResult
     }
 
-    override suspend fun loginWithOidc(
-        code: String,
-        redirectUri: String,
-        codeVerifier: String,
-    ): Result<Unit> = oidcResult
+    override suspend fun prepareOidcAuthorization(): Result<String> = prepareResult
 
-    override suspend fun refreshSession(refreshToken: String): Result<Unit> = Result.success(Unit)
+    override suspend fun completeOidc(code: String, state: String): Result<Unit> {
+        lastCompleteCode = code
+        return completeResult
+    }
+
     override fun logout() = Unit
     override fun isLoggedIn(): Boolean = false
 }
@@ -106,7 +109,8 @@ class LoginViewModelTest {
     private fun viewModel(
         authRepository: ObpAuthRepository = FakeObpAuthRepository(),
         userDataRepository: UserDataRepository = FakeUserDataRepository(),
-    ) = LoginViewModel(authRepository, userDataRepository)
+        oidcCallbackBus: OidcCallbackBus = OidcCallbackBus(),
+    ) = LoginViewModel(authRepository, userDataRepository, oidcCallbackBus)
 
     @Test
     fun credentialEntryUpdatesState() = runTest {
@@ -200,5 +204,35 @@ class LoginViewModelTest {
         assertFalse(vm.stateFlow.value.isPasswordVisible)
         vm.trySendAction(LoginAction.PasswordVisibilityToggled)
         assertTrue(vm.stateFlow.value.isPasswordVisible)
+    }
+
+    @Test
+    fun oauthClickLaunchesAuthorizeUrlAndEntersRedirecting() = runTest {
+        val auth = FakeObpAuthRepository(prepareResult = Result.success("https://oidc.example/auth?state=s"))
+        val vm = viewModel(auth)
+        var launched: String? = null
+        val job = CoroutineScope(dispatcher).launch {
+            vm.eventFlow.collect { if (it is LoginEvent.LaunchOidcAuth) launched = it.authUrl }
+        }
+        vm.trySendAction(LoginAction.OAuthLoginClicked)
+        job.cancel()
+
+        assertEquals("https://oidc.example/auth?state=s", launched)
+        assertEquals(OAuthPhase.REDIRECTING, vm.stateFlow.value.oauthPhase)
+    }
+
+    @Test
+    fun oauthCallbackExchangesCodeAndAuthenticates() = runTest {
+        val auth = FakeObpAuthRepository(completeResult = Result.success(Unit))
+        val userData = FakeUserDataRepository()
+        val bus = OidcCallbackBus()
+        val vm = viewModel(auth, userData, bus)
+
+        vm.trySendAction(LoginAction.OAuthLoginClicked)
+        bus.emit(code = "auth-code", state = "s")
+
+        assertEquals("auth-code", auth.lastCompleteCode)
+        assertTrue(userData.authenticated)
+        assertTrue(userData.unlocked)
     }
 }

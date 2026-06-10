@@ -29,8 +29,8 @@ private fun obpAuthPlugin(tokenProvider: ObpTokenProvider) =
     createClientPlugin("ObpDirectLoginAuth") {
         onRequest { request, _ ->
             if (!request.headers.contains(HttpHeaders.Authorization)) {
-                tokenProvider.token()?.let { token ->
-                    request.headers.append(HttpHeaders.Authorization, ObpAuth.tokenHeader(token))
+                tokenProvider.authHeader()?.let { header ->
+                    request.headers.append(HttpHeaders.Authorization, header)
                 }
             }
         }
@@ -72,3 +72,23 @@ fun obpKtorfit(client: HttpClient): Ktorfit =
         .httpClient(client)
         .converterFactories(ResultSuspendConverterFactory())
         .build()
+
+/**
+ * Bare JSON Ktor client for the OIDC flow. Unlike [obpHttpClient] it carries no DirectLogin auth
+ * plugin (the OIDC provider must not see the OBP session token) and is used with absolute URLs,
+ * since the flow spans the OBP host (discovery) and the OIDC provider host (auth/token).
+ */
+fun oidcHttpClient(config: ObpConfig): HttpClient {
+    val defaults = setupDefaultHttpClient(
+        baseUrl = config.baseUrl,
+        loggableHosts = listOf("openbankproject.com"),
+        jsonConfig = Json {
+            isLenient = true
+            ignoreUnknownKeys = true
+            explicitNulls = false
+            coerceInputValues = true
+            encodeDefaults = true
+        },
+    )
+    return httpClient { defaults(this) }
+}

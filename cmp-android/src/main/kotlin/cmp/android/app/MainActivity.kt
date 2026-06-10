@@ -9,6 +9,7 @@
  */
 package cmp.android.app
 
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.view.WindowManager
@@ -24,6 +25,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import org.koin.android.ext.android.inject
 import org.mifosx.openbanking.SharedApp
+import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import template.core.base.analytics.AnalyticsHelper
@@ -49,6 +51,8 @@ class MainActivity : AppCompatActivity() {
 
     private val networkMonitor: NetworkMonitor by inject()
 
+    private val oidcCallbackBus: OidcCallbackBus by inject()
+
     private val analyticsHelper: AnalyticsHelper by inject()
     private val lifecycleTracker by lazy { analyticsHelper.lifecycleTracker() }
 
@@ -58,6 +62,8 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerImpl(this)
+
+        handleOidcRedirect(intent)
 
         val darkThemeConfigFlow = userPreferencesRepository.observeDarkThemeConfig
 
@@ -123,6 +129,28 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         lifecycleTracker.markAppLaunchStart()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleOidcRedirect(intent)
+    }
+
+    /**
+     * Forwards an OIDC OAuth redirect (`org.mifosx.openbanking://oauth/callback?code=…&state=…`) into
+     * [oidcCallbackBus] so the login flow can validate state and exchange the code for tokens.
+     */
+    private fun handleOidcRedirect(intent: Intent) {
+        val data = intent.data
+        if (data == null) return
+        if (data.scheme == "org.mifosx.openbanking" && data.host == "oauth") {
+            val code = data.getQueryParameter("code")
+            val state = data.getQueryParameter("state")
+            if (code != null && state != null) {
+                oidcCallbackBus.emit(code, state)
+            }
+        }
     }
 
     private fun handleRecreate() {

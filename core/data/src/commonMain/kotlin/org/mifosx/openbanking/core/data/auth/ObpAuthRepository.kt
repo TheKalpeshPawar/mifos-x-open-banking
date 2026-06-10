@@ -9,24 +9,25 @@
  */
 package org.mifosx.openbanking.core.data.auth
 
-/** OBP DirectLogin session lifecycle. */
+/** OBP session lifecycle for both DirectLogin and OIDC authorization-code login. */
 interface ObpAuthRepository {
 
-    /** Exchange credentials for a session token and retain it for subsequent calls. */
+    /** Exchange DirectLogin credentials for a session token and retain it for subsequent calls. */
     suspend fun login(username: String, password: String): Result<Unit>
 
     /**
-     * OIDC alternative to [login]: exchange an authorization code (with its PKCE
-     * verifier) for tokens and retain the access token for subsequent calls.
+     * Prepare the OIDC authorization-code flow: discover the provider, register a public client if
+     * needed, generate the CSRF state + PKCE verifier (held until [completeOidc]), and return the
+     * authorization URL the caller should open in a browser. Failure means discovery/registration broke.
      */
-    suspend fun loginWithOidc(
-        code: String,
-        redirectUri: String,
-        codeVerifier: String,
-    ): Result<Unit>
+    suspend fun prepareOidcAuthorization(): Result<String>
 
-    /** Silent re-auth using a stored refresh token. */
-    suspend fun refreshSession(refreshToken: String): Result<Unit>
+    /**
+     * Complete the OIDC flow after the redirect: validate [state] against the value from
+     * [prepareOidcAuthorization], exchange [code] for tokens, and retain the access token (sent as
+     * `Bearer`) for subsequent calls.
+     */
+    suspend fun completeOidc(code: String, state: String): Result<Unit>
 
     /** Drop the session token (DirectLogin or OIDC). */
     fun logout()

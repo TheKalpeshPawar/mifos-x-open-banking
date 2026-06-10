@@ -9,17 +9,17 @@
  */
 package org.mifosx.openbanking.core.network.api
 
-import de.jensklingenberg.ktorfit.http.Field
-import de.jensklingenberg.ktorfit.http.FormUrlEncoded
 import de.jensklingenberg.ktorfit.http.Header
 import de.jensklingenberg.ktorfit.http.POST
 import org.mifosx.openbanking.core.model.obp.DirectLoginResponse
-import org.mifosx.openbanking.core.model.obp.MessageResponse
-import org.mifosx.openbanking.core.model.obp.OidcToken
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
-/** OBP authentication endpoints. */
+/**
+ * OBP DirectLogin endpoint. OIDC/OAuth2 lives in
+ * [org.mifosx.openbanking.core.network.obp.OidcApi] because it targets the OIDC provider host
+ * (not the OBP API base) and must not carry the DirectLogin session token.
+ */
 interface AuthApi {
 
     /**
@@ -31,32 +31,4 @@ interface AuthApi {
     suspend fun directLogin(
         @Header("Authorization") authorization: String,
     ): NetworkResult<DirectLoginResponse, NetworkError>
-
-    /** OIDC: exchange an authorization code (with PKCE verifier) for tokens. */
-    @FormUrlEncoded
-    @POST("v4.0.0/oauth2/token")
-    suspend fun oidcToken(
-        @Field("code") code: String,
-        @Field("redirect_uri") redirectUri: String,
-        @Field("client_id") clientId: String,
-        @Field("code_verifier") codeVerifier: String,
-        @Field("grant_type") grantType: String = "authorization_code",
-    ): NetworkResult<OidcToken, NetworkError>
-
-    /** OIDC: silent re-auth using a stored refresh token. */
-    @FormUrlEncoded
-    @POST("v4.0.0/oauth2/token")
-    suspend fun oidcRefresh(
-        @Field("refresh_token") refreshToken: String,
-        @Field("client_id") clientId: String,
-        @Field("grant_type") grantType: String = "refresh_token",
-    ): NetworkResult<OidcToken, NetworkError>
-
-    /** OIDC: revoke an access or refresh token on logout. */
-    @FormUrlEncoded
-    @POST("v4.0.0/oauth2/revoke")
-    suspend fun oidcRevoke(
-        @Field("token") token: String,
-        @Field("client_id") clientId: String,
-    ): NetworkResult<MessageResponse, NetworkError>
 }

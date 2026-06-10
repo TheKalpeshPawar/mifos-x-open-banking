@@ -29,7 +29,12 @@ import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
  */
 interface ObpTokenProvider {
     fun token(): String?
-    fun setToken(token: String?)
+
+    /** Store the session token. [bearer] = true for OIDC access tokens (sent as `Bearer`), false for DirectLogin. */
+    fun setToken(token: String?, bearer: Boolean = false)
+
+    /** The full `Authorization` header for outbound calls (`Bearer …` or `DirectLogin token="…"`), or null. */
+    fun authHeader(): String?
     fun clear()
 
     /** Emits once per session-invalidation (logout or 401). */
@@ -42,20 +47,26 @@ interface ObpTokenProvider {
 /** In-memory token holder. Token is lost on process death (real persistence: Phase 7). */
 class InMemoryObpTokenProvider : ObpTokenProvider {
     private var current: String? = null
+    private var isBearer: Boolean = false
 
     private val _sessionInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     override val sessionInvalidations: SharedFlow<Unit> = _sessionInvalidations.asSharedFlow()
 
     override fun token(): String? = current
-    override fun setToken(token: String?) {
+    override fun setToken(token: String?, bearer: Boolean) {
         current = token
+        isBearer = bearer
     }
+    override fun authHeader(): String? =
+        current?.let { if (isBearer) ObpAuth.bearerHeader(it) else ObpAuth.tokenHeader(it) }
     override fun clear() {
         current = null
+        isBearer = false
     }
 
     override fun invalidateSession() {
         current = null
+        isBearer = false
         _sessionInvalidations.tryEmit(Unit)
     }
 }
@@ -73,24 +84,31 @@ class PersistentObpTokenProvider(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) : ObpTokenProvider {
     private var current: String? = preferences.authToken
+    private var isBearer: Boolean = false
 
     private val _sessionInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     override val sessionInvalidations: SharedFlow<Unit> = _sessionInvalidations.asSharedFlow()
 
     override fun token(): String? = current
 
-    override fun setToken(token: String?) {
+    override fun setToken(token: String?, bearer: Boolean) {
         current = token
+        isBearer = bearer
         scope.launch { preferences.setAuthToken(token) }
     }
 
+    override fun authHeader(): String? =
+        current?.let { if (isBearer) ObpAuth.bearerHeader(it) else ObpAuth.tokenHeader(it) }
+
     override fun clear() {
         current = null
+        isBearer = false
         scope.launch { preferences.setAuthToken(null) }
     }
 
     override fun invalidateSession() {
         current = null
+        isBearer = false
         scope.launch { preferences.setAuthToken(null) }
         _sessionInvalidations.tryEmit(Unit)
     }

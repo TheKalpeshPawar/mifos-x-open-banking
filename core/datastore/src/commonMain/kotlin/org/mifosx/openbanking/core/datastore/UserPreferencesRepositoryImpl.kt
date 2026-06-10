@@ -135,8 +135,7 @@ class UserPreferencesRepositoryImpl(
 
     private suspend fun updatePreference(transform: (UserData) -> UserData) {
         withContext(dispatcher.io) {
-            val current = loadCombinedUserData()
-            val updated = transform(current)
+            val updated = transform(_userData.value)
             plainSettings.putUserPreference(updated)
             secureSettings.putSecurePreference(updated)
             _userData.value = updated

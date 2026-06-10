@@ -10,10 +10,11 @@
 package org.mifosx.openbanking.core.network.obp
 
 /**
- * Builders for the two OBP DirectLogin `Authorization` header shapes.
+ * Builders for the OBP `Authorization` header shapes.
  *
  * - login: `DirectLogin username="u", password="p", consumer_key="k"`
- * - authed calls: `DirectLogin token="t"`
+ * - DirectLogin calls: `DirectLogin token="t"`
+ * - OIDC calls: `Bearer t` (OBP validates the OIDC access token against the provider's JWKS)
  */
 object ObpAuth {
 
@@ -21,4 +22,6 @@ object ObpAuth {
         "DirectLogin username=\"$username\", password=\"$password\", consumer_key=\"$consumerKey\""
 
     fun tokenHeader(token: String): String = "DirectLogin token=\"$token\""
+
+    fun bearerHeader(token: String): String = "Bearer $token"
 }

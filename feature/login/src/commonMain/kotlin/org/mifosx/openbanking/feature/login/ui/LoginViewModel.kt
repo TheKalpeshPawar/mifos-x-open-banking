@@ -13,19 +13,20 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
+import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.obp.ObpException
 import template.core.base.ui.viewmodel.BaseViewModel
-import kotlin.random.Random
 
 /**
  * Login ViewModel. Owns dual OBP authentication:
  *
- * - **DirectLogin** — submits username/password through [ObpAuthRepository.login]; fully wired.
- * - **OAuth/OIDC** — authorization_code + PKCE. The browser launch ([LoginEvent.LaunchOidcAuth])
- *   and real PKCE S256 challenge are platform glue deferred to Phase 7 (secure storage); this
- *   ViewModel models the redirecting/exchanging states + the [ObpAuthRepository.loginWithOidc]
- *   token exchange so the screen and navigation are complete now.
+ * - **DirectLogin** — submits username/password through [ObpAuthRepository.login].
+ * - **OAuth/OIDC** — authorization_code + PKCE (S256). [onOAuthLoginClicked] asks the repository to
+ *   discover the provider + register a public client and return the authorize URL, which the screen
+ *   opens in a browser ([LoginEvent.LaunchOidcAuth]). The redirect comes back through
+ *   [OidcCallbackBus] (filled by the platform deep-link handler); this ViewModel collects it and runs
+ *   [ObpAuthRepository.completeOidc] for the token exchange.
  *
  * On success the session token is held by the repository's `ObpTokenProvider` and the user is
  * marked authenticated in [UserDataRepository]; `RootNavViewModel` observes that and flips the
@@ -34,7 +35,16 @@ import kotlin.random.Random
 class LoginViewModel(
     private val authRepository: ObpAuthRepository,
     private val userDataRepository: UserDataRepository,
+    private val oidcCallbackBus: OidcCallbackBus,
 ) : BaseViewModel<LoginState, LoginEvent, LoginAction>(initialState = LoginState()) {
+
+    init {
+        viewModelScope.launch {
+            oidcCallbackBus.callbacks.collect { callback ->
+                sendAction(LoginAction.OAuthCallback(callback.code, callback.state))
+            }
+        }
+    }
 
     override fun handleAction(action: LoginAction) {
         when (action) {
@@ -81,50 +91,30 @@ class LoginViewModel(
 
     private fun onOAuthLoginClicked() {
         if (state.isLoading || state.oauthPhase != OAuthPhase.NONE) return
-        val csrfState = Random.nextLong().toString(radix = 16)
-        val codeVerifier = Random.nextLong().toString(radix = 16) + Random.nextLong().toString(radix = 16)
         updateState {
-            copy(
-                authMethod = AuthMethod.OAUTH_OIDC,
-                oauthPhase = OAuthPhase.REDIRECTING,
-                oauthState = csrfState,
-                oauthCodeVerifier = codeVerifier,
-                errorMessage = null,
+            copy(authMethod = AuthMethod.OAUTH_OIDC, oauthPhase = OAuthPhase.REDIRECTING, errorMessage = null)
+        }
+        viewModelScope.launch {
+            authRepository.prepareOidcAuthorization().fold(
+                onSuccess = { authUrl -> sendEvent(LoginEvent.LaunchOidcAuth(authUrl)) },
+                onFailure = { error ->
+                    updateState {
+                        copy(
+                            oauthPhase = OAuthPhase.NONE,
+                            authMethod = AuthMethod.NONE,
+                            errorMessage = error.toLoginErrorMessage(AuthMethod.OAUTH_OIDC),
+                        )
+                    }
+                },
             )
         }
-        sendEvent(LoginEvent.LaunchOidcAuth(buildAuthorizeUrl(csrfState, codeVerifier)))
     }
 
     private fun onOAuthCallback(code: String, returnedState: String) {
-        val expectedState = state.oauthState
-        val verifier = state.oauthCodeVerifier
-        if (expectedState == null || expectedState != returnedState) {
-            updateState {
-                copy(
-                    oauthPhase = OAuthPhase.NONE,
-                    authMethod = AuthMethod.NONE,
-                    errorMessage = "Security check failed. Please try signing in again.",
-                )
-            }
-            return
-        }
-        if (verifier == null) {
-            updateState {
-                copy(
-                    oauthPhase = OAuthPhase.NONE,
-                    authMethod = AuthMethod.NONE,
-                    errorMessage = "Authentication failed. Please try signing in again.",
-                )
-            }
-            return
-        }
+        if (state.oauthPhase != OAuthPhase.REDIRECTING) return
         updateState { copy(oauthPhase = OAuthPhase.EXCHANGING) }
         viewModelScope.launch {
-            val result = authRepository.loginWithOidc(
-                code = code,
-                redirectUri = OAUTH_REDIRECT_URI,
-                codeVerifier = verifier,
-            )
+            val result = authRepository.completeOidc(code, returnedState)
             sendAction(LoginAction.Internal.OAuthResultReceive(result))
         }
     }
@@ -143,30 +133,11 @@ class LoginViewModel(
                         isLoading = false,
                         oauthPhase = OAuthPhase.NONE,
                         authMethod = AuthMethod.NONE,
-                        oauthState = null,
-                        oauthCodeVerifier = null,
                         errorMessage = error.toLoginErrorMessage(method),
                     )
                 }
             },
         )
-    }
-
-    private fun buildAuthorizeUrl(csrfState: String, codeVerifier: String): String =
-        "$OIDC_AUTHORIZE_ENDPOINT" +
-            "?response_type=code" +
-            "&client_id=$OIDC_CLIENT_ID" +
-            "&redirect_uri=$OAUTH_REDIRECT_URI" +
-            "&scope=openid" +
-            "&state=$csrfState" +
-            "&code_challenge=$codeVerifier&code_challenge_method=plain"
-
-    private companion object {
-        const val OIDC_AUTHORIZE_ENDPOINT =
-            "https://apisandbox-oidc.openbankproject.com/obp-oidc/auth"
-        const val OAUTH_REDIRECT_URI = "org.mifosx.openbanking://oauth/callback"
-
-        const val OIDC_CLIENT_ID = "mifos-x-open-banking"
     }
 }
 
@@ -200,8 +171,6 @@ data class LoginState(
     val errorMessage: String? = null,
     val isLoading: Boolean = false,
     val authMethod: AuthMethod = AuthMethod.NONE,
-    val oauthState: String? = null,
-    val oauthCodeVerifier: String? = null,
     val oauthPhase: OAuthPhase = OAuthPhase.NONE,
 ) {
     /** DirectLogin is enabled only when both credential fields are non-blank. */

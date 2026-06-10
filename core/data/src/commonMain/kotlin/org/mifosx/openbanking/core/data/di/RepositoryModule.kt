@@ -29,6 +29,7 @@ import org.mifosx.openbanking.core.data.atm.AtmRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
 import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepositoryImpl
 import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
+import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
 import org.mifosx.openbanking.core.data.auth.impl.ObpAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.banks.BanksRepository
 import org.mifosx.openbanking.core.data.banks.BanksRepositoryImpl
@@ -97,7 +98,10 @@ val DataModule = module {
 
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
-    single<ObpAuthRepository> { ObpAuthRepositoryImpl(authApi = get(), config = get(), tokenProvider = get()) }
+    single { OidcCallbackBus() }
+    single<ObpAuthRepository> {
+        ObpAuthRepositoryImpl(authApi = get(), oidcApi = get(), config = get(), tokenProvider = get())
+    }
     single<AccountsRepository> {
         AccountsRepositoryImpl(
             api = get(),

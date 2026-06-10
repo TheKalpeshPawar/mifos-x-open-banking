@@ -59,9 +59,11 @@ import org.mifosx.openbanking.core.network.api.createTransactionsApi
 import org.mifosx.openbanking.core.network.api.createUserAttributesApi
 import org.mifosx.openbanking.core.network.obp.ObpConfig
 import org.mifosx.openbanking.core.network.obp.ObpTokenProvider
+import org.mifosx.openbanking.core.network.obp.OidcApi
 import org.mifosx.openbanking.core.network.obp.PersistentObpTokenProvider
 import org.mifosx.openbanking.core.network.obp.obpHttpClient
 import org.mifosx.openbanking.core.network.obp.obpKtorfit
+import org.mifosx.openbanking.core.network.obp.oidcHttpClient
 
 /**
  * OBP network graph: connection config, session-token holder, Ktor client (with the
@@ -76,6 +78,9 @@ val NetworkModule = module {
     single<ObpTokenProvider> { PersistentObpTokenProvider(preferences = get()) }
     single<HttpClient> { obpHttpClient(config = get(), tokenProvider = get()) }
     single<Ktorfit> { obpKtorfit(client = get()) }
+
+    single<HttpClient>(named("oidc")) { oidcHttpClient(config = get()) }
+    single { OidcApi(client = get(named("oidc")), obpBaseUrl = get<ObpConfig>().baseUrl) }
 
     single<AuthApi> { get<Ktorfit>().createAuthApi() }
     single<AccountsApi> { get<Ktorfit>().createAccountsApi() }
