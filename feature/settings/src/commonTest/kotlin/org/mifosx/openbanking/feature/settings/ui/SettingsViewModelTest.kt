@@ -157,7 +157,7 @@ class SettingsViewModelTest {
         )
         val s = content(vm)
         assertFalse(s.isLoading)
-        assertFalse(s.isDarkModeEnabled)
+        assertEquals(DarkThemeConfig.FOLLOW_SYSTEM, s.themeConfig)
         assertEquals("en", s.selectedLanguage)
         assertTrue(s.isPushNotificationsEnabled)
         assertTrue(s.isTransactionAlertsEnabled)
@@ -168,15 +168,18 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun onDarkModeToggled_enablesDarkTheme() = runTest {
+    fun onThemeConfigSelected_persistsEachMode() = runTest {
         val repo = FakeUserDataRepository()
         val vm = settingsVm(repo)
-        vm.onDarkModeToggled()
-        assertTrue(content(vm).isDarkModeEnabled)
+        vm.onThemeConfigSelected(DarkThemeConfig.DARK)
         assertEquals(DarkThemeConfig.DARK, repo.userData.value.darkThemeConfig)
-        vm.onDarkModeToggled()
-        assertFalse(content(vm).isDarkModeEnabled)
+        assertEquals(DarkThemeConfig.DARK, content(vm).themeConfig)
+        vm.onThemeConfigSelected(DarkThemeConfig.LIGHT)
         assertEquals(DarkThemeConfig.LIGHT, repo.userData.value.darkThemeConfig)
+        assertEquals(DarkThemeConfig.LIGHT, content(vm).themeConfig)
+        vm.onThemeConfigSelected(DarkThemeConfig.FOLLOW_SYSTEM)
+        assertEquals(DarkThemeConfig.FOLLOW_SYSTEM, repo.userData.value.darkThemeConfig)
+        assertEquals(DarkThemeConfig.FOLLOW_SYSTEM, content(vm).themeConfig)
     }
 
     @Test

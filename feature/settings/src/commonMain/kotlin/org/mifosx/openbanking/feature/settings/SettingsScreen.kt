@@ -30,11 +30,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PrivacyTip
@@ -68,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.settings.ui.SettingsUiState
 import org.mifosx.openbanking.feature.settings.ui.SettingsViewModel
@@ -117,7 +120,7 @@ internal fun SettingsScreen(
             is ScreenState.Content -> SettingsContent(
                 state = s.data,
                 onNavigateToProfile = onNavigateToProfile,
-                onDarkModeToggled = viewModel::onDarkModeToggled,
+                onThemeSelected = viewModel::onThemeConfigSelected,
                 onLanguageSelected = viewModel::onLanguageSelected,
                 onPushToggled = viewModel::onPushNotificationsToggled,
                 onTransactionAlertsToggled = viewModel::onTransactionAlertsToggled,
@@ -183,7 +186,7 @@ private fun ResetMessageDialog(message: String, onDismiss: () -> Unit) {
 private fun SettingsContent(
     state: SettingsUiState,
     onNavigateToProfile: (() -> Unit)?,
-    onDarkModeToggled: () -> Unit,
+    onThemeSelected: (DarkThemeConfig) -> Unit,
     onLanguageSelected: (String) -> Unit,
     onPushToggled: () -> Unit,
     onTransactionAlertsToggled: () -> Unit,
@@ -214,14 +217,7 @@ private fun SettingsContent(
         // ── Appearance ──────────────────────────────────────────────────────
         SectionHeader("Appearance")
         SettingsCard {
-            ToggleRow(
-                leadingIcon = Icons.Outlined.DarkMode,
-                label = "Dark Mode",
-                description = "Switch between light and dark theme",
-                checked = state.isDarkModeEnabled,
-                onToggle = onDarkModeToggled,
-                testTag = SettingsTestTags.DARK_MODE_TOGGLE,
-            )
+            ThemeModeRows(selected = state.themeConfig, onSelect = onThemeSelected)
             RowDivider()
             LanguageRow(
                 selected = state.selectedLanguage,
@@ -468,6 +464,43 @@ private fun LeadingIconSlot(icon: ImageVector, enabled: Boolean) {
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/**
+ * The three mutually-exclusive theme-mode rows. Each is a switch bound to whether [selected] equals
+ * that [DarkThemeConfig]; turning one on persists that mode via [onSelect], so the other two reflect
+ * off — exactly one mode is always active. Tapping the already-active row re-selects it (a no-op).
+ */
+@Composable
+private fun ThemeModeRows(selected: DarkThemeConfig, onSelect: (DarkThemeConfig) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        ToggleRow(
+            leadingIcon = Icons.Outlined.BrightnessAuto,
+            label = "Follow System",
+            description = "Match your device's light or dark setting",
+            checked = selected == DarkThemeConfig.FOLLOW_SYSTEM,
+            onToggle = { onSelect(DarkThemeConfig.FOLLOW_SYSTEM) },
+            testTag = SettingsTestTags.THEME_MODE_SYSTEM,
+        )
+        RowDivider()
+        ToggleRow(
+            leadingIcon = Icons.Outlined.LightMode,
+            label = "Light Mode",
+            description = "Always use the light theme",
+            checked = selected == DarkThemeConfig.LIGHT,
+            onToggle = { onSelect(DarkThemeConfig.LIGHT) },
+            testTag = SettingsTestTags.THEME_MODE_LIGHT,
+        )
+        RowDivider()
+        ToggleRow(
+            leadingIcon = Icons.Outlined.DarkMode,
+            label = "Dark Mode",
+            description = "Always use the dark theme",
+            checked = selected == DarkThemeConfig.DARK,
+            onToggle = { onSelect(DarkThemeConfig.DARK) },
+            testTag = SettingsTestTags.THEME_MODE_DARK,
         )
     }
 }

@@ -18,7 +18,9 @@ object SettingsTestTags {
     const val PROFILE_HEADER = "settings_profile_header"
 
     // Appearance
-    const val DARK_MODE_TOGGLE = "settings_dark_mode_toggle"
+    const val THEME_MODE_SYSTEM = "settings_theme_mode_system"
+    const val THEME_MODE_LIGHT = "settings_theme_mode_light"
+    const val THEME_MODE_DARK = "settings_theme_mode_dark"
     const val LANGUAGE_SELECT = "settings_language_select"
 
     // Notifications

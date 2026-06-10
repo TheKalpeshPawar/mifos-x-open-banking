@@ -95,13 +95,9 @@ class SettingsViewModel(
         }
     }
 
-    fun onDarkModeToggled() {
-        val enabled = userDataRepository.userData.value.darkThemeConfig == DarkThemeConfig.DARK
-        viewModelScope.launch {
-            userDataRepository.setDarkThemeConfig(
-                if (enabled) DarkThemeConfig.LIGHT else DarkThemeConfig.DARK,
-            )
-        }
+    /** Persists the chosen theme mode; the new value flows back into [uiState] reactively. */
+    fun onThemeConfigSelected(config: DarkThemeConfig) {
+        viewModelScope.launch { userDataRepository.setDarkThemeConfig(config) }
     }
 
     fun onLanguageSelected(language: String) {
@@ -172,7 +168,7 @@ data class SettingsUiState(
     val profileName: String = "",
     val profileEmail: String = "",
     val profileInitials: String = "",
-    val isDarkModeEnabled: Boolean = false,
+    val themeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
     val selectedLanguage: String = "en",
     val isPushNotificationsEnabled: Boolean = true,
     val isTransactionAlertsEnabled: Boolean = true,
@@ -191,7 +187,7 @@ internal fun UserData.toUiState(
     profileName = profile.name,
     profileEmail = profile.email,
     profileInitials = profile.initials,
-    isDarkModeEnabled = darkThemeConfig == DarkThemeConfig.DARK,
+    themeConfig = darkThemeConfig,
     selectedLanguage = appLanguage.localeName ?: "en",
     isPushNotificationsEnabled = isPushNotificationsEnabled,
     isTransactionAlertsEnabled = isTransactionAlertsEnabled,
