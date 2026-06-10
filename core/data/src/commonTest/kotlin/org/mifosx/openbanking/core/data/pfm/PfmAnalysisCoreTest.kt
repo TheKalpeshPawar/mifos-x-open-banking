@@ -195,7 +195,6 @@ class PfmAnalysisCoreTest {
 
     @Test
     fun categorize_usesResolvedCounterpartyNameForKeywords() {
-        // Raw holder is the login-username placeholder; the resolved name carries the keyword.
         val txn = txn("-9.99", description = "Card payment", holder = "afternooncoffee", typeCode = "POS")
         assertEquals("shopping", categorize(txn).id)
         assertEquals("entertainment", categorize(txn, counterpartyName = "Netflix").id)

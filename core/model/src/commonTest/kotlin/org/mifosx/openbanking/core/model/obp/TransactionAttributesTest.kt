@@ -22,8 +22,6 @@ class TransactionAttributesTest {
 
     @Test
     fun decodesV6TransactionIdAndInlineAttributes() {
-        // Shape returned by GET /obp/v6.0.0/.../transactions — id is `transaction_id`,
-        // attributes are inline under `transaction_attributes`.
         val raw = """
             {
               "transaction_id": "t-77",
@@ -43,7 +41,6 @@ class TransactionAttributesTest {
 
     @Test
     fun v3IdFallsBack_andUntaggedTransactionHasNullAttributes() {
-        // v3.0.0 core shape — id is `id`, no attributes.
         val tx = json.decodeFromString<Transaction>("""{ "id": "v3-1", "details": { "type": "SEPA" } }""")
         assertEquals("v3-1", tx.txId)
         assertNull(tx.cardId)

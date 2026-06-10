@@ -136,7 +136,6 @@ private fun CardCarousel(
     onCardSelected: (Card) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { cards.size })
-    // Swiping to a different card scopes the details card to that card.
     LaunchedEffect(pagerState, cards) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
             cards.getOrNull(page)?.let(onCardSelected)

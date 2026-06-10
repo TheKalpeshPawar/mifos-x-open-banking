@@ -208,7 +208,6 @@ private fun SettingsContent(
             onClick = onNavigateToProfile,
         )
 
-        // ── Appearance ──────────────────────────────────────────────────────
         SectionHeader("Appearance")
         SettingsCard {
             ThemeModeRows(selected = state.themeConfig, onSelect = onThemeSelected)
@@ -220,7 +219,6 @@ private fun SettingsContent(
             )
         }
 
-        // ── Security ────────────────────────────────────────────────────────
         SectionHeader("Security")
         SettingsCard {
             ToggleRow(
@@ -233,7 +231,6 @@ private fun SettingsContent(
                 testTag = SettingsTestTags.BIOMETRIC_TOGGLE,
             )
             RowDivider()
-            // OBP has no in-app change-password; this requests an email-based reset instead.
             NavRow(
                 leadingIcon = Icons.Outlined.Lock,
                 label = "Reset Password",
@@ -243,7 +240,6 @@ private fun SettingsContent(
             )
         }
 
-        // ── About (destinations not built → disabled) ────────────────────────
         SectionHeader("About")
         AboutCard(
             leadingIcon = Icons.Outlined.Info,
@@ -316,8 +312,6 @@ private fun ProfileHeaderCard(
             .testTag(SettingsTestTags.PROFILE_HEADER)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
-        // M3 tonal container pair — matches the preview: light-green card + dark text (light theme),
-        // dark-green card + light text (dark theme). NOT the full-strength `primary` role.
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -632,8 +626,6 @@ private fun LabelGroup(label: String, description: String?, enabled: Boolean) {
 
 @Composable
 private fun RowDivider() {
-    // Inset to start under the label (past the 36dp icon slot + 12dp gap) and use a fainter tone
-    // than the card's outline border so the two don't read as the same line.
     HorizontalDivider(
         modifier = Modifier.padding(start = 48.dp, top = 2.dp, bottom = 2.dp),
         thickness = 0.5.dp,

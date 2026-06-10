@@ -72,8 +72,6 @@ import org.mifosx.openbanking.core.network.obp.oidcHttpClient
  */
 val NetworkModule = module {
     single { ObpConfig(consumerKey = getProperty("obp_consumer_key", "")) }
-    // Plain Boolean so feature modules can gate the sandbox-only SANDBOX_TAN rail without depending
-    // on core:network (where ObpConfig lives).
     single(named("isSandbox")) { get<ObpConfig>().isSandbox }
     single<ObpTokenProvider> { PersistentObpTokenProvider(preferences = get()) }
     single<HttpClient> { obpHttpClient(config = get(), tokenProvider = get()) }

@@ -55,8 +55,6 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             }
         }
 
-    // Default the bar to the app's themed background (not M3's `surface`, which renders
-    // near-white and clashes with the background the rest of each screen paints).
     val defaultColors = TopAppBarDefaults.topAppBarColors(
         containerColor = KptTheme.colorScheme.background,
         scrolledContainerColor = KptTheme.colorScheme.background,

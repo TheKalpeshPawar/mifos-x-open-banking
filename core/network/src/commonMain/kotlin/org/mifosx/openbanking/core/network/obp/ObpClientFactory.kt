@@ -41,9 +41,6 @@ fun obpHttpClient(config: ObpConfig, tokenProvider: ObpTokenProvider): HttpClien
     val defaults = setupDefaultHttpClient(
         baseUrl = config.baseUrl,
         loggableHosts = listOf("openbankproject.com"),
-        // encodeDefaults = true so request bodies include default-valued fields (e.g.
-        // `description`, `charge_policy`). OBP requires `description` on transaction-requests;
-        // without this, kotlinx omits default values and OBP returns OBP-10001.
         jsonConfig = Json {
             isLenient = true
             ignoreUnknownKeys = true

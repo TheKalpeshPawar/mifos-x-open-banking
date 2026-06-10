@@ -149,7 +149,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 ) {
     val scope = rememberCoroutineScope()
 
-    // Flavor-aware tab set, resolved from the userType build flavor (app-shell.yaml).
     val isFieldOfficer = BuildKonfig.IS_FIELDOFFICER
     val navigationItems = if (isFieldOfficer) fieldOfficerNavBarTabs else consumerNavBarTabs
     val startDestination: Any = if (isFieldOfficer) FoDashboardRoute else HomeDestination
@@ -157,9 +156,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
     KptRootScaffold(
-        // Respect the system bars (status bar / control center + display cutouts); the bottom
-        // navigation bar inset is handled by the scaffold's bottomBar. Previously zero,
-        // which let tab content draw under the status bar.
         contentWindowInsets = WindowInsets.systemBars
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         navigationData = ScaffoldNavigationData(
@@ -187,15 +183,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popEnterTransition = RootTransitionProviders.Enter.fadeIn,
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
-            // Consumer Home tab — real shell. The gear shortcut opens Settings as the
-            // "More" tab (not a plain push) so Settings lives in the More tab's own
-            // back stack. Pushing it onto the Home stack made tab save/restore bring
-            // Settings back when returning to the Home tab.
             homeGraph(
-                // Tab targets switch tabs (navigateToTab) — navigate(route) would push another
-                // tab's destination onto the Home stack, breaking the Home tab button.
                 onAccounts = { navController.navigateToTab(AuthenticatedNavBarTabItem.AccountsTab) },
-                // Non-tab destinations are genuine pushes.
                 onStandingOrders = { navController.navigate(StandingOrdersRoute) },
                 onFindAtm = { navController.navigate(AtmLocatorRoute) },
                 onInsights = { navController.navigate(PfmDashboardRoute) },
@@ -217,8 +206,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             legalDestinations(navController)
 
-            // Accounts tab — real feature module (Phase 5). Detail + request-account targets
-            // remain Phase 2 placeholders until their own feature modules land.
             composableWithStayTransitions<AccountsRoute> {
                 AccountsScreen(
                     onAccountClick = { bankId, accountId ->
@@ -246,10 +233,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            // Cards tab — real feature module. Carousel + per-account transactions are live;
-            // card controls (freeze/limit/PIN/report/order) surface a "coming soon" snackbar
-            // (no consumer OBP endpoint — see CardsViewModel). card-detail remains a Phase 2
-            // placeholder until its feature module lands.
             composableWithStayTransitions<CardsRoute> {
                 CardsScreen(
                     onCardClick = { navController.navigate(CardDetailRoute) },
@@ -257,15 +240,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            // Pay tab — Send Money hub → amount entry → confirm (rail-routed).
             sendMoneyDestinations(navController)
 
-            // Beneficiaries — real feature module. Tapping a beneficiary heads to the Pay tab.
             composableWithStayTransitions<BeneficiariesRoute> {
                 BeneficiariesScreen(
-                    // Pop Beneficiaries off the back stack BEFORE switching tabs, so returning
-                    // to the Home tab restores the dashboard (not Beneficiaries) and the Home
-                    // nav button works in one tap.
                     onBeneficiaryClick = {
                         navController.popBackStack()
                         navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab)
@@ -274,16 +252,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 )
             }
 
-            // Standing orders — real feature module. Rows derive from transaction history
-            // (OBP has no read endpoint); creation is its own screen posting the real endpoint.
             standingOrdersDestinations(navController)
 
-            // Transaction history + detail + tags — real feature modules.
             transactionsDestinations(navController)
 
-            // Spending Insights — real feature module. The account is resolved internally
-            // (persisted default → checking-first); merchants and view-all land on the
-            // transaction history for the inspected account.
             composableWithStayTransitions<PfmDashboardRoute> {
                 PfmDashboardScreen(
                     onViewTransactions = { bankId, accountId ->
@@ -322,7 +294,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 AtmLocatorScreen(onBack = navController::popBackStack)
             }
 
-            // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
             bankingPlaceholderDestinations()
         }
     }
@@ -350,8 +321,6 @@ private fun NavGraphBuilder.legalDestinations(navController: NavHostController) 
 private fun NavGraphBuilder.sendMoneyDestinations(
     navController: NavHostController,
 ) {
-    // Pay tab — Send Money hub. Pick a recipient/beneficiary → amount entry preselected;
-    // New / Local transfer → amount entry with the beneficiary picker.
     composableWithStayTransitions<SendMoneyRoute> {
         SendMoneyHubScreen(
             onRecipientSelected = { accountId, id ->
@@ -364,7 +333,6 @@ private fun NavGraphBuilder.sendMoneyDestinations(
         )
     }
 
-    // Amount entry. Continue carries the validated draft to confirm as type-safe args.
     composableWithStayTransitions<SendMoneyAmountRoute> { entry ->
         val a = entry.toRoute<SendMoneyAmountRoute>()
         SendMoneyScreen(
@@ -395,8 +363,6 @@ private fun NavGraphBuilder.sendMoneyDestinations(
         )
     }
 
-    // Confirm Payment — executes the SEPA transfer. On success, clear back to the form,
-    // switch to Home, and surface a snackbar; Edit returns to the form.
     composableWithStayTransitions<SendMoneyConfirmRoute> { entry ->
         val r = entry.toRoute<SendMoneyConfirmRoute>()
         SendMoneyConfirmScreen(
@@ -446,8 +412,6 @@ private fun NavGraphBuilder.sendMoneyDestinations(
         )
     }
 
-    // SCA challenge — answer the one-time code for a payment that returned INITIATED, then show the
-    // payment-result screen carrying the original display fields + the booked transaction.
     composableWithStayTransitions<ScaChallengeRoute> { entry ->
         val c = entry.toRoute<ScaChallengeRoute>()
         ScaChallengeScreen(
@@ -473,7 +437,6 @@ private fun NavGraphBuilder.sendMoneyDestinations(
         )
     }
 
-    // Payment result — success summary; "View transaction" opens the booked row, "Done" returns home.
     composableWithStayTransitions<PaymentResultRoute> { entry ->
         val p = entry.toRoute<PaymentResultRoute>()
         PaymentResultScreen(
@@ -525,8 +488,6 @@ private fun paymentResultRoute(
 )
 
 private fun NavGraphBuilder.transactionsDestinations(navController: NavHostController) {
-    // Transaction history — booked rows + pending (INITIATED) payments for one account;
-    // row taps open the transaction-detail screen.
     composableWithStayTransitions<TransactionsRoute> { entry ->
         val route = entry.toRoute<TransactionsRoute>()
         TransactionsScreen(
@@ -554,7 +515,6 @@ private fun NavGraphBuilder.transactionsDestinations(navController: NavHostContr
         )
     }
 
-    // Transaction detail — booked rows arrive with transactionId; pending rows with requestId.
     composableWithStayTransitions<TransactionDetailRoute> { entry ->
         val route = entry.toRoute<TransactionDetailRoute>()
         TransactionDetailScreen(
@@ -575,7 +535,6 @@ private fun NavGraphBuilder.transactionsDestinations(navController: NavHostContr
         )
     }
 
-    // Tags & Notes — backed by the OBP v1.2.1 transaction-metadata endpoints.
     composableWithStayTransitions<TransactionTagsRoute> { entry ->
         val route = entry.toRoute<TransactionTagsRoute>()
         TransactionTagsScreen(
@@ -645,7 +604,6 @@ private fun NavGraphBuilder.standingOrdersDestinations(navController: NavHostCon
             onCreated = navController::popBackStack,
         )
     }
-    // Standing order detail — execution rows drill into the underlying booked transaction.
     composableWithStayTransitions<StandingOrderDetailRoute> { entry ->
         val route = entry.toRoute<StandingOrderDetailRoute>()
         StandingOrderDetailScreen(

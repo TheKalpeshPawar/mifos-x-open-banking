@@ -167,7 +167,6 @@ class StandingOrdersViewModel(
                 rawState.value = RawState.Failed(it)
                 return@launch
             }
-            // Keep the user's selection across reloads; default to the checking-type account.
             val defaultId = userPreferencesRepository.userData.value.defaultAccountId
             val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
                 ?: accounts.firstOrNull { it.accountIdOrId == defaultId }

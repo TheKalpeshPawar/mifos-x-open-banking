@@ -114,9 +114,6 @@ private fun AccountsLoaded(
     onAccountClick: (bankId: String, accountId: String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header + search bar are hoisted OUT of the LazyColumn: a TextField inside a
-        // LazyColumn item loses IME focus every time the list recomposes on query change,
-        // which drops keystrokes. Keeping them in a stable parent Column fixes that.
         Header()
         SearchBar(query = query, onQueryChange = onQueryChange)
 
@@ -127,8 +124,6 @@ private fun AccountsLoaded(
             if (content.filteredAccounts.isEmpty()) {
                 item { NoMatchRow() }
             } else {
-                // Group accounts by their owning bank. No balance totals are shown anywhere —
-                // only each account's own balance, on its card.
                 val groups = content.filteredAccounts.groupBy { it.bankId }
                 groups.forEach { (bankId, accounts) ->
                     item(key = "bank-$bankId") {

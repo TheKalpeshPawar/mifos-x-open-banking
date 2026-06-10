@@ -93,7 +93,6 @@ fun CreateStandingOrderScreen(
 
     LaunchedEffect(form.created) {
         if (form.created) {
-            // A toast outlives this screen, so the confirmation stays visible after the pop.
             toast("Standing order created")
             onCreated()
         }

@@ -99,8 +99,6 @@ fun StandingOrdersScreen(
     val header by viewModel.header.collectAsStateWithLifecycle()
     val createGate by viewModel.createGate.collectAsStateWithLifecycle()
 
-    // Re-fires when this destination re-enters composition (e.g. returning from the
-    // create screen), so a freshly created order shows up immediately.
     LaunchedEffect(Unit) { viewModel.onRefresh() }
 
     LaunchedEffect(createGate) {
@@ -141,9 +139,6 @@ fun StandingOrdersScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Pinned header — picker + stats + filter chips stay put (and stats derive
-            // from real data, zeroing out when nothing is loaded) while ONLY the list
-            // below scrolls or shows loading/empty/error.
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 if (header.accounts.isNotEmpty()) {
                     AccountSelector(

@@ -101,7 +101,6 @@ class StandingOrdersRepositoryImpl(
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         val derived = resolveHolderNames(resolvedBank, deriveStandingOrders(transactions, today))
         val created = readCreated(accountId)
-            // A created order that has started paying shows up as a derived series; drop the local copy.
             .filter { local -> derived.none { it.name.equals(local.name, ignoreCase = true) } }
         return (created + derived).sortedWith(
             compareBy<StandingOrder> { statusRank(it.status) }.thenBy { it.nextPaymentDate },

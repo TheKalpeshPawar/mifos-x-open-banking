@@ -78,9 +78,6 @@ class ResultSuspendConverterFactory : Converter.Factory {
                 override suspend fun convert(result: KtorfitResult): NetworkResult<Any, NetworkError> {
                     return when (result) {
                         is KtorfitResult.Failure -> {
-                            // Use the String overload (not the trailing-lambda one): the lambda
-                            // overload's synthetic d$default is absent in the bundled Kermit and
-                            // crashes the app on every failed call (NoSuchMethodError).
                             Logger.d(
                                 messageString = "Failure: ${result.throwable.message}",
                                 throwable = result.throwable,

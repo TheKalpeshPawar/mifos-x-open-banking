@@ -203,19 +203,7 @@ fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    // AccountDetailRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
-    // TransactionsRoute + TransactionDetailRoute + TransactionTagsRoute are real feature
-    // modules — registered in AuthenticatedNavbarNavigationScreen.
-    // SendMoneyRoute + SendMoneyConfirmRoute are real feature modules — registered in
-    // AuthenticatedNavbarNavigationScreen.
-    // BeneficiariesRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
-    // StandingOrdersRoute + StandingOrderEditRoute + StandingOrderDetailRoute are real
-    // feature modules — registered in AuthenticatedNavbarNavigationScreen.
-    // DirectDebitsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
-    // PfmDashboardRoute + FxRatesRoute are real feature modules — registered in
-    // AuthenticatedNavbarNavigationScreen.
-    // ProductsRoute is a real feature module — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
 
     composableWithStayTransitions<FoDashboardRoute> { PlaceholderScreen("Dashboard") }
@@ -231,7 +219,5 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<MeetingsRoute> { PlaceholderScreen("Meetings") }
     composableWithStayTransitions<CustomerMessagesRoute> { PlaceholderScreen("Messages") }
 
-    // AboutRoute + TermsOfServiceRoute + PrivacyPolicyRoute + LicensesRoute are real feature
-    // modules — registered in AuthenticatedNavbarNavigationScreen.
     composableWithStayTransitions<ForgotPasswordRoute> { PlaceholderScreen("Forgot password") }
 }

@@ -136,7 +136,6 @@ class StandingOrdersRepositoryTest {
             username = "afternooncoffee",
             legalName = "Kalpesh Patel",
         )
-        // Self-transfers carry the login username as holder; the customer legal name must win.
         val row = repo.listRecurring("ac.bank.uk", "acc-1").getOrThrow().single()
         assertEquals("Kalpesh Patel", row.counterpartyName)
     }

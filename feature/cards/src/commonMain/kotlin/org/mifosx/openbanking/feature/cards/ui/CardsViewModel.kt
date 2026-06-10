@@ -62,7 +62,6 @@ class CardsViewModel(
         )
 
     init {
-        // Auto-select the first card once the carousel resolves.
         viewModelScope.launch {
             stream.state.collect { state ->
                 if (state is ScreenState.Content && selectedCardNumber.value.isBlank()) {

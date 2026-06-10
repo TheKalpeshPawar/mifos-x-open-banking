@@ -76,8 +76,6 @@ class BeneficiariesViewModel(
                 is RawState.Loading -> ScreenState.Loading
                 is RawState.Failed -> ScreenState.Error(raw.error)
                 is RawState.Loaded ->
-                    // Empty only when the user has no accounts at all; an account with zero payees
-                    // is still Content (keeps the account selector visible so they can switch).
                     if (accounts.isEmpty()) ScreenState.Empty else projectContent(raw.rows, query, sort)
             }
         }.stateIn(
@@ -118,7 +116,6 @@ class BeneficiariesViewModel(
                 rawState.value = RawState.Failed(it)
                 return@launch
             }
-            // Default to the checking-type account (else the first); keep the user's selection on reload.
             val defaultId = userPreferencesRepository.userData.value.defaultAccountId
             val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
                 ?: accounts.firstOrNull { it.accountIdOrId == defaultId }
@@ -140,8 +137,6 @@ class BeneficiariesViewModel(
             rawState.value = RawState.Failed(it)
             return
         }.filter { it.isBeneficiary }
-        // Last-payment + recency are an enhancement — a transactions failure must not
-        // fail the whole screen, so fall back to an empty list.
         val transactions = transactionsRepository
             .listTransactions(account.bankId, accountId, limit = null)
             .getOrElse { emptyList() }

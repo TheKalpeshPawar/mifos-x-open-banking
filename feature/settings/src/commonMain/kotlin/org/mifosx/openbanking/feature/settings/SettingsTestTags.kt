@@ -17,17 +17,14 @@ object SettingsTestTags {
     const val ROOT = "settings_root"
     const val PROFILE_HEADER = "settings_profile_header"
 
-    // Appearance
     const val THEME_MODE_SYSTEM = "settings_theme_mode_system"
     const val THEME_MODE_LIGHT = "settings_theme_mode_light"
     const val THEME_MODE_DARK = "settings_theme_mode_dark"
     const val LANGUAGE_SELECT = "settings_language_select"
 
-    // Security
     const val BIOMETRIC_TOGGLE = "settings_biometric_toggle"
     const val CHANGE_PASSWORD_ROW = "settings_change_password_row"
 
-    // About
     const val ABOUT_LINK = "settings_about_link"
     const val TERMS_LINK = "settings_terms_link"
     const val PRIVACY_LINK = "settings_privacy_link"

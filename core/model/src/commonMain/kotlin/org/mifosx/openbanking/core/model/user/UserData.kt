@@ -26,14 +26,10 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
-    // Notification preferences (surfaced on the Settings screen). Defaulted so older
-    // persisted payloads that predate these fields deserialize without data loss.
     val isPushNotificationsEnabled: Boolean = true,
     val isTransactionAlertsEnabled: Boolean = true,
     val isMarketingEnabled: Boolean = false,
     val authToken: String? = null,
-    // The user's chosen default account (set from the Home hero card). Empty = no choice yet;
-    // consumers fall back to their checking-first heuristics. Defaulted for older payloads.
     val defaultAccountId: String = "",
 ) {
     companion object {

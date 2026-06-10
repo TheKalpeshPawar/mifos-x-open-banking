@@ -177,7 +177,6 @@ private fun Loaded(
             }
             item { AllBeneficiariesHeader(onSort = onSort) }
             if (content.all.isEmpty()) {
-                // Distinguish "this account has no payees" from "search matched nothing".
                 item { if (query.isBlank()) NoPayeesRow() else NoMatchRow() }
             } else {
                 items(content.all, key = { it.id }) { row ->

@@ -277,8 +277,6 @@ class BeneficiariesViewModelTest {
 
     @Test
     fun load_accountWithNoBeneficiaries_emitsContentNotEmpty() = runTest(dispatcher) {
-        // An account with zero payees must stay Content so the account selector remains visible;
-        // Empty is reserved for "no accounts at all".
         val model = vm(beneficiaries = Result.success(emptyList()))
         backgroundScope.launch { model.uiState.collect {} }
         advanceUntilIdle()

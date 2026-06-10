@@ -54,7 +54,6 @@ class StandingOrderDerivationTest {
         val rows = deriveStandingOrders(
             transactions = listOf(
                 soTxn("Coffee", "-5.23", "2026-06-01", type = "POS"),
-                // Incoming SO-tagged transaction — not an outgoing order.
                 soTxn("Salary", "5000.00", "2026-06-01"),
                 soTxn("Rent", "-450.00", "2026-06-01"),
             ),
@@ -112,7 +111,6 @@ class StandingOrderDerivationTest {
         val rows = deriveStandingOrders(
             transactions = listOf(
                 soTxn("Gym", "-45.00", "2026-03-15"),
-                // Latest payment is 51 days before today — beyond the 1.5x monthly grace window.
                 soTxn("Gym", "-45.00", "2026-04-15"),
             ),
             today = today,
@@ -125,7 +123,6 @@ class StandingOrderDerivationTest {
         val rows = deriveStandingOrders(
             transactions = listOf(
                 soTxn("Old loan", "-99.00", "2026-01-10"),
-                // Latest payment is 116 days before today — beyond 3x the monthly period.
                 soTxn("Old loan", "-99.00", "2026-02-09"),
             ),
             today = today,
@@ -149,7 +146,6 @@ class StandingOrderDerivationTest {
     fun rowsSortedActiveFirstThenByNextDate() {
         val rows = deriveStandingOrders(
             transactions = listOf(
-                // Gym's last payment is old enough to render as paused.
                 soTxn("Gym", "-45.00", "2026-04-01"),
                 soTxn("Netflix", "-15.99", "2026-06-04"),
                 soTxn("Rent", "-450.00", "2026-06-01"),

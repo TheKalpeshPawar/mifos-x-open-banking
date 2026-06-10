@@ -155,9 +155,6 @@ class PfmDashboardViewModel(
                     }
                 }.awaitAll()
             }.toMap()
-            // Counterparty resolution is per account; merge the maps (keys are obfuscated
-            // other_account ids, unique per counterparty) so merchant grouping never keys on the
-            // login-username placeholder. A resolve failure degrades to raw names, never the screen.
             val counterpartyNames = buildMap {
                 personal.forEach { account ->
                     val resolved = runCatching {

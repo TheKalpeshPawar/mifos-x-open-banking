@@ -102,9 +102,6 @@ class SendMoneyConfirmViewModel(
             currency = draft.currency,
             reference = draft.reference,
         )
-        // The sandbox can only settle SEPA-by-IBAN when the payee's counterparty carries the
-        // IBAN in its secondary routing AND resolves to a hosted account (OBP-30012/OBP-30074
-        // otherwise). Those payees are still payable by counterparty id, so fall back.
         val message = sepa.exceptionOrNull()?.message.orEmpty()
         return if ("OBP-30012" in message || "OBP-30074" in message) sendCounterparty(draft) else sepa
     }

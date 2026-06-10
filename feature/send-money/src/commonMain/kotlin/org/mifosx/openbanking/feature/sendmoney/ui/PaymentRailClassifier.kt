@@ -61,8 +61,6 @@ object PaymentRailClassifier {
         destinationBankCountry: String? = null,
         isSandbox: Boolean = false,
     ): RailClassification {
-        // On a sandbox build, an OBP-hosted payee is paid via SANDBOX_TAN so the SCA self-completes;
-        // the production rails are disabled for that payee.
         val obpDest = if (isSandbox && beneficiary != null) beneficiary.obpDestination() else null
         return when {
             obpDest != null -> sandboxTanClassification(obpDest)
@@ -161,8 +159,6 @@ object PaymentRailClassifier {
         val hasObpRouting = beneficiary.otherBankRoutingScheme.equals("OBP", ignoreCase = true) &&
             beneficiary.otherBankRoutingAddress.isNotBlank()
         return when {
-            // A same-country payment never goes via SWIFT — disabled silently (the Domestic
-            // chip being selected already tells the story; no reason line needed).
             sameCountry -> RailAssessment(eligible = false)
             hasBic || hasObpRouting -> RailAssessment(eligible = true, feeText = INTERNATIONAL_FEE)
             else -> RailAssessment(eligible = false, reason = "Requires the recipient bank's BIC")

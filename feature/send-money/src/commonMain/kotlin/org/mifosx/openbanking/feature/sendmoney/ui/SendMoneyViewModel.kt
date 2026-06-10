@@ -125,8 +125,6 @@ class SendMoneyViewModel(
     fun onContinue(onReady: (PaymentDraft) -> Unit) {
         val loaded = rawState.value as? RawState.Loaded ?: return
         val f = form.value
-        // A COUNTERPARTY transfer is only valid from the account that owns the payee (OBP-30017
-        // otherwise), so the payment sends from the account selected on the hub.
         val account = loaded.accounts.firstOrNull { it.accountIdOrId == f.accountId }
             ?: loaded.accounts.firstOrNull()
         val beneficiary = loaded.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId }
@@ -135,8 +133,6 @@ class SendMoneyViewModel(
 
         val amountError = if (amountValue <= 0.0) "Please enter a valid amount greater than 0" else null
         val beneficiaryError = if (beneficiary == null) "Please select a valid beneficiary" else null
-        // On the sandbox, an above-threshold payment to a payee SANDBOX_TAN can't reach (external /
-        // IBAN-only) would hit maker/checker and stick, so block it before the confirm screen.
         val sandboxBlocked = sandboxBlocks(beneficiary, sandboxTan, amountValue)
         val invalid = account == null || beneficiary == null || amountError != null
         if (invalid || sandboxBlocked) {
@@ -150,8 +146,6 @@ class SendMoneyViewModel(
             return
         }
 
-        // Live funds gate: block sends from an account without sufficient available funds
-        // (e.g. an overdrawn account) before reaching the confirm screen.
         form.update { it.copy(submitting = true, formError = null) }
         viewModelScope.launch {
             val hasFunds = paymentsRepository
@@ -195,7 +189,6 @@ class SendMoneyViewModel(
                 rawState.value = RawState.Loaded(emptyList(), emptyList())
                 return@launch
             }
-            // Honour an account preselected from the hub; otherwise default to the first account.
             val target = accounts.firstOrNull { it.accountIdOrId == requestedAccountId } ?: accounts.first()
             loadBeneficiaries(target)
         }
@@ -205,16 +198,10 @@ class SendMoneyViewModel(
         val beneficiaries = paymentsRepository.listBeneficiaries(account.bankId, account.accountIdOrId)
             .getOrElse { emptyList() }
             .filter { it.isBeneficiary }
-        // /my/accounts omits balance+currency, so account.balance.currency is blank here. The
-        // funds-available check and the payment both require the from-account's real currency
-        // (currency mismatch -> OBP-40003 / a false "insufficient funds"), so resolve it from the
-        // full account detail; fall back to any currency already known, else EUR.
         val resolvedCurrency = accountsRepository.accountDetail(account.bankId, account.accountIdOrId)
             .getOrNull()?.balance?.currency?.takeIf { it.isNotBlank() }
             ?: account.balance.currency.ifBlank { "EUR" }
         form.update {
-            // Keep a preselected payee if it still belongs to this account (the two screen-side
-            // LaunchedEffects — setAccount + onBeneficiarySelected — can fire in either order).
             val keep = beneficiaries.any { b -> b.counterpartyId == it.beneficiaryId }
             it.copy(
                 accountId = account.accountIdOrId,
@@ -240,7 +227,6 @@ class SendMoneyViewModel(
                 ?: return@launch
             val beneficiary = loaded.beneficiaries.firstOrNull { it.counterpartyId == f.beneficiaryId }
             val sourceCountry = banksRepository.bank(account.bankId)?.countryCode.orEmpty()
-            // Only OBP-routed payees need a destination bank lookup; IBAN/BIC carry the country.
             val destinationCountry = beneficiary
                 ?.takeIf { it.otherBankRoutingScheme.equals("OBP", ignoreCase = true) }
                 ?.let { banksRepository.bank(it.otherBankRoutingAddress)?.countryCode }
@@ -267,7 +253,6 @@ class SendMoneyViewModel(
             if (raw.accounts.isEmpty()) {
                 ScreenState.Empty
             } else {
-                // From-account = the account selected on the hub (owns the shown payees).
                 val selectedAccount = raw.accounts.firstOrNull { it.accountIdOrId == f.accountId }
                     ?: raw.accounts.first()
                 val q = f.query.trim()

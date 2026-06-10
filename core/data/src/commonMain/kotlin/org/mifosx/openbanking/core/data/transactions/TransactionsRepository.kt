@@ -59,7 +59,6 @@ class TransactionsRepositoryImpl(
         accountId: String,
         scope: CoroutineScope,
     ): ScreenDataStream<List<Transaction>> {
-        // Composite Store key — must match provideTransactionsStore's "$bankId/$accountId".
         val key = "$bankId/$accountId"
         return transactionsStore.asScreenStream(
             key = key,

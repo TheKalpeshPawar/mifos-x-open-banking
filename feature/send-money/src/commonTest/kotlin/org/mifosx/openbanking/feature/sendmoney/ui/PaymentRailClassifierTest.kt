@@ -55,9 +55,7 @@ class PaymentRailClassifierTest {
         )
         assertEquals(PaymentType.DOMESTIC, result.recommended)
         assertTrue(result.assessments.getValue(PaymentType.DOMESTIC).eligible)
-        // GB is in the SEPA zone, so SEPA stays eligible too (with conversion from GBP).
         assertTrue(result.assessments.getValue(PaymentType.SEPA).eligible)
-        // Same-country payments never go via SWIFT — disabled silently (no reason line).
         val international = result.assessments.getValue(PaymentType.INTERNATIONAL)
         assertFalse(international.eligible)
         assertNull(international.reason)
@@ -102,11 +100,9 @@ class PaymentRailClassifierTest {
         )
         assertEquals(PaymentType.DOMESTIC, result.recommended)
         assertTrue(result.assessments.getValue(PaymentType.DOMESTIC).eligible)
-        // No IBAN on the payee -> SEPA out, with a reason.
         val sepa = result.assessments.getValue(PaymentType.SEPA)
         assertFalse(sepa.eligible)
         assertNotNull(sepa.reason)
-        // Same-country internal transfer -> International disabled.
         assertFalse(result.assessments.getValue(PaymentType.INTERNATIONAL).eligible)
     }
 
@@ -164,8 +160,6 @@ class PaymentRailClassifierTest {
 
     @Test
     fun domesticNotRecommendedOnCurrencyMismatch() {
-        // GB recipient with EUR currency from a GBP account: domestic eligible (same country)
-        // but SEPA recommended (payment is EUR-bound).
         val result = PaymentRailClassifier.classify(
             sourceCurrency = "GBP",
             sourceBankCountry = "GB",

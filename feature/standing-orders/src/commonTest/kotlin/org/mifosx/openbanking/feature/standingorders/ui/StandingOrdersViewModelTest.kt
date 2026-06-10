@@ -268,7 +268,6 @@ class StandingOrdersViewModelTest {
         assertEquals(listOf("Gym"), state.data.map { it.name })
         val header = model.header.value
         assertEquals(StandingOrderFilter.Paused, header.filter)
-        // Stats stay global while filtering.
         assertEquals(1, header.activeCount)
         assertEquals(1, header.pausedCount)
     }
@@ -304,7 +303,6 @@ class StandingOrdersViewModelTest {
                     listOf(
                         order("Rent").copy(amountValue = "450.00"),
                         order("Savings").copy(amountValue = "200.00"),
-                        // Weekly amounts count at face value — no per-month normalization.
                         order("Coffee club").copy(amountValue = "2.00", frequency = "WEEKLY"),
                         order("Gym", status = StandingOrder.STATUS_PAUSED).copy(amountValue = "12.50"),
                     ),
@@ -327,7 +325,6 @@ class StandingOrdersViewModelTest {
         advanceUntilIdle()
         assertTrue(model.uiState.value is ScreenState.Error)
         val header = model.header.value
-        // The pinned header survives the error with stats derived from (no) data.
         assertEquals(1, header.accounts.size)
         assertEquals(0, header.activeCount)
         assertEquals(0, header.pausedCount)

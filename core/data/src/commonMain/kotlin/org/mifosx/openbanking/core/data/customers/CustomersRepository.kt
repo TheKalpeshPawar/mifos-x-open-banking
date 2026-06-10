@@ -79,7 +79,6 @@ class CustomersRepositoryImpl(
     override suspend fun accountHolderName(bankId: String, accountId: String): Result<String> {
         val resolvedBank = bankId.ifBlank { config.bankId }
         return api.customerAccountLinks(resolvedBank, accountId).toResult().mapCatching { response ->
-            // Prefer the account owner; fall back to the first linked customer if there is no Owner row.
             val link = response.links.firstOrNull { it.relationshipType.equals("Owner", ignoreCase = true) }
                 ?: response.links.firstOrNull()
             if (link == null) "" else api.getCustomer(resolvedBank, link.customerId).toResult().getOrThrow().legalName

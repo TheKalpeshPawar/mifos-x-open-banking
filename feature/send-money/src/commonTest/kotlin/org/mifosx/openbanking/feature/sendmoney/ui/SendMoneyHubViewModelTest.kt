@@ -240,7 +240,6 @@ class SendMoneyHubViewModelTest {
         val recents = content(model).recentRecipients
         assertEquals(2, recents.size)
         assertTrue(recents.any { it.counterpartyId == "cp-obp" }, "SANDBOX_TAN payee must appear in recents")
-        // 2026-06-10 (sandbox) is newer than 2026-06-06 (sepa), so it ranks first.
         assertEquals("cp-obp", recents.first().counterpartyId)
     }
 

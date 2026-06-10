@@ -100,8 +100,6 @@ private fun ProfileForm(
 
         Spacer(Modifier.height(20.dp))
 
-        // Disabled: OBP exposes no working change/reset-password endpoint. Same width as the
-        // Personal Information card above (both inset 20.dp + fillMaxWidth).
         OutlinedButton(
             onClick = {},
             enabled = false,

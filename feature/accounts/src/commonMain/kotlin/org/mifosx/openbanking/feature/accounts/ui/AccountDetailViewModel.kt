@@ -58,10 +58,7 @@ class AccountDetailViewModel(
                 rawState.value = ScreenState.Error(it)
                 return@launch
             }
-            // Bank display name — full_name when OBP resolves it, else the bank id (repo handles).
             val bankName = banksRepository.bankName(account.bankId)
-            // Account holder = the linked customer (Owner), not the access user (owners[]). Fall back
-            // to the owner user's display name if the account has no customer link.
             val customerName = customersRepository.accountHolderName(bankId, accountId).getOrNull().orEmpty()
             val holder = customerName.ifBlank { account.owners.firstOrNull()?.displayName.orEmpty() }
             rawState.value = ScreenState.Content(

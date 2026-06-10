@@ -37,7 +37,6 @@ class HomeDerivationTest {
 
     @Test
     fun primaryAccount_matchesProductCodeWhenAccountTypeBlank() {
-        // v7 detail responses carry product_code instead of account_type.
         val accounts = listOf(
             Account(id = "x1", productCode = "PERSONAL_CHECKING"),
         )
@@ -64,7 +63,6 @@ class HomeDerivationTest {
             Account(id = "s1", accountType = "SAVINGS"),
             Account(id = "c1", accountType = "CHECKING"),
         )
-        // The persisted default no longer exists — fall back to checking-first.
         assertEquals("c1", accounts.primaryAccount(defaultAccountId = "gone")?.id)
     }
 
@@ -80,7 +78,6 @@ class HomeDerivationTest {
 
     @Test
     fun formatDashboardDate_rendersWeekdayMonthName() {
-        // 2026-05-28 is a Thursday (isoWeekday 4).
         assertEquals("Thursday, 28 May 2026", formatDashboardDate(4, 28, 5, 2026))
     }
 

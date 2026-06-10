@@ -178,7 +178,6 @@ private fun Form(
         )
         val selected = content.selectedBeneficiary
         if (locked && selected != null) {
-            // Recipient already chosen on the hub — show it locked, no picker.
             BeneficiaryRow(beneficiary = selected, selected = true, onClick = {})
         } else {
             OutlinedTextField(
@@ -218,7 +217,6 @@ private fun Form(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (content.useSandboxTan) {
-            // OBP-hosted payee — the rail choice doesn't apply; it's an instant internal transfer.
             Text(
                 "Internal bank transfer — sent instantly within the bank.",
                 style = MaterialTheme.typography.bodyMedium,

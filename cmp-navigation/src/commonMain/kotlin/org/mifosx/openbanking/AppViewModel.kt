@@ -59,8 +59,6 @@ class AppViewModel(
             .onEach(::sendEvent)
             .launchIn(viewModelScope)
 
-        // A 401 from any OBP call invalidates the session (expired DirectLogin token, no
-        // refresh flow). Flip the auth flag false so RootNav routes back to the login screen.
         tokenProvider.sessionInvalidations
             .onEach { settingsRepository.setIsAuthenticated(false) }
             .launchIn(viewModelScope)

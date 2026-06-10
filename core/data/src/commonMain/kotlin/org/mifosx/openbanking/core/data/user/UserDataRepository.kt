@@ -40,8 +40,6 @@ interface UserDataRepository {
 
     val observeScreenCapturePreference: Flow<Boolean>
 
-    // Notification preferences (Settings screen). Defaulted so existing UserDataRepository
-    // fakes/implementers continue to compile; UserDataRepositoryImpl provides the real wiring.
     val observePushNotificationsEnabled: Flow<Boolean>
         get() = flowOf(true)
 

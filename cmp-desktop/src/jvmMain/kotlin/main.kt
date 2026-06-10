@@ -36,8 +36,6 @@ import java.util.Locale
  */
 fun main() {
     application {
-        // Initializes the Koin dependency injection framework. jpackage stamps the app version
-        // into this system property for packaged builds; dev runs fall back to the screen default.
         initKoin(appVersion = System.getProperty("jpackage.app-version").orEmpty())
 
         // Creates a window state to manage the window's state.

@@ -87,8 +87,6 @@ fun SendMoneyHubScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Re-fires when the hub re-enters composition (e.g. returning from a completed payment),
-    // so a freshly paid recipient appears in Recent Recipients immediately.
     LaunchedEffect(Unit) { viewModel.onRefresh() }
 
     Scaffold(

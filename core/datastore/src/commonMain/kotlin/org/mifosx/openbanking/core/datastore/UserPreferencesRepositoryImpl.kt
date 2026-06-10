@@ -38,7 +38,7 @@ private const val SECURE_DATA_KEY = "secure_data_key"
  * On first access, migrates any existing single-store data into the split
  * stores using a write-before-delete strategy to prevent data loss.
  */
-@Suppress("TooManyFunctions") // One setter per persisted preference; intentional flat surface.
+@Suppress("TooManyFunctions")
 class UserPreferencesRepositoryImpl(
     private val plainSettings: Settings,
     private val secureSettings: Settings,

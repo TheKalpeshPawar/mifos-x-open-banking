@@ -124,7 +124,7 @@ class TransactionsViewModel(
     fun onFilterChanged(filter: TransactionTypeFilter) = filters.update { it.copy(filter = filter, page = 1) }
 
     fun onRangePresetSelected(preset: DateRangePreset) {
-        if (preset == DateRangePreset.CUSTOM) return // custom arrives via onCustomRangeSelected
+        if (preset == DateRangePreset.CUSTOM) return
         val today = todayProvider()
         val start = preset.days?.let { today.minus(DatePeriod(days = it)) }
         filters.update { it.copy(range = DateRangeFilter(preset, start, null), page = 1) }
@@ -145,7 +145,6 @@ class TransactionsViewModel(
                     rawState.value = RawState.Failed(it)
                     return@launch
                 }
-            // Pending payments are supplementary — a failure here must not break the screen.
             val requests = paymentsRepository.listTransactionRequests(bankId, accountId)
                 .getOrElse { emptyList() }
             val currency = accountsRepository.accountDetail(bankId, accountId)
@@ -286,7 +285,6 @@ class TransactionsViewModel(
     }
 
     init {
-        // Resolve the default Last-30-Days bounds against the injected clock once at start.
         onRangePresetSelected(DateRangePreset.LAST_30_DAYS)
     }
 

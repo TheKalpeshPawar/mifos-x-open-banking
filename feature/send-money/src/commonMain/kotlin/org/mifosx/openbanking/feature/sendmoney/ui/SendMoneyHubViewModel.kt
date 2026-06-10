@@ -76,7 +76,6 @@ class SendMoneyHubViewModel(
                 rawState.value = ScreenState.Error(it)
                 return@launch
             }
-            // Honour the persisted default account (set on the Home hero card) when present.
             val defaultId = userPreferencesRepository.userData.value.defaultAccountId
             val primary = accounts.firstOrNull { it.accountIdOrId == defaultId }
                 ?: accounts.firstOrNull()
@@ -105,8 +104,6 @@ class SendMoneyHubViewModel(
             .filter { it.recencyKey.isNotBlank() }
             .sortedByDescending { it.recencyKey }
             .take(RECENT_LIMIT)
-        // Empty payee list is NOT an Empty state — keep the account selector visible so the user
-        // can switch to a funded/populated account.
         rawState.value = ScreenState.Content(
             data = SendMoneyHubContent(
                 accounts = accounts,
@@ -122,14 +119,6 @@ class SendMoneyHubViewModel(
         beneficiaries: List<Counterparty>,
         requests: List<TransactionRequestSummary>,
     ): List<HubRecipient> {
-        // Recency key per payee, keyed by counterparty id (COUNTERPARTY requests), IBAN (SEPA) and
-        // OBP account id (SANDBOX_TAN — the in-bank rail used to pay OBP-hosted payees). All three
-        // must be matched, or a payee paid on a rail we ignore never gets a recency and is dropped
-        // from "recent".
-        // OBP's start_date is date-only (no time component), so same-day payments would tie and a
-        // fresh send couldn't out-rank an earlier same-day one. The list is returned in append
-        // order, so we tie-break by request index: key = "<start_date>#<paddedIndex>" sorts by day
-        // first, then by creation order — the most recent send ranks highest.
         val latestByCounterparty = mutableMapOf<String, String>()
         val latestByIban = mutableMapOf<String, String>()
         val latestBySandboxAccount = mutableMapOf<String, String>()

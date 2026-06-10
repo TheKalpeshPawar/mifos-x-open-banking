@@ -243,7 +243,6 @@ class TransactionsViewModelTest {
             vm(
                 transactions = listOf(
                     txn("t1", "-100.00", "2026-06-02"),
-                    // t2 lands in the previous month — excluded from the summary
                     txn("t2", "-50.00", "2026-05-28"),
                     txn("t3", "3200.00", "2026-06-01"),
                 ),

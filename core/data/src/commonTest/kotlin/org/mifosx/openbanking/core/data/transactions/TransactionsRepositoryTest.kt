@@ -87,9 +87,6 @@ class TransactionsRepositoryTest {
 
     @Test
     fun listTransactions_usesAccountOwnBankId_notGlobalConfig() = runTest {
-        // Cross-bank: an account from /my/accounts living at bank-B must be queried at
-        // bank-B, not at any single global config bank. Regression guard for the
-        // config.bankId-pinning bug.
         val api = FakeTransactionsApi(
             NetworkResult.Success(TransactionsResponse(transactions = listOf(Transaction(id = "t9")))),
         )

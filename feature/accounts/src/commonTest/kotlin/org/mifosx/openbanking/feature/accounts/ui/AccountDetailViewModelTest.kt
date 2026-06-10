@@ -110,7 +110,7 @@ class AccountDetailViewModelTest {
         assertEquals("TechStart — Business Current GBP", d.accountLabel)
         assertEquals("£47,211.27", d.balanceDisplay)
         assertEquals("GBP", d.currency)
-        assertEquals("Sarah Williams", d.holder) // linked customer (Owner), not the owners[] user
+        assertEquals("Sarah Williams", d.holder)
         assertEquals("2706651702", d.accountNumber)
         assertEquals("GB29MFOS98765601001234", d.ibanRaw)
         assertEquals("GB29 MFOS 9876 5601 0012 34", d.ibanDisplay)
@@ -148,12 +148,12 @@ class AccountDetailViewModelTest {
 
     @Test
     fun load_noCustomerLink_fallsBackToOwnerUser() = runTest(dispatcher) {
-        val model = vm(holder = Result.success("")) // no linked customer
+        val model = vm(holder = Result.success(""))
         backgroundScope.launch { model.uiState.collect {} }
         model.load("mifos-x-openbank", "mifos.techstart.current")
         advanceUntilIdle()
         val s = model.uiState.value as ScreenState.Content
-        assertEquals("afternooncoffee", s.data.holder) // owners[] display name
+        assertEquals("afternooncoffee", s.data.holder)
     }
 
     @Test

@@ -33,7 +33,6 @@ interface CustomersApi {
     @GET("v4.0.0/users/current/customers")
     suspend fun currentUserCustomers(): NetworkResult<CustomersResponse, NetworkError>
 
-    // v5.1.0: v3.0.0 has no get-customer-by-id route (returns OBP-10404).
     @GET("v5.1.0/banks/{bankId}/customers/{customerId}")
     suspend fun getCustomer(
         @Path("bankId") bankId: String,

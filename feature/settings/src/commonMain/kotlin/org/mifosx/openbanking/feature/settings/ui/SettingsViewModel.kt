@@ -56,8 +56,6 @@ class SettingsViewModel(
     private val _uiState = MutableStateFlow<ScreenState<SettingsUiState>>(ScreenState.Loading)
     val uiState: StateFlow<ScreenState<SettingsUiState>> = _uiState.asStateFlow()
 
-    // OBP has no authenticated change-password; the only path is an email-based reset, which needs
-    // both the username and email of the signed-in user (captured from the loaded profile).
     private var resetUsername: String = ""
     private var resetEmail: String = ""
 
@@ -91,7 +89,6 @@ class SettingsViewModel(
                     )
                 }
                 .onFailure {
-                    // Keep a graceful fallback header; Settings preferences still work offline.
                     profileFlow.value = ProfileHeader(name = "Mifos User", email = "", initials = "M")
                 }
         }

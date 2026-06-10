@@ -114,8 +114,6 @@ class BusinessInsightsViewModel(
                     rawState.value = RawState.Failed(it)
                     return@launch
                 }
-            // Resolve counterparties so the login-username placeholder never surfaces as a
-            // merchant; a failure degrades to raw names rather than failing the screen.
             val counterpartyNames = runCatching {
                 counterpartyNameResolver.resolve(account.bankId, account.accountIdOrId, transactions)
             }.getOrDefault(emptyMap())

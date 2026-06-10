@@ -246,7 +246,6 @@ class SendMoneyViewModelTest {
 
     @Test
     fun selectingBeneficiary_autoSelectsRecommendedRail() = runTest(dispatcher) {
-        // EUR account at a GB bank paying a DE IBAN -> SEPA recommended (free, no conversion).
         val model = vm()
         backgroundScope.launch { model.uiState.collect {} }
         advanceUntilIdle()
@@ -259,7 +258,6 @@ class SendMoneyViewModelTest {
         val sepa = s.data.railAssessments.getValue(PaymentType.SEPA)
         assertTrue(sepa.eligible)
         assertNull(sepa.conversionNote)
-        // DE recipient from a GB bank -> domestic disabled with a reason.
         val domestic = s.data.railAssessments.getValue(PaymentType.DOMESTIC)
         assertTrue(!domestic.eligible && domestic.reason != null)
     }
@@ -351,7 +349,6 @@ class SendMoneyViewModelTest {
 
     @Test
     fun draft_carriesRailAndConversionNote() = runTest(dispatcher) {
-        // GBP source account -> SEPA stays recommended for the DE IBAN, with a conversion note.
         val gbpAccount = account().copy(balance = AmountOfMoney(currency = "GBP", amount = "100"))
         val model = vm(accounts = Result.success(listOf(gbpAccount)))
         backgroundScope.launch { model.uiState.collect {} }
