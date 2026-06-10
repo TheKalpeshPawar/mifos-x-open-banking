@@ -25,6 +25,7 @@ import org.mifosx.openbanking.core.model.obp.AccountAttribute
 import org.mifosx.openbanking.core.model.obp.AccountOwner
 import org.mifosx.openbanking.core.model.obp.AccountRouting
 import org.mifosx.openbanking.core.model.obp.AmountOfMoney
+import org.mifosx.openbanking.core.model.obp.Bank
 import org.mifosx.openbanking.core.model.obp.Customer
 import org.mifosx.openbanking.core.model.obp.CustomerRequest
 import template.core.base.store.screen.ScreenDataStream
@@ -46,6 +47,7 @@ private class FakeAccountsRepository(
 
 private class FakeBanksRepository(private val name: String) : BanksRepository {
     override suspend fun bankName(bankId: String): String = name
+    override suspend fun bank(bankId: String): Bank? = null
 }
 
 private class FakeCustomersRepository(
