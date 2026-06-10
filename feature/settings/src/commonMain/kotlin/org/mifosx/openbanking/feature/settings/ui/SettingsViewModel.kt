@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
+import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
@@ -29,7 +30,7 @@ import template.core.base.store.screen.ScreenState
 
 /**
  * Settings ViewModel — surfaces the profile header + user-configurable preferences (Appearance,
- * Notifications, Security, About) as a single [ScreenState], styled to the rendered design preview
+ * Security, About) as a single [ScreenState], styled to the rendered design preview
  * (`idea-layer/screens/settings/preview`).
  *
  * Preference state is the single source of truth in [UserDataRepository.userData]; the UI state is
@@ -45,6 +46,7 @@ class SettingsViewModel(
     private val userDataRepository: UserDataRepository,
     private val profileRepository: ProfileRepository,
     private val authRecoveryRepository: AuthRecoveryRepository,
+    private val obpAuthRepository: ObpAuthRepository,
     private val biometricAvailable: Boolean = isBiometricAvailableOnDevice(),
     private val appVersion: String = "v1.0.0",
 ) : ViewModel() {
@@ -106,24 +108,19 @@ class SettingsViewModel(
         viewModelScope.launch { userDataRepository.setLanguage(config) }
     }
 
-    fun onPushNotificationsToggled() {
-        val enabled = userDataRepository.userData.value.isPushNotificationsEnabled
-        viewModelScope.launch { userDataRepository.setPushNotificationsEnabled(!enabled) }
-    }
-
-    fun onTransactionAlertsToggled() {
-        val enabled = userDataRepository.userData.value.isTransactionAlertsEnabled
-        viewModelScope.launch { userDataRepository.setTransactionAlertsEnabled(!enabled) }
-    }
-
     fun onBiometricToggled() {
         val enabled = userDataRepository.userData.value.isBiometricsEnabled
         viewModelScope.launch { userDataRepository.setIsBiometricsEnabled(!enabled) }
     }
 
-    /** Logs the user out. RootNavViewModel observes [UserDataRepository.userData] and routes to auth. */
+    /**
+     * Signs the user out and wipes the local session: clears the held OBP token (DirectLogin or the
+     * OIDC `Bearer` access token) from the token provider, then resets all persisted user data to
+     * defaults. `RootNavViewModel` observes [UserDataRepository.userData] and routes back to auth.
+     */
     fun onSignOut() {
-        viewModelScope.launch { userDataRepository.setIsAuthenticated(false) }
+        obpAuthRepository.logout()
+        viewModelScope.launch { userDataRepository.clearUserData() }
     }
 
     /**
@@ -170,9 +167,6 @@ data class SettingsUiState(
     val profileInitials: String = "",
     val themeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
     val selectedLanguage: String = "en",
-    val isPushNotificationsEnabled: Boolean = true,
-    val isTransactionAlertsEnabled: Boolean = true,
-    val isMarketingEnabled: Boolean = false,
     val isBiometricLoginEnabled: Boolean = false,
     val isBiometricAvailableOnDevice: Boolean = false,
     val appVersion: String = "v1.0.0",
@@ -189,9 +183,6 @@ internal fun UserData.toUiState(
     profileInitials = profile.initials,
     themeConfig = darkThemeConfig,
     selectedLanguage = appLanguage.localeName ?: "en",
-    isPushNotificationsEnabled = isPushNotificationsEnabled,
-    isTransactionAlertsEnabled = isTransactionAlertsEnabled,
-    isMarketingEnabled = isMarketingEnabled,
     isBiometricLoginEnabled = isBiometricsEnabled,
     isBiometricAvailableOnDevice = biometricAvailable,
     appVersion = appVersion,

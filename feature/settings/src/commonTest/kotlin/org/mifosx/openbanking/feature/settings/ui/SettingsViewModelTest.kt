@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
+import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
 import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.obp.ProfileUpdateRequest
@@ -126,6 +127,17 @@ private class FakeAuthRecoveryRepository(
         Result.success("ok")
 }
 
+private class FakeObpAuthRepository : ObpAuthRepository {
+    var loggedOut = false
+    override suspend fun login(username: String, password: String): Result<Unit> = Result.success(Unit)
+    override suspend fun prepareOidcAuthorization(): Result<String> = Result.success("")
+    override suspend fun completeOidc(code: String, state: String): Result<Unit> = Result.success(Unit)
+    override fun logout() {
+        loggedOut = true
+    }
+    override fun isLoggedIn(): Boolean = false
+}
+
 class SettingsViewModelTest {
 
     private val dispatcher = UnconfinedTestDispatcher()
@@ -143,8 +155,9 @@ class SettingsViewModelTest {
         userData: UserDataRepository = FakeUserDataRepository(),
         profile: ProfileRepository = FakeProfileRepository(),
         recovery: AuthRecoveryRepository = FakeAuthRecoveryRepository(),
+        auth: ObpAuthRepository = FakeObpAuthRepository(),
         biometricAvailable: Boolean = true,
-    ) = SettingsViewModel(userData, profile, recovery, biometricAvailable = biometricAvailable)
+    ) = SettingsViewModel(userData, profile, recovery, auth, biometricAvailable = biometricAvailable)
 
     @Test
     fun initialState_hydratesDefaults_andClearsLoading() = runTest {
@@ -152,6 +165,7 @@ class SettingsViewModelTest {
             FakeUserDataRepository(),
             FakeProfileRepository(),
             FakeAuthRecoveryRepository(),
+            FakeObpAuthRepository(),
             biometricAvailable = true,
             appVersion = "v1.0.0",
         )
@@ -159,9 +173,6 @@ class SettingsViewModelTest {
         assertFalse(s.isLoading)
         assertEquals(DarkThemeConfig.FOLLOW_SYSTEM, s.themeConfig)
         assertEquals("en", s.selectedLanguage)
-        assertTrue(s.isPushNotificationsEnabled)
-        assertTrue(s.isTransactionAlertsEnabled)
-        assertFalse(s.isMarketingEnabled)
         assertFalse(s.isBiometricLoginEnabled)
         assertTrue(s.isBiometricAvailableOnDevice)
         assertEquals("v1.0.0", s.appVersion)
@@ -192,24 +203,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun onPushNotificationsToggled_flipsPersistedValue() = runTest {
-        val repo = FakeUserDataRepository()
-        val vm = settingsVm(repo)
-        vm.onPushNotificationsToggled()
-        assertFalse(content(vm).isPushNotificationsEnabled)
-        assertFalse(repo.userData.value.isPushNotificationsEnabled)
-    }
-
-    @Test
-    fun onTransactionAlertsToggled_flipsPersistedValue() = runTest {
-        val repo = FakeUserDataRepository()
-        val vm = settingsVm(repo)
-        vm.onTransactionAlertsToggled()
-        assertFalse(content(vm).isTransactionAlertsEnabled)
-        assertFalse(repo.userData.value.isTransactionAlertsEnabled)
-    }
-
-    @Test
     fun onBiometricToggled_persistsBiometricFlag() = runTest {
         val repo = FakeUserDataRepository()
         val vm = settingsVm(repo)
@@ -234,11 +227,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun onSignOut_setsUnauthenticated() = runTest {
+    fun onSignOut_clearsSessionAndToken() = runTest {
         val repo = FakeUserDataRepository(UserData.DEFAULT.copy(isAuthenticated = true))
-        val vm = settingsVm(repo)
+        val auth = FakeObpAuthRepository()
+        val vm = settingsVm(repo, auth = auth)
         vm.onSignOut()
         assertFalse(repo.userData.value.isAuthenticated)
+        assertTrue(auth.loggedOut)
     }
 
     @Test

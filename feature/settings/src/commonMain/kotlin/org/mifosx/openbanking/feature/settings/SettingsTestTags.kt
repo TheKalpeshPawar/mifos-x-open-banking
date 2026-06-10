@@ -23,10 +23,6 @@ object SettingsTestTags {
     const val THEME_MODE_DARK = "settings_theme_mode_dark"
     const val LANGUAGE_SELECT = "settings_language_select"
 
-    // Notifications
-    const val PUSH_TOGGLE = "settings_push_notifications_toggle"
-    const val TRANSACTION_ALERTS_TOGGLE = "settings_transaction_alerts_toggle"
-
     // Security
     const val BIOMETRIC_TOGGLE = "settings_biometric_toggle"
     const val CHANGE_PASSWORD_ROW = "settings_change_password_row"

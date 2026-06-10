@@ -38,9 +38,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PrivacyTip
-import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -122,8 +120,6 @@ internal fun SettingsScreen(
                 onNavigateToProfile = onNavigateToProfile,
                 onThemeSelected = viewModel::onThemeConfigSelected,
                 onLanguageSelected = viewModel::onLanguageSelected,
-                onPushToggled = viewModel::onPushNotificationsToggled,
-                onTransactionAlertsToggled = viewModel::onTransactionAlertsToggled,
                 onBiometricToggled = viewModel::onBiometricToggled,
                 onResetPassword = { showResetDialog = true },
                 onAbout = onNavigateToAbout,
@@ -188,8 +184,6 @@ private fun SettingsContent(
     onNavigateToProfile: (() -> Unit)?,
     onThemeSelected: (DarkThemeConfig) -> Unit,
     onLanguageSelected: (String) -> Unit,
-    onPushToggled: () -> Unit,
-    onTransactionAlertsToggled: () -> Unit,
     onBiometricToggled: () -> Unit,
     onResetPassword: () -> Unit,
     onAbout: (() -> Unit)?,
@@ -223,31 +217,6 @@ private fun SettingsContent(
                 selected = state.selectedLanguage,
                 onSelect = onLanguageSelected,
                 enabled = false,
-            )
-        }
-
-        // ── Notifications (delivery not built → disabled) ────────────────────
-        SectionHeader("Notifications")
-        SettingsCard {
-            ToggleRow(
-                leadingIcon = Icons.Outlined.Notifications,
-                label = "Push Notifications",
-                description = "Receive alerts and updates from Mifos X",
-                checked = state.isPushNotificationsEnabled,
-                enabled = false,
-                onToggle = onPushToggled,
-                testTag = SettingsTestTags.PUSH_TOGGLE,
-            )
-            RowDivider()
-            ToggleRow(
-                leadingIcon = Icons.Outlined.ReceiptLong,
-                label = "Transaction Alerts",
-                description = "Notify me for every debit and credit activity",
-                checked = state.isTransactionAlertsEnabled,
-                enabled = false,
-                onToggle = onTransactionAlertsToggled,
-                activeColor = MaterialTheme.colorScheme.secondary,
-                testTag = SettingsTestTags.TRANSACTION_ALERTS_TOGGLE,
             )
         }
 

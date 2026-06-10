@@ -24,6 +24,7 @@ val SettingsModule = module {
             userDataRepository = get(),
             profileRepository = get(),
             authRecoveryRepository = get(),
+            obpAuthRepository = get(),
             appVersion = get<String>(named("appVersion")).ifBlank { "v1.0.0" },
         )
     }
