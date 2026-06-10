@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +86,10 @@ fun SendMoneyHubScreen(
     viewModel: SendMoneyHubViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Re-fires when the hub re-enters composition (e.g. returning from a completed payment),
+    // so a freshly paid recipient appears in Recent Recipients immediately.
+    LaunchedEffect(Unit) { viewModel.onRefresh() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

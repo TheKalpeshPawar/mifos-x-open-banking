@@ -57,6 +57,9 @@ class SendMoneyHubViewModel(
 
     fun onRetry() = load()
 
+    /** Reload the hub (e.g. when the screen re-enters after a completed payment). */
+    fun onRefresh() = load()
+
     /** Switch the from-account: reload that account's beneficiaries + recent payments. */
     fun onAccountSelected(accountId: String) {
         if (accountId == selectedAccountId) return
@@ -119,13 +122,17 @@ class SendMoneyHubViewModel(
         beneficiaries: List<Counterparty>,
         requests: List<TransactionRequestSummary>,
     ): List<HubRecipient> {
-        // Recency key per payee, keyed by counterparty id (COUNTERPARTY requests) and IBAN (SEPA).
+        // Recency key per payee, keyed by counterparty id (COUNTERPARTY requests), IBAN (SEPA) and
+        // OBP account id (SANDBOX_TAN — the in-bank rail used to pay OBP-hosted payees). All three
+        // must be matched, or a payee paid on a rail we ignore never gets a recency and is dropped
+        // from "recent".
         // OBP's start_date is date-only (no time component), so same-day payments would tie and a
         // fresh send couldn't out-rank an earlier same-day one. The list is returned in append
         // order, so we tie-break by request index: key = "<start_date>#<paddedIndex>" sorts by day
         // first, then by creation order — the most recent send ranks highest.
         val latestByCounterparty = mutableMapOf<String, String>()
         val latestByIban = mutableMapOf<String, String>()
+        val latestBySandboxAccount = mutableMapOf<String, String>()
         requests.forEachIndexed { index, req ->
             if (req.startDate.isBlank()) return@forEachIndexed
             val key = "${req.startDate}#${index.toString().padStart(RECENCY_INDEX_WIDTH, '0')}"
@@ -134,6 +141,9 @@ class SendMoneyHubViewModel(
             }
             req.details.toSepa?.iban?.takeIf { it.isNotBlank() }?.let { iban ->
                 if (key > latestByIban[iban].orEmpty()) latestByIban[iban] = key
+            }
+            req.details.toSandboxTan?.accountId?.takeIf { it.isNotBlank() }?.let { acct ->
+                if (key > latestBySandboxAccount[acct].orEmpty()) latestBySandboxAccount[acct] = key
             }
         }
         return beneficiaries.map { cp ->
@@ -144,6 +154,7 @@ class SendMoneyHubViewModel(
             }
             val recency = latestByCounterparty[cp.counterpartyId].orEmpty()
                 .ifBlank { latestByIban[cp.otherAccountRoutingAddress].orEmpty() }
+                .ifBlank { latestBySandboxAccount[cp.otherAccountRoutingAddress].orEmpty() }
             HubRecipient(
                 counterpartyId = cp.counterpartyId,
                 name = cp.name,
