@@ -20,9 +20,12 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.core.common)
             implementation(projects.core.data)
+            implementation(projects.core.datastore)
             implementation(projects.core.model)
             implementation(projects.core.ui)
             implementation(projects.coreBase.store)
+
+            implementation(libs.kotlinx.datetime)
 
             implementation(compose.ui)
             implementation(compose.material3)

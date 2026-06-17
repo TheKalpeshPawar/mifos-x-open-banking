@@ -38,6 +38,7 @@ private const val SECURE_DATA_KEY = "secure_data_key"
  * On first access, migrates any existing single-store data into the split
  * stores using a write-before-delete strategy to prevent data loss.
  */
+@Suppress("TooManyFunctions")
 class UserPreferencesRepositoryImpl(
     private val plainSettings: Settings,
     private val secureSettings: Settings,
@@ -89,6 +90,7 @@ class UserPreferencesRepositoryImpl(
                 passcode = secureData.passcode,
                 isAuthenticated = secureData.isAuthenticated,
                 isUnlocked = secureData.isUnlocked,
+                authToken = secureData.authToken,
             )
             secureData != null -> secureData
             plainData != null -> plainData
@@ -102,7 +104,7 @@ class UserPreferencesRepositoryImpl(
         get() = _userData.asStateFlow()
 
     override val authToken: String?
-        get() = null
+        get() = _userData.value.authToken
 
     override val passcode: String
         get() = _userData.value.passcode
@@ -119,10 +121,21 @@ class UserPreferencesRepositoryImpl(
     override val observeScreenCapturePreference: Flow<Boolean>
         get() = _userData.map { it.enableScreenCapture }
 
+    override val observePushNotificationsEnabled: Flow<Boolean>
+        get() = _userData.map { it.isPushNotificationsEnabled }
+
+    override val observeTransactionAlertsEnabled: Flow<Boolean>
+        get() = _userData.map { it.isTransactionAlertsEnabled }
+
+    override val observeMarketingEnabled: Flow<Boolean>
+        get() = _userData.map { it.isMarketingEnabled }
+
+    override val observeDefaultAccountId: Flow<String>
+        get() = _userData.map { it.defaultAccountId }
+
     private suspend fun updatePreference(transform: (UserData) -> UserData) {
         withContext(dispatcher.io) {
-            val current = loadCombinedUserData()
-            val updated = transform(current)
+            val updated = transform(_userData.value)
             plainSettings.putUserPreference(updated)
             secureSettings.putSecurePreference(updated)
             _userData.value = updated
@@ -153,6 +166,15 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         updatePreference { it.copy(isBiometricsEnabled = isBiometricsEnabled) }
 
+    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isPushNotificationsEnabled = isEnabled) }
+
+    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isTransactionAlertsEnabled = isEnabled) }
+
+    override suspend fun setMarketingEnabled(isEnabled: Boolean) =
+        updatePreference { it.copy(isMarketingEnabled = isEnabled) }
+
     override suspend fun setShowOnboarding(showOnboarding: Boolean) =
         updatePreference { it.copy(showOnboarding = showOnboarding) }
 
@@ -165,8 +187,15 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) =
         updatePreference { it.copy(enableScreenCapture = isScreenCaptureEnabled) }
 
+    override suspend fun setAuthToken(token: String?) =
+        updatePreference { it.copy(authToken = token) }
+
+    override suspend fun setDefaultAccountId(accountId: String) =
+        updatePreference { it.copy(defaultAccountId = accountId) }
+
     override suspend fun clearUserData() {
         setIsAuthenticated(false)
+        setAuthToken(null)
         // TODO:: Uncomment this line when Unlocked Screen is Present
         // setIsUnlocked(false)
     }
@@ -176,7 +205,7 @@ private fun Settings.putUserPreference(preference: UserData) {
     encodeValue(
         key = USER_DATA_KEY,
         serializer = UserData.serializer(),
-        value = preference,
+        value = preference.copy(authToken = null),
     )
 }
 

@@ -11,3 +11,4 @@ package org.mifosx.openbanking.feature.settings
 
 actual fun getPlatform(): Platform = Platform.Desktop
 actual fun supportsDynamicTheming(): Boolean = false
+actual fun isBiometricAvailableOnDevice(): Boolean = false

@@ -18,31 +18,30 @@ import template.core.base.ui.nav.composableWithPushTransitions
 @Serializable
 data object SettingsRoute
 
-@Serializable
-data object NotificationRoute
-
 fun NavController.navigateToSettings(navOptions: NavOptions? = null) =
     navigate(SettingsRoute, navOptions)
 
-fun NavController.navigateToNotification(navOptions: NavOptions? = null) =
-    navigate(NotificationRoute, navOptions)
-
+/**
+ * Settings destination. The on-screen navigation targets (change password, about, terms, privacy,
+ * licences) are exposed as nullable callbacks. A null callback means the target screen is not yet
+ * built — the row renders disabled. Wire each one (non-null) as its destination screen lands.
+ */
 fun NavGraphBuilder.settingsDestination(
     onBackClick: () -> Unit,
+    onNavigateToProfile: (() -> Unit)? = null,
+    onNavigateToAbout: (() -> Unit)? = null,
+    onNavigateToTerms: (() -> Unit)? = null,
+    onNavigateToPrivacy: (() -> Unit)? = null,
+    onNavigateToLicenses: (() -> Unit)? = null,
 ) {
     composableWithPushTransitions<SettingsRoute> {
         SettingsScreen(
             onBackClick = onBackClick,
-        )
-    }
-}
-
-fun NavGraphBuilder.notificationDestination(
-    onBackClick: () -> Unit,
-) {
-    composableWithPushTransitions<NotificationRoute> {
-        NotificationScreen(
-            onBackClick = onBackClick,
+            onNavigateToProfile = onNavigateToProfile,
+            onNavigateToAbout = onNavigateToAbout,
+            onNavigateToTerms = onNavigateToTerms,
+            onNavigateToPrivacy = onNavigateToPrivacy,
+            onNavigateToLicenses = onNavigateToLicenses,
         )
     }
 }

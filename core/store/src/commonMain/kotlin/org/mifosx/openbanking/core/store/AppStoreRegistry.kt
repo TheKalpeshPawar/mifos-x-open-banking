@@ -10,24 +10,17 @@
 package org.mifosx.openbanking.core.store
 
 import template.core.base.store.infra.StoreRegistry
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
 
 /**
  * Application-level [StoreRegistry] — the single named-qualifier registry for every
  * `org.mobilenativefoundation.store.store5.Store` the app exposes.
  *
- * The 4 demo stores ([ExchangeRates], [RateHistory], [CoinMarkets], [CoinDetail]) live
- * here as the canonical example shape for forks. Add your own next to them, e.g.:
+ * OBP banking stores are registered in Phase 3 (one Store5 qualifier per OBP service),
+ * e.g.:
  *
  * ```kotlin
  * object AppStoreRegistry : StoreRegistry() {
- *     // Demo stores (kept as forkable examples)
- *     val ExchangeRates = store("exchangeRates")
- *     // …
- *
- *     // Your app's stores
- *     val UserProfile  = store("userProfile")
+ *     val Accounts     = store("accounts")
  *     val Transactions = store("transactions")
  * }
  * ```
@@ -35,23 +28,43 @@ import kotlin.time.Duration.Companion.minutes
  * Then reference the qualifier from Koin DI in [appStoreModule]:
  *
  * ```kotlin
- * single<Store<UserId, UserProfile>>(qualifier = AppStoreRegistry.UserProfile) { ... }
+ * single<Store<AccountId, Account>>(qualifier = AppStoreRegistry.Accounts) { ... }
  * ```
  *
  * Centralizing here gives a one-place audit of every Store the app owns and prevents
  * qualifier-name collisions across feature modules.
  */
 object AppStoreRegistry : StoreRegistry() {
-    val ExchangeRates = store("exchangeRates")
-    val RateHistory = store("rateHistory")
-    val CoinMarkets = store("coinMarkets")
-    val CoinDetail = store("coinDetail")
+    /** Authenticated user's account list (Store5, keyed by Unit). */
+    val Accounts = store("accounts")
 
-    /** TTL durations — financial data has different freshness requirements. */
-    object Ttl {
-        val EXCHANGE_RATES = 5.minutes
-        val RATE_HISTORY = 1.hours
-        val COIN_MARKETS = 2.minutes
-        val COIN_DETAIL = 5.minutes
-    }
+    /** Per-account transactions (Store5, keyed by accountId). */
+    val Transactions = store("transactions")
+
+    /** Per-account cards (Store5, keyed by accountId). */
+    val Cards = store("cards")
+
+    /** Current user's full card list across all accounts (Store5, keyed by Unit). */
+    val UserCards = store("user-cards")
+
+    /** Per-account counterparties / payees (Store5, keyed by accountId). */
+    val Counterparties = store("counterparties")
+
+    /** Bank customers, field-officer surface (Store5, keyed by Unit). */
+    val Customers = store("customers")
+
+    /** Account-application review queue (Store5, keyed by Unit). */
+    val AccountApplications = store("account-applications")
+
+    /** Per-customer message thread (Store5, keyed by customerId). */
+    val CustomerMessages = store("customer-messages")
+
+    /** Per-customer KYC documents (Store5, keyed by customerId). */
+    val KycDocuments = store("kyc-documents")
+
+    /** Bank products (Store5, keyed by Unit). */
+    val Products = store("products")
+
+    /** Bank ATM locations (Store5, keyed by Unit). */
+    val Atms = store("atms")
 }

@@ -78,7 +78,11 @@ class ResultSuspendConverterFactory : Converter.Factory {
                 override suspend fun convert(result: KtorfitResult): NetworkResult<Any, NetworkError> {
                     return when (result) {
                         is KtorfitResult.Failure -> {
-                            Logger.d("ResultConverter") { "Failure: ${result.throwable.message}" }
+                            Logger.d(
+                                messageString = "Failure: ${result.throwable.message}",
+                                throwable = result.throwable,
+                                tag = "ResultConverter",
+                            )
                             NetworkResult.Error(NetworkError.UNKNOWN)
                         }
 
@@ -93,7 +97,11 @@ class ResultSuspendConverterFactory : Converter.Factory {
                                     } catch (e: NoTransformationFoundException) {
                                         NetworkResult.Error(NetworkError.SERIALIZATION)
                                     } catch (e: SerializationException) {
-                                        Logger.d("ResultConverter") { "Serialization error: ${e.message}" }
+                                        Logger.d(
+                                            messageString = "Serialization error: ${e.message}",
+                                            throwable = e,
+                                            tag = "ResultConverter",
+                                        )
                                         NetworkResult.Error(NetworkError.SERIALIZATION)
                                     }
                                 }
@@ -105,7 +113,10 @@ class ResultSuspendConverterFactory : Converter.Factory {
                                 429 -> NetworkResult.Error(NetworkError.TOO_MANY_REQUESTS)
                                 in 500..599 -> NetworkResult.Error(NetworkError.SERVER)
                                 else -> {
-                                    Logger.d("ResultConverter") { "Unhandled status code $status" }
+                                    Logger.d(
+                                        messageString = "Unhandled status code $status",
+                                        tag = "ResultConverter",
+                                    )
                                     NetworkResult.Error(NetworkError.UNKNOWN)
                                 }
                             }

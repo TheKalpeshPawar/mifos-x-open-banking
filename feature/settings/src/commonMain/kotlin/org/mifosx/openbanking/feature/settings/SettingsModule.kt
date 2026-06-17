@@ -9,9 +9,19 @@
  */
 package org.mifosx.openbanking.feature.settings
 
-import org.koin.core.module.dsl.viewModelOf
+import org.koin.compose.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.mifosx.openbanking.feature.settings.ui.SettingsViewModel
 
 val SettingsModule = module {
-    viewModelOf(::SettingsViewmodel)
+    viewModel {
+        SettingsViewModel(
+            userDataRepository = get(),
+            profileRepository = get(),
+            authRecoveryRepository = get(),
+            obpAuthRepository = get(),
+            appVersion = get<String>(named("appVersion")).ifBlank { "v1.0.0" },
+        )
+    }
 }

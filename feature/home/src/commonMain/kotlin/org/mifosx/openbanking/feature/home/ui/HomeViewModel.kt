@@ -9,90 +9,98 @@
  */
 package org.mifosx.openbanking.feature.home.ui
 
+import androidx.compose.runtime.Immutable
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import org.mifosx.openbanking.core.data.crypto.CryptoRepository
-import org.mifosx.openbanking.core.data.currency.CurrencyRepository
-import org.mifosx.openbanking.core.model.crypto.CoinMarket
-import org.mifosx.openbanking.core.model.currency.ExchangeRates
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.data.accounts.AccountsRepository
+import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
+import org.mifosx.openbanking.core.model.obp.Account
 import template.core.base.store.screen.ScreenState
-import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * **Canonical multi-source combine showcase.**
+ * Home Dashboard ViewModel. Reads the offline-first [AccountsRepository.accountsStream]
+ * (Store5 cache-then-network, `/my/accounts` — cross-bank) combined with the persisted
+ * default-account preference, and derives the dashboard hero card + portfolio totals.
+ * The hero card shows the user's default account (set via the account picker sheet);
+ * with no persisted choice it falls back to checking-first.
  *
- * Composes two independent `ScreenDataStream`s into a single UI state with
- * per-widget loading/error/content slots. Each widget's state evolves
- * independently — one card can be Loading while another shows Content; pull-
- * to-refresh fans out to both streams concurrently.
+ * Exposes one [ScreenState] so the screen renders loading / content / empty / error /
+ * no-network / unauthenticated uniformly. `Empty` means the user has no accounts at all.
  *
- * Extension points for sub-plans 03 (Watchlist) and 04 (Alerts) widgets are
- * documented in [HomeUiState]; adding them is a small follow-up once
- * `WatchlistRepository` and `AlertsRepository` land on `dev`.
+ * Greeting name is derived from the primary account's owner (the app's [SessionManager]
+ * holds no user name — it manages session lifetime only, app-shell-wide).
  */
 class HomeViewModel(
-    private val cryptoRepository: CryptoRepository,
-    private val currencyRepository: CurrencyRepository,
-) : BaseViewModel<HomeUiState, Nothing, HomeAction>(HomeUiState()) {
+    accountsRepository: AccountsRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+) : ViewModel() {
 
-    // Take the first page of coin markets; we'll show the top 5 in the widget.
-    private val pagingStream = cryptoRepository.coinMarketsStream(
-        scope = viewModelScope,
-        pageSize = 5,
-    )
+    private val stream = accountsRepository.accountsStream(viewModelScope)
 
-    private val exchangeRateStream = currencyRepository.exchangeRatesStream(
-        baseCurrency = "USD",
-        scope = viewModelScope,
-    )
+    val uiState: StateFlow<ScreenState<HomeContent>> =
+        combine(stream.state, userPreferencesRepository.observeDefaultAccountId) { state, defaultId ->
+            project(state, defaultId)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ScreenState.Loading,
+        )
 
-    init {
-        // Top Movers widget: project the paging stream's state into a flat
-        // ScreenState<List<CoinMarket>>, truncated to the first 5.
-        pagingStream.state
-            .onEach { state ->
-                updateState { copy(topMovers = state) }
-            }
-            .launchIn(viewModelScope)
+    fun onRetry() = stream.retry()
 
-        // Exchange Rate widget: direct ScreenState<ExchangeRates>.
-        exchangeRateStream.state
-            .onEach { state ->
-                updateState { copy(exchangeRate = state) }
-            }
-            .launchIn(viewModelScope)
-    }
+    fun onRefresh() = stream.refresh()
 
-    override fun handleAction(action: HomeAction) = when (action) {
-        HomeAction.RefreshAll -> {
-            pagingStream.refresh()
-            exchangeRateStream.refresh()
+    /** Persists the default account chosen on the hero-card picker sheet. */
+    fun onDefaultAccountSelected(account: Account) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDefaultAccountId(account.accountIdOrId)
         }
-        HomeAction.RetryTopMovers -> pagingStream.retry()
-        HomeAction.RetryExchangeRate -> exchangeRateStream.retry()
     }
+
+    private fun project(state: ScreenState<List<Account>>, defaultId: String): ScreenState<HomeContent> =
+        when (state) {
+            is ScreenState.Content -> {
+                val accounts = state.data
+                if (accounts.isEmpty()) {
+                    ScreenState.Empty
+                } else {
+                    val primary = accounts.primaryAccount(defaultId)
+                    ScreenState.Content(
+                        data = HomeContent(
+                            greetingName = primary?.owners?.firstOrNull()?.displayName.orEmpty(),
+                            primaryAccount = primary,
+                            accounts = accounts,
+                            totalAccountCount = accounts.size,
+                        ),
+                        freshness = state.freshness,
+                        fetchedAt = state.fetchedAt,
+                    )
+                }
+            }
+            is ScreenState.Loading -> state
+            is ScreenState.Empty -> state
+            is ScreenState.NoNetwork -> state
+            is ScreenState.Unauthenticated -> state
+            is ScreenState.Error -> state
+        }
 }
 
-/**
- * Aggregate state for the home dashboard.
- *
- * Each slot is an independent [ScreenState] so the screen can render per-card
- * Loading / Empty / Error / Content states. Sub-plans 03 + 04 will add two more
- * slots (`watchlistPreview`, `activeAlerts`) once their repositories land.
- */
-data class HomeUiState(
-    val topMovers: ScreenState<List<CoinMarket>> = ScreenState.Loading,
-    val exchangeRate: ScreenState<ExchangeRates> = ScreenState.Loading,
+/** Hero-card account: the persisted default when it still exists, else checking-first, else first. */
+internal fun List<Account>.primaryAccount(defaultAccountId: String = ""): Account? =
+    firstOrNull { defaultAccountId.isNotBlank() && it.accountIdOrId == defaultAccountId }
+        ?: firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
+        ?: firstOrNull()
+
+/** Loaded content for the Home Dashboard. */
+@Immutable
+data class HomeContent(
+    val greetingName: String,
+    val primaryAccount: Account?,
+    val accounts: List<Account> = emptyList(),
+    val totalAccountCount: Int,
 )
-
-sealed interface HomeAction {
-    /** Pull-to-refresh — fans out to every stream. */
-    data object RefreshAll : HomeAction
-
-    /** Retry just the Top Movers widget (after an error). */
-    data object RetryTopMovers : HomeAction
-
-    /** Retry just the Exchange Rate widget (after an error). */
-    data object RetryExchangeRate : HomeAction
-}

@@ -26,6 +26,11 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
+    val isPushNotificationsEnabled: Boolean = true,
+    val isTransactionAlertsEnabled: Boolean = true,
+    val isMarketingEnabled: Boolean = false,
+    val authToken: String? = null,
+    val defaultAccountId: String = "",
 ) {
     companion object {
         val DEFAULT = UserData(
@@ -35,13 +40,16 @@ data class UserData(
             darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
             useDynamicColor = false,
             appLanguage = LanguageConfig.DEFAULT,
-            isAuthenticated = true,
-            isUnlocked = true,
+            isAuthenticated = false,
+            isUnlocked = false,
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
             showOnboarding = false,
             firstTimeUser = false,
             enableScreenCapture = false,
+            isPushNotificationsEnabled = true,
+            isTransactionAlertsEnabled = true,
+            isMarketingEnabled = false,
         )
     }
 }

@@ -14,17 +14,8 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
-import androidx.room3.TypeConverters
-import org.mifosx.openbanking.core.database.crypto.converter.FintechTypeConverters
-import org.mifosx.openbanking.core.database.crypto.dao.CoinDetailDao
-import org.mifosx.openbanking.core.database.crypto.dao.CoinMarketDao
-import org.mifosx.openbanking.core.database.crypto.entity.CoinDetailEntity
-import org.mifosx.openbanking.core.database.crypto.entity.CoinMarketEntity
-import org.mifosx.openbanking.core.database.currency.converter.ChargeTypeConverters
-import org.mifosx.openbanking.core.database.currency.dao.ExchangeRatesDao
-import org.mifosx.openbanking.core.database.currency.dao.RateHistoryDao
-import org.mifosx.openbanking.core.database.currency.entity.ExchangeRatesEntity
-import org.mifosx.openbanking.core.database.currency.entity.RateHistoryEntity
+import org.mifosx.openbanking.core.database.cache.ObpCacheDao
+import org.mifosx.openbanking.core.database.cache.ObpCacheEntity
 import org.mifosx.openbanking.core.database.infra.dao.BookkeeperDao
 import org.mifosx.openbanking.core.database.infra.dao.DraftDao
 import org.mifosx.openbanking.core.database.infra.dao.FetchedAtDao
@@ -33,8 +24,6 @@ import org.mifosx.openbanking.core.database.infra.entity.DraftEntity
 import org.mifosx.openbanking.core.database.infra.entity.FetchedAtEntity
 import org.mifosx.openbanking.core.database.sample.dao.SampleDao
 import org.mifosx.openbanking.core.database.sample.entity.SampleEntity
-import org.mifosx.openbanking.core.database.watchlist.dao.WatchlistDao
-import org.mifosx.openbanking.core.database.watchlist.entity.WatchlistEntity
 
 /**
  * KSP-generated constructor bridge for [AppDatabase].
@@ -65,42 +54,28 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
 @Database(
     entities = [
         SampleEntity::class,
-        ExchangeRatesEntity::class,
-        CoinMarketEntity::class,
-        CoinDetailEntity::class,
-        RateHistoryEntity::class,
         BookkeeperEntity::class,
         FetchedAtEntity::class,
         DraftEntity::class,
-        WatchlistEntity::class,
+        ObpCacheEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
     autoMigrations = [
-        // v3 → v4: adds `framework_fetched_at` for durable lastFetchedAt timestamps.
-        AutoMigration(from = 3, to = 4),
-        // v4 → v5: adds `framework_submit_drafts` for offline-first form submission outbox.
-        AutoMigration(from = 4, to = 5),
-        // v5 → v6: adds `personal_watchlist` for the user's private watchlist.
-        AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 1, to = 2),
     ],
 )
-@TypeConverters(ChargeTypeConverters::class, FintechTypeConverters::class)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract val sampleDao: SampleDao
-    abstract val exchangeRatesDao: ExchangeRatesDao
-    abstract val coinMarketDao: CoinMarketDao
-    abstract val coinDetailDao: CoinDetailDao
-    abstract val rateHistoryDao: RateHistoryDao
     abstract val bookkeeperDao: BookkeeperDao
     abstract val fetchedAtDao: FetchedAtDao
     abstract val draftDao: DraftDao
-    abstract val watchlistDao: WatchlistDao
+    abstract val obpCacheDao: ObpCacheDao
 
     companion object {
-        const val VERSION = 6
+        const val VERSION = 2
         const val DATABASE_NAME = "mifos_database.db"
     }
 }

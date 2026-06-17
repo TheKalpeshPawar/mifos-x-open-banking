@@ -17,9 +17,8 @@ import kotlinx.serialization.Serializable
  * Persistent entity for the `samples` table.
  *
  * Uses Room 3 annotations from `androidx.room3` — works on all KMP targets.
- * The class is also [@Serializable][Serializable] so it can be used with
- * [ChargeTypeConverters][org.mifosx.openbanking.core.database.currency.converter.ChargeTypeConverters]
- * for JSON serialization in type-converter columns.
+ * The class is also [@Serializable][Serializable] so it can be persisted via
+ * type-converter columns when needed.
  *
  * @property id Auto-generated primary key.
  * @property name Human-readable sample name.
