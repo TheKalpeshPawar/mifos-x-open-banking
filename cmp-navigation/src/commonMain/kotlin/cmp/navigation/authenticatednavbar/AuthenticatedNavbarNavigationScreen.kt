@@ -29,7 +29,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
-import cmp.navigation.placeholder.FoDashboardRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -44,7 +43,6 @@ import org.mifosx.openbanking.feature.profile.profileDestination
 import org.mifosx.openbanking.feature.settings.SettingsRoute
 import org.mifosx.openbanking.feature.settings.notificationDestination
 import org.mifosx.openbanking.feature.settings.settingsDestination
-import org.openmf.kmptemplate.BuildKonfig
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
@@ -84,10 +82,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    // Flavor-aware tab set, resolved from the userType build flavor (app-shell.yaml).
-    val isFieldOfficer = BuildKonfig.IS_FIELDOFFICER
-    val navigationItems = if (isFieldOfficer) fieldOfficerNavBarTabs else consumerNavBarTabs
-    val startDestination: Any = if (isFieldOfficer) FoDashboardRoute else HomeDestination
+    val navigationItems = consumerNavBarTabs
+    val startDestination: Any = HomeDestination
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 

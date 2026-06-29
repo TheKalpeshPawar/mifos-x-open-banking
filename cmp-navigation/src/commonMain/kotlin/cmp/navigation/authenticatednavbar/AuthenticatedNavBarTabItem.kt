@@ -10,32 +10,20 @@
 package cmp.navigation.authenticatednavbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.People
 import androidx.compose.ui.graphics.vector.ImageVector
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.accounts
-import cmp.navigation.generated.resources.applications
 import cmp.navigation.generated.resources.cards
-import cmp.navigation.generated.resources.customers
-import cmp.navigation.generated.resources.dashboard
 import cmp.navigation.generated.resources.home
-import cmp.navigation.generated.resources.messages
 import cmp.navigation.generated.resources.more
 import cmp.navigation.generated.resources.pay
-import cmp.navigation.placeholder.AccountApplicationsRoute
 import cmp.navigation.placeholder.AccountsRoute
 import cmp.navigation.placeholder.CardsRoute
-import cmp.navigation.placeholder.CustomerMessagesRoute
-import cmp.navigation.placeholder.CustomerSearchRoute
-import cmp.navigation.placeholder.FoDashboardRoute
 import cmp.navigation.placeholder.SendMoneyRoute
 import cmp.navigation.utils.toObjectNavigationRoute
 import kotlinx.collections.immutable.ImmutableList
@@ -47,13 +35,11 @@ import org.mifosx.openbanking.feature.home.HomeRoute
 import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
- * Flavor-aware bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:
- *  - consumer:     Home · Accounts · Pay · Cards · More
- *  - fieldOfficer: Dashboard · Customers · Applications · Messages · More
+ * Consumer bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:
+ *  - Home · Accounts · Pay · Cards · More
  *
  * Non-home tabs point at Phase 2 placeholder routes; their real feature modules
- * land in Phases 4–6. The active set is chosen at runtime from the `userType`
- * flavor (BuildKonfig.IS_FIELDOFFICER) — see [authenticatedNavBarTabs].
+ * land in Phases 4–6.
  */
 sealed class AuthenticatedNavBarTabItem(
     override val selectedIcon: ImageVector,
@@ -106,47 +92,6 @@ sealed class AuthenticatedNavBarTabItem(
         testTag = "CardsTab",
     )
 
-    // ─── Field officer ──────────────────────────────────────────────────────────
-    data object DashboardTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.Filled.Dashboard,
-        icon = Icons.Filled.Dashboard,
-        labelRes = Res.string.dashboard,
-        contentDescriptionRes = Res.string.dashboard,
-        graphRoute = FoDashboardRoute.toObjectNavigationRoute(),
-        startDestinationRoute = FoDashboardRoute.toObjectNavigationRoute(),
-        testTag = "DashboardTab",
-    )
-
-    data object CustomersTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.Filled.People,
-        icon = Icons.Filled.People,
-        labelRes = Res.string.customers,
-        contentDescriptionRes = Res.string.customers,
-        graphRoute = CustomerSearchRoute.toObjectNavigationRoute(),
-        startDestinationRoute = CustomerSearchRoute.toObjectNavigationRoute(),
-        testTag = "CustomersTab",
-    )
-
-    data object ApplicationsTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.Filled.Description,
-        icon = Icons.Filled.Description,
-        labelRes = Res.string.applications,
-        contentDescriptionRes = Res.string.applications,
-        graphRoute = AccountApplicationsRoute.toObjectNavigationRoute(),
-        startDestinationRoute = AccountApplicationsRoute.toObjectNavigationRoute(),
-        testTag = "ApplicationsTab",
-    )
-
-    data object MessagesTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.AutoMirrored.Filled.Message,
-        icon = Icons.AutoMirrored.Filled.Message,
-        labelRes = Res.string.messages,
-        contentDescriptionRes = Res.string.messages,
-        graphRoute = CustomerMessagesRoute.toObjectNavigationRoute(),
-        startDestinationRoute = CustomerMessagesRoute.toObjectNavigationRoute(),
-        testTag = "MessagesTab",
-    )
-
     // ─── Shared ───────────────────────────────────────────────────────────────
     data object MoreTab : AuthenticatedNavBarTabItem(
         selectedIcon = Icons.Filled.MoreHoriz,
@@ -165,14 +110,5 @@ val consumerNavBarTabs: ImmutableList<AuthenticatedNavBarTabItem> = persistentLi
     AuthenticatedNavBarTabItem.AccountsTab,
     AuthenticatedNavBarTabItem.PayTab,
     AuthenticatedNavBarTabItem.CardsTab,
-    AuthenticatedNavBarTabItem.MoreTab,
-)
-
-/** Field-officer bottom-nav set (app-shell.yaml `fieldOfficer.bottom_nav`). */
-val fieldOfficerNavBarTabs: ImmutableList<AuthenticatedNavBarTabItem> = persistentListOf(
-    AuthenticatedNavBarTabItem.DashboardTab,
-    AuthenticatedNavBarTabItem.CustomersTab,
-    AuthenticatedNavBarTabItem.ApplicationsTab,
-    AuthenticatedNavBarTabItem.MessagesTab,
     AuthenticatedNavBarTabItem.MoreTab,
 )

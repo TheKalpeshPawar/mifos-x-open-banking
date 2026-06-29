@@ -18,11 +18,11 @@ import kotlinx.serialization.Serializable
 import template.core.base.ui.nav.composableWithStayTransitions
 
 /*
- * Type-safe route table for all 44 idea-layer screens (Phase 2 stub).
+ * Type-safe route table for the consumer AISP idea-layer screens (Phase 2 stub).
  *
  * The 6 screens that already own a real destination — home, profile, settings,
  * login, splash, notifications — are wired by their own modules. The remaining
- * 38 below are placeholder destinations: type-safe @Serializable routes rendering
+ * 26 below are placeholder destinations: type-safe @Serializable routes rendering
  * [PlaceholderScreen], replaced by real feature modules in Phases 4–6. Detail
  * routes are arg-less data objects for now; their id/key args are added when the
  * owning feature is implemented.
@@ -69,31 +69,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object ConsentManagerRoute
 
-// ─── Field officer ───────────────────────────────────────────────────────────
-@Serializable data object FoDashboardRoute
-
-@Serializable data object CustomerSearchRoute
-
-@Serializable data object CustomerDetailRoute
-
-@Serializable data object CustomerProfileRoute
-
-@Serializable data object CustomerOnboardingRoute
-
-@Serializable data object CorporateOnboardingRoute
-
-@Serializable data object KycReviewRoute
-
-@Serializable data object AccountApplicationsRoute
-
-@Serializable data object ApplicationDetailRoute
-
-@Serializable data object AgentRegistrationRoute
-
-@Serializable data object MeetingsRoute
-
-@Serializable data object CustomerMessagesRoute
-
 // ─── Shared (non-tab) ────────────────────────────────────────────────────────
 @Serializable data object ChangePasswordRoute
 
@@ -111,15 +86,9 @@ import template.core.base.ui.nav.composableWithStayTransitions
 fun NavController.navigateToAccounts(navOptions: NavOptions? = null) = navigate(AccountsRoute, navOptions)
 fun NavController.navigateToSendMoney(navOptions: NavOptions? = null) = navigate(SendMoneyRoute, navOptions)
 fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(CardsRoute, navOptions)
-fun NavController.navigateToFoDashboard(navOptions: NavOptions? = null) = navigate(FoDashboardRoute, navOptions)
-fun NavController.navigateToCustomerSearch(navOptions: NavOptions? = null) = navigate(CustomerSearchRoute, navOptions)
-fun NavController.navigateToAccountApplications(navOptions: NavOptions? = null) =
-    navigate(AccountApplicationsRoute, navOptions)
-fun NavController.navigateToCustomerMessages(navOptions: NavOptions? = null) =
-    navigate(CustomerMessagesRoute, navOptions)
 
 /**
- * Registers empty composables for all 38 not-yet-built banking screens. Wired
+ * Registers empty composables for all 26 not-yet-built banking screens. Wired
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
@@ -143,19 +112,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
     composableWithStayTransitions<ProductsRoute> { PlaceholderScreen("Products") }
     composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
-
-    composableWithStayTransitions<FoDashboardRoute> { PlaceholderScreen("Dashboard") }
-    composableWithStayTransitions<CustomerSearchRoute> { PlaceholderScreen("Customers") }
-    composableWithStayTransitions<CustomerDetailRoute> { PlaceholderScreen("Customer detail") }
-    composableWithStayTransitions<CustomerProfileRoute> { PlaceholderScreen("Customer profile") }
-    composableWithStayTransitions<CustomerOnboardingRoute> { PlaceholderScreen("Customer onboarding") }
-    composableWithStayTransitions<CorporateOnboardingRoute> { PlaceholderScreen("Corporate onboarding") }
-    composableWithStayTransitions<KycReviewRoute> { PlaceholderScreen("KYC review") }
-    composableWithStayTransitions<AccountApplicationsRoute> { PlaceholderScreen("Applications") }
-    composableWithStayTransitions<ApplicationDetailRoute> { PlaceholderScreen("Application detail") }
-    composableWithStayTransitions<AgentRegistrationRoute> { PlaceholderScreen("Agent registration") }
-    composableWithStayTransitions<MeetingsRoute> { PlaceholderScreen("Meetings") }
-    composableWithStayTransitions<CustomerMessagesRoute> { PlaceholderScreen("Messages") }
 
     composableWithStayTransitions<ChangePasswordRoute> { PlaceholderScreen("Change password") }
     composableWithStayTransitions<AboutRoute> { PlaceholderScreen("About") }
