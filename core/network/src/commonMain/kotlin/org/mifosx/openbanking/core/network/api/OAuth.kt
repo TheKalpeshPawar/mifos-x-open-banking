@@ -14,7 +14,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.parameters
 import org.mifosx.openbanking.core.model.createConsent.CreateConsentTokenSuccess
-import org.mifosx.openbanking.core.network.AccessScope
 import org.mifosx.openbanking.core.network.HSBCUKSandboxConfig
 import org.mifosx.openbanking.core.network.buildClientAssertion
 import org.mifosx.openbanking.core.network.getBaseUrl
