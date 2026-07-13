@@ -15,15 +15,15 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RefreshTokenResponse(
     @SerialName("access_token")
-    val accesstoken: String? = null,
+    val accessToken: String? = null,
     @SerialName("token_type")
-    val tokentype: String? = null,
+    val tokenType: String? = null,
     @SerialName("refresh_token")
-    val refreshtoken: String? = null,
+    val refreshToken: String? = null,
     @SerialName("expires_in")
-    val expiresin: Int? = null,
+    val expiresIn: Int? = null,
     @SerialName("scope")
     val scope: String? = null,
     @SerialName("id_token")
-    val idtoken: String? = null,
+    val idtToken: String? = null,
 )

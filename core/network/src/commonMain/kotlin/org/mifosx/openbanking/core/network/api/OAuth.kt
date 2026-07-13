@@ -25,7 +25,7 @@ class OAuth(
 ) {
     @OptIn(ExperimentalUuidApi::class)
     suspend fun getCCToken(
-        scope: AccessScope,
+        scope: String,
         clientId: String,
         kid: String,
         tokenUrl: String,
@@ -46,13 +46,16 @@ class OAuth(
             url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token",
             formParameters = parameters {
                 append("grant_type", "client_credentials")
-                append("scope", scope.scope)
+                append("scope", scope)
                 append("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
                 append("client_assertion", clientAssertion)
             },
         ).body()
     }
 
-    suspend fun initiateConsentAuthorization() {
+    suspend fun initiateConsentAuthorization(
+        redirectUri: String,
+        state: String,
+    ) {
     }
 }

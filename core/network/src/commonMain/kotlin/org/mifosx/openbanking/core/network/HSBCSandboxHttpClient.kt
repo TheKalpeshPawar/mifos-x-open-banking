@@ -9,18 +9,21 @@
  */
 package org.mifosx.openbanking.core.network
 
+import co.touchlab.kermit.Logger.Companion.i
 import com.russhwolf.settings.Settings
-import com.russhwolf.settings.get
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.auth.providers.BasicAuthConfig
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.request.forms.submitForm
-import io.ktor.client.request.url
 import io.ktor.http.parameters
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import template.core.base.network.httpClient
-import template.core.base.network.setupDefaultHttpClientConfig
+import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
+import template.core.base.network.setupDefaultHttpClient
+import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 const val HSBC_TOKENS = "hsbc_tokens"
 
@@ -49,24 +52,46 @@ internal fun loadTokens(
     return null
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun hsbcSandboxHttpClient(
+    clientId: String,
+    kid: String,
+    privateKeyPem: String,
     settings: Settings,
 ): HttpClient {
-    suspend fun refreshAccessToken(httpClient: HttpClient): AuthTokens {
-        val refreshToken = "v1.1/oauth2/token"
-        val baseUrl = getBaseUrl(HSBCUKSandboxConfig.UKPersonal)
+    suspend fun refreshAccessToken(
+        httpClient: HttpClient,
+        refreshToken: String,
+    ): AuthTokens {
+        val url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token"
+        val redirectUri = HSBCUKSandboxConfig.UKPersonal.bankHost
 
-        return httpClient.submitForm(
+        val clientAssertion: String = buildClientAssertion(
+            clientId = clientId,
+            kid = kid,
+            tokenUrl = url,
+            nowEpochSeconds =  Clock.System.now().epochSeconds,
+            jti = Uuid.generateV4().toString(),
+            privateKeyPem = privateKeyPem
+        )
+        val refreshToken: RefreshTokenResponse = httpClient.submitForm(
             url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token",
             formParameters = parameters {
                 append("grant_type", "refresh_token")
                 append("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
                 append("client_assertion", clientAssertion)
+                append("refresh_token",refreshToken)
+                append("redirect_uri", redirectUri)
             },
         ).body()
+
+        return AuthTokens(
+            accessToken = refreshToken.accessToken?:"",
+            refreshToken = refreshToken.refreshToken
+        )
     }
 
-    val httpClientConfig = setupDefaultHttpClientConfig(
+    return setupDefaultHttpClient(
         baseUrl = getBaseUrl(HSBCUKSandboxConfig.UKPersonal),
         isReleaseBuild = false,
         authRequiredUrl = listOf(getBaseUrl(HSBCUKSandboxConfig.UKPersonal)),
@@ -83,26 +108,24 @@ fun hsbcSandboxHttpClient(
                 )
             }
         },
-        bearerRefreshProvider = {
+        bearerRefreshProvider = { client->
+            val oldAuthToke = loadTokens(settings)
+
+            oldAuthToke?.refreshToken?.let {
+                val response = refreshAccessToken(
+                    client,
+                    refreshToken = it
+                )
+                saveTokens(
+                    settings,
+                    accessTokens = response
+                )
+
+                BearerTokens(
+                    response.accessToken,
+                    response.refreshToken
+                )
+            }
         },
     )
-
-    return HttpClient(httpClientConfig)
-}
-
-class OidcHttpClient(
-    val datastore: Settings,
-    val httpClient: HttpClient,
-)
-
-enum class GrantType(val value: String) {
-    CLIENT_CREDENTIALS("client_credentials"),
-    AUTHORIZATION_CODE("authorization_code"),
-    REFRESH_TOKEN("refresh_token"),
-}
-
-enum class AccessScope(val scope: String) {
-    ACCOUNTS("accounts"),
-    PAYMENTS("payments"),
-    OPENID_ACCOUNTS("openid accounts"),
 }

@@ -11,7 +11,6 @@ package template.core.base.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BasicAuthCredentials
@@ -28,8 +27,6 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import template.core.base.security.CertificatePinConfig
 import co.touchlab.kermit.Logger.Companion as KermitLogger
@@ -72,7 +69,7 @@ expect fun httpClient(config: HttpClientConfig<*>.() -> Unit): HttpClient
  * @return A configuration lambda to be passed into the Ktor [HttpClient].
  */
 @Suppress("UnusedParameter")
-fun setupDefaultHttpClientConfig(
+fun setupDefaultHttpClient(
     baseUrl: String,
     isReleaseBuild: Boolean = false,
     authRequiredUrl: List<String> = emptyList(),
@@ -92,10 +89,10 @@ fun setupDefaultHttpClientConfig(
     basicCredentialsProvider: (() -> BasicAuthCredentials)? = null,
     digestCredentialsProvider: (() -> DigestAuthCredentials)? = null,
     bearerTokensProvider: (() -> BearerTokens?)? = null,
-    bearerRefreshProvider: ((HttpClient) -> BearerTokens?)? = null,
+    bearerRefreshProvider: (suspend (HttpClient) -> BearerTokens?)? = null,
     certificatePinConfig: CertificatePinConfig = CertificatePinConfig.default(),
 ): HttpClient {
-    val client = httpClient {
+    return httpClient {
         when {
             bearerTokensProvider != null -> {
                 install(Auth) {
@@ -104,11 +101,12 @@ fun setupDefaultHttpClientConfig(
 
                         if (bearerRefreshProvider != null) {
                             refreshTokens {
+
                                 val currentTokens = bearerTokensProvider()
-                                if (currentTokens != oldTokens) {
+                                if (currentTokens != this.oldTokens) {
                                     currentTokens
                                 } else {
-                                    bearerRefreshProvider(client)
+                                    bearerRefreshProvider(this.client)
                                 }
                             }
                         }
@@ -178,6 +176,4 @@ fun setupDefaultHttpClientConfig(
             json(jsonConfig)
         }
     }
-
-    return client
 }
