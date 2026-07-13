@@ -1,0 +1,37 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ */
+package org.mifosx.openbanking.core.model.ais.statements
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Statement(
+    @SerialName("AccountId")
+    val accountId: String? = null,
+    @SerialName("StatementId")
+    val statementId: String? = null,
+    @SerialName("StatementReference")
+    val statementReference: String? = null,
+    @SerialName("Type")
+    val type: String? = null,
+    @SerialName("StartDateTime")
+    val startDateTime: String? = null,
+    @SerialName("EndDateTime")
+    val endDateTime: String? = null,
+    @SerialName("CreationDateTime")
+    val creationDateTime: String? = null,
+    @SerialName("StatementDateTime")
+    val statementDateTime: List<StatementDateTime>? = null,
+    @SerialName("StatementValue")
+    val statementValue: List<StatementValue>? = null,
+    @SerialName("StatementAmount")
+    val statementAmount: List<StatementAmount>? = null,
+)
