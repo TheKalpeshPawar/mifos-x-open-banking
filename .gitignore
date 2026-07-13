@@ -111,3 +111,6 @@ vendor/
 *.key
 *.pem
 .mifos-secure/
+
+# Generated knowledge-graph output
+graphify-out/

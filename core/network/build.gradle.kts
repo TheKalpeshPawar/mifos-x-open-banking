@@ -49,6 +49,15 @@ kotlin {
             implementation(libs.ktorfit.lib)
 
             implementation(libs.squareup.okio)
+
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider.optimal)
+
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
+            implementation(libs.multiplatform.settings.coroutines)
+
+            api(libs.kermit.logging)
         }
 
         androidMain.dependencies {

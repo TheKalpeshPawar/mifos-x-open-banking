@@ -11,6 +11,7 @@ package template.core.base.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BasicAuthCredentials
@@ -71,7 +72,7 @@ expect fun httpClient(config: HttpClientConfig<*>.() -> Unit): HttpClient
  * @return A configuration lambda to be passed into the Ktor [HttpClient].
  */
 @Suppress("UnusedParameter")
-fun setupDefaultHttpClient(
+fun setupDefaultHttpClientConfig(
     baseUrl: String,
     isReleaseBuild: Boolean = false,
     authRequiredUrl: List<String> = emptyList(),
@@ -90,91 +91,93 @@ fun setupDefaultHttpClient(
     },
     basicCredentialsProvider: (() -> BasicAuthCredentials)? = null,
     digestCredentialsProvider: (() -> DigestAuthCredentials)? = null,
-    bearerTokensProvider: (() -> BearerTokens)? = null,
-    bearerRefreshProvider: (() -> BearerTokens)? = null,
+    bearerTokensProvider: (() -> BearerTokens?)? = null,
+    bearerRefreshProvider: ((HttpClient) -> BearerTokens?)? = null,
     certificatePinConfig: CertificatePinConfig = CertificatePinConfig.default(),
-): HttpClientConfig<*>.() -> Unit = {
-    val refreshMutex = Mutex()
+): HttpClient {
+    val client = httpClient {
+        when {
+            bearerTokensProvider != null -> {
+                install(Auth) {
+                    bearer {
+                        loadTokens { bearerTokensProvider() }
 
-    when {
-        bearerTokensProvider != null -> {
-            install(Auth) {
-                bearer {
-                    loadTokens { bearerTokensProvider() }
-                    if (bearerRefreshProvider != null) {
-                        refreshTokens {
-                            refreshMutex.withLock {
+                        if (bearerRefreshProvider != null) {
+                            refreshTokens {
                                 val currentTokens = bearerTokensProvider()
                                 if (currentTokens != oldTokens) {
                                     currentTokens
                                 } else {
-                                    bearerRefreshProvider()
+                                    bearerRefreshProvider(client)
                                 }
                             }
                         }
+
+                        sendWithoutRequest { request ->
+                            request.url.host in authRequiredUrl
+                        }
                     }
-                    sendWithoutRequest { request ->
-                        request.url.host in authRequiredUrl
+                }
+            }
+
+            basicCredentialsProvider != null -> {
+                install(Auth) {
+                    basic {
+                        credentials {
+                            basicCredentialsProvider()
+                        }
+                        sendWithoutRequest { request ->
+                            request.url.host in authRequiredUrl
+                        }
+                    }
+                }
+            }
+
+            digestCredentialsProvider != null -> {
+                install(Auth) {
+                    digest {
+                        credentials {
+                            digestCredentialsProvider()
+                        }
                     }
                 }
             }
         }
 
-        basicCredentialsProvider != null -> {
-            install(Auth) {
-                basic {
-                    credentials {
-                        basicCredentialsProvider()
-                    }
-                    sendWithoutRequest { request ->
-                        request.url.host in authRequiredUrl
-                    }
+        defaultRequest {
+            url(baseUrl)
+            defaultHeaders.forEach { (key, value) ->
+                headers.append(key, value)
+            }
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = requestTimeout
+            socketTimeoutMillis = socketTimeout
+        }
+
+        install(Logging) {
+            logger = httpLogger
+            level = httpLogLevel
+            filter { request ->
+                loggableHosts.any { host ->
+                    request.url.host.contains(host)
+                }
+            }
+            sanitizeHeader { header ->
+                header in sensitiveHeaders
+            }
+            logger = object : Logger {
+                override fun log(message: String) {
+                    KermitLogger.d(tag = "KtorClient", messageString = message)
                 }
             }
         }
 
-        digestCredentialsProvider != null -> {
-            install(Auth) {
-                digest {
-                    credentials {
-                        digestCredentialsProvider()
-                    }
-                }
-            }
+        install(ContentNegotiation) {
+            json(jsonConfig)
         }
     }
 
-    defaultRequest {
-        url(baseUrl)
-        defaultHeaders.forEach { (key, value) ->
-            headers.append(key, value)
-        }
-    }
-
-    install(HttpTimeout) {
-        requestTimeoutMillis = requestTimeout
-        socketTimeoutMillis = socketTimeout
-    }
-
-    install(Logging) {
-        logger = httpLogger
-        level = httpLogLevel
-        filter { request ->
-            loggableHosts.any { host ->
-                request.url.host.contains(host)
-            }
-        }
-        sanitizeHeader { header ->
-            header in sensitiveHeaders
-        }
-        logger = object : Logger {
-            override fun log(message: String) {
-                KermitLogger.d(tag = "KtorClient", messageString = message)
-            }
-        }
-    }
-
-    install(ContentNegotiation) {
-        json(jsonConfig)
-    }
+    return client
 }

@@ -27,8 +27,6 @@ interface UserPreferencesRepository {
 
     val userData: StateFlow<UserData>
 
-    val authToken: String?
-
     val passcode: String
 
     val observeLanguage: Flow<LanguageConfig>
