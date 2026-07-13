@@ -7,7 +7,7 @@
  *
  * See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
  */
-package template.core.base.store.screen
+package template.core.base.common.screen
 
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant

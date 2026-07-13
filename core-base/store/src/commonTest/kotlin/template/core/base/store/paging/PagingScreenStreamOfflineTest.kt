@@ -12,7 +12,7 @@ package template.core.base.store.paging
 import template.core.base.store.error.OfflineException
 import template.core.base.store.fixtures.FakeNetworkMonitor
 import template.core.base.store.infra.FakeFetchedAtRepository
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkType

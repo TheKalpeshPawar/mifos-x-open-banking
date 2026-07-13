@@ -9,7 +9,7 @@
  */
 package template.core.base.store.submit
 
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 
 /**
  * Combined UI state for edit/mutation screens that load existing data before allowing changes.

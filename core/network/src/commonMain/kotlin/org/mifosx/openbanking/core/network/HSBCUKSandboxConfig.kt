@@ -16,11 +16,9 @@ data class HSBCUKSandboxConfig(
     companion object {
         val UKPersonal = HSBCUKSandboxConfig(
             bankHost = "secure.sandbox.ob.hsbc.co.uk",
-            redirectUri = "https://thekalpeshpawar.github.io/obp-callback/callback/"
+            redirectUri = "https://thekalpeshpawar.github.io/obp-callback/callback/",
         )
     }
-
-
 }
 
 fun getBaseUrl(config: HSBCUKSandboxConfig): String {

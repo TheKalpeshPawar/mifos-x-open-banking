@@ -19,14 +19,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import template.core.base.store.screen.DataFreshness
+import template.core.base.common.screen.DataFreshness
 import template.core.base.ui.screen.DefaultEmptyContent
 import template.core.base.ui.screen.DefaultErrorContent
 import template.core.base.ui.screen.DefaultLoadingContent
 import template.core.base.ui.screen.DefaultNoNetworkContent
 import template.core.base.ui.screen.ScreenContent
 import template.core.base.store.paging.PagingScreenStream
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 
 /**
  * [ScreenContent] variant for paginated lists — slot-only overload for screens with

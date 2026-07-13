@@ -9,7 +9,7 @@
  */
 package template.core.base.ui.screen
 
-import template.core.base.store.screen.DataFreshness
+import template.core.base.common.screen.DataFreshness
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

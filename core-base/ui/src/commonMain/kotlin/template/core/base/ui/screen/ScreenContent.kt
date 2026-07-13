@@ -44,8 +44,8 @@ import io.github.alexzhirkevich.compottie.rememberLottieComposition
 import io.github.alexzhirkevich.compottie.rememberLottiePainter
 import template.core.base.designsystem.component.KptShimmerLoadingBox
 import template.core.base.designsystem.theme.KptTheme
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 
 /** Default size of the visual icon/illustration in the empty/error/no-network states. */
 private val DefaultVisualSize = 64.dp

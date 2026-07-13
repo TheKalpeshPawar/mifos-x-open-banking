@@ -9,11 +9,9 @@
  */
 package org.mifosx.openbanking.core.network
 
-import co.touchlab.kermit.Logger.Companion.i
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.auth.providers.BasicAuthConfig
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.parameters
@@ -70,9 +68,9 @@ fun hsbcSandboxHttpClient(
             clientId = clientId,
             kid = kid,
             tokenUrl = url,
-            nowEpochSeconds =  Clock.System.now().epochSeconds,
+            nowEpochSeconds = Clock.System.now().epochSeconds,
             jti = Uuid.generateV4().toString(),
-            privateKeyPem = privateKeyPem
+            privateKeyPem = privateKeyPem,
         )
         val refreshToken: RefreshTokenResponse = httpClient.submitForm(
             url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token",
@@ -80,14 +78,14 @@ fun hsbcSandboxHttpClient(
                 append("grant_type", "refresh_token")
                 append("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
                 append("client_assertion", clientAssertion)
-                append("refresh_token",refreshToken)
+                append("refresh_token", refreshToken)
                 append("redirect_uri", redirectUri)
             },
         ).body()
 
         return AuthTokens(
-            accessToken = refreshToken.accessToken?:"",
-            refreshToken = refreshToken.refreshToken
+            accessToken = refreshToken.accessToken ?: "",
+            refreshToken = refreshToken.refreshToken,
         )
     }
 
@@ -108,22 +106,22 @@ fun hsbcSandboxHttpClient(
                 )
             }
         },
-        bearerRefreshProvider = { client->
+        bearerRefreshProvider = { client ->
             val oldAuthToke = loadTokens(settings)
 
             oldAuthToke?.refreshToken?.let {
                 val response = refreshAccessToken(
                     client,
-                    refreshToken = it
+                    refreshToken = it,
                 )
                 saveTokens(
                     settings,
-                    accessTokens = response
+                    accessTokens = response,
                 )
 
                 BearerTokens(
                     response.accessToken,
-                    response.refreshToken
+                    response.refreshToken,
                 )
             }
         },

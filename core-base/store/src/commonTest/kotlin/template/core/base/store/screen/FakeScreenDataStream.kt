@@ -9,6 +9,9 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
