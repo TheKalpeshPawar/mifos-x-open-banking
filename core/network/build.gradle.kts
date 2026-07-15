@@ -145,6 +145,10 @@ kotlin {
             implementation(libs.koin.android)
         }
 
+        desktopMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
