@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.data.util
 
@@ -31,10 +31,10 @@ fun <T> NetworkResult<T, *>.toScreenState(
     is NetworkResult.Success ->
         if (isEmpty(data)) ScreenState.Empty else ScreenState.Content(data, DataFreshness.FRESH)
 
-    is NetworkResult.Error -> when (error) {
-        NetworkError.UNAUTHORIZED -> ScreenState.Unauthenticated
-        NetworkError.REQUEST_TIMEOUT -> ScreenState.NoNetwork()
-        else -> ScreenState.Error(error.toThrowable(), isNetworkError = false)
+    is NetworkResult.Error -> when (val e = error) {
+        is NetworkError.Client.Unauthorized -> ScreenState.Unauthenticated
+        is NetworkError.Network -> ScreenState.NoNetwork()
+        else -> ScreenState.Error(e.toThrowable(), isNetworkError = false)
     }
 }
 

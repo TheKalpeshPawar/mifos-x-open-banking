@@ -16,6 +16,7 @@ import de.jensklingenberg.ktorfit.converter.TypeData
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerializationException
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -79,35 +80,40 @@ class ResultSuspendConverterFactory : Converter.Factory {
                     return when (result) {
                         is KtorfitResult.Failure -> {
                             Logger.d("ResultConverter") { "Failure: ${result.throwable.message}" }
-                            NetworkResult.Error(NetworkError.UNKNOWN)
+                            NetworkResult.Error(NetworkError.Network(result.throwable))
                         }
 
                         is KtorfitResult.Success -> {
                             val status = result.response.status.value
 
-                            when (status) {
-                                in 200..209 -> {
-                                    try {
-                                        val data = result.response.body(successType) as Any
-                                        NetworkResult.Success(data)
-                                    } catch (e: NoTransformationFoundException) {
-                                        NetworkResult.Error(NetworkError.SERIALIZATION)
-                                    } catch (e: SerializationException) {
-                                        Logger.d("ResultConverter") { "Serialization error: ${e.message}" }
-                                        NetworkResult.Error(NetworkError.SERIALIZATION)
-                                    }
+                            if (status in 200..299) {
+                                try {
+                                    val data = result.response.body(successType) as Any
+                                    NetworkResult.Success(data)
+                                } catch (e: NoTransformationFoundException) {
+                                    NetworkResult.Error(NetworkError.Serialization(e))
+                                } catch (e: SerializationException) {
+                                    Logger.d("ResultConverter") { "Serialization error: ${e.message}" }
+                                    NetworkResult.Error(NetworkError.Serialization(e))
                                 }
-
-                                400 -> NetworkResult.Error(NetworkError.BAD_REQUEST)
-                                401 -> NetworkResult.Error(NetworkError.UNAUTHORIZED)
-                                404 -> NetworkResult.Error(NetworkError.NOT_FOUND)
-                                408 -> NetworkResult.Error(NetworkError.REQUEST_TIMEOUT)
-                                429 -> NetworkResult.Error(NetworkError.TOO_MANY_REQUESTS)
-                                in 500..599 -> NetworkResult.Error(NetworkError.SERVER)
-                                else -> {
-                                    Logger.d("ResultConverter") { "Unhandled status code $status" }
-                                    NetworkResult.Error(NetworkError.UNKNOWN)
+                            } else {
+                                val body = try {
+                                    result.response.bodyAsText()
+                                } catch (e: Throwable) {
+                                    null
                                 }
+                                NetworkResult.Error(
+                                    when (status) {
+                                        400 -> NetworkError.Client.BadRequest(body)
+                                        401 -> NetworkError.Client.Unauthorized(body)
+                                        403 -> NetworkError.Client.Forbidden(body)
+                                        404 -> NetworkError.Client.NotFound(body)
+                                        429 -> NetworkError.Client.RateLimited(body)
+                                        in 400..499 -> NetworkError.Client.Other(status, body)
+                                        in 500..599 -> NetworkError.Server(status, body)
+                                        else -> NetworkError.Unknown()
+                                    },
+                                )
                             }
                         }
                     }
