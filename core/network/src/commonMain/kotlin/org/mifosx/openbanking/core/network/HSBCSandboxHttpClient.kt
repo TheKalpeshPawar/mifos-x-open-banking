@@ -57,6 +57,45 @@ internal fun loadTokens(settings: Settings): AuthTokens? =
     settings.getStringOrNull(HSBC_TOKENS)?.let { Json.decodeFromString(it) }
 
 /**
+ * Exchanges a stored refresh token for a fresh PSU access token via the OAuth2 `refresh_token` grant
+ * (FAPI `private_key_jwt` auth). Called by the client's [Auth] plugin when a request returns 401.
+ */
+@OptIn(ExperimentalUuidApi::class)
+internal suspend fun refreshAccessToken(
+    httpClient: HttpClient,
+    tokenUrl: String,
+    clientId: String,
+    kid: String,
+    signingKeyPem: String,
+    redirectUri: String,
+    refreshToken: String,
+): AuthTokens {
+    val clientAssertion = buildClientAssertion(
+        clientId = clientId,
+        kid = kid,
+        tokenUrl = tokenUrl,
+        nowEpochSeconds = Clock.System.now().epochSeconds,
+        jti = Uuid.generateV4().toString(),
+        privateKeyPem = signingKeyPem,
+    )
+    val response: RefreshTokenResponse = httpClient.submitForm(
+        url = tokenUrl,
+        formParameters = parameters {
+            append("grant_type", "refresh_token")
+            append("client_assertion_type", CLIENT_ASSERTION_TYPE)
+            append("client_assertion", clientAssertion)
+            append("refresh_token", refreshToken)
+            append("redirect_uri", redirectUri)
+        },
+    ).body()
+
+    return AuthTokens(
+        accessToken = response.accessToken ?: "",
+        refreshToken = response.refreshToken,
+    )
+}
+
+/**
  * The single HSBC Open Banking sandbox client.
  *
  * Built on the borrowed [httpClient] engine picker with our own config: mTLS via [installMtls] (the
@@ -66,7 +105,6 @@ internal fun loadTokens(settings: Settings): AuthTokens? =
  * (EncryptedSharedPreferences / Keychain / desktop AES) in DI. The [identity] + [signingKeyPem] are
  * loaded synchronously per platform by `networkPlatformModule`, so this factory is non-suspend.
  */
-@OptIn(ExperimentalUuidApi::class)
 fun hsbcSandboxHttpClient(
     settings: Settings,
     identity: MtlsIdentity,
@@ -76,32 +114,6 @@ fun hsbcSandboxHttpClient(
     val tokenUrl = getBaseUrl(config) + TOKEN_ENDPOINT
     val clientId = HsbcConfig.CLIENT_ID
     val kid = HsbcConfig.KID
-
-    suspend fun refreshAccessToken(httpClient: HttpClient, refreshToken: String): AuthTokens {
-        val clientAssertion = buildClientAssertion(
-            clientId = clientId,
-            kid = kid,
-            tokenUrl = tokenUrl,
-            nowEpochSeconds = Clock.System.now().epochSeconds,
-            jti = Uuid.generateV4().toString(),
-            privateKeyPem = signingKeyPem,
-        )
-        val response: RefreshTokenResponse = httpClient.submitForm(
-            url = tokenUrl,
-            formParameters = parameters {
-                append("grant_type", "refresh_token")
-                append("client_assertion_type", CLIENT_ASSERTION_TYPE)
-                append("client_assertion", clientAssertion)
-                append("refresh_token", refreshToken)
-                append("redirect_uri", config.redirectUri)
-            },
-        ).body()
-
-        return AuthTokens(
-            accessToken = response.accessToken ?: "",
-            refreshToken = response.refreshToken,
-        )
-    }
 
     return httpClient {
         installMtls(identity)
@@ -113,7 +125,15 @@ fun hsbcSandboxHttpClient(
                 }
                 refreshTokens {
                     loadTokens(settings)?.refreshToken?.let { refreshToken ->
-                        val refreshed = refreshAccessToken(client, refreshToken)
+                        val refreshed = refreshAccessToken(
+                            httpClient = client,
+                            tokenUrl = tokenUrl,
+                            clientId = clientId,
+                            kid = kid,
+                            signingKeyPem = signingKeyPem,
+                            redirectUri = config.redirectUri,
+                            refreshToken = refreshToken,
+                        )
                         saveTokens(settings, refreshed)
                         BearerTokens(refreshed.accessToken, refreshed.refreshToken)
                     }
