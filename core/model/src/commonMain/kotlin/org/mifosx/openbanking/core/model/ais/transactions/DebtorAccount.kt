@@ -18,4 +18,8 @@ data class DebtorAccount(
     val schemeName: String? = null,
     @SerialName("Identification")
     val identification: String? = null,
+    @SerialName("Name")
+    val name: String? = null,
+    @SerialName("SecondaryIdentification")
+    val secondaryIdentification: String? = null,
 )

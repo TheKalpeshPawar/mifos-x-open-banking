@@ -118,7 +118,14 @@ suspend fun hsbcSandboxHttpClient(settings: Settings): HttpClient {
                         BearerTokens(refreshed.accessToken, refreshed.refreshToken)
                     }
                 }
-                sendWithoutRequest { request -> request.url.host == config.bankHost }
+                // The PSU bearer is auto-sent to AIS reads only. The token endpoint (client_assertion
+                // auth) and account-access-consents (temporary token, set per call) are excluded.
+                sendWithoutRequest { request ->
+                    val path = request.url.encodedPathSegments.joinToString("/")
+                    request.url.host == config.bankHost &&
+                        "oauth2/token" !in path &&
+                        "account-access-consents" !in path
+                }
             }
         }
 

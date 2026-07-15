@@ -34,4 +34,14 @@ data class Statement(
     val statementValue: List<StatementValue>? = null,
     @SerialName("StatementAmount")
     val statementAmount: List<StatementAmount>? = null,
+    @SerialName("StatementDescription")
+    val statementDescription: List<String>? = null,
+    @SerialName("StatementBenefit")
+    val statementBenefit: List<StatementBenefit>? = null,
+    @SerialName("StatementFee")
+    val statementFee: List<StatementFee>? = null,
+    @SerialName("StatementInterest")
+    val statementInterest: List<StatementInterest>? = null,
+    @SerialName("StatementRate")
+    val statementRate: List<StatementRate>? = null,
 )

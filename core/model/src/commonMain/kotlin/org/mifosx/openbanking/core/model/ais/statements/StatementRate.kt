@@ -7,19 +7,18 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.core.model.ais.statementTransactions
+package org.mifosx.openbanking.core.model.ais.statements
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
-data class DebtorAccount(
-    @SerialName("SchemeName")
-    val schemeName: String? = null,
-    @SerialName("Identification")
-    val identification: String? = null,
-    @SerialName("Name")
-    val name: String? = null,
-    @SerialName("SecondaryIdentification")
-    val secondaryIdentification: String? = null,
+data class StatementRate(
+    // HSBC sandbox returns this as an unquoted number (e.g. "Rate": 1) despite the
+    // swagger string pattern, so JsonPrimitive tolerates both a bare number and a string.
+    @SerialName("Rate")
+    val rate: JsonPrimitive? = null,
+    @SerialName("Type")
+    val type: String? = null,
 )

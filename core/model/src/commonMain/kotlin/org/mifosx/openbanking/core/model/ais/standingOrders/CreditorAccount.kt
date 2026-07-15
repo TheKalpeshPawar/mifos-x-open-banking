@@ -20,4 +20,6 @@ data class CreditorAccount(
     val identification: String? = null,
     @SerialName("Name")
     val name: String? = null,
+    @SerialName("SecondaryIdentification")
+    val secondaryIdentification: String? = null,
 )

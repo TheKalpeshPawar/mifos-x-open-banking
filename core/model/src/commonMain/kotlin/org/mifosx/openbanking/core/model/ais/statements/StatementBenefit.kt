@@ -7,19 +7,15 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.core.model.ais.statementTransactions
+package org.mifosx.openbanking.core.model.ais.statements
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class DebtorAccount(
-    @SerialName("SchemeName")
-    val schemeName: String? = null,
-    @SerialName("Identification")
-    val identification: String? = null,
-    @SerialName("Name")
-    val name: String? = null,
-    @SerialName("SecondaryIdentification")
-    val secondaryIdentification: String? = null,
+data class StatementBenefit(
+    @SerialName("Type")
+    val type: String? = null,
+    @SerialName("Amount")
+    val amount: Amount? = null,
 )

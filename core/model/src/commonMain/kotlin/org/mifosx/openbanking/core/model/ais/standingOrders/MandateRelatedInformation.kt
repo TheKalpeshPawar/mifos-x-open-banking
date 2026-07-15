@@ -16,6 +16,14 @@ import kotlinx.serialization.Serializable
 data class MandateRelatedInformation(
     @SerialName("MandateIdentification")
     val mandateIdentification: String? = null,
+    @SerialName("Classification")
+    val classification: String? = null,
+    @SerialName("CategoryPurposeCode")
+    val categoryPurposeCode: String? = null,
+    @SerialName("FirstPaymentDateTime")
+    val firstPaymentDateTime: String? = null,
+    @SerialName("FinalPaymentDateTime")
+    val finalPaymentDateTime: String? = null,
     @SerialName("Frequency")
     val frequency: Frequency? = null,
 )

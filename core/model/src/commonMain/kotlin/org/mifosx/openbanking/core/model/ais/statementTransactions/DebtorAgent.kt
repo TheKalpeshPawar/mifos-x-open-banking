@@ -13,13 +13,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class DebtorAccount(
+data class DebtorAgent(
     @SerialName("SchemeName")
     val schemeName: String? = null,
     @SerialName("Identification")
     val identification: String? = null,
     @SerialName("Name")
     val name: String? = null,
-    @SerialName("SecondaryIdentification")
-    val secondaryIdentification: String? = null,
+    @SerialName("PostalAddress")
+    val postalAddress: PostalAddress? = null,
+    @SerialName("LEI")
+    val lei: String? = null,
 )
