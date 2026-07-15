@@ -24,9 +24,6 @@ class UserDataRepositoryImpl(
     override val userData: StateFlow<UserData>
         get() = preferencesRepository.userData
 
-    override val authToken: String?
-        get() = preferencesRepository.bearerToken
-
     override val passcode: String
         get() = preferencesRepository.passcode
 
