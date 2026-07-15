@@ -1,4 +1,5 @@
 [versions]
+componentsResources = "1.11.1"
 cryptographyCore = "0.6.0"
 kmpProductFlavors = "2.4.2"
 appPackage = "org.openmf.kmptemplate"
@@ -127,6 +128,7 @@ sqliteBundled = "2.6.2"
 sqliteWeb = "2.6.2"
 
 [libraries]
+components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "componentsResources" }
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptographyCore" }
 cryptography-provider-optimal = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptographyCore" }
 kmp-product-flavors-plugin = { group = "io.github.mobilebytelabs.kmpflavors", name = "flavor-plugin", version.ref = "kmpProductFlavors" }

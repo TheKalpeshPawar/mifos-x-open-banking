@@ -12,6 +12,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.kmp.library.convention)
     alias(libs.plugins.ktrofit)
+    alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.compose.compiler)
     id("kotlinx-serialization")
     id("com.google.devtools.ksp")
 }
@@ -124,6 +126,9 @@ kotlin {
                 implementation(libs.multiplatform.settings.serialization)
                 implementation(libs.multiplatform.settings.coroutines)
 
+                implementation(compose.runtime)
+                implementation(libs.components.resources)
+
                 api(libs.kermit.logging)
             }
         }
@@ -144,6 +149,12 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
     }
+}
+
+compose.resources {
+    publicResClass = false
+    generateResClass = always
+    packageOfResClass = "org.mifosx.openbanking.core.network.generated.resources"
 }
 
 dependencies {

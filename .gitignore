@@ -110,6 +110,10 @@ vendor/
 # Security — NEVER commit encryption keys or secure storage
 *.key
 *.pem
+
+# HSBC sandbox certificate material — supplied locally per developer, never committed
+core/network/src/commonMain/composeResources/files/certs/
+
 .mifos-secure/
 
 # Generated knowledge-graph output
