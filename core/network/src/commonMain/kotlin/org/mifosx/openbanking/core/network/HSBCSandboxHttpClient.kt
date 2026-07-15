@@ -12,18 +12,38 @@ package org.mifosx.openbanking.core.network
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.forms.submitForm
+import io.ktor.http.HttpHeaders
 import io.ktor.http.parameters
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
-import template.core.base.network.setupDefaultHttpClient
+import org.mifosx.openbanking.core.network.certs.CertPaths
+import org.mifosx.openbanking.core.network.certs.loadCertBytes
+import org.mifosx.openbanking.core.network.config.HsbcConfig
+import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
+import org.mifosx.openbanking.core.network.mtls.installMtls
+import template.core.base.network.httpClient
+import co.touchlab.kermit.Logger.Companion as KermitLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 const val HSBC_TOKENS = "hsbc_tokens"
+
+private const val TOKEN_ENDPOINT = "v1.1/oauth2/token"
+private const val CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+private const val REQUEST_TIMEOUT_MS = 60_000L
 
 @Serializable
 data class AuthTokens(
@@ -31,99 +51,105 @@ data class AuthTokens(
     val refreshToken: String? = null,
 )
 
-internal fun saveTokens(
-    settings: Settings,
-    accessTokens: AuthTokens,
-) {
-    settings.putString(
-        HSBC_TOKENS,
-        Json.encodeToString(accessTokens),
-    )
+internal fun saveTokens(settings: Settings, accessTokens: AuthTokens) {
+    settings.putString(HSBC_TOKENS, Json.encodeToString(accessTokens))
 }
 
-internal fun loadTokens(
-    settings: Settings,
-): AuthTokens? {
-    settings.getStringOrNull(HSBC_TOKENS)?.let {
-        return Json.decodeFromString(it)
-    }
-    return null
-}
+internal fun loadTokens(settings: Settings): AuthTokens? =
+    settings.getStringOrNull(HSBC_TOKENS)?.let { Json.decodeFromString(it) }
 
+/**
+ * The single HSBC Open Banking sandbox client.
+ *
+ * Built on the borrowed [httpClient] engine picker with our own config: mTLS via [installMtls]
+ * (transport identity from `composeResources`), FAPI `private_key_jwt` bearer-token refresh (signing
+ * key from `composeResources`, `client_id`/`kid` from [HsbcConfig]), JSON negotiation, sanitized
+ * logging, timeouts, and the sandbox base URL. Tokens persist through the injected [settings] — wire
+ * a secure `Settings` (EncryptedSharedPreferences / Keychain / desktop AES) in DI.
+ */
 @OptIn(ExperimentalUuidApi::class)
-fun hsbcSandboxHttpClient(
-    clientId: String,
-    kid: String,
-    privateKeyPem: String,
-    settings: Settings,
-): HttpClient {
-    suspend fun refreshAccessToken(
-        httpClient: HttpClient,
-        refreshToken: String,
-    ): AuthTokens {
-        val url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token"
-        val redirectUri = HSBCUKSandboxConfig.UKPersonal.bankHost
+suspend fun hsbcSandboxHttpClient(settings: Settings): HttpClient {
+    val config = HSBCUKSandboxConfig.UKPersonal
+    val tokenUrl = getBaseUrl(config) + TOKEN_ENDPOINT
+    val clientId = HsbcConfig.CLIENT_ID
+    val kid = HsbcConfig.KID
 
-        val clientAssertion: String = buildClientAssertion(
+    val identity = MtlsIdentity(pkcs12 = loadCertBytes(CertPaths.TRANSPORT_P12))
+    val signingKeyPem = loadCertBytes(CertPaths.SIGNING_KEY_PEM).decodeToString()
+
+    suspend fun refreshAccessToken(httpClient: HttpClient, refreshToken: String): AuthTokens {
+        val clientAssertion = buildClientAssertion(
             clientId = clientId,
             kid = kid,
-            tokenUrl = url,
+            tokenUrl = tokenUrl,
             nowEpochSeconds = Clock.System.now().epochSeconds,
             jti = Uuid.generateV4().toString(),
-            privateKeyPem = privateKeyPem,
+            privateKeyPem = signingKeyPem,
         )
-        val refreshToken: RefreshTokenResponse = httpClient.submitForm(
-            url = getBaseUrl(HSBCUKSandboxConfig.UKPersonal) + "v1.1/oauth2/token",
+        val response: RefreshTokenResponse = httpClient.submitForm(
+            url = tokenUrl,
             formParameters = parameters {
                 append("grant_type", "refresh_token")
-                append("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+                append("client_assertion_type", CLIENT_ASSERTION_TYPE)
                 append("client_assertion", clientAssertion)
                 append("refresh_token", refreshToken)
-                append("redirect_uri", redirectUri)
+                append("redirect_uri", config.redirectUri)
             },
         ).body()
 
         return AuthTokens(
-            accessToken = refreshToken.accessToken ?: "",
-            refreshToken = refreshToken.refreshToken,
+            accessToken = response.accessToken ?: "",
+            refreshToken = response.refreshToken,
         )
     }
 
-    return setupDefaultHttpClient(
-        baseUrl = getBaseUrl(HSBCUKSandboxConfig.UKPersonal),
-        isReleaseBuild = false,
-        authRequiredUrl = listOf(getBaseUrl(HSBCUKSandboxConfig.UKPersonal)),
-        defaultHeaders = mapOf(
-            "Accept" to "application/json",
-        ),
-        bearerTokensProvider = {
-            val tokens = loadTokens(settings)
+    return httpClient {
+        installMtls(identity)
 
-            tokens?.let {
-                BearerTokens(
-                    it.accessToken,
-                    it.refreshToken,
-                )
+        install(Auth) {
+            bearer {
+                loadTokens {
+                    loadTokens(settings)?.let { BearerTokens(it.accessToken, it.refreshToken) }
+                }
+                refreshTokens {
+                    loadTokens(settings)?.refreshToken?.let { refreshToken ->
+                        val refreshed = refreshAccessToken(client, refreshToken)
+                        saveTokens(settings, refreshed)
+                        BearerTokens(refreshed.accessToken, refreshed.refreshToken)
+                    }
+                }
+                sendWithoutRequest { request -> request.url.host == config.bankHost }
             }
-        },
-        bearerRefreshProvider = { client ->
-            val oldAuthToke = loadTokens(settings)
+        }
 
-            oldAuthToke?.refreshToken?.let {
-                val response = refreshAccessToken(
-                    client,
-                    refreshToken = it,
-                )
-                saveTokens(
-                    settings,
-                    accessTokens = response,
-                )
+        install(ContentNegotiation) {
+            json(
+                Json {
+                    isLenient = true
+                    ignoreUnknownKeys = true
+                    explicitNulls = false
+                },
+            )
+        }
 
-                BearerTokens(
-                    response.accessToken,
-                    response.refreshToken,
-                )
+        install(Logging) {
+            level = LogLevel.ALL
+            sanitizeHeader { header -> header == HttpHeaders.Authorization }
+            logger = object : Logger {
+                override fun log(message: String) {
+                    KermitLogger.d(tag = "KtorClient", messageString = message)
+                }
             }
-        },
-    )
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
+            socketTimeoutMillis = REQUEST_TIMEOUT_MS
+        }
+
+        defaultRequest {
+            url(getBaseUrl(config))
+            headers.append(HttpHeaders.Accept, "application/json")
+        }
+    }
 }
