@@ -112,7 +112,13 @@ vendor/
 *.pem
 
 # HSBC sandbox certificate material — supplied locally per developer, never committed
-core/network/src/commonMain/composeResources/files/certs/
+core/network/src/androidMain/assets/certs/
+core/network/src/desktopMain/resources/certs/
+
+# Throwaway test certificate fixtures (fake, self-signed) — committed so unit tests run on CI.
+# The broad *.key / *.pem rules above would otherwise ignore them.
+!core/network/src/desktopTest/resources/test-signing-key.pem
+!core/network/src/desktopTest/resources/certs/*.pem
 
 .mifos-secure/
 

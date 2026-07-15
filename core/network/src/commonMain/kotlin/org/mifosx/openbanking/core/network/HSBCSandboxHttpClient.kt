@@ -28,8 +28,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
-import org.mifosx.openbanking.core.network.certs.CertPaths
-import org.mifosx.openbanking.core.network.certs.loadCertBytes
 import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 import org.mifosx.openbanking.core.network.mtls.installMtls
@@ -41,7 +39,7 @@ import co.touchlab.kermit.Logger.Companion as KermitLogger
 
 const val HSBC_TOKENS = "hsbc_tokens"
 
-private const val TOKEN_ENDPOINT = "v1.1/oauth2/token"
+internal const val TOKEN_ENDPOINT = "v1.1/oauth2/token"
 private const val CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 private const val REQUEST_TIMEOUT_MS = 60_000L
 
@@ -61,21 +59,23 @@ internal fun loadTokens(settings: Settings): AuthTokens? =
 /**
  * The single HSBC Open Banking sandbox client.
  *
- * Built on the borrowed [httpClient] engine picker with our own config: mTLS via [installMtls]
- * (transport identity from `composeResources`), FAPI `private_key_jwt` bearer-token refresh (signing
- * key from `composeResources`, `client_id`/`kid` from [HsbcConfig]), JSON negotiation, sanitized
- * logging, timeouts, and the sandbox base URL. Tokens persist through the injected [settings] — wire
- * a secure `Settings` (EncryptedSharedPreferences / Keychain / desktop AES) in DI.
+ * Built on the borrowed [httpClient] engine picker with our own config: mTLS via [installMtls] (the
+ * injected [identity]), FAPI `private_key_jwt` bearer-token refresh (the injected [signingKeyPem],
+ * `client_id`/`kid` from [HsbcConfig]), JSON negotiation, sanitized logging, timeouts, and the
+ * sandbox base URL. Tokens persist through the injected [settings] — wire a secure `Settings`
+ * (EncryptedSharedPreferences / Keychain / desktop AES) in DI. The [identity] + [signingKeyPem] are
+ * loaded synchronously per platform by `networkPlatformModule`, so this factory is non-suspend.
  */
 @OptIn(ExperimentalUuidApi::class)
-suspend fun hsbcSandboxHttpClient(settings: Settings): HttpClient {
+fun hsbcSandboxHttpClient(
+    settings: Settings,
+    identity: MtlsIdentity,
+    signingKeyPem: String,
+): HttpClient {
     val config = HSBCUKSandboxConfig.UKPersonal
     val tokenUrl = getBaseUrl(config) + TOKEN_ENDPOINT
     val clientId = HsbcConfig.CLIENT_ID
     val kid = HsbcConfig.KID
-
-    val identity = MtlsIdentity(pkcs12 = loadCertBytes(CertPaths.TRANSPORT_P12))
-    val signingKeyPem = loadCertBytes(CertPaths.SIGNING_KEY_PEM).decodeToString()
 
     suspend fun refreshAccessToken(httpClient: HttpClient, refreshToken: String): AuthTokens {
         val clientAssertion = buildClientAssertion(

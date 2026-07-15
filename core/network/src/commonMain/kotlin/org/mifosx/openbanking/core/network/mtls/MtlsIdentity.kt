@@ -12,7 +12,7 @@ package org.mifosx.openbanking.core.network.mtls
 import io.ktor.client.HttpClientConfig
 
 /**
- * The mTLS client identity, loaded from `composeResources`.
+ * The mTLS client identity, loaded synchronously from platform resources and injected via DI.
  *
  * The JVM engine loads it into a [java.security.KeyStore]; the Darwin engine imports it via
  * `SecPKCS12Import`. Both consume the same PKCS#12 bundle (transport certificate + private key).

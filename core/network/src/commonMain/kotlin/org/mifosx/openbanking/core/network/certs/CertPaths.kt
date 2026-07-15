@@ -9,25 +9,15 @@
  */
 package org.mifosx.openbanking.core.network.certs
 
-import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.mifosx.openbanking.core.network.generated.resources.Res
-
 /**
- * Paths (relative to `composeResources`) of the HSBC sandbox certificate material.
+ * Resource-relative names of the HSBC sandbox certificate material, loaded synchronously per platform
+ * (Android assets, JVM classpath, iOS bundle) and injected via `networkPlatformModule`.
  *
  * These files are gitignored and supplied locally per developer / CI — they are NOT committed.
- * - [SIGNING_KEY_PEM]   : the private key used to sign the private_key_jwt client assertion.
- * - [TRANSPORT_CERT_PEM]: the mTLS client certificate (Transport.crt).
- * - [TRANSPORT_KEY_PEM] : the private key backing the mTLS client certificate (JVM engines).
- * - [TRANSPORT_P12]     : the mTLS client identity as PKCS#12 (Darwin/iOS engine).
+ * - [SIGNING_KEY_PEM] : the private key that signs the `private_key_jwt` client assertion.
+ * - [TRANSPORT_P12]   : the mTLS client identity as PKCS#12 (transport certificate + private key).
  */
 internal object CertPaths {
-    const val SIGNING_KEY_PEM: String = "files/certs/signing_key.pem"
-    const val TRANSPORT_CERT_PEM: String = "files/certs/transport.pem"
-    const val TRANSPORT_KEY_PEM: String = "files/certs/transport_key.pem"
-    const val TRANSPORT_P12: String = "files/certs/transport.p12"
+    const val SIGNING_KEY_PEM: String = "certs/signing_key.pem"
+    const val TRANSPORT_P12: String = "certs/transport.p12"
 }
-
-/** Reads a bundled certificate/key file from `composeResources` as raw bytes. */
-@OptIn(ExperimentalResourceApi::class)
-internal suspend fun loadCertBytes(path: String): ByteArray = Res.readBytes(path)
