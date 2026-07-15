@@ -42,7 +42,12 @@ class AispTest {
         body: String,
         status: HttpStatusCode = HttpStatusCode.OK,
         onRequest: (HttpRequestData) -> Unit = {},
-    ): Aisp = Aisp(mockClient { request -> onRequest(request); respond(body, status, jsonHeaders) })
+    ): Aisp = Aisp(
+        mockClient { request ->
+            onRequest(request)
+            respond(body, status, jsonHeaders)
+        },
+    )
 
     private val consentRequest = HSBCCreateConsentRequest(
         data = Data(

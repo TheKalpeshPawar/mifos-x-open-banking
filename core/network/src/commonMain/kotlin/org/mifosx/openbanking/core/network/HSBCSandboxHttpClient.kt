@@ -34,10 +34,10 @@ import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 import org.mifosx.openbanking.core.network.mtls.installMtls
 import template.core.base.network.httpClient
-import co.touchlab.kermit.Logger.Companion as KermitLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import co.touchlab.kermit.Logger.Companion as KermitLogger
 
 const val HSBC_TOKENS = "hsbc_tokens"
 

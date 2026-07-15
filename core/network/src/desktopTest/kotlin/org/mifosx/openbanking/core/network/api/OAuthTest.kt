@@ -38,7 +38,10 @@ class OAuthTest {
         status: HttpStatusCode = HttpStatusCode.OK,
         onRequest: (HttpRequestData) -> Unit = {},
     ): OAuth = OAuth(
-        httpClient = mockClient { request -> onRequest(request); respond(body, status, jsonHeaders) },
+        httpClient = mockClient { request ->
+            onRequest(request)
+            respond(body, status, jsonHeaders)
+        },
         tokenUrl = tokenUrl,
         clientId = "client-1",
         kid = "kid-1",
