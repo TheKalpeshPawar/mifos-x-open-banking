@@ -20,6 +20,7 @@ import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.store.di.appStoreModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.onboarding.di.UserOnboardingModule
 import org.mifosx.openbanking.feature.settings.SettingsModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
@@ -47,6 +48,7 @@ object KoinModules {
         includes(
             HomeModule,
             LoginModule,
+            UserOnboardingModule,
             SettingsModule,
         )
     }

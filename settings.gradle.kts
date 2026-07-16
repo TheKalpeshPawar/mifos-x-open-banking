@@ -115,6 +115,7 @@ include(":feature:home")
 include(":feature:profile")
 include(":feature:settings")
 include(":feature:login")
+include(":feature:onboarding")
 
 include(":core-base:analytics")
 include(":core-base:common")

@@ -33,6 +33,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.feature.login.AuthGraphRoute
 import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
+import org.mifosx.openbanking.feature.onboarding.UserOnboardingRoute
+import org.mifosx.openbanking.feature.onboarding.navigateToUserOnboarding
+import org.mifosx.openbanking.feature.onboarding.onboardingDestination
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -56,6 +59,15 @@ fun RootNavScreen(
         if (isNotSplashScreen) onSplashScreenRemoved()
     }
 
+    val rootNavOptions = navOptions {
+        popUpTo(navController.graph.id) {
+            inclusive = false;
+            saveState = false
+        }
+        launchSingleTop = true
+        restoreState = false
+    }
+
     NavHost(
         navController = navController,
         startDestination = SplashRoute,
@@ -66,7 +78,9 @@ fun RootNavScreen(
         popExitTransition = { toExitTransition()(this) },
     ) {
         splashDestination()
-//        onboardingDestination()
+        onboardingDestination(
+            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions) },
+        )
         authGraph()
         authenticatedGraph(navController)
 //        userUnlockDestination()
@@ -74,7 +88,7 @@ fun RootNavScreen(
 
     val targetRoute = when (state) {
         // SetLanguageRoute
-        RootNavState.ShowOnboarding -> ""
+        RootNavState.ShowOnboarding -> UserOnboardingRoute
         RootNavState.Auth -> AuthGraphRoute
         RootNavState.Splash -> SplashRoute
         // UserUnlockRoute.Standard
@@ -99,17 +113,6 @@ fun RootNavScreen(
     // if we don't first clear focus anytime we change the root destination.
     ClearFocus()
 
-    // When state changes, navigate to different root navigation state
-    val rootNavOptions = navOptions {
-        // When changing root navigation state, pop everything else off the back stack:
-        popUpTo(navController.graph.id) {
-            inclusive = false
-            saveState = false
-        }
-        launchSingleTop = true
-        restoreState = false
-    }
-
     // Use a LaunchedEffect to ensure we don't navigate too soon when the app first opens. This
     // avoids a bug that first appeared in Compose Material3 1.2.0-rc01 that causes the initial
     // transition to appear corrupted.
@@ -118,7 +121,7 @@ fun RootNavScreen(
             RootNavState.Splash -> navController.navigateToSplash(rootNavOptions)
             RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions)
             // navController.navigateToSetLanguage(rootNavOptions)
-            RootNavState.ShowOnboarding -> {}
+            RootNavState.ShowOnboarding -> navController.navigateToUserOnboarding(rootNavOptions)
             // navController.navigateToUserUnlock(rootNavOptions)
             RootNavState.UserLocked -> {}
             is RootNavState.UserUnlocked -> navController.navigateToAuthenticatedGraph(

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <!-- Loading -->
+    <string name="feature_onboarding_loading">Loading onboarding steps, please wait</string>
+
+    <!-- Error -->
+    <string name="feature_onboarding_error_title">Could not start setup</string>
+    <string name="feature_onboarding_error_body">We were unable to load the onboarding steps. Please check your connection and try again.</string>
+    <string name="feature_onboarding_retry">Try again</string>
+
+    <!-- Empty -->
+    <string name="feature_onboarding_empty_title">Setup incomplete</string>
+    <string name="feature_onboarding_empty_body">The onboarding steps did not complete. You can skip setup and connect your account later.</string>
+    <string name="feature_onboarding_empty_skip">Skip for now</string>
+
+    <!-- Step 1: Intro -->
+    <string name="feature_onboarding_intro_headline">Share your HSBC data securely with Open Banking</string>
+    <string name="feature_onboarding_intro_body">UK Open Banking is a regulated framework overseen by the Financial Conduct Authority. It lets you share your account information with authorised apps — without sharing your password.</string>
+    <string name="feature_onboarding_fapi_chip">Secured by FAPI 1.0 Advanced</string>
+    <string name="feature_onboarding_fca_chip">FCA Regulated</string>
+    <string name="feature_onboarding_hero_illustration_desc">Open Banking secure connection illustration</string>
+
+    <!-- Step 2: Permissions -->
+    <string name="feature_onboarding_permissions_header">What we\'ll read</string>
+    <string name="feature_onboarding_perm_ReadAccountsDetail">Account names, sort codes, IBANs, and currency for your HSBC accounts</string>
+    <string name="feature_onboarding_perm_ReadBalances">Current, available, and credit-limit balances across all authorised accounts in real time</string>
+    <string name="feature_onboarding_perm_ReadTransactionsDetail">Up to 90 days of debits and credits, merchant names, and transaction references</string>
+    <string name="feature_onboarding_perm_ReadStandingOrdersDetail">Scheduled recurring payment mandates you have set up on your HSBC accounts</string>
+    <string name="feature_onboarding_perm_ReadDirectDebits">Active direct-debit mandates and the most recent amounts collected on your accounts</string>
+    <string name="feature_onboarding_perm_ReadStatementsDetail">Monthly statement summaries, opening and closing balances, and available PDF references</string>
+    <string name="feature_onboarding_consent_duration">Your consent lasts up to 90 days. You can revoke it at any time from Settings → Manage consents.</string>
+
+    <!-- Step 3: Consent Explainer -->
+    <string name="feature_onboarding_trust_header">What we never do</string>
+    <string name="feature_onboarding_never_payments_headline">No payments or transfers</string>
+    <string name="feature_onboarding_never_payments_body">This app is Account Information only (AISP). We have no permission to initiate payments or move money from your account.</string>
+    <string name="feature_onboarding_never_password_headline">We never see your password</string>
+    <string name="feature_onboarding_never_password_body">You authenticate directly on HSBC\'s secure portal using Strong Customer Authentication (SCA). Your credentials never leave HSBC.</string>
+    <string name="feature_onboarding_never_locked_headline">Revoke access anytime</string>
+    <string name="feature_onboarding_never_locked_body">You can disconnect HSBC data sharing at any time from Settings → Manage consents, or directly from your HSBC app.</string>
+    <string name="feature_onboarding_legal_footer">Regulated by the Financial Conduct Authority under the Payment Services Regulations 2017. Powered by UK Open Banking Read/Write API v4.0 (OBIE).</string>
+
+    <!-- Buttons -->
+    <string name="feature_onboarding_next">Next</string>
+    <string name="feature_onboarding_back">Back</string>
+    <string name="feature_onboarding_connect_hsbc">Connect with HSBC</string>
+    <string name="feature_onboarding_how_ob_works">How Open Banking works</string>
+
+    <!-- Bottom sheet -->
+    <string name="feature_onboarding_ob_explainer_title">How UK Open Banking works</string>
+    <string name="feature_onboarding_fapi_step1_headline">1. You approve the permission request</string>
+    <string name="feature_onboarding_fapi_step1_body">We ask HSBC to prepare a consent with the list of data categories. You are redirected to HSBC\'s secure portal to review and approve it — choosing which accounts to include.</string>
+    <string name="feature_onboarding_fapi_step2_headline">2. You authenticate directly with HSBC</string>
+    <string name="feature_onboarding_fapi_step2_body">You log in on HSBC\'s portal using your HSBC credentials and complete Strong Customer Authentication. Mifos Open Banking never sees your password at any point.</string>
+    <string name="feature_onboarding_fapi_step3_headline">3. A secure token is returned to us</string>
+    <string name="feature_onboarding_fapi_step3_body">HSBC sends a short-lived access token back using FAPI 1.0 Advanced — a banking-grade security protocol. We use it to read the data you approved; it cannot move money.</string>
+    <string name="feature_onboarding_revoke_note">You can revoke this access at any time from Settings → Manage consents, or directly from your HSBC app or HSBC online banking.</string>
+    <string name="feature_onboarding_got_it">Got it</string>
+
+    <!-- Stepper accessibility -->
+    <string name="feature_onboarding_step_label">Step %1$d of %2$d</string>
+</resources>
