@@ -1,0 +1,190 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+package org.mifosx.openbanking.feature.login
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.login.ConsentResult
+import org.mifosx.openbanking.feature.login.ui.LoginAction
+import org.mifosx.openbanking.feature.login.ui.LoginEvent
+import org.mifosx.openbanking.feature.login.ui.LoginUiState
+import org.mifosx.openbanking.feature.login.ui.LoginViewModel
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
+import template.core.base.ui.viewmodel.BackgroundEvent
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+class LoginViewModelTest {
+
+    private fun successResult() = NetworkResult.Success(
+        ConsentResult(
+            authorizationUrl = "https://sandbox.test/auth",
+            state = "state-abc",
+            nonce = "nonce-xyz",
+            consentId = "consent-123",
+        ),
+    )
+
+    private fun createViewModel(
+        repo: FakeLoginRepository = FakeLoginRepository(),
+        browser: FakeBrowserLauncher = FakeBrowserLauncher(),
+    ): Pair<LoginViewModel, FakeBrowserLauncher> {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val vm = LoginViewModel(repo, browser)
+        return vm to browser
+    }
+
+    @Test
+    fun `init loads permissions and transitions to Content`() = runTest {
+        val (vm, _) = createViewModel()
+        val state = vm.stateFlow.first { it is LoginUiState.Content }
+        assertIs<LoginUiState.Content>(state)
+        assertEquals(21, state.permissions.size)
+        assertTrue(state.expiryLabel.startsWith("Expires"))
+    }
+
+    @Test
+    fun `init with empty permissions transitions to Empty`() = runTest {
+        val repo = FakeLoginRepository().apply { setPermissions(emptyList()) }
+        val (vm, _) = createViewModel(repo)
+        val state = vm.stateFlow.first { it is LoginUiState.Empty }
+        assertIs<LoginUiState.Empty>(state)
+    }
+
+    @Test
+    fun `StartOAuth on success transitions to Authorising and launches browser`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val (vm, browser) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        val state = vm.stateFlow.first { it is LoginUiState.Authorising }
+        assertIs<LoginUiState.Authorising>(state)
+        assertEquals("https://sandbox.test/auth", browser.launchedUrl)
+        assertEquals(1, repo.createConsentCallCount)
+    }
+
+    @Test
+    fun `StartOAuth on 401 maps to Error`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Client.Unauthorized("invalid"))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertTrue(state.message.contains("Authorisation failed"))
+    }
+
+    @Test
+    fun `StartOAuth on 400 maps to Error`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Client.BadRequest("malformed"))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertTrue(state.message.contains("HSBC rejected"))
+    }
+
+    @Test
+    fun `StartOAuth on 500 maps to Error`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Server(500, "down"))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertTrue(state.message.contains("temporarily unavailable"))
+    }
+
+    @Test
+    fun `StartOAuth on network error maps to Error`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Network(RuntimeException("timeout")))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertTrue(state.message.contains("Unable to reach HSBC"))
+    }
+
+    @Test
+    fun `Cancel emits NavigateBack event`() = runTest {
+        val (vm, _) = createViewModel()
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.Cancel)
+        val event = vm.eventFlow.first { it is LoginEvent.NavigateBack }
+        assertIs<LoginEvent.NavigateBack>(event)
+        assertIs<BackgroundEvent>(event)
+    }
+
+    @Test
+    fun `Retry reloads config from Error state`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Network(RuntimeException("fail")))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Error }
+        repo.createConsentResult = successResult()
+        vm.trySendAction(LoginAction.Retry)
+        val state = vm.stateFlow.first { it is LoginUiState.Content }
+        assertIs<LoginUiState.Content>(state)
+    }
+
+    @Test
+    fun `StartOAuth from Authorising state is a no-op`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Authorising }
+        vm.trySendAction(LoginAction.StartOAuth)
+        assertIs<LoginUiState.Authorising>(vm.stateFlow.value)
+    }
+
+    @Test
+    fun `StartOAuth from Error state is a no-op`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Network(RuntimeException("fail")))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Error }
+        vm.trySendAction(LoginAction.StartOAuth)
+        assertIs<LoginUiState.Error>(vm.stateFlow.value)
+    }
+
+    @Test
+    fun `mapErrorToMessage covers all error types`() {
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Client.Unauthorized("")))
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Client.BadRequest("")))
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Client.Forbidden("")))
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Server(500, "")))
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Network(RuntimeException(""))))
+        assertNotNull(LoginViewModel.mapErrorToMessage(NetworkError.Unknown()))
+    }
+}

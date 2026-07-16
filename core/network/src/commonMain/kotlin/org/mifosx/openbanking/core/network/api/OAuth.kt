@@ -49,14 +49,14 @@ class OAuth(
 
     /** Temporary client-credentials token used to create/manage account-access-consents. */
     suspend fun clientCredentialsToken(
-        scope: String,
+        scope: ConsentCreationScope,
     ): NetworkResult<CreateConsentTokenSuccess, NetworkError> {
         val assertion = clientAssertion()
         return httpClient.submitForm(
             url = tokenUrl,
             formParameters = parameters {
                 append("grant_type", "client_credentials")
-                append("scope", scope)
+                append("scope", scope.value)
                 append("client_assertion_type", CLIENT_ASSERTION_TYPE)
                 append("client_assertion", assertion)
             },
@@ -96,4 +96,9 @@ class OAuth(
             },
         ).toNetworkResult()
     }
+}
+
+enum class ConsentCreationScope(val value: String) {
+    ACCOUNTS("accounts"),
+    PAYMENTS("payments"),
 }

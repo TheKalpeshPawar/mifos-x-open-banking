@@ -18,7 +18,6 @@ import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
 import template.core.base.ui.nav.composableWithStayTransitions
 
-/** Root route of the unauthenticated graph (splash → [AuthGraphRoute] → authenticated). */
 @Serializable
 data object AuthGraphRoute
 
@@ -29,11 +28,6 @@ fun NavController.navigateToAuthGraph(navOptions: NavOptions? = null) {
     navigate(route = AuthGraphRoute, navOptions = navOptions)
 }
 
-/**
- * Unauthenticated graph. Shell wiring for Phase 1 — the real OBP `direct_login` /
- * OIDC flow is implemented in Phase 4 (feature wave A) and will add forgot-password
- * + onboarding destinations here.
- */
 fun NavGraphBuilder.authGraph() {
     navigation<AuthGraphRoute>(
         startDestination = LoginRoute,

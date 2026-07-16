@@ -9,35 +9,295 @@
  */
 package org.mifosx.openbanking.feature.login
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.ManageSearch
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.feature.login.generated.resources.Res
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_authorising_hint
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_cancel
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_connecting
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_consent_validity
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_continue_hsbc
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_empty_body
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_empty_title
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_error_title
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_explainer_body
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_explainer_headline
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_go_back
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_ob_badge
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_opening_hsbc
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_permissions_header
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_retry
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_security_notice
+import org.mifosx.openbanking.feature.login.ui.LoginAction
+import org.mifosx.openbanking.feature.login.ui.LoginEvent
+import org.mifosx.openbanking.feature.login.ui.LoginUiState
+import org.mifosx.openbanking.feature.login.ui.LoginViewModel
+import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
+import org.mifosx.openbanking.feature.onboarding.components.PermissionListItem
+import template.core.base.designsystem.theme.KptTheme
+import template.core.base.ui.effects.EventsEffect
 
-/**
- * Login shell. Real OBP `direct_login` + OIDC authorize is implemented in Phase 4
- * (feature wave A) per PLAN-kmp-greenfield-implementation.
- */
 @Composable
 internal fun LoginScreen(
     modifier: Modifier = Modifier,
+    viewModel: LoginViewModel = koinViewModel(),
+) {
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    EventsEffect(viewModel.eventFlow) { event ->
+        when (event) {
+            LoginEvent.NavigateBack -> {}
+        }
+    }
+
+    when (val current = state) {
+        is LoginUiState.Loading -> LoadingState(modifier)
+        is LoginUiState.Content -> ContentState(current, viewModel::trySendAction, modifier)
+        is LoginUiState.Authorising -> AuthorisingState(modifier)
+        is LoginUiState.Error -> ErrorState(current, viewModel::trySendAction, modifier)
+        is LoginUiState.Empty -> EmptyState(viewModel::trySendAction, modifier)
+    }
+}
+
+@Composable
+private fun LoadingState(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().testTag("login_loading_progress"))
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                stringResource(Res.string.feature_login_connecting),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContentState(
+    state: LoginUiState.Content,
+    onAction: (LoginAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(KptTheme.spacing.md),
     ) {
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("hsbc_explainer_card"),
+            shape = RoundedCornerShape(KptTheme.spacing.sm),
+            colors = CardDefaults.cardColors(
+                containerColor = KptTheme.colorScheme.surfaceContainerLow,
+            ),
+        ) {
+            Column(modifier = Modifier.padding(KptTheme.spacing.md)) {
+                Text(
+                    "HSBC",
+                    style = KptTheme.typography.titleMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.VerifiedUser, null, Modifier.size(16.dp), tint = KptTheme.colorScheme.primary)
+                    Text(
+                        " ${stringResource(Res.string.feature_login_ob_badge)}",
+                        style = KptTheme.typography.labelSmall,
+                        color = KptTheme.colorScheme.primary,
+                    )
+                }
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Text(
+                    stringResource(Res.string.feature_login_explainer_headline),
+                    style = KptTheme.typography.titleMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Text(
+                    stringResource(Res.string.feature_login_explainer_body),
+                    style = KptTheme.typography.bodySmall,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                HorizontalDivider()
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        " ${stringResource(Res.string.feature_login_security_notice)}",
+                        style = KptTheme.typography.labelSmall,
+                        color = KptTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(KptTheme.spacing.md))
+
         Text(
-            text = "Sign in",
-            style = MaterialTheme.typography.titleLarge,
+            stringResource(Res.string.feature_login_permissions_header),
+            style = KptTheme.typography.titleSmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm),
         )
+        state.permissions.forEach { PermissionListItem(it) }
+
+        Spacer(Modifier.height(KptTheme.spacing.sm))
+        Text(
+            stringResource(Res.string.feature_login_consent_validity),
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            state.expiryLabel,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
+        )
+
+        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(KptTheme.spacing.md))
+
+        FilledPillButton(
+            stringResource(Res.string.feature_login_continue_hsbc),
+            onClick = { onAction(LoginAction.StartOAuth) },
+            icon = Icons.Outlined.OpenInNew,
+            testTag = "login_continue_hsbc",
+        )
+        Spacer(Modifier.height(KptTheme.spacing.sm))
+        TextButton(
+            onClick = { onAction(LoginAction.Cancel) },
+            modifier = Modifier.fillMaxWidth().testTag("login_cancel"),
+        ) {
+            Text(
+                stringResource(Res.string.feature_login_cancel),
+                style = KptTheme.typography.labelLarge,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthorisingState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().testTag("login_authorising"), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(modifier = Modifier.size(48.dp).testTag("authorising_spinner"))
+            Spacer(Modifier.height(24.dp))
+            Text(
+                stringResource(Res.string.feature_login_opening_hsbc),
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
+            Text(
+                stringResource(Res.string.feature_login_authorising_hint),
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 260.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(
+    state: LoginUiState.Error,
+    onAction: (LoginAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().testTag("login_error"), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
+            Icon(Icons.Outlined.Lock, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.error)
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            Text(
+                stringResource(Res.string.feature_login_error_title),
+                style = KptTheme.typography.headlineSmall,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
+            Text(
+                state.message,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 300.dp),
+            )
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            FilledPillButton(
+                stringResource(Res.string.feature_login_retry),
+                onClick = { onAction(LoginAction.Retry) },
+                testTag = "login_error_retry",
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(
+    onAction: (LoginAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().testTag("login_empty"), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
+            Icon(Icons.Outlined.ManageSearch, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            Text(
+                stringResource(Res.string.feature_login_empty_title),
+                style = KptTheme.typography.headlineSmall,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
+            Text(
+                stringResource(Res.string.feature_login_empty_body),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 300.dp),
+            )
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            FilledPillButton(
+                stringResource(Res.string.feature_login_go_back),
+                onClick = { onAction(LoginAction.Cancel) },
+                testTag = "login_empty_go_back",
+            )
+        }
     }
 }

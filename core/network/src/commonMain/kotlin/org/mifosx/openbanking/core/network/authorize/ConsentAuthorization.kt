@@ -15,6 +15,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.signPs256
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -47,25 +48,25 @@ data class ConsentAuthorization(
  *
  * Mirrors the sandbox reference `gen-request-jwt.js` exactly.
  *
- * @param authorizeUrl the OBIE `.../oauth2/authorize` endpoint.
  * @param audience the OIDC issuer used as the request object `aud` claim.
  * @param nowEpochSeconds current wall-clock seconds; drives the request object `exp`/`nbf`.
  */
 @OptIn(ExperimentalUuidApi::class)
-suspend fun initiateConsentAuthorization(
-    authorizeUrl: String,
+suspend fun generateConsentAuthorizationUrl(
     audience: String,
-    clientId: String,
-    kid: String,
-    scope: String,
-    responseType: String,
+    scope: ConsentCreationScope,
     redirectUri: String,
     consentId: String,
     signingKeyPem: String,
     nowEpochSeconds: Long,
+    responseType: String,
+    clientId: String,
+    kid: String,
 ): ConsentAuthorization {
     val state = Uuid.generateV4().toString()
     val nonce = Uuid.generateV4().toString()
+
+    val authorizeUrl = "v1.1/oauth2/authorize"
 
     val header = buildJsonObject {
         put("alg", "PS256")
@@ -102,14 +103,14 @@ suspend fun initiateConsentAuthorization(
         put("nbf", nowEpochSeconds - NBF_SKEW_SECONDS)
         put("redirect_uri", redirectUri)
         put("nonce", nonce)
-        put("scope", scope)
+        put("scope", "openid ${scope.value}")
     }
     val requestJwt = signPs256(header, payload, signingKeyPem)
 
     val authorizationUrl = URLBuilder(authorizeUrl).apply {
         parameters.append("response_type", responseType)
         parameters.append("client_id", clientId)
-        parameters.append("scope", scope)
+        parameters.append("scope", "openid ${scope.value}")
         parameters.append("redirect_uri", redirectUri)
         parameters.append("state", state)
         parameters.append("nonce", nonce)

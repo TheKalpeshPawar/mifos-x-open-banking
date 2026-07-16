@@ -20,11 +20,15 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.core.data)
             implementation(projects.core.model)
+            implementation(projects.feature.onboarding)
             implementation(projects.coreBase.ui)
+            implementation(projects.coreBase.network)
+            implementation(libs.kotlinx.datetime)
 
             implementation(compose.ui)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
         }
@@ -36,3 +40,4 @@ compose {
         packageOfResClass = "org.mifosx.openbanking.feature.login.generated.resources"
     }
 }
+

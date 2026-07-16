@@ -23,6 +23,7 @@ kotlin {
             implementation(projects.core.model)
             implementation(projects.core.common)
             implementation(projects.core.datastore)
+            implementation(projects.core.network)
 
             implementation(projects.core.datastore)
             implementation(projects.coreBase.common)
@@ -30,8 +31,6 @@ kotlin {
             implementation(projects.coreBase.security)
 
             implementation(projects.feature.home)
-            implementation(projects.feature.profile)
-            implementation(projects.feature.settings)
             implementation(projects.feature.login)
             implementation(projects.feature.onboarding)
 

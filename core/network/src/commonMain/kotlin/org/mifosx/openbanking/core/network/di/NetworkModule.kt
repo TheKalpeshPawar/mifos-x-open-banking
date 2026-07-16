@@ -48,4 +48,9 @@ val NetworkModule = module {
     }
 
     single { Aisp(get()) }
+
+    single(named("hsbcClientId")) { HsbcConfig.CLIENT_ID }
+    single(named("hsbcKid")) { HsbcConfig.KID }
+    single(named("hsbcBankHost")) { HsbcConfig.BANK_HOST }
+    single(named("hsbcRedirectUri")) { HsbcConfig.REDIRECT_URI }
 }

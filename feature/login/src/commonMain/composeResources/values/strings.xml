@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <!-- Loading -->
+    <string name="feature_login_connecting">Connecting to HSBC…</string>
+
+    <!-- Content -->
+    <string name="feature_login_hsbc_brand">HSBC</string>
+    <string name="feature_login_ob_badge">UK Open Banking</string>
+    <string name="feature_login_explainer_headline">You will be taken to HSBC to sign in</string>
+    <string name="feature_login_explainer_body">HSBC will ask you to confirm which accounts to share. Once you approve, you will be returned here automatically. Your HSBC credentials are never shared with Mifos.</string>
+    <string name="feature_login_security_notice">Secured with FAPI 1.0 Advanced</string>
+    <string name="feature_login_permissions_header">Data being requested</string>
+    <string name="feature_login_consent_validity">This consent is valid for 90 days. You can revoke it at any time.</string>
+    <string name="feature_login_continue_hsbc">Continue to HSBC</string>
+    <string name="feature_login_cancel">Cancel</string>
+
+    <!-- Authorising -->
+    <string name="feature_login_opening_hsbc">Opening HSBC…</string>
+    <string name="feature_login_authorising_hint">Complete sign-in in the HSBC app, then return here.</string>
+
+    <!-- Error -->
+    <string name="feature_login_error_title">Could not connect to HSBC</string>
+    <string name="feature_login_retry">Try again</string>
+
+    <!-- Empty -->
+    <string name="feature_login_empty_title">Connection required</string>
+    <string name="feature_login_empty_body">No active HSBC connection was found. Connect your HSBC account to view your financial data.</string>
+    <string name="feature_login_go_back">Go back</string>
+</resources>

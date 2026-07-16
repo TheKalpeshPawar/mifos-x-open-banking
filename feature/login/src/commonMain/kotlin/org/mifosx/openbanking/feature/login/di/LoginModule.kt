@@ -9,10 +9,14 @@
  */
 package org.mifosx.openbanking.feature.login.di
 
+import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
 
+expect val loginPlatformModule: Module
+
 val LoginModule = module {
+    includes(loginPlatformModule)
     viewModelOf(::LoginViewModel)
 }

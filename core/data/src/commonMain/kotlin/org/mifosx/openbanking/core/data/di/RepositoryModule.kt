@@ -15,10 +15,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
+import org.mifosx.openbanking.core.data.login.LoginRepository
+import org.mifosx.openbanking.core.data.login.impl.LoginRepositoryImpl
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.data.user.UserLogoutManager
 import org.mifosx.openbanking.core.data.user.impl.UserDataRepositoryImpl
@@ -35,6 +38,18 @@ val DataModule = module {
 
     single<NetworkMonitor> { NetworkMonitorProvider.install() }
     singleOf(::UserDataRepositoryImpl) bind UserDataRepository::class
+
+    single<LoginRepository> {
+        LoginRepositoryImpl(
+            oauth = get(),
+            aisp = get(),
+            signingKeyPem = get(named("hsbcSigningKey")),
+            clientId = get(named("hsbcClientId")),
+            kid = get(named("hsbcKid")),
+            bankHost = get(named("hsbcBankHost")),
+            redirectUri = get(named("hsbcRedirectUri")),
+        )
+    }
 
     // Framework FetchedAtRepository — durable lastFetchedAt persistence backing
     // DataFreshnessIndicator timestamps. Room-only by design (no in-memory fallback).

@@ -14,13 +14,11 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.accounts
 import cmp.navigation.generated.resources.cards
 import cmp.navigation.generated.resources.home
-import cmp.navigation.generated.resources.more
 import cmp.navigation.generated.resources.pay
 import cmp.navigation.placeholder.AccountsRoute
 import cmp.navigation.placeholder.CardsRoute
@@ -32,7 +30,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.HomeRoute
-import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
  * Consumer bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:
@@ -91,17 +88,6 @@ sealed class AuthenticatedNavBarTabItem(
         startDestinationRoute = CardsRoute.toObjectNavigationRoute(),
         testTag = "CardsTab",
     )
-
-    // ─── Shared ───────────────────────────────────────────────────────────────
-    data object MoreTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.Filled.MoreHoriz,
-        icon = Icons.Filled.MoreHoriz,
-        labelRes = Res.string.more,
-        contentDescriptionRes = Res.string.more,
-        graphRoute = SettingsRoute.toObjectNavigationRoute(),
-        startDestinationRoute = SettingsRoute.toObjectNavigationRoute(),
-        testTag = "MoreTab",
-    )
 }
 
 /** Consumer bottom-nav set (app-shell.yaml `consumer.bottom_nav`). */
@@ -110,5 +96,4 @@ val consumerNavBarTabs: ImmutableList<AuthenticatedNavBarTabItem> = persistentLi
     AuthenticatedNavBarTabItem.AccountsTab,
     AuthenticatedNavBarTabItem.PayTab,
     AuthenticatedNavBarTabItem.CardsTab,
-    AuthenticatedNavBarTabItem.MoreTab,
 )

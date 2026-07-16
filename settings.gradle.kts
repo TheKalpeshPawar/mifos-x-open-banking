@@ -112,8 +112,6 @@ include(":core:store")
 include(":core:ui")
 
 include(":feature:home")
-include(":feature:profile")
-include(":feature:settings")
 include(":feature:login")
 include(":feature:onboarding")
 

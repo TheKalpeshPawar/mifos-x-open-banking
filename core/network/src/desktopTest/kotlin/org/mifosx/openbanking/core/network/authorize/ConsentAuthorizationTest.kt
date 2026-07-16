@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
@@ -30,12 +31,11 @@ class ConsentAuthorizationTest {
 
     private val base64Url = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
 
-    private suspend fun authorize() = initiateConsentAuthorization(
-        authorizeUrl = "https://sandbox.test/obie/open-banking/v1.1/oauth2/authorize",
+    private suspend fun authorize() = generateConsentAuthorizationUrl(
         audience = "https://secure.sandbox.test",
         clientId = "client-1",
         kid = "kid-1",
-        scope = "openid accounts",
+        scope = ConsentCreationScope.ACCOUNTS,
         responseType = "code id_token",
         redirectUri = "https://cb/callback/",
         consentId = "consent-123",

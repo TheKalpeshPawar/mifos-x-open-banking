@@ -39,10 +39,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
-import org.mifosx.openbanking.feature.profile.profileDestination
-import org.mifosx.openbanking.feature.settings.SettingsRoute
-import org.mifosx.openbanking.feature.settings.notificationDestination
-import org.mifosx.openbanking.feature.settings.settingsDestination
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
@@ -114,15 +110,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popEnterTransition = RootTransitionProviders.Enter.fadeIn,
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
-            // Consumer Home tab — real shell; "More" routes to settings.
-            homeGraph(
-                onSettingsClick = { navController.navigate(SettingsRoute) },
-            )
-            profileDestination()
-            settingsDestination(onBackClick = navController::popBackStack)
-            notificationDestination(onBackClick = navController::popBackStack)
-
-            // All other banking destinations (Phase 2 placeholders → real in Phases 4–6).
+            homeGraph()
             bankingPlaceholderDestinations()
         }
     }

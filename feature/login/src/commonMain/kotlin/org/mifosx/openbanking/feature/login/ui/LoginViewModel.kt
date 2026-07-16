@@ -9,17 +9,117 @@
  */
 package org.mifosx.openbanking.feature.login.ui
 
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import org.mifosx.openbanking.core.data.login.LoginRepository
+import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
+import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
+import template.core.base.ui.viewmodel.BackgroundEvent
 import template.core.base.ui.viewmodel.BaseViewModel
+import kotlin.time.Clock
+sealed interface LoginUiState {
+    data object Loading : LoginUiState
+    data class Content(
+        val permissions: List<OBPermission>,
+        val expiryLabel: String,
+    ) : LoginUiState
 
-/**
- * Login shell ViewModel. OBP `direct_login` token flow + credential validation
- * are wired in Phase 4 (feature wave A) per PLAN-kmp-greenfield-implementation.
- */
-class LoginViewModel : BaseViewModel<Unit, Nothing, LoginAction>(initialState = Unit) {
-
-    @Suppress("EmptyFunctionBlock")
-    override fun handleAction(action: LoginAction) {
-    }
+    data object Authorising : LoginUiState
+    data class Error(val message: String) : LoginUiState
+    data object Empty : LoginUiState
 }
 
-sealed interface LoginAction
+sealed interface LoginEvent {
+    data object NavigateBack : LoginEvent, BackgroundEvent
+}
+
+sealed interface LoginAction {
+    data object LoadPermissionsConfig : LoginAction
+    data object StartOAuth : LoginAction
+    data object Cancel : LoginAction
+    data object Retry : LoginAction
+}
+
+class LoginViewModel(
+    private val loginRepository: LoginRepository,
+    private val browserLauncher: BrowserLauncher,
+) : BaseViewModel<LoginUiState, LoginEvent, LoginAction>(
+    initialState = LoginUiState.Loading,
+) {
+    init {
+        trySendAction(LoginAction.LoadPermissionsConfig)
+    }
+
+    override fun handleAction(action: LoginAction) {
+        when (action) {
+            LoginAction.LoadPermissionsConfig -> handleLoadConfig()
+            LoginAction.StartOAuth -> handleStartOAuth()
+            LoginAction.Cancel -> handleCancel()
+            LoginAction.Retry -> handleRetry()
+        }
+    }
+
+    private fun handleLoadConfig() {
+        updateState { LoginUiState.Loading }
+        val permissions = loginRepository.getPermissions()
+        if (permissions.isEmpty()) {
+            updateState { LoginUiState.Empty }
+            return
+        }
+        updateState {
+            LoginUiState.Content(
+                permissions = permissions,
+                expiryLabel = buildExpiryLabel(),
+            )
+        }
+    }
+
+    private fun handleStartOAuth() {
+        if (state !is LoginUiState.Content) return
+        updateState { LoginUiState.Loading }
+        viewModelScope.launch {
+            when (val result = loginRepository.createConsentAndBuildAuthorizationUrl()) {
+                is NetworkResult.Success -> {
+                    browserLauncher.launch(result.data.authorizationUrl)
+                    updateState { LoginUiState.Authorising }
+                }
+                is NetworkResult.Error -> {
+                    updateState { LoginUiState.Error(mapErrorToMessage(result.error)) }
+                }
+            }
+        }
+    }
+
+    private fun handleCancel() {
+        sendEvent(LoginEvent.NavigateBack)
+    }
+
+    private fun handleRetry() {
+        trySendAction(LoginAction.LoadPermissionsConfig)
+    }
+
+    private fun buildExpiryLabel(): String {
+        val expiryDate = Clock.System.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+            .plus(90, DateTimeUnit.DAY)
+        val month = expiryDate.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+        return "Expires ${expiryDate.day} $month ${expiryDate.year}"
+    }
+
+    companion object {
+        fun mapErrorToMessage(error: NetworkError): String = when (error) {
+            is NetworkError.Client.Unauthorized -> "Authorisation failed. The app may need to re-register with HSBC."
+            is NetworkError.Client.BadRequest -> "HSBC rejected the consent request. Please try again."
+            is NetworkError.Server -> "HSBC is temporarily unavailable. Try again in a moment."
+            is NetworkError.Network -> "Unable to reach HSBC. Check your connection and try again."
+            else -> "Could not connect to HSBC. Please try again."
+        }
+    }
+}
