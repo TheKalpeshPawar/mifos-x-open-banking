@@ -112,7 +112,7 @@ val darkScheme = darkColorScheme(
  * @param content The composable content that will have access to both KptTheme and MaterialTheme.
  */
 @Composable
-fun MifosTheme(
+fun MifosXOpenBankingTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     androidTheme: Boolean = false,
     useDynamicColor: Boolean = false,

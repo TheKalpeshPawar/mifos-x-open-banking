@@ -44,18 +44,27 @@ fun ReassuranceItem(
 ) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = KptTheme.spacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = KptTheme.spacing.sm),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(KptTheme.spacing.sm)).background(containerColor),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(KptTheme.spacing.sm))
+                    .background(containerColor),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(icon, null, Modifier.size(20.dp), tint = iconTint)
             }
             Spacer(Modifier.width(KptTheme.spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(headline, style = KptTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = KptTheme.colorScheme.onSurface)
+                Text(
+                    headline,
+                    style = KptTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = KptTheme.colorScheme.onSurface,
+                )
                 Spacer(Modifier.height(KptTheme.spacing.xs))
                 Text(body, style = KptTheme.typography.bodyMedium, color = KptTheme.colorScheme.onSurfaceVariant)
             }

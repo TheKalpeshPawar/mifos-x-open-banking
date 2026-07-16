@@ -1,3 +1,12 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
 package org.mifosx.openbanking.feature.onboarding.steps
 
 import androidx.compose.foundation.background
@@ -24,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
+import org.mifosx.openbanking.feature.onboarding.components.OnboardingStep
 import org.mifosx.openbanking.feature.onboarding.generated.resources.Res
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_fapi_step1_body
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_fapi_step1_headline
@@ -34,16 +46,17 @@ import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onb
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_got_it
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_ob_explainer_title
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_revoke_note
-import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
-import org.mifosx.openbanking.feature.onboarding.components.OnboardingStep
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingAction
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingUiState
 import template.core.base.designsystem.theme.KptTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ObExplainerOpenStep(state: UserOnboardingUiState.ObExplainerOpen, onAction: (UserOnboardingAction) -> Unit, modifier: Modifier = Modifier) {
+internal fun ObExplainerOpenStep(
+    state: UserOnboardingUiState.ObExplainerOpen,
+    onAction: (UserOnboardingAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -56,25 +69,60 @@ internal fun ObExplainerOpenStep(state: UserOnboardingUiState.ObExplainerOpen, o
             containerColor = KptTheme.colorScheme.surfaceContainerLow,
             dragHandle = {},
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = KptTheme.spacing.lg).padding(bottom = 32.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KptTheme.spacing.lg)
+                    .padding(bottom = 32.dp),
+            ) {
                 Box(
-                    modifier = Modifier.align(Alignment.CenterHorizontally).width(32.dp).height(4.dp)
-                        .clip(RoundedCornerShape(50)).background(KptTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(32.dp).height(4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            KptTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        ),
                 )
                 Spacer(Modifier.height(KptTheme.spacing.md))
-                Text(stringResource(Res.string.feature_onboarding_ob_explainer_title), style = KptTheme.typography.titleLarge, color = KptTheme.colorScheme.onSurface)
+                Text(
+                    stringResource(Res.string.feature_onboarding_ob_explainer_title),
+                    style = KptTheme.typography.titleLarge,
+                    color = KptTheme.colorScheme.onSurface,
+                )
                 Spacer(Modifier.height(KptTheme.spacing.lg))
-                OnboardingStep(Icons.Rounded.HowToReg, stringResource(Res.string.feature_onboarding_fapi_step1_headline), stringResource(Res.string.feature_onboarding_fapi_step1_body))
-                OnboardingStep(Icons.Rounded.Login, stringResource(Res.string.feature_onboarding_fapi_step2_headline), stringResource(Res.string.feature_onboarding_fapi_step2_body))
-                OnboardingStep(Icons.Outlined.Shield, stringResource(Res.string.feature_onboarding_fapi_step3_headline), stringResource(Res.string.feature_onboarding_fapi_step3_body))
+                OnboardingStep(
+                    Icons.Rounded.HowToReg,
+                    stringResource(Res.string.feature_onboarding_fapi_step1_headline),
+                    stringResource(Res.string.feature_onboarding_fapi_step1_body),
+                )
+                OnboardingStep(
+                    Icons.Rounded.Login,
+                    stringResource(Res.string.feature_onboarding_fapi_step2_headline),
+                    stringResource(Res.string.feature_onboarding_fapi_step2_body),
+                )
+                OnboardingStep(
+                    Icons.Outlined.Shield,
+                    stringResource(Res.string.feature_onboarding_fapi_step3_headline),
+                    stringResource(Res.string.feature_onboarding_fapi_step3_body),
+                )
                 Spacer(Modifier.height(KptTheme.spacing.md))
                 Text(
                     stringResource(Res.string.feature_onboarding_revoke_note),
-                    style = KptTheme.typography.bodySmall, color = KptTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(KptTheme.spacing.sm)).background(KptTheme.colorScheme.surfaceContainer).padding(KptTheme.spacing.sm),
+                    style = KptTheme.typography.bodySmall,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(KptTheme.spacing.sm))
+                        .background(KptTheme.colorScheme.surfaceContainer)
+                        .padding(KptTheme.spacing.sm),
                 )
                 Spacer(Modifier.height(KptTheme.spacing.lg))
-                FilledPillButton(stringResource(Res.string.feature_onboarding_got_it), onClick = { onAction(UserOnboardingAction.CloseObExplainer) }, testTag = "onboarding_ob_explainer_got_it")
+                FilledPillButton(
+                    stringResource(Res.string.feature_onboarding_got_it),
+                    onClick = { onAction(UserOnboardingAction.CloseObExplainer) },
+                    testTag = "onboarding_ob_explainer_got_it",
+                )
             }
         }
     }

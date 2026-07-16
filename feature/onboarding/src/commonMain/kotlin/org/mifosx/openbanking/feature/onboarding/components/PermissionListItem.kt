@@ -56,26 +56,55 @@ import template.core.base.designsystem.theme.KptTheme
 fun PermissionListItem(permission: OBPermission, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = KptTheme.spacing.sm).testTag("onboarding_perm_${permission.id.name}"),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = KptTheme.spacing.sm)
+                .testTag("onboarding_perm_${permission.id.name}"),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(KptTheme.spacing.sm)).background(KptTheme.colorScheme.primaryContainer),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(KptTheme.spacing.sm))
+                    .background(KptTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(permissionIcon(permission.id), null, Modifier.size(20.dp), tint = KptTheme.colorScheme.onPrimaryContainer)
+                Icon(
+                    permissionIcon(permission.id),
+                    null,
+                    Modifier.size(20.dp),
+                    tint = KptTheme.colorScheme.onPrimaryContainer,
+                )
             }
             Spacer(Modifier.width(KptTheme.spacing.md))
             Column(Modifier.weight(1f)) {
-                Text(permission.label, style = KptTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = KptTheme.colorScheme.onSurface)
+                Text(
+                    permission.label,
+                    style = KptTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = KptTheme.colorScheme.onSurface,
+                )
                 Spacer(Modifier.height(KptTheme.spacing.xs))
-                Text(permission.description, style = KptTheme.typography.bodyMedium, color = KptTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    permission.description,
+                    style = KptTheme.typography.bodyMedium,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(KptTheme.spacing.xs))
                 Text(
                     permission.id.obieScope,
-                    style = KptTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp, letterSpacing = 0.3.sp),
+                    style = KptTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        letterSpacing = 0.3.sp,
+                    ),
                     color = KptTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(KptTheme.colorScheme.secondaryContainer).padding(horizontal = KptTheme.spacing.sm, vertical = 2.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(KptTheme.colorScheme.secondaryContainer)
+                        .padding(
+                            horizontal = KptTheme.spacing.sm,
+                            vertical = 2.dp,
+                        ),
                 )
             }
         }
@@ -84,18 +113,37 @@ fun PermissionListItem(permission: OBPermission, modifier: Modifier = Modifier) 
 }
 
 internal fun permissionIcon(id: PermissionId): ImageVector = when (id) {
-    PermissionId.ReadAccountsBasic, PermissionId.ReadAccountsDetail -> Icons.Outlined.ManageAccounts
+    PermissionId.ReadAccountsBasic,
+    PermissionId.ReadAccountsDetail,
+    -> Icons.Outlined.ManageAccounts
+
     PermissionId.ReadBalances -> Icons.Filled.AccountBalance
-    PermissionId.ReadBeneficiariesBasic, PermissionId.ReadBeneficiariesDetail -> Icons.Outlined.Group
+
+    PermissionId.ReadBeneficiariesBasic,
+    PermissionId.ReadBeneficiariesDetail,
+    -> Icons.Outlined.Group
+
     PermissionId.ReadDirectDebits -> Icons.Outlined.Subscriptions
     PermissionId.ReadOffers -> Icons.Outlined.LocalOffer
     PermissionId.ReadPAN -> Icons.Outlined.CreditCard
     PermissionId.ReadParty -> Icons.Outlined.Person
     PermissionId.ReadProducts -> Icons.Outlined.Store
     PermissionId.ReadRefundAccount -> Icons.Outlined.Redeem
-    PermissionId.ReadScheduledPaymentsBasic, PermissionId.ReadScheduledPaymentsDetail -> Icons.Outlined.Payment
+
+    PermissionId.ReadScheduledPaymentsBasic,
+    PermissionId.ReadScheduledPaymentsDetail,
+    -> Icons.Outlined.Payment
+
     PermissionId.ReadStandingOrdersBasic -> Icons.Outlined.Refresh
     PermissionId.ReadStandingOrdersDetail -> Icons.Outlined.Autorenew
-    PermissionId.ReadStatementsBasic, PermissionId.ReadStatementsDetail -> Icons.Outlined.Description
-    PermissionId.ReadTransactionsBasic, PermissionId.ReadTransactionsDetail, PermissionId.ReadTransactionsCredits, PermissionId.ReadTransactionsDebits -> Icons.Outlined.ReceiptLong
+
+    PermissionId.ReadStatementsBasic,
+    PermissionId.ReadStatementsDetail,
+    -> Icons.Outlined.Description
+
+    PermissionId.ReadTransactionsBasic,
+    PermissionId.ReadTransactionsDetail,
+    PermissionId.ReadTransactionsCredits,
+    PermissionId.ReadTransactionsDebits,
+    -> Icons.Outlined.ReceiptLong
 }

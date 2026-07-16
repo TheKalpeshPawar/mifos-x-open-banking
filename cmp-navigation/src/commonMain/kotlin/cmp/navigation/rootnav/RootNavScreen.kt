@@ -61,7 +61,7 @@ fun RootNavScreen(
 
     val rootNavOptions = navOptions {
         popUpTo(navController.graph.id) {
-            inclusive = false;
+            inclusive = false
             saveState = false
         }
         launchSingleTop = true

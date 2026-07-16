@@ -47,7 +47,11 @@ internal fun UserOnboardingScreen(
         is UserOnboardingUiState.Error -> ErrorStep(current, viewModel::trySendAction, modifier)
         is UserOnboardingUiState.Empty -> EmptyStep(viewModel::trySendAction, modifier)
         is UserOnboardingUiState.Intro -> IntroStep(current, viewModel::trySendAction, modifier)
-        is UserOnboardingUiState.PermissionsOverview -> PermissionsOverviewStep(current, viewModel::trySendAction, modifier)
+        is UserOnboardingUiState.PermissionsOverview -> PermissionsOverviewStep(
+            current,
+            viewModel::trySendAction,
+            modifier,
+        )
         is UserOnboardingUiState.ConsentExplainer -> ConsentExplainerStep(current, viewModel::trySendAction, modifier)
         is UserOnboardingUiState.ObExplainerOpen -> ObExplainerOpenStep(current, viewModel::trySendAction, modifier)
     }

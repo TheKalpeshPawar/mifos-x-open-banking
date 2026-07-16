@@ -1,3 +1,12 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
 package org.mifosx.openbanking.feature.onboarding
 
 import kotlinx.coroutines.flow.Flow
@@ -26,10 +35,14 @@ class FakeUserDataRepository(
         private set
 
     override val passcode: String get() = _userData.value.passcode
-    override val observeLanguage: Flow<LanguageConfig> get() = _userData.let { MutableStateFlow(UserData.DEFAULT.appLanguage).asStateFlow() }
-    override val observeDarkThemeConfig: Flow<DarkThemeConfig> get() = _userData.let { MutableStateFlow(UserData.DEFAULT.darkThemeConfig).asStateFlow() }
-    override val observeDynamicColorPreference: Flow<Boolean> get() = _userData.let { MutableStateFlow(UserData.DEFAULT.useDynamicColor).asStateFlow() }
-    override val observeScreenCapturePreference: Flow<Boolean> get() = MutableStateFlow(false).asStateFlow()
+    override val observeLanguage: Flow<LanguageConfig>
+        get() = MutableStateFlow(UserData.DEFAULT.appLanguage).asStateFlow()
+    override val observeDarkThemeConfig: Flow<DarkThemeConfig>
+        get() = MutableStateFlow(UserData.DEFAULT.darkThemeConfig).asStateFlow()
+    override val observeDynamicColorPreference: Flow<Boolean>
+        get() = MutableStateFlow(UserData.DEFAULT.useDynamicColor).asStateFlow()
+    override val observeScreenCapturePreference: Flow<Boolean>
+        get() = MutableStateFlow(false).asStateFlow()
 
     override suspend fun setLanguage(language: LanguageConfig) {}
     override suspend fun setThemeBrand(themeBrand: ThemeBrand) {}

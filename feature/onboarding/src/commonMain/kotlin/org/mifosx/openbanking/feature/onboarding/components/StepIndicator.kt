@@ -32,14 +32,21 @@ import androidx.compose.ui.unit.dp
 import template.core.base.designsystem.theme.KptTheme
 
 @Composable
-fun StepIndicator(currentStep: Int, totalSteps: Int, modifier: Modifier = Modifier) {
+fun StepIndicator(
+    currentStep: Int,
+    totalSteps: Int,
+    modifier: Modifier = Modifier,
+) {
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                progressBarRangeInfo = ProgressBarRangeInfo(current = currentStep.toFloat(), range = 1f..totalSteps.toFloat())
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = currentStep.toFloat(),
+                    range = 1f..totalSteps.toFloat(),
+                )
                 contentDescription = "Step $currentStep of $totalSteps"
             }
             .testTag("onboarding_step_indicator_$currentStep"),

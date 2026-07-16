@@ -1,3 +1,12 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
 package org.mifosx.openbanking.feature.onboarding.steps
 
 import androidx.compose.foundation.layout.Box
@@ -13,9 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.feature.onboarding.generated.resources.Res
 import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_loading
-import org.jetbrains.compose.resources.stringResource
 import template.core.base.designsystem.theme.KptTheme
 
 @Composable
