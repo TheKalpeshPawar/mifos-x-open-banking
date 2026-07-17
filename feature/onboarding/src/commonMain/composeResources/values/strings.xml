@@ -24,7 +24,7 @@
 
     <!-- Step 1: Intro -->
     <string name="feature_onboarding_intro_headline">Share your HSBC data securely with Open Banking</string>
-    <string name="feature_onboarding_intro_body">UK Open Banking is a regulated framework overseen by the Financial Conduct Authority. It lets you share your account information with authorised apps — without sharing your password.</string>
+    <string name="feature_onboarding_intro_body">UK Open Banking is regulated under the Payment Services Regulations 2017, with providers authorised by the Financial Conduct Authority. It lets you share your account information with authorised apps — without sharing your password.</string>
     <string name="feature_onboarding_fapi_chip">Secured by FAPI 1.0 Advanced</string>
     <string name="feature_onboarding_fca_chip">FCA Regulated</string>
     <string name="feature_onboarding_hero_illustration_desc">Open Banking secure connection illustration</string>

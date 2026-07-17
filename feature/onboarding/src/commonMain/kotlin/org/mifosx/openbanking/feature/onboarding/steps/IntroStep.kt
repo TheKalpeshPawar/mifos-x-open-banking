@@ -46,9 +46,12 @@ import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onb
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingAction
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingUiState
 import template.core.base.designsystem.theme.KptTheme
+import template.core.base.platform.LocalIntentManager
 
 private const val TOTAL_STEPS = 2
 private val HERO_HEIGHT = 220.dp
+private const val FAPI_STANDARD_URL = "https://openid.net/wg/fapi/"
+private const val FCA_OPEN_BANKING_URL = "https://www.fca.org.uk/firms/open-banking-fca"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,6 +60,7 @@ internal fun IntroStep(
     onAction: (UserOnboardingAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val intentManager = LocalIntentManager.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -101,10 +105,12 @@ internal fun IntroStep(
             AssistChip(
                 Icons.Filled.VerifiedUser,
                 stringResource(Res.string.feature_onboarding_fapi_chip),
+                onClick = { intentManager.launchUri(FAPI_STANDARD_URL) },
             )
             AssistChip(
                 Icons.Filled.AccountBalance,
                 stringResource(Res.string.feature_onboarding_fca_chip),
+                onClick = { intentManager.launchUri(FCA_OPEN_BANKING_URL) },
             )
         }
 

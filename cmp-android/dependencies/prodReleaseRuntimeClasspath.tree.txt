@@ -2526,6 +2526,7 @@
 |    |    |    |    +--- org.jetbrains.compose.components:components-ui-tooling-preview:1.10.3 (*)
 |    |    |    |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
 |    |    |    +--- project :core-base:network (*)
+|    |    |    +--- project :core-base:platform (*)
 |    |    |    +--- org.jetbrains.kotlinx:kotlinx-datetime:0.7.1 (*)
 |    |    |    +--- org.jetbrains.compose.ui:ui:1.10.3 (*)
 |    |    |    +--- org.jetbrains.compose.foundation:foundation:1.10.3 (*)
