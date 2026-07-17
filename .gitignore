@@ -115,6 +115,7 @@ vendor/
 # HSBC sandbox certificate material — supplied locally per developer, never committed
 core/network/src/androidMain/assets/certs/
 core/network/src/desktopMain/resources/certs/
+cmp-ios/iosApp/certs/
 
 # No exceptions to the rules above. Tests generate their own key material at runtime
 # (TestSigningKey, generateTestPkcs12), so nothing needs to be committed to make CI pass.
