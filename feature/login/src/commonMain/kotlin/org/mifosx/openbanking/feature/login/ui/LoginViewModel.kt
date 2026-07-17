@@ -24,7 +24,7 @@ import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BackgroundEvent
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
-import co.touchlab.kermit.Logger.Companion as KermitLogger
+
 sealed interface LoginUiState {
     data object Loading : LoginUiState
     data class Content(
@@ -100,16 +100,9 @@ class LoginViewModel(
         }
 
         updateState { LoginUiState.Loading }
-        KermitLogger.i(tag = "HSBC_OAUTH", messageString = "[VM-START-OAUTH] creating consent + authorization url")
         viewModelScope.launch {
             when (val result = loginRepository.createConsentAndBuildAuthorizationUrl()) {
                 is NetworkResult.Success -> {
-                    KermitLogger.i(
-                        tag = "HSBC_OAUTH",
-                        messageString = "[VM-OAUTH-SUCCESS] consentId=${result.data.consentId} " +
-                            "state=${result.data.state} nonce=${result.data.nonce}\n" +
-                            "authorizationUrl=${result.data.authorizationUrl}",
-                    )
                     pendingAuthStore.save(
                         state = result.data.state,
                         nonce = result.data.nonce,
@@ -119,10 +112,6 @@ class LoginViewModel(
                     updateState { LoginUiState.Authorising }
                 }
                 is NetworkResult.Error -> {
-                    KermitLogger.e(
-                        tag = "HSBC_OAUTH",
-                        messageString = "[VM-OAUTH-ERROR] ${result.error::class.simpleName} -> ${result.error}",
-                    )
                     updateState { LoginUiState.Error(mapErrorToMessage(result.error)) }
                 }
             }
