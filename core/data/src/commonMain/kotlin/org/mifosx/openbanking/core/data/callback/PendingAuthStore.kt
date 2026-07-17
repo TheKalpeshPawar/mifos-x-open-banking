@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.callback
 
+import co.touchlab.kermit.Logger
 import com.russhwolf.settings.Settings
 
 /**
@@ -64,9 +65,11 @@ class SettingsPendingAuthStore(
     override fun consume(): PendingAuth? {
         val stored = readStored()
         clear()
-        return stored
-            ?.takeIf { nowEpochSeconds() - it.createdAt <= TTL_SECONDS }
-            ?.auth
+        val fresh = stored?.takeIf { nowEpochSeconds() - it.createdAt <= TTL_SECONDS }?.auth
+        Logger.d(TAG) {
+            "consume: found=${stored != null} withinTtl=${fresh != null}"
+        }
+        return fresh
     }
 
     /** A stored entry and the moment it was written, so [consume] can judge its age. */
@@ -93,6 +96,11 @@ class SettingsPendingAuthStore(
     }
 
     override fun clear() {
+        Logger.d(TAG) {
+            "clear: hadState=${secureSettings.getStringOrNull(KEY_STATE) != null} " +
+                "hadNonce=${secureSettings.getStringOrNull(KEY_NONCE) != null} " +
+                "hadConsentId=${secureSettings.getStringOrNull(KEY_CONSENT_ID) != null}"
+        }
         secureSettings.remove(KEY_STATE)
         secureSettings.remove(KEY_NONCE)
         secureSettings.remove(KEY_CONSENT_ID)
@@ -100,6 +108,8 @@ class SettingsPendingAuthStore(
     }
 
     companion object {
+        private const val TAG = "PendingAuthStore"
+
         /** Matches `REQUEST_OBJECT_TTL_SECONDS` in `ConsentAuthorization.kt` (20 minutes). */
         const val TTL_SECONDS = 1200L
 

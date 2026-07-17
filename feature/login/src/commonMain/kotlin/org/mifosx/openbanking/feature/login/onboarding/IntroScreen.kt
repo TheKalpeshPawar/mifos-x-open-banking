@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.feature.onboarding.steps
+package org.mifosx.openbanking.feature.login.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,31 +33,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.feature.onboarding.components.AssistChip
-import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
-import org.mifosx.openbanking.feature.onboarding.components.OnboardingHeroIllustration
-import org.mifosx.openbanking.feature.onboarding.components.StepIndicator
-import org.mifosx.openbanking.feature.onboarding.generated.resources.Res
-import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_fapi_chip
-import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_fca_chip
-import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_intro_body
-import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_intro_headline
-import org.mifosx.openbanking.feature.onboarding.generated.resources.feature_onboarding_next
-import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingAction
-import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingUiState
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
+import org.mifosx.openbanking.feature.login.generated.resources.Res
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_fapi_chip
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_fca_chip
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_intro_body
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_intro_continue
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_intro_headline
 import template.core.base.designsystem.theme.KptTheme
 import template.core.base.platform.LocalIntentManager
 
-private const val TOTAL_STEPS = 2
 private val HERO_HEIGHT = 220.dp
 private const val FAPI_STANDARD_URL = "https://openid.net/wg/fapi/"
 private const val FCA_OPEN_BANKING_URL = "https://www.fca.org.uk/firms/open-banking-fca"
 
+/**
+ * The first page of the auth flow: an Open Banking primer with theme-aware hero art and two
+ * verifiable trust chips. Self-contained — it knows nothing about the login screen it precedes;
+ * [onContinue] is the only outward edge.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun IntroStep(
-    state: UserOnboardingUiState.Intro,
-    onAction: (UserOnboardingAction) -> Unit,
+internal fun IntroScreen(
+    onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val intentManager = LocalIntentManager.current
@@ -67,13 +65,11 @@ internal fun IntroStep(
             .verticalScroll(rememberScrollState())
             .padding(KptTheme.spacing.md),
     ) {
-        StepIndicator(currentStep = state.step, totalSteps = TOTAL_STEPS)
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(HERO_HEIGHT)
-                .testTag("onboarding_hero_illustration"),
+                .testTag("intro_hero_illustration"),
             contentAlignment = Alignment.Center,
         ) {
             OnboardingHeroIllustration(
@@ -86,17 +82,17 @@ internal fun IntroStep(
         Spacer(Modifier.height(KptTheme.spacing.md))
 
         Text(
-            stringResource(Res.string.feature_onboarding_intro_headline),
+            stringResource(Res.string.feature_login_intro_headline),
             style = KptTheme.typography.headlineMedium,
             color = KptTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(KptTheme.spacing.md))
         Text(
-            stringResource(Res.string.feature_onboarding_intro_body),
+            stringResource(Res.string.feature_login_intro_body),
             style = KptTheme.typography.bodyMedium,
             color = KptTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(KptTheme.spacing.lg))
 
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
@@ -104,12 +100,12 @@ internal fun IntroStep(
         ) {
             AssistChip(
                 Icons.Filled.VerifiedUser,
-                stringResource(Res.string.feature_onboarding_fapi_chip),
+                stringResource(Res.string.feature_login_fapi_chip),
                 onClick = { intentManager.launchUri(FAPI_STANDARD_URL) },
             )
             AssistChip(
                 Icons.Filled.AccountBalance,
-                stringResource(Res.string.feature_onboarding_fca_chip),
+                stringResource(Res.string.feature_login_fca_chip),
                 onClick = { intentManager.launchUri(FCA_OPEN_BANKING_URL) },
             )
         }
@@ -117,10 +113,10 @@ internal fun IntroStep(
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(KptTheme.spacing.md))
 
-        FilledPillButton(
-            stringResource(Res.string.feature_onboarding_next),
-            onClick = { onAction(UserOnboardingAction.StepNext) },
-            testTag = "onboarding_step1_next",
+        MifosFilledPillButton(
+            stringResource(Res.string.feature_login_intro_continue),
+            onClick = onContinue,
+            testTag = "intro_continue",
         )
     }
 }

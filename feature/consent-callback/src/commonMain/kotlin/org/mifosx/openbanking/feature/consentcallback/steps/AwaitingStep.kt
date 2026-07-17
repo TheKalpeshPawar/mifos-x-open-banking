@@ -28,12 +28,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.Res
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_awaiting_body
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_awaiting_title
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_check_again
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackAction
-import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
 import template.core.base.designsystem.theme.KptTheme
 
 @Composable
@@ -67,7 +67,7 @@ internal fun AwaitingStep(onAction: (ConsentCallbackAction) -> Unit, modifier: M
                 modifier = Modifier.widthIn(max = 320.dp),
             )
             Spacer(Modifier.height(24.dp))
-            FilledPillButton(
+            MifosFilledPillButton(
                 stringResource(Res.string.feature_callback_check_again),
                 onClick = { onAction(ConsentCallbackAction.PollConsentStatus) },
                 testTag = "callback_check_again",

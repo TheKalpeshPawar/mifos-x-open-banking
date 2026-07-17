@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.feature.onboarding.components
+package org.mifosx.openbanking.feature.login.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -62,7 +62,7 @@ private fun PermissionRow(permission: OBPermission) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = KptTheme.spacing.md, vertical = ROW_VERTICAL_PADDING)
-            .testTag("onboarding_perm_${permission.id.name}"),
+            .testTag("login_perm_${permission.id.name}"),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(

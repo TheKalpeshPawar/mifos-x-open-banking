@@ -56,8 +56,6 @@ class RootNavViewModel(
         val userData = action.userData
 
         val updatedRootNavState = when {
-            userData.firstTimeUser -> RootNavState.ShowOnboarding
-
             !consentSession.isActive() -> RootNavState.Auth
 
             else -> RootNavState.UserUnlocked(userData.activeUserId)
@@ -69,8 +67,6 @@ class RootNavViewModel(
 
 sealed class RootNavState {
     data object Auth : RootNavState()
-
-    data object ShowOnboarding : RootNavState()
 
     data object Splash : RootNavState()
 

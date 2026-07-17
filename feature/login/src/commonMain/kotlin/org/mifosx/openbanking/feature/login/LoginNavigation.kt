@@ -16,10 +16,14 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
+import org.mifosx.openbanking.feature.login.onboarding.IntroScreen
 import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable
 data object AuthGraphRoute
+
+@Serializable
+data object IntroRoute
 
 @Serializable
 data object LoginRoute
@@ -28,10 +32,13 @@ fun NavController.navigateToAuthGraph(navOptions: NavOptions? = null) {
     navigate(route = AuthGraphRoute, navOptions = navOptions)
 }
 
-fun NavGraphBuilder.authGraph() {
+fun NavGraphBuilder.authGraph(navController: NavController) {
     navigation<AuthGraphRoute>(
-        startDestination = LoginRoute,
+        startDestination = IntroRoute,
     ) {
+        composableWithStayTransitions<IntroRoute> {
+            IntroScreen(onContinue = { navController.navigate(LoginRoute) })
+        }
         composableWithStayTransitions<LoginRoute> {
             LoginScreen()
         }

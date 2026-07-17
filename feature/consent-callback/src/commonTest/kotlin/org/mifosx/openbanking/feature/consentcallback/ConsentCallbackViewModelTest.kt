@@ -39,14 +39,11 @@ class ConsentCallbackViewModelTest {
     /** The real session, so the tests pin the storage contract the navigator reads. */
     private val consentSession = SettingsConsentSession(secureSettings)
 
-    private val userDataRepository = FakeUserDataRepository()
-
     private fun createViewModel(): ConsentCallbackViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         return ConsentCallbackViewModel(
             repository = repository,
             consentSession = consentSession,
-            userDataRepository = userDataRepository,
             redirectUri = REDIRECT_URI,
         )
     }
@@ -107,17 +104,6 @@ class ConsentCallbackViewModelTest {
         val event = vm.eventFlow.first()
         assertIs<ConsentCallbackEvent.NavigateToHome>(event)
         assertIs<BackgroundEvent>(event)
-    }
-
-    @Test
-    fun `an authorised consent marks onboarding complete`() = runTest {
-        val vm = createViewModel()
-
-        vm.processCallback()
-        vm.stateFlow.first { it is ConsentCallbackUiState.Content }
-
-        assertEquals(1, userDataRepository.firstTimeStateSetCount)
-        assertEquals(false, userDataRepository.lastFirstTimeStateValue)
     }
 
     @Test

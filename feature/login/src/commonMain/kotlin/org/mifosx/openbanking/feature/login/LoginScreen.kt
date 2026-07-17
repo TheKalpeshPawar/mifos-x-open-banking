@@ -48,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
+import org.mifosx.openbanking.feature.login.components.PermissionList
 import org.mifosx.openbanking.feature.login.generated.resources.Res
 import org.mifosx.openbanking.feature.login.generated.resources.feature_login_authorising_hint
 import org.mifosx.openbanking.feature.login.generated.resources.feature_login_cancel
@@ -70,8 +72,6 @@ import org.mifosx.openbanking.feature.login.ui.LoginAction
 import org.mifosx.openbanking.feature.login.ui.LoginEvent
 import org.mifosx.openbanking.feature.login.ui.LoginUiState
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
-import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
-import org.mifosx.openbanking.feature.onboarding.components.PermissionList
 import template.core.base.designsystem.theme.KptTheme
 import template.core.base.platform.LocalIntentManager
 import template.core.base.ui.effects.EventsEffect
@@ -208,7 +208,7 @@ private fun ContentState(
         Spacer(Modifier.weight(1f))
         Spacer(Modifier.height(KptTheme.spacing.md))
 
-        FilledPillButton(
+        MifosFilledPillButton(
             stringResource(Res.string.feature_login_continue_hsbc),
             onClick = { onAction(LoginAction.StartOAuth) },
             icon = Icons.Outlined.OpenInNew,
@@ -275,7 +275,7 @@ private fun ErrorState(
                 modifier = Modifier.widthIn(max = 300.dp),
             )
             Spacer(Modifier.height(KptTheme.spacing.lg))
-            FilledPillButton(
+            MifosFilledPillButton(
                 stringResource(Res.string.feature_login_retry),
                 onClick = { onAction(LoginAction.Retry) },
                 testTag = "login_error_retry",
@@ -307,7 +307,7 @@ private fun EmptyState(
                 modifier = Modifier.widthIn(max = 300.dp),
             )
             Spacer(Modifier.height(KptTheme.spacing.lg))
-            FilledPillButton(
+            MifosFilledPillButton(
                 stringResource(Res.string.feature_login_go_back),
                 onClick = { onAction(LoginAction.Cancel) },
                 testTag = "login_empty_go_back",

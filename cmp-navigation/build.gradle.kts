@@ -32,7 +32,6 @@ kotlin {
 
             implementation(projects.feature.home)
             implementation(projects.feature.login)
-            implementation(projects.feature.onboarding)
             implementation(projects.feature.consentCallback)
 
             //put your multiplatform dependencies here

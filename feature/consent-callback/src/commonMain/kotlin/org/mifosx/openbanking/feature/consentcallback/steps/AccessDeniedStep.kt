@@ -28,12 +28,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.Res
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_access_denied_body
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_access_denied_title
 import org.mifosx.openbanking.feature.consentcallback.generated.resources.feature_callback_start_over
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackAction
-import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
 import template.core.base.designsystem.theme.KptTheme
 
 @Composable
@@ -62,7 +62,7 @@ internal fun AccessDeniedStep(onAction: (ConsentCallbackAction) -> Unit, modifie
                 modifier = Modifier.widthIn(max = 320.dp),
             )
             Spacer(Modifier.height(24.dp))
-            FilledPillButton(
+            MifosFilledPillButton(
                 stringResource(Res.string.feature_callback_start_over),
                 onClick = { onAction(ConsentCallbackAction.NavigateRetry) },
                 testTag = "callback_start_over",

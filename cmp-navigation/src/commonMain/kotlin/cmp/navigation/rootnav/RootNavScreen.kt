@@ -41,9 +41,6 @@ import org.mifosx.openbanking.feature.consentcallback.navigateToConsentCallback
 import org.mifosx.openbanking.feature.login.AuthGraphRoute
 import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
-import org.mifosx.openbanking.feature.onboarding.UserOnboardingRoute
-import org.mifosx.openbanking.feature.onboarding.navigateToUserOnboarding
-import org.mifosx.openbanking.feature.onboarding.onboardingDestination
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -97,10 +94,7 @@ fun RootNavScreen(
         popExitTransition = { toExitTransition()(this) },
     ) {
         splashDestination()
-        onboardingDestination(
-            onNavigateToLogin = { navController.navigateToAuthGraph() },
-        )
-        authGraph()
+        authGraph(navController)
         consentCallbackDestination(
             onNavigateToHome = {
                 navController.navigateToAuthenticatedGraph(rootNavOptions())
@@ -138,8 +132,6 @@ fun RootNavScreen(
     }
 
     val targetRoute = when (state) {
-        // SetLanguageRoute
-        RootNavState.ShowOnboarding -> UserOnboardingRoute
         RootNavState.Auth -> AuthGraphRoute
         RootNavState.Splash -> SplashRoute
         is RootNavState.UserUnlocked -> AuthenticatedGraphRoute
@@ -169,8 +161,6 @@ fun RootNavScreen(
         when (state) {
             RootNavState.Splash -> navController.navigateToSplash(rootNavOptions())
             RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions())
-            // navController.navigateToSetLanguage(rootNavOptions())
-            RootNavState.ShowOnboarding -> navController.navigateToUserOnboarding(rootNavOptions())
             is RootNavState.UserUnlocked -> navController.navigateToAuthenticatedGraph(
                 navOptions = rootNavOptions(),
             )

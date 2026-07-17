@@ -21,9 +21,9 @@ kotlin {
             implementation(projects.core.data)
             implementation(projects.core.model)
             implementation(projects.core.network)
+            implementation(projects.core.ui)
             implementation(projects.coreBase.ui)
             implementation(projects.coreBase.network)
-            implementation(projects.feature.onboarding)
 
             implementation(compose.ui)
             implementation(compose.foundation)

@@ -142,6 +142,21 @@ class LoginViewModelTest {
     }
 
     @Test
+    fun `StartOAuth clears any orphaned pending auth before beginning`() = runTest {
+        pendingAuthStore.save("stale-state", "stale-nonce", "stale-consent")
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        val clearsBefore = pendingAuthStore.clearCount
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Authorising }
+
+        assertTrue(pendingAuthStore.clearCount > clearsBefore, "a new attempt must purge stale pending auth")
+        assertEquals("state-abc", pendingAuthStore.saved?.state)
+    }
+
+    @Test
     fun `Retry reloads config from Error state`() = runTest {
         val repo = FakeLoginRepository().apply {
             createConsentResult = NetworkResult.Error(NetworkError.Network(RuntimeException("fail")))

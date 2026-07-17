@@ -90,6 +90,11 @@ class LoginViewModel(
      * On success the `state`/`nonce`/`consentId` are persisted BEFORE handing off to the browser.
      * The PSU leaves the app entirely and the process may be killed while backgrounded, so the
      * redirect can arrive on a cold start — these are the values it is authenticated against.
+     *
+     * Any pending auth left by a previous, abandoned attempt (the PSU cancelled at HSBC and killed
+     * the app, so no redirect ever ran [PendingAuthStore.consume]) is purged first — a fresh attempt
+     * must never inherit an orphaned entry. This is safe: a legitimate cold-start redirect is handled
+     * through [PendingAuthStore.consume] in the callback layer, never through here.
      */
     private fun handleStartOAuth() {
         if (state !is LoginUiState.Content) return
@@ -99,6 +104,7 @@ class LoginViewModel(
             return
         }
 
+        pendingAuthStore.clear()
         updateState { LoginUiState.Loading }
         viewModelScope.launch {
             when (val result = loginRepository.createConsentAndBuildAuthorizationUrl()) {

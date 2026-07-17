@@ -18,7 +18,6 @@ val ConsentCallbackModule = module {
         ConsentCallbackViewModel(
             repository = get(),
             consentSession = get(),
-            userDataRepository = get(),
             redirectUri = get(named("hsbcRedirectUri")),
         )
     }

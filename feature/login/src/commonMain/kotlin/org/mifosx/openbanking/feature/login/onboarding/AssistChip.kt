@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.feature.onboarding.components
+package org.mifosx.openbanking.feature.login.onboarding
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

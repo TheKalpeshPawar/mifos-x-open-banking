@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package org.mifosx.openbanking.feature.onboarding.components
+package org.mifosx.openbanking.feature.login.onboarding
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -23,8 +23,8 @@ import androidx.compose.ui.graphics.drawscope.translate
 import template.core.base.designsystem.theme.KptTheme
 
 /**
- * The onboarding hero: a hexagonal shield holding a padlock, ringed by soft halos and a few
- * "data node" dots — reproduced from the design mockup's inline SVG (viewBox 0 0 200 200).
+ * The intro hero: a hexagonal shield holding a padlock, ringed by soft halos and a few "data node"
+ * dots — reproduced from the design mockup's inline SVG (viewBox 0 0 200 200).
  *
  * Drawn with Canvas rather than shipped as a static vector so it stays theme-aware: every colour is
  * a live [KptTheme] token, so it reads correctly in both light and dark. The mockup's two tiny text
