@@ -292,6 +292,8 @@ dev.whyoleg.cryptography:cryptography-core-jvm:0.6.0
 dev.whyoleg.cryptography:cryptography-core:0.6.0
 dev.whyoleg.cryptography:cryptography-provider-base-jvm:0.6.0
 dev.whyoleg.cryptography:cryptography-provider-base:0.6.0
+dev.whyoleg.cryptography:cryptography-provider-jdk-bc-jvm:0.6.0
+dev.whyoleg.cryptography:cryptography-provider-jdk-bc:0.6.0
 dev.whyoleg.cryptography:cryptography-provider-jdk-jvm:0.6.0
 dev.whyoleg.cryptography:cryptography-provider-jdk:0.6.0
 dev.whyoleg.cryptography:cryptography-provider-optimal-jvm:0.6.0
@@ -383,6 +385,7 @@ io.ktor:ktor-websocket-serialization:3.4.1
 io.ktor:ktor-websockets-jvm:3.4.1
 io.ktor:ktor-websockets:3.4.1
 javax.inject:javax.inject:1
+org.bouncycastle:bcprov-jdk18on:1.83
 org.checkerframework:checker-qual:3.12.0
 org.jetbrains.androidx.core:core-bundle-android:1.0.1
 org.jetbrains.androidx.core:core-bundle:1.0.1
