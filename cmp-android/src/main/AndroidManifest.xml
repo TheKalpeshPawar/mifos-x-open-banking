@@ -37,15 +37,41 @@
         android:theme="@style/Theme.AppSplash"
         android:localeConfig="@xml/locale_config">
 
+        <!--
+            launchMode=singleTask so HSBC's redirect reuses the existing task instead of stacking a
+            second MainActivity on top of the one that started the consent. The redirect is then
+            delivered to onNewIntent rather than a fresh instance.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.AppSplash"
             android:windowSoftInputMode="adjustPan|adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                Catches the OAuth consent redirect. HSBC itself redirects to the registered HTTPS
+                callback page; that page reads the response from the URL fragment and relays it to
+                this custom scheme, which keeps HSBC's signed redirect_uri unchanged.
+
+                Both hosts are accepted on purpose. The bridge page is deployed separately from this
+                app, so pinning a single host means a page revision can silently stop the callback
+                from ever reaching us — a failure that looks like a hung consent, not a config error.
+                MainActivity filters on scheme alone, so either shape is forwarded.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="org.mifosx.openbanking" android:host="callback" />
+                <data android:scheme="org.mifosx.openbanking" android:host="oauth" />
             </intent-filter>
         </activity>
 

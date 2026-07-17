@@ -39,12 +39,14 @@ class LoginViewModelTest {
         ),
     )
 
+    private val pendingAuthStore = FakePendingAuthStore()
+
     private fun createViewModel(
         repo: FakeLoginRepository = FakeLoginRepository(),
         browser: FakeBrowserLauncher = FakeBrowserLauncher(),
     ): Pair<LoginViewModel, FakeBrowserLauncher> {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        val vm = LoginViewModel(repo, browser)
+        val vm = LoginViewModel(repo, browser, pendingAuthStore)
         return vm to browser
     }
 
@@ -53,7 +55,7 @@ class LoginViewModelTest {
         val (vm, _) = createViewModel()
         val state = vm.stateFlow.first { it is LoginUiState.Content }
         assertIs<LoginUiState.Content>(state)
-        assertEquals(21, state.permissions.size)
+        assertEquals(20, state.permissions.size)
         assertTrue(state.expiryLabel.startsWith("Expires"))
     }
 
@@ -176,6 +178,80 @@ class LoginViewModelTest {
         vm.stateFlow.first { it is LoginUiState.Error }
         vm.trySendAction(LoginAction.StartOAuth)
         assertIs<LoginUiState.Error>(vm.stateFlow.value)
+    }
+
+    @Test
+    fun `StartOAuth persists the state nonce and consentId for the callback to validate against`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Authorising }
+
+        val saved = pendingAuthStore.saved
+        assertNotNull(saved, "without this the callback has nothing to authenticate the redirect against")
+        assertEquals("state-abc", saved.state)
+        assertEquals("nonce-xyz", saved.nonce)
+        assertEquals("consent-123", saved.consentId)
+    }
+
+    @Test
+    fun `StartOAuth persists before opening the browser`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val browser = object : FakeBrowserLauncher() {
+            var storeHadValueAtLaunch: Boolean = false
+
+            override fun launch(url: String) {
+                storeHadValueAtLaunch = pendingAuthStore.saved != null
+                super.launch(url)
+            }
+        }
+        val (vm, _) = createViewModel(repo, browser)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Authorising }
+
+        assertTrue(
+            browser.storeHadValueAtLaunch,
+            "the PSU can leave for the browser the instant it opens; persisting after would race",
+        )
+    }
+
+    @Test
+    fun `StartOAuth does not persist when consent creation fails`() = runTest {
+        val repo = FakeLoginRepository().apply {
+            createConsentResult = NetworkResult.Error(NetworkError.Network(RuntimeException("fail")))
+        }
+        val (vm, _) = createViewModel(repo)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Error }
+
+        assertEquals(0, pendingAuthStore.saveCount)
+    }
+
+    @Test
+    fun `StartOAuth errors without contacting HSBC when the platform cannot receive the redirect`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val browser = FakeBrowserLauncher(isSupported = false)
+        val (vm, _) = createViewModel(repo, browser)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertEquals(LoginViewModel.UNSUPPORTED_PLATFORM_MESSAGE, state.message)
+        assertEquals(
+            0,
+            repo.createConsentCallCount,
+            "creating a consent we can never complete would strand it at the bank",
+        )
+        assertEquals(0, browser.launchCount)
+        assertEquals(0, pendingAuthStore.saveCount)
     }
 
     @Test

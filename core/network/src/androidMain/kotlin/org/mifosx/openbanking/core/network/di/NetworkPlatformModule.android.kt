@@ -15,11 +15,17 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.certs.CertPaths
+import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 
 /** Android: reads the certificate material from the app's assets (`androidMain/assets/certs/`). */
 actual val networkPlatformModule: Module = module {
-    single { MtlsIdentity(pkcs12 = androidContext().readAssetCert(CertPaths.TRANSPORT_P12)) }
+    single {
+        MtlsIdentity(
+            pkcs12 = androidContext().readAssetCert(CertPaths.TRANSPORT_P12),
+            pkcs12Password = HsbcConfig.TRANSPORT_P12_PASSWORD,
+        )
+    }
     single(named("hsbcSigningKey")) { androidContext().readAssetCert(CertPaths.SIGNING_KEY_PEM).decodeToString() }
 }
 

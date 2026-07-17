@@ -25,9 +25,6 @@ import kotlin.test.assertTrue
 
 class HsbcSandboxHttpClientTest {
 
-    private val signingKey: String =
-        checkNotNull(HsbcSandboxHttpClientTest::class.java.getResourceAsStream("/test-signing-key.pem"))
-            .readBytes().decodeToString()
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
     private val tokenUrl = "https://sandbox.test/obie/open-banking/v1.1/oauth2/token"
 
@@ -47,7 +44,7 @@ class HsbcSandboxHttpClientTest {
             tokenUrl = tokenUrl,
             clientId = "client-1",
             kid = "kid-1",
-            signingKeyPem = signingKey,
+            signingKeyPem = TestSigningKey.pem(),
             redirectUri = "https://cb/callback/",
             refreshToken = "old-ref",
         )
@@ -61,7 +58,7 @@ class HsbcSandboxHttpClientTest {
     @Test
     fun `refreshAccessToken maps a missing access_token to an empty string`() = runTest {
         val client = mockClient { respond("{}", headers = jsonHeaders) }
-        val tokens = refreshAccessToken(client, tokenUrl, "c", "k", signingKey, "https://cb", "old-ref")
+        val tokens = refreshAccessToken(client, tokenUrl, "c", "k", TestSigningKey.pem(), "https://cb", "old-ref")
         assertEquals("", tokens.accessToken)
         assertNull(tokens.refreshToken)
     }

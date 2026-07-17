@@ -14,27 +14,29 @@ package org.mifosx.openbanking.feature.consentcallback
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
+import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import template.core.base.ui.nav.composableWithStayTransitions
 
+/**
+ * Carries HSBC's redirect URL exactly as the OS delivered it.
+ *
+ * Deliberately just the URL: parsing it, and checking it against the expected `state`/`nonce`, are
+ * the data layer's job (`ConsentCallbackRepository.validateCallback`). Navigation never sees those
+ * expected values, so it cannot pass the wrong ones.
+ */
 @Serializable
 data class ConsentCallbackRoute(
-    val code: String? = null,
-    val idToken: String? = null,
-    val state: String? = null,
-    val error: String? = null,
-    val errorDescription: String? = null,
-    val expectedState: String,
-    val expectedNonce: String,
-    val consentId: String,
+    val redirectUrl: String,
 )
 
 fun NavGraphBuilder.consentCallbackDestination(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
 ) {
-    composableWithStayTransitions<ConsentCallbackRoute> {
+    composableWithStayTransitions<ConsentCallbackRoute> { entry ->
         ConsentCallbackScreen(
+            redirectUrl = entry.toRoute<ConsentCallbackRoute>().redirectUrl,
             onNavigateToHome = onNavigateToHome,
             onNavigateToLogin = onNavigateToLogin,
         )

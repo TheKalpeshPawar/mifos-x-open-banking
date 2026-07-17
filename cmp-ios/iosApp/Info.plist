@@ -18,6 +18,24 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<!--
+	    Receives HSBC's consent redirect. HSBC redirects to the registered HTTPS callback page, which
+	    relays the response to this custom scheme; that keeps HSBC's signed redirect_uri unchanged.
+	    Must stay in lock-step with CONSENT_REDIRECT_SCHEME in ConsentRedirectBridge.kt.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>org.mifosx.openbanking.consent-callback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>org.mifosx.openbanking</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

@@ -17,7 +17,7 @@ val ConsentCallbackModule = module {
     factory {
         ConsentCallbackViewModel(
             repository = get(),
-            secureSettings = get(named("secure")),
+            consentSession = get(),
             redirectUri = get(named("hsbcRedirectUri")),
         )
     }

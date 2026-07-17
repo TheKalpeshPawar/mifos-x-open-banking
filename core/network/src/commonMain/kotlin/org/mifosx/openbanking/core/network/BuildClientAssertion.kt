@@ -15,6 +15,7 @@ import dev.whyoleg.cryptography.algorithms.SHA256
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.mifosx.openbanking.core.network.debug.OAuthDebugLog
 import kotlin.io.encoding.Base64
 
 /**
@@ -34,6 +35,8 @@ internal suspend fun signPs256(
     val payloadBytes = payload.toString().encodeToByteArray()
     val signingInput = "${base64Url.encode(headerBytes)}.${base64Url.encode(payloadBytes)}"
 
+    OAuthDebugLog.log("JWT-SIGN", "header=$header\npayload=$payload\nsigning-input=$signingInput")
+
     val privateKey = CryptographyProvider.Default.get(RSA.PSS)
         .privateKeyDecoder(digest = SHA256)
         .decodeFromByteArray(RSA.PrivateKey.Format.PEM.Generic, privateKeyPem.encodeToByteArray())
@@ -41,7 +44,9 @@ internal suspend fun signPs256(
     val signature = privateKey.signatureGenerator()
         .generateSignature(signingInput.encodeToByteArray())
 
-    return "$signingInput.${base64Url.encode(signature)}"
+    val jwt = "$signingInput.${base64Url.encode(signature)}"
+    OAuthDebugLog.log("JWT-SIGNED", "jwt=$jwt")
+    return jwt
 }
 
 /**

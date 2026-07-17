@@ -13,18 +13,16 @@ import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
 import template.core.base.common.screen.ScreenState
 
-data class CallbackParams(
-    val code: String?,
-    val idToken: String?,
-    val state: String?,
-    val error: String?,
-    val errorDescription: String?,
-    val expectedState: String,
-    val expectedNonce: String,
-)
-
 sealed interface ValidationResult {
-    data object Valid : ValidationResult
+    /**
+     * The redirect is authentic. Carries the values the caller needs next, so the caller never has
+     * to re-parse the URL or reach into [PendingAuthStore] itself.
+     */
+    data class Valid(
+        val code: String,
+        val consentId: String,
+    ) : ValidationResult
+
     data object SecurityError : ValidationResult
     data object AccessDenied : ValidationResult
     data object MissingCode : ValidationResult
@@ -32,7 +30,17 @@ sealed interface ValidationResult {
 }
 
 interface ConsentCallbackRepository {
-    fun validateCallback(params: CallbackParams): ValidationResult
+    /**
+     * Parses and authenticates HSBC's raw redirect URL.
+     *
+     * Takes the URL rather than pre-parsed parts on purpose: the `state`/`nonce` it is checked
+     * against come from [PendingAuthStore], which is this layer's business. If the caller supplied
+     * the expected values, the caller could pass the wrong ones — or, as the previous signature
+     * allowed, an empty nonce that silently skipped replay validation entirely.
+     *
+     * Single-use: consumes the stored [PendingAuth], so the same redirect cannot be replayed.
+     */
+    fun validateCallback(redirectUrl: String): ValidationResult
 
     suspend fun exchangeCode(
         code: String,

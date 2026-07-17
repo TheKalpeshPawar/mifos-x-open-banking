@@ -28,6 +28,7 @@ kotlin {
     sourceSets {
         jvmMain.dependencies {
             implementation(projects.cmpShared)
+            implementation(projects.core.data)
 
             implementation(libs.kotlinx.coroutines.swing)
             implementation(compose.desktop.currentOs)
@@ -35,6 +36,15 @@ kotlin {
             implementation(libs.kotlin.reflect)
 
             implementation(libs.koin.core)
+
+            // ConsentRedirectListener logs a failed bind. Declared here because :core:data pulls
+            // :core:network via `implementation`, so network's api(kermit) does not propagate.
+            implementation(libs.kermit.logging)
+        }
+
+        jvmTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

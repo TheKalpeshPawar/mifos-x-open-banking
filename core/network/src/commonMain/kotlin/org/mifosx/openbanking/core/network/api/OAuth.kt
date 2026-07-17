@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.model.createConsent.CreateConsentTokenSuccess
 import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
 import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
 import org.mifosx.openbanking.core.network.buildClientAssertion
+import org.mifosx.openbanking.core.network.debug.OAuthDebugLog
 import org.mifosx.openbanking.core.network.result.toNetworkResult
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -38,21 +39,33 @@ class OAuth(
     private val signingKeyPem: String,
 ) {
     @OptIn(ExperimentalUuidApi::class)
-    private suspend fun clientAssertion(): String = buildClientAssertion(
-        clientId = clientId,
-        kid = kid,
-        tokenUrl = tokenUrl,
-        nowEpochSeconds = Clock.System.now().epochSeconds,
-        jti = Uuid.generateV4().toString(),
-        privateKeyPem = signingKeyPem,
-    )
+    private suspend fun clientAssertion(): String {
+        val jti = Uuid.generateV4().toString()
+        OAuthDebugLog.log(
+            "OAUTH-ASSERTION-INPUT",
+            "tokenUrl=$tokenUrl clientId=$clientId kid=$kid jti=$jti signingKeyPem.len=${signingKeyPem.length}",
+        )
+        return buildClientAssertion(
+            clientId = clientId,
+            kid = kid,
+            tokenUrl = tokenUrl,
+            nowEpochSeconds = Clock.System.now().epochSeconds,
+            jti = jti,
+            privateKeyPem = signingKeyPem,
+        )
+    }
 
     /** Temporary client-credentials token used to create/manage account-access-consents. */
     suspend fun clientCredentialsToken(
         scope: ConsentCreationScope,
     ): NetworkResult<CreateConsentTokenSuccess, NetworkError> {
         val assertion = clientAssertion()
-        return httpClient.submitForm(
+        OAuthDebugLog.log(
+            "OAUTH-CC-TOKEN-REQUEST",
+            "POST $tokenUrl\ngrant_type=client_credentials\nscope=${scope.value}\n" +
+                "client_assertion_type=$CLIENT_ASSERTION_TYPE\nclient_assertion=$assertion",
+        )
+        val result: NetworkResult<CreateConsentTokenSuccess, NetworkError> = httpClient.submitForm(
             url = tokenUrl,
             formParameters = parameters {
                 append("grant_type", "client_credentials")
@@ -61,6 +74,8 @@ class OAuth(
                 append("client_assertion", assertion)
             },
         ).toNetworkResult()
+        OAuthDebugLog.log("OAUTH-CC-TOKEN-RESULT", result.toString())
+        return result
     }
 
     /** Exchanges the authorization code (from the redirect callback) for the PSU access token. */

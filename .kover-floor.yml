@@ -15,3 +15,15 @@ floors:
   # (Gap #1 in docs/reports/source-coverage-260519.md). Bump to 90 once
   # Gap #1 is fixed and the report.xml lands.
   # ":core-base:store": 90
+
+  # Measured from koverXmlReport, then dropped ~5 points so ordinary churn in an
+  # unrelated package does not turn an innocent PR red.
+  #
+  # Both modules earned these by dropping the committed cert fixtures: signing tests
+  # now generate a throwaway key at runtime (TestSigningKey / generateTestPkcs12)
+  # instead of reading a PEM, which is what made LoginRepositoryImpl (0/43 -> 43/43)
+  # and OAuth's signing paths coverable in CI at all.
+  #
+  # Measured 2026-07-17 — :core:data 48.9%, :core:network 67.1%.
+  ":core:data": 43
+  ":core:network": 62

@@ -9,25 +9,31 @@
  */
 package org.mifosx.openbanking.core.network.di
 
-import org.mifosx.openbanking.core.network.certs.CertPaths
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
+/**
+ * Covers `readClasspathCert`, which is a resource loader — it does not parse or validate a
+ * certificate, and cannot tell one from a text file.
+ *
+ * So these assert against a probe fixture this test owns. Naming the real `certs/…` paths, as this
+ * previously did, made the result depend on `desktopTest/resources` happening to shadow
+ * `desktopMain/resources` on the classpath: an accident of ordering, not a contract. A test that
+ * green-lights on shadowing is worse than none — remove the fixtures and it silently starts
+ * asserting against the **real** HSBC cert on a dev machine, and fails outright on CI.
+ */
 class NetworkPlatformModuleTest {
 
-    // Throwaway self-signed fixtures live at src/desktopTest/resources/certs/ (committed).
-
     @Test
-    fun `readClasspathCert reads the transport identity from the classpath`() {
-        val bytes = readClasspathCert(CertPaths.TRANSPORT_P12)
-        assertTrue(bytes.isNotEmpty(), "expected ${CertPaths.TRANSPORT_P12} to be read as non-empty bytes")
+    fun `readClasspathCert reads a resource off the classpath`() {
+        assertEquals("probe", readClasspathCert(PROBE).decodeToString().trim())
     }
 
     @Test
-    fun `readClasspathCert reads the signing key from the classpath`() {
-        val bytes = readClasspathCert(CertPaths.SIGNING_KEY_PEM)
-        assertTrue(bytes.isNotEmpty(), "expected ${CertPaths.SIGNING_KEY_PEM} to be read as non-empty bytes")
+    fun `readClasspathCert returns the raw bytes`() {
+        assertTrue(readClasspathCert(PROBE).isNotEmpty())
     }
 
     @Test
@@ -39,5 +45,9 @@ class NetworkPlatformModuleTest {
             error.message?.contains("certs/does-not-exist.p12") == true,
             "error message should name the missing resource",
         )
+    }
+
+    private companion object {
+        const val PROBE = "classpath-probe.txt"
     }
 }

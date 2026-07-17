@@ -16,6 +16,7 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.certs.CertPaths
+import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 import platform.Foundation.NSBundle
 import platform.Foundation.NSData
@@ -30,7 +31,12 @@ import platform.posix.memcpy
  * verify the bundle path resolution + `NSData` copy when building on macOS.
  */
 actual val networkPlatformModule: Module = module {
-    single { MtlsIdentity(pkcs12 = readBundleCert(CertPaths.TRANSPORT_P12)) }
+    single {
+        MtlsIdentity(
+            pkcs12 = readBundleCert(CertPaths.TRANSPORT_P12),
+            pkcs12Password = HsbcConfig.TRANSPORT_P12_PASSWORD,
+        )
+    }
     single(named("hsbcSigningKey")) { readBundleCert(CertPaths.SIGNING_KEY_PEM).decodeToString() }
 }
 

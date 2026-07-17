@@ -16,10 +16,18 @@ import io.ktor.client.HttpClientConfig
  *
  * The JVM engine loads it into a [java.security.KeyStore]; the Darwin engine imports it via
  * `SecPKCS12Import`. Both consume the same PKCS#12 bundle (transport certificate + private key).
+ *
+ * [pkcs12Password] is deliberately required and deliberately has no default. An empty passphrase is
+ * not a neutral "unprotected" value: a PKCS#12 bundle exported with one is still PBES2/AES-encrypted,
+ * with the empty string fed to PBKDF2. The JVM derives that key happily, but Android's BouncyCastle
+ * refuses a zero-length password outright (`IllegalArgumentException: password empty`, from
+ * `PKCS12KeyStoreSpi.cryptData`). A default here would therefore compile, pass every desktop test, and
+ * crash on every Android launch — which is exactly what it did. Supply it from
+ * `HsbcConfig.TRANSPORT_P12_PASSWORD`; the build refuses a blank one.
  */
 class MtlsIdentity(
     val pkcs12: ByteArray,
-    val pkcs12Password: String = "",
+    val pkcs12Password: String,
 )
 
 /**

@@ -31,6 +31,7 @@ class LoginRepositoryImpl(
     private val clientId: String,
     private val kid: String,
     private val bankHost: String,
+    private val authorizeHost: String,
     private val redirectUri: String,
 ) : LoginRepository {
 
@@ -62,8 +63,10 @@ class LoginRepositoryImpl(
         }
 
         val audience = "https://$bankHost"
+        val authorizeUrl = "https://$authorizeHost/obie/open-banking/v1.1/oauth2/authorize"
         val auth = generateConsentAuthorizationUrl(
             audience = audience,
+            authorizeUrl = authorizeUrl,
             clientId = clientId,
             kid = kid,
             scope = ConsentCreationScope.ACCOUNTS,

@@ -17,6 +17,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.model.ais.accountDetails.AccountDetailsResponse
 import org.mifosx.openbanking.core.model.ais.accounts.AccountsResponse
 import org.mifosx.openbanking.core.model.ais.balances.BalancesResponse
@@ -33,6 +34,7 @@ import org.mifosx.openbanking.core.model.ais.statements.StatementsResponse
 import org.mifosx.openbanking.core.model.ais.transactions.TransactionsResponse
 import org.mifosx.openbanking.core.model.hsbcPermission.request.HSBCCreateConsentRequest
 import org.mifosx.openbanking.core.model.hsbcPermission.response.HSBCCreateConsentResponse
+import org.mifosx.openbanking.core.network.debug.OAuthDebugLog
 import org.mifosx.openbanking.core.network.result.toNetworkResult
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -55,12 +57,18 @@ class Aisp(
     suspend fun createConsent(
         consentCreationAccessToken: String,
         request: HSBCCreateConsentRequest,
-    ): NetworkResult<HSBCCreateConsentResponse, NetworkError> =
-        httpClient.post("$AIS/account-access-consents") {
+    ): NetworkResult<HSBCCreateConsentResponse, NetworkError> {
+        OAuthDebugLog.log(
+            "CONSENT-REQUEST",
+            "POST $AIS/account-access-consents\nbearer=$consentCreationAccessToken\n" +
+                "body=${Json.encodeToString(HSBCCreateConsentRequest.serializer(), request)}",
+        )
+        return httpClient.post("$AIS/account-access-consents") {
             bearerAuth(consentCreationAccessToken)
             contentType(ContentType.Application.Json)
             setBody(request)
         }.toNetworkResult()
+    }
 
     suspend fun getConsent(
         consentCreationAccessToken: String,

@@ -46,7 +46,12 @@ internal fun AwaitingStep(onAction: (ConsentCallbackAction) -> Unit, modifier: M
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(KptTheme.spacing.lg),
         ) {
-            Icon(Icons.Outlined.HourglassEmpty, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                imageVector = Icons.Outlined.HourglassEmpty,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = KptTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(24.dp))
             Text(
                 stringResource(Res.string.feature_callback_awaiting_title),

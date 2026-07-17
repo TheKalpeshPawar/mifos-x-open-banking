@@ -13,6 +13,6 @@ import org.koin.dsl.module
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.browser.IosBrowserLauncher
 
-actual actual val loginPlatformModule = module {
+actual val loginPlatformModule = module {
     single<BrowserLauncher> { IosBrowserLauncher() }
 }

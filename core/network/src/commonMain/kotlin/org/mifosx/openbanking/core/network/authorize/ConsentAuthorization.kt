@@ -48,12 +48,17 @@ data class ConsentAuthorization(
  *
  * Mirrors the sandbox reference `gen-request-jwt.js` exactly.
  *
- * @param audience the OIDC issuer used as the request object `aud` claim.
+ * @param audience the OIDC issuer used as the request object `aud` claim (the mTLS `secure.*` host).
+ * @param authorizeUrl the ABSOLUTE front-channel authorize endpoint the browser opens — served from
+ *   the OIDC authorize host, which is DISTINCT from [audience]'s mTLS host. Must be a full
+ *   `https://<authorize-host>/obie/open-banking/v1.1/oauth2/authorize`; a relative value would build
+ *   against `http://localhost` and the page would never load.
  * @param nowEpochSeconds current wall-clock seconds; drives the request object `exp`/`nbf`.
  */
 @OptIn(ExperimentalUuidApi::class)
 suspend fun generateConsentAuthorizationUrl(
     audience: String,
+    authorizeUrl: String,
     scope: ConsentCreationScope,
     redirectUri: String,
     consentId: String,
@@ -65,8 +70,6 @@ suspend fun generateConsentAuthorizationUrl(
 ): ConsentAuthorization {
     val state = Uuid.generateV4().toString()
     val nonce = Uuid.generateV4().toString()
-
-    val authorizeUrl = "v1.1/oauth2/authorize"
 
     val header = buildJsonObject {
         put("alg", "PS256")

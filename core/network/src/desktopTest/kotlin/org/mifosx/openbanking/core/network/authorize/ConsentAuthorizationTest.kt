@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.mifosx.openbanking.core.network.TestSigningKey
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -25,23 +26,30 @@ import kotlin.test.assertNull
 @OptIn(ExperimentalEncodingApi::class)
 class ConsentAuthorizationTest {
 
-    private val signingKey: String =
-        checkNotNull(ConsentAuthorizationTest::class.java.getResourceAsStream("/test-signing-key.pem"))
-            .readBytes().decodeToString()
-
     private val base64Url = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
 
     private suspend fun authorize() = generateConsentAuthorizationUrl(
         audience = "https://secure.sandbox.test",
+        authorizeUrl = "https://authorize.sandbox.test/obie/open-banking/v1.1/oauth2/authorize",
         clientId = "client-1",
         kid = "kid-1",
         scope = ConsentCreationScope.ACCOUNTS,
         responseType = "code id_token",
         redirectUri = "https://cb/callback/",
         consentId = "consent-123",
-        signingKeyPem = signingKey,
+        signingKeyPem = TestSigningKey.pem(),
         nowEpochSeconds = 1_000_000L,
     )
+
+    @Test
+    fun `authorize URL targets the absolute authorize host, not a relative localhost path`() = runTest {
+        val url = Url(authorize().authorizationUrl)
+        // Regression guard: a relative path built against URLBuilder resolves to http://localhost,
+        // sending the browser nowhere. The URL MUST carry the real authorize host + full path.
+        assertEquals("authorize.sandbox.test", url.host)
+        assertEquals("https", url.protocol.name)
+        assertEquals("/obie/open-banking/v1.1/oauth2/authorize", url.encodedPath)
+    }
 
     @Test
     fun `authorize URL carries the OIDC hybrid params, state and nonce, and no PKCE`() = runTest {

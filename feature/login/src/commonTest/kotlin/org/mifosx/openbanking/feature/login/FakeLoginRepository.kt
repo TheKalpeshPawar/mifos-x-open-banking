@@ -9,6 +9,8 @@
  */
 package org.mifosx.openbanking.feature.login
 
+import org.mifosx.openbanking.core.data.callback.PendingAuth
+import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.login.ConsentResult
 import org.mifosx.openbanking.core.data.login.LoginRepository
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
@@ -42,11 +44,44 @@ class FakeLoginRepository : LoginRepository {
     }
 }
 
-class FakeBrowserLauncher : BrowserLauncher {
+/**
+ * Local to this module: test source sets are not shared across Gradle modules, so `core:data`'s
+ * equivalent fake is not visible here. Keeps the real single-use contract — [consume] clears.
+ */
+class FakePendingAuthStore : PendingAuthStore {
+
+    private var pending: PendingAuth? = null
+
+    var saved: PendingAuth? = null
+        private set
+
+    var saveCount: Int = 0
+        private set
+
+    override fun save(state: String, nonce: String, consentId: String) {
+        saveCount++
+        pending = PendingAuth(state = state, nonce = nonce, consentId = consentId)
+        saved = pending
+    }
+
+    override fun consume(): PendingAuth? = pending.also { pending = null }
+
+    override fun clear() {
+        pending = null
+    }
+}
+
+open class FakeBrowserLauncher(
+    override val isSupported: Boolean = true,
+) : BrowserLauncher {
     var launchedUrl: String? = null
         private set
 
+    var launchCount: Int = 0
+        private set
+
     override fun launch(url: String) {
+        launchCount++
         launchedUrl = url
     }
 }

@@ -15,6 +15,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.login.LoginRepository
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
@@ -23,6 +24,7 @@ import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BackgroundEvent
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
+import co.touchlab.kermit.Logger.Companion as KermitLogger
 sealed interface LoginUiState {
     data object Loading : LoginUiState
     data class Content(
@@ -49,6 +51,7 @@ sealed interface LoginAction {
 class LoginViewModel(
     private val loginRepository: LoginRepository,
     private val browserLauncher: BrowserLauncher,
+    private val pendingAuthStore: PendingAuthStore,
 ) : BaseViewModel<LoginUiState, LoginEvent, LoginAction>(
     initialState = LoginUiState.Loading,
 ) {
@@ -80,16 +83,46 @@ class LoginViewModel(
         }
     }
 
+    /**
+     * Refuses up front on platforms with no redirect receiver: the PSU would otherwise authorise
+     * successfully at HSBC and the callback would never arrive, leaving a live consent stranded.
+     *
+     * On success the `state`/`nonce`/`consentId` are persisted BEFORE handing off to the browser.
+     * The PSU leaves the app entirely and the process may be killed while backgrounded, so the
+     * redirect can arrive on a cold start — these are the values it is authenticated against.
+     */
     private fun handleStartOAuth() {
         if (state !is LoginUiState.Content) return
+
+        if (!browserLauncher.isSupported) {
+            updateState { LoginUiState.Error(UNSUPPORTED_PLATFORM_MESSAGE) }
+            return
+        }
+
         updateState { LoginUiState.Loading }
+        KermitLogger.i(tag = "HSBC_OAUTH", messageString = "[VM-START-OAUTH] creating consent + authorization url")
         viewModelScope.launch {
             when (val result = loginRepository.createConsentAndBuildAuthorizationUrl()) {
                 is NetworkResult.Success -> {
+                    KermitLogger.i(
+                        tag = "HSBC_OAUTH",
+                        messageString = "[VM-OAUTH-SUCCESS] consentId=${result.data.consentId} " +
+                            "state=${result.data.state} nonce=${result.data.nonce}\n" +
+                            "authorizationUrl=${result.data.authorizationUrl}",
+                    )
+                    pendingAuthStore.save(
+                        state = result.data.state,
+                        nonce = result.data.nonce,
+                        consentId = result.data.consentId,
+                    )
                     browserLauncher.launch(result.data.authorizationUrl)
                     updateState { LoginUiState.Authorising }
                 }
                 is NetworkResult.Error -> {
+                    KermitLogger.e(
+                        tag = "HSBC_OAUTH",
+                        messageString = "[VM-OAUTH-ERROR] ${result.error::class.simpleName} -> ${result.error}",
+                    )
                     updateState { LoginUiState.Error(mapErrorToMessage(result.error)) }
                 }
             }
@@ -114,6 +147,9 @@ class LoginViewModel(
     }
 
     companion object {
+        const val UNSUPPORTED_PLATFORM_MESSAGE =
+            "Connecting to HSBC isn't supported on this platform. Please use the Android, iOS or desktop app."
+
         fun mapErrorToMessage(error: NetworkError): String = when (error) {
             is NetworkError.Client.Unauthorized -> "Authorisation failed. The app may need to re-register with HSBC."
             is NetworkError.Client.BadRequest -> "HSBC rejected the consent request. Please try again."

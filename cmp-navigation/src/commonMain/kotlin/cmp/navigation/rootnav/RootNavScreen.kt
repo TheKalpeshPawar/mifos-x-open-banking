@@ -13,12 +13,16 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.navOptions
 import cmp.navigation.authenticated.AuthenticatedGraphRoute
@@ -30,7 +34,10 @@ import cmp.navigation.splash.splashDestination
 import cmp.navigation.ui.rememberKptNavController
 import cmp.navigation.utils.toObjectNavigationRoute
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.data.callback.ConsentRedirectBus
+import org.mifosx.openbanking.feature.consentcallback.ConsentCallbackRoute
 import org.mifosx.openbanking.feature.consentcallback.consentCallbackDestination
+import org.mifosx.openbanking.feature.consentcallback.navigateToConsentCallback
 import org.mifosx.openbanking.feature.login.AuthGraphRoute
 import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
@@ -60,13 +67,24 @@ fun RootNavScreen(
         if (isNotSplashScreen) onSplashScreenRemoved()
     }
 
-    val rootNavOptions = navOptions {
-        popUpTo(navController.graph.id) {
-            inclusive = false
-            saveState = false
+    /**
+     * Built on demand, not up front.
+     *
+     * `popUpTo` needs `navController.graph`, which only exists once [NavHost] below has set it —
+     * and `navOptions {}` runs its lambda eagerly. Evaluating this during composition therefore
+     * threw `IllegalStateException: You must call setGraph() before calling getGraph()` and killed
+     * the app on every launch. Every call site is a click handler or a LaunchedEffect, all of which
+     * run after composition, so by then the graph is present.
+     */
+    val rootNavOptions: () -> NavOptions = {
+        navOptions {
+            popUpTo(navController.graph.id) {
+                inclusive = false
+                saveState = false
+            }
+            launchSingleTop = true
+            restoreState = false
         }
-        launchSingleTop = true
-        restoreState = false
     }
 
     NavHost(
@@ -80,17 +98,43 @@ fun RootNavScreen(
     ) {
         splashDestination()
         onboardingDestination(
-            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions) },
+            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
         )
         authGraph()
         consentCallbackDestination(
             onNavigateToHome = {
-                navController.navigateToAuthenticatedGraph(rootNavOptions)
+                navController.navigateToAuthenticatedGraph(rootNavOptions())
             },
-            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions) },
+            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
         )
         authenticatedGraph(navController)
 //        userUnlockDestination()
+    }
+
+    /**
+     * Routes HSBC's authorisation redirect, which arrives from outside the Compose tree entirely —
+     * an Android intent, an iOS `onOpenURL`, or the desktop loopback listener. This is the only
+     * caller of [navigateToConsentCallback]; without it the destination above is unreachable.
+     *
+     * The URL is forwarded raw. Parsing and authenticating it belong to the data layer.
+     *
+     * De-duplicated on the URL rather than by draining the bus: the replay cache is what makes an
+     * Android cold start work at all (the intent is published before composition subscribes), so
+     * clearing it here would defeat its purpose. Guarding on the last-routed URL instead keeps a
+     * re-publish of the same redirect — which Android does on every Activity recreate, since it
+     * hands back the same launch intent — from navigating twice and burning the single-use
+     * PendingAuth, which would fail a legitimate consent with a SecurityError.
+     */
+    var lastRoutedRedirect by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        ConsentRedirectBus.redirects.collect { redirectUrl ->
+            if (redirectUrl == lastRoutedRedirect) return@collect
+            lastRoutedRedirect = redirectUrl
+            navController.navigateToConsentCallback(
+                route = ConsentCallbackRoute(redirectUrl = redirectUrl),
+                navOptions = rootNavOptions(),
+            )
+        }
     }
 
     val targetRoute = when (state) {
@@ -98,8 +142,6 @@ fun RootNavScreen(
         RootNavState.ShowOnboarding -> UserOnboardingRoute
         RootNavState.Auth -> AuthGraphRoute
         RootNavState.Splash -> SplashRoute
-        // UserUnlockRoute.Standard
-        RootNavState.UserLocked -> ""
         is RootNavState.UserUnlocked -> AuthenticatedGraphRoute
     }
     val currentRoute = navController.currentDestination?.rootLevelRoute()
@@ -125,14 +167,12 @@ fun RootNavScreen(
     // transition to appear corrupted.
     LaunchedEffect(state) {
         when (state) {
-            RootNavState.Splash -> navController.navigateToSplash(rootNavOptions)
-            RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions)
-            // navController.navigateToSetLanguage(rootNavOptions)
-            RootNavState.ShowOnboarding -> navController.navigateToUserOnboarding(rootNavOptions)
-            // navController.navigateToUserUnlock(rootNavOptions)
-            RootNavState.UserLocked -> {}
+            RootNavState.Splash -> navController.navigateToSplash(rootNavOptions())
+            RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions())
+            // navController.navigateToSetLanguage(rootNavOptions())
+            RootNavState.ShowOnboarding -> navController.navigateToUserOnboarding(rootNavOptions())
             is RootNavState.UserUnlocked -> navController.navigateToAuthenticatedGraph(
-                navOptions = rootNavOptions,
+                navOptions = rootNavOptions(),
             )
         }
     }

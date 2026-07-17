@@ -52,5 +52,6 @@ val NetworkModule = module {
     single(named("hsbcClientId")) { HsbcConfig.CLIENT_ID }
     single(named("hsbcKid")) { HsbcConfig.KID }
     single(named("hsbcBankHost")) { HsbcConfig.BANK_HOST }
+    single(named("hsbcAuthorizeHost")) { HsbcConfig.AUTHORIZE_HOST }
     single(named("hsbcRedirectUri")) { HsbcConfig.REDIRECT_URI }
 }

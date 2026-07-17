@@ -35,6 +35,10 @@ import java.util.Locale
  * @see SharedApp
  */
 fun main() {
+    // Started outside `application {}` — that block is a composable scope, and the listener is
+    // process-scoped, not composition-scoped.
+    ConsentRedirectListener.start()
+
     application {
         // Initializes the Koin dependency injection framework.
         initKoin()

@@ -28,19 +28,31 @@ data class UserData(
     val isBiometricsEnabled: Boolean,
 ) {
     companion object {
+        /**
+         * A fresh install has seen nothing and authorised nothing.
+         *
+         * These previously shipped as `isAuthenticated = true`, `firstTimeUser = false` and a
+         * hardcoded `passcode = "1234"` — template values that were never adjusted for this app. The
+         * effect was that every launch fell through the navigator's gates straight to Home, so
+         * onboarding, login and the consent callback were all unreachable.
+         *
+         * `isAuthenticated` is retained only for consumers that still read it; the navigator no
+         * longer trusts it. Whether the PSU is signed in is derived from an authorised consent — see
+         * `ConsentSession`.
+         */
         val DEFAULT = UserData(
             activeUserId = "",
-            passcode = "1234",
+            passcode = "",
             themeBrand = ThemeBrand.DEFAULT,
             darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
             useDynamicColor = false,
             appLanguage = LanguageConfig.DEFAULT,
-            isAuthenticated = true,
+            isAuthenticated = false,
             isUnlocked = true,
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
-            showOnboarding = false,
-            firstTimeUser = false,
+            showOnboarding = true,
+            firstTimeUser = true,
             enableScreenCapture = false,
         )
     }

@@ -9,22 +9,37 @@
  */
 package org.mifosx.openbanking.core.network.di
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mifosx.openbanking.core.network.certs.CertPaths
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
+/**
+ * The Android half of the cert loader: `readAssetCert` reads from APK assets rather than the JVM
+ * classpath, so it needs its own cover.
+ *
+ * Asserts against a probe fixture this test owns, for the same reason as the desktop twin — the
+ * loader cannot tell a certificate from a text file, and naming a real `certs/…` path would only
+ * couple the result to which assets directory wins.
+ */
 @RunWith(RobolectricTestRunner::class)
 class NetworkPlatformModuleAndroidTest {
 
-    // Throwaway self-signed fixtures live at src/androidUnitTest/assets/certs/ (committed).
+    private val context get() = RuntimeEnvironment.getApplication()
 
     @Test
-    fun readAssetCertReadsTheTransportIdentityFromAssets() {
-        val context = RuntimeEnvironment.getApplication()
-        val bytes = context.readAssetCert(CertPaths.TRANSPORT_P12)
-        assertTrue("expected ${CertPaths.TRANSPORT_P12} to be read as non-empty bytes", bytes.isNotEmpty())
+    fun readAssetCertReadsAResourceFromAssets() {
+        assertEquals("probe", context.readAssetCert(PROBE).decodeToString().trim())
+    }
+
+    @Test
+    fun readAssetCertReturnsTheRawBytes() {
+        assertTrue(context.readAssetCert(PROBE).isNotEmpty())
+    }
+
+    private companion object {
+        const val PROBE = "classpath-probe.txt"
     }
 }

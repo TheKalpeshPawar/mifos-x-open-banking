@@ -13,11 +13,17 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.network.certs.CertPaths
+import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 
 /** Desktop (JVM): reads the certificate material from the classpath (`desktopMain/resources/certs/`). */
 actual val networkPlatformModule: Module = module {
-    single { MtlsIdentity(pkcs12 = readClasspathCert(CertPaths.TRANSPORT_P12)) }
+    single {
+        MtlsIdentity(
+            pkcs12 = readClasspathCert(CertPaths.TRANSPORT_P12),
+            pkcs12Password = HsbcConfig.TRANSPORT_P12_PASSWORD,
+        )
+    }
     single(named("hsbcSigningKey")) { readClasspathCert(CertPaths.SIGNING_KEY_PEM).decodeToString() }
 }
 

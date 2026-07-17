@@ -34,6 +34,38 @@ kotlin {
             implementation(libs.multiplatform.settings.serialization)
             implementation(compose.components.uiToolingPreview)
         }
+
+        commonTest.dependencies {
+            implementation(libs.multiplatform.settings.test)
+        }
+
+        // Compose UI tests run headless on the JVM via runComposeUiTest — no device needed.
+        //
+        // These live in desktopTest rather than commonTest on purpose: a commonTest UI test is also
+        // compiled into androidUnitTest, where there is no Robolectric runner to supply an Android
+        // runtime, so every case NPEs. The Android equivalents are the Robolectric class below.
+        desktopTest.dependencies {
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
+            implementation(compose.desktop.uiTestJUnit4)
+            implementation(compose.desktop.currentOs)
+        }
+
+        // The same surfaces against the real Android Compose runtime, under Robolectric — still on
+        // the JVM, so they run in CI and on a Linux dev box with no emulator.
+        androidUnitTest.dependencies {
+            implementation(libs.robolectric)
+            implementation(libs.bundles.androidx.compose.ui.test)
+        }
+    }
+}
+
+android {
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
     }
 }
 

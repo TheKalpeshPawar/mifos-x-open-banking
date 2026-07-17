@@ -24,6 +24,7 @@ kotlin {
             implementation(projects.coreBase.ui)
             implementation(projects.coreBase.network)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kermit.logging)
 
             implementation(compose.ui)
             implementation(compose.foundation)

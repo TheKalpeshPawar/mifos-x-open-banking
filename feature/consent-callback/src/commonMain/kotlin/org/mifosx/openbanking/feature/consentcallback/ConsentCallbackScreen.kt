@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.consentcallback
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,6 +21,7 @@ import org.mifosx.openbanking.feature.consentcallback.steps.CallbackErrorStep
 import org.mifosx.openbanking.feature.consentcallback.steps.LoadingStep
 import org.mifosx.openbanking.feature.consentcallback.steps.SecurityErrorStep
 import org.mifosx.openbanking.feature.consentcallback.steps.SuccessStep
+import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackAction
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackEvent
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackUiState
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackViewModel
@@ -27,12 +29,21 @@ import template.core.base.ui.effects.EventsEffect
 
 @Composable
 internal fun ConsentCallbackScreen(
+    redirectUrl: String,
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConsentCallbackViewModel = koinViewModel(),
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    /**
+     * Keyed on [redirectUrl] rather than `Unit` so a recomposition cannot re-submit the callback:
+     * validation consumes the single-use PendingAuth, so a second dispatch would fail as a replay.
+     */
+    LaunchedEffect(redirectUrl) {
+        viewModel.trySendAction(ConsentCallbackAction.ProcessCallback(redirectUrl))
+    }
 
     EventsEffect(viewModel.eventFlow) { event ->
         when (event) {
@@ -41,7 +52,7 @@ internal fun ConsentCallbackScreen(
         }
     }
 
-    when (val current = state) {
+    when (state) {
         is ConsentCallbackUiState.Loading -> LoadingStep(modifier)
         is ConsentCallbackUiState.Content -> SuccessStep(modifier)
         is ConsentCallbackUiState.Awaiting -> AwaitingStep(viewModel::trySendAction, modifier)

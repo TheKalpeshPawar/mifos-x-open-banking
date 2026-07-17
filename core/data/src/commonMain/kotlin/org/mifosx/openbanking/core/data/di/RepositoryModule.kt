@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.di
 
+import com.russhwolf.settings.Settings
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkMonitorProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,10 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
+import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.callback.PendingAuthStore
+import org.mifosx.openbanking.core.data.callback.SettingsConsentSession
+import org.mifosx.openbanking.core.data.callback.SettingsPendingAuthStore
 import org.mifosx.openbanking.core.data.callback.impl.ConsentCallbackRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
@@ -34,6 +39,7 @@ import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.network.di.NetworkModule
 import template.core.base.common.di.CommonModule
 import template.core.base.store.infra.FetchedAtRepository
+import kotlin.time.Clock
 
 val DataModule = module {
     includes(platformModule, CommonModule, DatabaseModule, DatastoreModule, NetworkModule)
@@ -49,11 +55,27 @@ val DataModule = module {
             clientId = get(named("hsbcClientId")),
             kid = get(named("hsbcKid")),
             bankHost = get(named("hsbcBankHost")),
+            authorizeHost = get(named("hsbcAuthorizeHost")),
             redirectUri = get(named("hsbcRedirectUri")),
         )
     }
 
-    singleOf(::ConsentCallbackRepositoryImpl) bind ConsentCallbackRepository::class
+    single<ConsentSession> { SettingsConsentSession(secureSettings = get<Settings>(named("secure"))) }
+
+    single<PendingAuthStore> {
+        SettingsPendingAuthStore(
+            secureSettings = get<Settings>(named("secure")),
+            nowEpochSeconds = { Clock.System.now().epochSeconds },
+        )
+    }
+
+    single<ConsentCallbackRepository> {
+        ConsentCallbackRepositoryImpl(
+            oauth = get(),
+            aisp = get(),
+            pendingAuthStore = get(),
+        )
+    }
 
     // Framework FetchedAtRepository — durable lastFetchedAt persistence backing
     // DataFreshnessIndicator timestamps. Room-only by design (no in-memory fallback).

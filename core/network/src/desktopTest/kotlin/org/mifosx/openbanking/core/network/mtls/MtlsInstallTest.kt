@@ -15,17 +15,28 @@ import kotlin.test.assertNotNull
 
 class MtlsInstallTest {
 
-    private fun testPkcs12(): ByteArray =
-        checkNotNull(this::class.java.getResourceAsStream("/test-identity.p12")) {
-            "test-identity.p12 not found on the test classpath"
-        }.readBytes()
-
     @Test
     fun `installMtls builds a client from a valid PKCS12 identity`() {
         // Exercises the whole JVM path: KeyStore load → KeyManagerFactory → TrustManagerFactory →
         // SSLContext → OkHttp sslSocketFactory. Building the client runs installMtls synchronously.
         val client = httpClient {
-            installMtls(MtlsIdentity(testPkcs12(), "testpass"))
+            installMtls(MtlsIdentity(generateTestPkcs12(), "testpass"))
+        }
+        assertNotNull(client)
+        client.close()
+    }
+
+    @Test
+    fun `installMtls on the JVM accepts an empty passphrase that Android rejects`() {
+        // Pins the platform divergence rather than hiding it. A PKCS#12 exported with an empty
+        // passphrase is still PBES2/AES-encrypted — the empty string is simply what PBKDF2 is keyed
+        // on. The JVM derives that key without complaint (asserted here); Android's BouncyCastle
+        // refuses a zero-length password outright. So THIS test passing says nothing about Android,
+        // and no desktop test can: `KeyStore.getInstance("PKCS12")` resolves to SUN here and to BC
+        // there. The Android contract is covered on-device by
+        // cmp-android MtlsRealAssetTest.installMtlsLoadsTheShippedTransportIdentity.
+        val client = httpClient {
+            installMtls(MtlsIdentity(generateTestPkcs12(password = ""), pkcs12Password = ""))
         }
         assertNotNull(client)
         client.close()

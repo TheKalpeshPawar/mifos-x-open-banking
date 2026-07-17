@@ -9,6 +9,7 @@
  */
 package cmp.android.app
 
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.view.WindowManager
@@ -24,6 +25,7 @@ import cmp.shared.SharedApp
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import org.koin.android.ext.android.inject
+import org.mifosx.openbanking.core.data.callback.ConsentRedirectBus
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import template.core.base.analytics.AnalyticsHelper
@@ -58,6 +60,8 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerImpl(this)
+
+        publishConsentRedirect(intent)
 
         val darkThemeConfigFlow = userPreferencesRepository.observeDarkThemeConfig
 
@@ -112,6 +116,29 @@ class MainActivity : AppCompatActivity() {
                 },
             )
         }
+    }
+
+    /**
+     * The redirect's other entry point, and the usual one.
+     *
+     * With `launchMode="singleTask"` the OS delivers the callback here whenever this Activity is
+     * still alive — which is the normal case, since the PSU only backgrounded us to authorise in the
+     * browser. [onCreate] covers only the opposite case, where Android killed the app while it was
+     * backgrounded and the redirect cold-starts it. Both are required; either alone drops half the
+     * journeys.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        publishConsentRedirect(intent)
+    }
+
+    /**
+     * Forwards HSBC's consent redirect, and only that. Runs on every launch, so
+     * [consumeConsentRedirectUrl] filters out everything that is not our callback.
+     */
+    private fun publishConsentRedirect(intent: Intent?) {
+        intent?.consumeConsentRedirectUrl()?.let(ConsentRedirectBus::publish)
     }
 
     override fun onResume() {

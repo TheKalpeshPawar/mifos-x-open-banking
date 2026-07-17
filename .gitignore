@@ -110,15 +110,14 @@ vendor/
 # Security — NEVER commit encryption keys or secure storage
 *.key
 *.pem
+*.p12
 
 # HSBC sandbox certificate material — supplied locally per developer, never committed
 core/network/src/androidMain/assets/certs/
 core/network/src/desktopMain/resources/certs/
 
-# Throwaway test certificate fixtures (fake, self-signed) — committed so unit tests run on CI.
-# The broad *.key / *.pem rules above would otherwise ignore them.
-!core/network/src/desktopTest/resources/test-signing-key.pem
-!core/network/src/desktopTest/resources/certs/*.pem
+# No exceptions to the rules above. Tests generate their own key material at runtime
+# (TestSigningKey, generateTestPkcs12), so nothing needs to be committed to make CI pass.
 
 .mifos-secure/
 

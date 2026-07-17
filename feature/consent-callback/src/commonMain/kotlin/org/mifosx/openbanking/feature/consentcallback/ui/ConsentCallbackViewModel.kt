@@ -10,12 +10,10 @@
 package org.mifosx.openbanking.feature.consentcallback.ui
 
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.Settings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import org.mifosx.openbanking.core.data.callback.CallbackParams
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
+import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
@@ -38,16 +36,11 @@ sealed interface ConsentCallbackEvent {
 }
 
 sealed interface ConsentCallbackAction {
-    data class ProcessCallback(
-        val code: String?,
-        val idToken: String?,
-        val state: String?,
-        val error: String?,
-        val errorDescription: String?,
-        val expectedState: String,
-        val expectedNonce: String,
-        val consentId: String,
-    ) : ConsentCallbackAction
+    /**
+     * The raw redirect URL as the OS handed it to us. Parsing and authentication belong to
+     * [ConsentCallbackRepository], which alone holds the expected `state`/`nonce`.
+     */
+    data class ProcessCallback(val redirectUrl: String) : ConsentCallbackAction
     data object PollConsentStatus : ConsentCallbackAction
     data object NavigateRetry : ConsentCallbackAction
     data object NavigateLogin : ConsentCallbackAction
@@ -55,7 +48,7 @@ sealed interface ConsentCallbackAction {
 
 class ConsentCallbackViewModel(
     private val repository: ConsentCallbackRepository,
-    private val secureSettings: Settings,
+    private val consentSession: ConsentSession,
     private val redirectUri: String,
 ) : BaseViewModel<ConsentCallbackUiState, ConsentCallbackEvent, ConsentCallbackAction>(
     initialState = ConsentCallbackUiState.Loading,
@@ -70,7 +63,7 @@ class ConsentCallbackViewModel(
                 sendEvent(ConsentCallbackEvent.NavigateToLogin)
             }
             ConsentCallbackAction.NavigateLogin -> {
-                secureSettings.clear()
+                consentSession.clear()
                 sendEvent(ConsentCallbackEvent.NavigateToLogin)
             }
         }
@@ -79,17 +72,7 @@ class ConsentCallbackViewModel(
     private fun process(action: ConsentCallbackAction.ProcessCallback) {
         updateState { ConsentCallbackUiState.Loading }
 
-        val params = CallbackParams(
-            code = action.code,
-            idToken = action.idToken,
-            state = action.state,
-            error = action.error,
-            errorDescription = action.errorDescription,
-            expectedState = action.expectedState,
-            expectedNonce = action.expectedNonce,
-        )
-
-        when (val v = repository.validateCallback(params)) {
+        when (val v = repository.validateCallback(action.redirectUrl)) {
             ValidationResult.SecurityError ->
                 updateState { ConsentCallbackUiState.SecurityError }
 
@@ -102,10 +85,10 @@ class ConsentCallbackViewModel(
             ValidationResult.MissingCode ->
                 updateState { ConsentCallbackUiState.Error("No authorisation code received.") }
 
-            ValidationResult.Valid -> {
-                pendingConsentId = action.consentId
+            is ValidationResult.Valid -> {
+                pendingConsentId = v.consentId
                 viewModelScope.launch {
-                    executeExchange(action.code!!)
+                    executeExchange(v.code)
                 }
             }
         }
@@ -162,11 +145,11 @@ class ConsentCallbackViewModel(
         }
     }
 
+    /**
+     * Persisting the tokens is what makes the PSU "signed in" — the root navigator derives that from
+     * [ConsentSession], not from a stored flag, so this write is the whole of the transition.
+     */
     private fun persistTokens(token: PsuTokenResponse) {
-        val json = Json { ignoreUnknownKeys = true }
-        secureSettings.putString(
-            "hsbc_tokens",
-            json.encodeToString(PsuTokenResponse.serializer(), token),
-        )
+        consentSession.save(token)
     }
 }

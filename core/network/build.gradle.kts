@@ -42,7 +42,7 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
             throw GradleException(
                 "local.properties not found at ${localPropsFile.absolutePath}. " +
                     "Add the HSBC sandbox keys: HSBC_CLIENT_ID, HSBC_KID, HSBC_SOFTWARE_STATEMENT, " +
-                    "HSBC_BANK_HOST, HSBC_REDIRECT_URI.",
+                    "HSBC_BANK_HOST, HSBC_REDIRECT_URI, HSBC_TRANSPORT_P12_PASSWORD.",
             )
         }
         val props = Properties()
@@ -53,7 +53,9 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
             "HSBC_KID",
             "HSBC_SOFTWARE_STATEMENT",
             "HSBC_BANK_HOST",
+            "HSBC_AUTHORIZE_HOST",
             "HSBC_REDIRECT_URI",
+            "HSBC_TRANSPORT_P12_PASSWORD",
         )
         val missing = requiredKeys.filter { props.getProperty(it).isNullOrBlank() }
         if (missing.isNotEmpty()) {
@@ -84,7 +86,25 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
             |    const val KID: String = "${value("HSBC_KID")}"
             |    const val SOFTWARE_STATEMENT: String = "${value("HSBC_SOFTWARE_STATEMENT")}"
             |    const val BANK_HOST: String = "${value("HSBC_BANK_HOST")}"
+            |
+            |    /**
+            |     * The OIDC authorization host — DISTINCT from [BANK_HOST]. Token + consent calls go to
+            |     * the mTLS host (`secure.sandbox.ob.hsbc.co.uk`); the front-channel authorize URL the
+            |     * browser opens is served from `sandbox.ob.hsbc.co.uk`. Sending the browser to the mTLS
+            |     * host (or, as the pre-fix bug did, to a host-less relative URL that resolves to
+            |     * `http://localhost`) means the authorization page never loads.
+            |     */
+            |    const val AUTHORIZE_HOST: String = "${value("HSBC_AUTHORIZE_HOST")}"
             |    const val REDIRECT_URI: String = "${value("HSBC_REDIRECT_URI")}"
+            |
+            |    /**
+            |     * The PKCS#12 export passphrase protecting [org.mifosx.openbanking.core.network.certs
+            |     * .CertPaths.TRANSPORT_P12]. Required, and required to be non-empty: Android's
+            |     * BouncyCastle refuses to run PBKDF2 on a zero-length password for a PBES2-encrypted
+            |     * bundle (`IllegalArgumentException: password empty`), while the JVM accepts it — so an
+            |     * empty passphrase builds and passes on desktop, then crashes every Android launch.
+            |     */
+            |    const val TRANSPORT_P12_PASSWORD: String = "${value("HSBC_TRANSPORT_P12_PASSWORD")}"
             |}
             |
             """.trimMargin(),
@@ -133,11 +153,27 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+
+            // TestSigningKey generates a throwaway PS256 key per run, so no signing material is
+            // committed. Declared explicitly rather than leaning on the test compilation's
+            // association with commonMain.
+            implementation(libs.cryptography.core)
         }
 
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+
+            // FAPI signs the private_key_jwt client assertion with PS256 (RSA-PSS). Android's own JCA
+            // providers expose PSS only as `SHA256withRSA/PSS` (AndroidOpenSSL) and never register the
+            // standard name `RSASSA-PSS`, which is what the JDK cryptography provider asks for — so
+            // signPs256 dies with NoSuchAlgorithmException on device while passing on desktop. This
+            // artifact is a drop-in with no API surface: it contributes a ServiceLoader
+            // `DefaultJdkSecurityProvider` that hands BouncyCastle to the JDK provider, which does
+            // register RSASSA-PSS. It does NOT touch the global JCE provider list, so mTLS keeps
+            // loading its PKCS#12 through Android's own BouncyCastle. Upstream documents this exact
+            // case: RSA-PSS is "Not available on Android; use BouncyCastle".
+            implementation(libs.cryptography.provider.jdk.bc)
         }
 
         androidUnitTest.dependencies {
@@ -147,6 +183,12 @@ kotlin {
 
         desktopMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+        }
+
+        desktopTest.dependencies {
+            // HeldCertificate mints a throwaway self-signed mTLS identity per run, so no PKCS#12 is
+            // committed. okhttp itself is already here transitively via ktor-client-okhttp.
+            implementation(libs.okhttp.tls)
         }
 
         nativeMain.dependencies {

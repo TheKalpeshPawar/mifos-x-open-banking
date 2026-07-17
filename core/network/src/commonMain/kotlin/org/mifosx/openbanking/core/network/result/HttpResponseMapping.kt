@@ -12,7 +12,9 @@ package org.mifosx.openbanking.core.network.result
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.request
 import kotlinx.coroutines.CancellationException
+import org.mifosx.openbanking.core.network.debug.OAuthDebugLog
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
@@ -27,14 +29,22 @@ import template.core.base.network.NetworkResult
  */
 suspend inline fun <reified T> HttpResponse.toNetworkResult(): NetworkResult<T, NetworkError> {
     val code = status.value
+    val bodyText = bodyAsText()
+    OAuthDebugLog.log(
+        "HTTP-RESPONSE",
+        "${request.method.value} ${request.url} -> $code ${status.description}\n" +
+            "response-headers=${headers.entries().joinToString { "${it.key}: ${it.value}" }}\n" +
+            "response-body=$bodyText",
+    )
     if (code !in 200..299) {
-        return NetworkResult.Error(mapHttpError(code, bodyAsText()))
+        return NetworkResult.Error(mapHttpError(code, bodyText))
     }
     return try {
         NetworkResult.Success(body<T>())
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {
+        OAuthDebugLog.log("HTTP-DECODE-FAIL", "url=${request.url} error=${e.message}")
         NetworkResult.Error(NetworkError.Serialization(e))
     }
 }

@@ -18,6 +18,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.model.createConsent.CreateConsentTokenSuccess
+import org.mifosx.openbanking.core.network.TestSigningKey
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test
@@ -27,13 +28,11 @@ import kotlin.test.assertTrue
 
 class OAuthTest {
 
-    private val signingKey: String =
-        checkNotNull(OAuthTest::class.java.getResourceAsStream("/test-signing-key.pem"))
-            .readBytes().decodeToString()
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
     private val tokenUrl = "https://sandbox.test/obie/open-banking/v1.1/oauth2/token"
 
-    private fun oauth(
+    /** `suspend` because the signing key is generated per run rather than read from a fixture. */
+    private suspend fun oauth(
         body: String,
         status: HttpStatusCode = HttpStatusCode.OK,
         onRequest: (HttpRequestData) -> Unit = {},
@@ -45,7 +44,7 @@ class OAuthTest {
         tokenUrl = tokenUrl,
         clientId = "client-1",
         kid = "kid-1",
-        signingKeyPem = signingKey,
+        signingKeyPem = TestSigningKey.pem(),
     )
 
     @Test
@@ -54,7 +53,7 @@ class OAuthTest {
         val result = oauth(
             body = """{"access_token":"tok","expires_in":300,"scope":"accounts","token_type":"Bearer"}""",
             onRequest = { request = it },
-        ).clientCredentialsToken("accounts")
+        ).clientCredentialsToken(ConsentCreationScope.ACCOUNTS)
 
         assertIs<NetworkResult.Success<CreateConsentTokenSuccess>>(result)
         assertEquals("tok", result.data.accessToken)
@@ -64,7 +63,8 @@ class OAuthTest {
 
     @Test
     fun `clientCredentialsToken maps 401 to Unauthorized`() = runTest {
-        val result = oauth("invalid_client", HttpStatusCode.Unauthorized).clientCredentialsToken("accounts")
+        val result = oauth("invalid_client", HttpStatusCode.Unauthorized)
+            .clientCredentialsToken(ConsentCreationScope.ACCOUNTS)
         assertIs<NetworkResult.Error<NetworkError>>(result)
         assertIs<NetworkError.Client.Unauthorized>(result.error)
     }
