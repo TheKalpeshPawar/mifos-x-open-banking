@@ -37,6 +37,12 @@ fun AssistChip(icon: ImageVector, label: String, modifier: Modifier = Modifier) 
     ) {
         Icon(icon, null, Modifier.size(18.dp), tint = KptTheme.colorScheme.primary)
         Spacer(Modifier.width(KptTheme.spacing.sm))
-        Text(label, style = KptTheme.typography.labelLarge, color = KptTheme.colorScheme.onSurfaceVariant)
+        Text(
+            label,
+            style = KptTheme.typography.labelLarge,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }

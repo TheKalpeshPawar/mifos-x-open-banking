@@ -9,8 +9,6 @@
  */
 package org.mifosx.openbanking.feature.onboarding.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,129 +19,74 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.LocalOffer
-import androidx.compose.material.icons.outlined.ManageAccounts
-import androidx.compose.material.icons.outlined.Payment
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Redeem
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Store
-import androidx.compose.material.icons.outlined.Subscriptions
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
-import org.mifosx.openbanking.core.model.hsbcPermission.PermissionId
 import template.core.base.designsystem.theme.KptTheme
 
+/**
+ * The "data being requested" list, rendered as a single rounded surface with a divider between each
+ * row — matching the mockup's `.permissions-list` card (surface-container-low, 12dp corners).
+ */
 @Composable
-fun PermissionListItem(permission: OBPermission, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = KptTheme.spacing.sm)
-                .testTag("onboarding_perm_${permission.id.name}"),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(KptTheme.spacing.sm))
-                    .background(KptTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    permissionIcon(permission.id),
-                    null,
-                    Modifier.size(20.dp),
-                    tint = KptTheme.colorScheme.onPrimaryContainer,
-                )
+fun PermissionList(permissions: List<OBPermission>, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(LIST_CORNER),
+        colors = CardDefaults.cardColors(
+            containerColor = KptTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        permissions.forEachIndexed { index, permission ->
+            if (index > 0) {
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             }
-            Spacer(Modifier.width(KptTheme.spacing.md))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    permission.label,
-                    style = KptTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                    color = KptTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(KptTheme.spacing.xs))
-                Text(
-                    permission.description,
-                    style = KptTheme.typography.bodyMedium,
-                    color = KptTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(KptTheme.spacing.xs))
-                Text(
-                    permission.id.obieScope,
-                    style = KptTheme.typography.labelSmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.3.sp,
-                    ),
-                    color = KptTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(KptTheme.colorScheme.secondaryContainer)
-                        .padding(
-                            horizontal = KptTheme.spacing.sm,
-                            vertical = 2.dp,
-                        ),
-                )
-            }
+            PermissionRow(permission)
         }
-        HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
     }
 }
 
-internal fun permissionIcon(id: PermissionId): ImageVector = when (id) {
-    PermissionId.ReadAccountsBasic,
-    PermissionId.ReadAccountsDetail,
-    -> Icons.Outlined.ManageAccounts
-
-    PermissionId.ReadBalances -> Icons.Filled.AccountBalance
-
-    PermissionId.ReadBeneficiariesBasic,
-    PermissionId.ReadBeneficiariesDetail,
-    -> Icons.Outlined.Group
-
-    PermissionId.ReadDirectDebits -> Icons.Outlined.Subscriptions
-    PermissionId.ReadOffers -> Icons.Outlined.LocalOffer
-    PermissionId.ReadPAN -> Icons.Outlined.CreditCard
-    PermissionId.ReadParty -> Icons.Outlined.Person
-    PermissionId.ReadProducts -> Icons.Outlined.Store
-    PermissionId.ReadRefundAccount -> Icons.Outlined.Redeem
-
-    PermissionId.ReadScheduledPaymentsBasic,
-    PermissionId.ReadScheduledPaymentsDetail,
-    -> Icons.Outlined.Payment
-
-    PermissionId.ReadStandingOrdersBasic -> Icons.Outlined.Refresh
-    PermissionId.ReadStandingOrdersDetail -> Icons.Outlined.Autorenew
-
-    PermissionId.ReadStatementsBasic,
-    PermissionId.ReadStatementsDetail,
-    -> Icons.Outlined.Description
-
-    PermissionId.ReadTransactionsBasic,
-    PermissionId.ReadTransactionsDetail,
-    PermissionId.ReadTransactionsCredits,
-    PermissionId.ReadTransactionsDebits,
-    -> Icons.Outlined.ReceiptLong
+@Composable
+private fun PermissionRow(permission: OBPermission) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = KptTheme.spacing.md, vertical = ROW_VERTICAL_PADDING)
+            .testTag("onboarding_perm_${permission.id.name}"),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            Icons.Outlined.CheckCircle,
+            null,
+            Modifier.size(20.dp),
+            tint = KptTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(KptTheme.spacing.md))
+        Column(Modifier.weight(1f)) {
+            Text(
+                permission.label,
+                style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.xs))
+            Text(
+                permission.description,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
+
+private val LIST_CORNER = 12.dp
+private val ROW_VERTICAL_PADDING = 12.dp

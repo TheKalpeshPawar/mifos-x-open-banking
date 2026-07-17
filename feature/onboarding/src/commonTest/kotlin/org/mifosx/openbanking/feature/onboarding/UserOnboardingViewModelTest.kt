@@ -36,16 +36,14 @@ class UserOnboardingViewModelTest {
         return vm to repo
     }
 
-    private suspend fun navigateToStep(vm: UserOnboardingViewModel, step: Int) {
+    private suspend fun awaitIntro(vm: UserOnboardingViewModel) {
         vm.stateFlow.first { it is UserOnboardingUiState.Intro }
-        if (step >= 2) {
-            vm.trySendAction(UserOnboardingAction.StepNext)
-            vm.stateFlow.first { it is UserOnboardingUiState.PermissionsOverview }
-        }
-        if (step >= 3) {
-            vm.trySendAction(UserOnboardingAction.StepNext)
-            vm.stateFlow.first { it is UserOnboardingUiState.ConsentExplainer }
-        }
+    }
+
+    private suspend fun navigateToConsentExplainer(vm: UserOnboardingViewModel) {
+        awaitIntro(vm)
+        vm.trySendAction(UserOnboardingAction.StepNext)
+        vm.stateFlow.first { it is UserOnboardingUiState.ConsentExplainer }
     }
 
     // ── Init & LoadOnboarding ───────────────────────────────────────────────
@@ -73,91 +71,43 @@ class UserOnboardingViewModelTest {
         assertTrue((state as UserOnboardingUiState.Error).message.contains("boom"))
     }
 
-    // ── Step navigation ─────────────────────────────────────────────────────
+    // ── Step navigation (2 steps) ───────────────────────────────────────────
 
     @Test
-    fun `StepNext from Intro transitions to PermissionsOverview`() = runTest {
+    fun `StepNext from Intro transitions to ConsentExplainer`() = runTest {
         val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 1)
-        vm.trySendAction(UserOnboardingAction.StepNext)
-        val state = vm.stateFlow.first { it is UserOnboardingUiState.PermissionsOverview }
-        assertIs<UserOnboardingUiState.PermissionsOverview>(state)
-        assertEquals(2, (state as UserOnboardingUiState.PermissionsOverview).step)
-    }
-
-    @Test
-    fun `StepNext from PermissionsOverview transitions to ConsentExplainer`() = runTest {
-        val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 2)
+        awaitIntro(vm)
         vm.trySendAction(UserOnboardingAction.StepNext)
         val state = vm.stateFlow.first { it is UserOnboardingUiState.ConsentExplainer }
         assertIs<UserOnboardingUiState.ConsentExplainer>(state)
-        assertEquals(3, (state as UserOnboardingUiState.ConsentExplainer).step)
+        assertEquals(2, (state as UserOnboardingUiState.ConsentExplainer).step)
     }
 
     @Test
-    fun `StepNext from ConsentExplainer stays at step 3`() = runTest {
+    fun `StepNext from ConsentExplainer stays at step 2`() = runTest {
         val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 3)
+        navigateToConsentExplainer(vm)
         vm.trySendAction(UserOnboardingAction.StepNext)
         val state = vm.stateFlow.value
         assertIs<UserOnboardingUiState.ConsentExplainer>(state)
+        assertEquals(2, (state as UserOnboardingUiState.ConsentExplainer).step)
     }
 
     @Test
-    fun `StepBack from PermissionsOverview transitions to Intro`() = runTest {
+    fun `StepBack from ConsentExplainer transitions to Intro`() = runTest {
         val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 2)
+        navigateToConsentExplainer(vm)
         vm.trySendAction(UserOnboardingAction.StepBack)
         val state = vm.stateFlow.first { it is UserOnboardingUiState.Intro }
         assertIs<UserOnboardingUiState.Intro>(state)
+        assertEquals(1, (state as UserOnboardingUiState.Intro).step)
     }
 
     @Test
     fun `StepBack from Intro stays at step 1`() = runTest {
         val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 1)
+        awaitIntro(vm)
         vm.trySendAction(UserOnboardingAction.StepBack)
-        val state = vm.stateFlow.value
-        assertIs<UserOnboardingUiState.Intro>(state)
-    }
-
-    @Test
-    fun `StepBack from ConsentExplainer transitions to PermissionsOverview`() = runTest {
-        val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 3)
-        vm.trySendAction(UserOnboardingAction.StepBack)
-        val state = vm.stateFlow.first { it is UserOnboardingUiState.PermissionsOverview }
-        assertIs<UserOnboardingUiState.PermissionsOverview>(state)
-    }
-
-    // ── Bottom sheet ────────────────────────────────────────────────────────
-
-    @Test
-    fun `OpenObExplainer from ConsentExplainer transitions to ObExplainerOpen`() = runTest {
-        val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 3)
-        vm.trySendAction(UserOnboardingAction.OpenObExplainer)
-        val state = vm.stateFlow.first { it is UserOnboardingUiState.ObExplainerOpen }
-        assertIs<UserOnboardingUiState.ObExplainerOpen>(state)
-    }
-
-    @Test
-    fun `CloseObExplainer from ObExplainerOpen transitions back to ConsentExplainer`() = runTest {
-        val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 3)
-        vm.trySendAction(UserOnboardingAction.OpenObExplainer)
-        vm.stateFlow.first { it is UserOnboardingUiState.ObExplainerOpen }
-        vm.trySendAction(UserOnboardingAction.CloseObExplainer)
-        val state = vm.stateFlow.first { it is UserOnboardingUiState.ConsentExplainer }
-        assertIs<UserOnboardingUiState.ConsentExplainer>(state)
-    }
-
-    @Test
-    fun `OpenObExplainer from Intro is a no-op`() = runTest {
-        val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 1)
-        vm.trySendAction(UserOnboardingAction.OpenObExplainer)
         val state = vm.stateFlow.value
         assertIs<UserOnboardingUiState.Intro>(state)
     }
@@ -167,7 +117,7 @@ class UserOnboardingViewModelTest {
     @Test
     fun `NavigateToLogin sets firstTimeState to false`() = runTest {
         val (vm, repo) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 1)
+        awaitIntro(vm)
         vm.trySendAction(UserOnboardingAction.NavigateToLogin)
         // Let the launched coroutine run
         vm.stateFlow.first { repo.firstTimeStateSetCount > 0 }
@@ -178,7 +128,7 @@ class UserOnboardingViewModelTest {
     @Test
     fun `NavigateToLogin emits NavigateToLogin event`() = runTest {
         val (vm, _) = createViewModel(firstTimeUser = true)
-        navigateToStep(vm, 1)
+        awaitIntro(vm)
         vm.trySendAction(UserOnboardingAction.NavigateToLogin)
         val event = vm.eventFlow.first { it is UserOnboardingEvent.NavigateToLogin }
         assertIs<UserOnboardingEvent.NavigateToLogin>(event)

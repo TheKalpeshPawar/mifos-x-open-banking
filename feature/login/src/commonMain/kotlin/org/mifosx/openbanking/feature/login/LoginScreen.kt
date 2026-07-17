@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.login
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.feature.login.generated.resources.Res
@@ -62,12 +65,13 @@ import org.mifosx.openbanking.feature.login.generated.resources.feature_login_op
 import org.mifosx.openbanking.feature.login.generated.resources.feature_login_permissions_header
 import org.mifosx.openbanking.feature.login.generated.resources.feature_login_retry
 import org.mifosx.openbanking.feature.login.generated.resources.feature_login_security_notice
+import org.mifosx.openbanking.feature.login.generated.resources.hsbc_logo
 import org.mifosx.openbanking.feature.login.ui.LoginAction
 import org.mifosx.openbanking.feature.login.ui.LoginEvent
 import org.mifosx.openbanking.feature.login.ui.LoginUiState
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
 import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
-import org.mifosx.openbanking.feature.onboarding.components.PermissionListItem
+import org.mifosx.openbanking.feature.onboarding.components.PermissionList
 import template.core.base.designsystem.theme.KptTheme
 import template.core.base.ui.effects.EventsEffect
 
@@ -126,11 +130,19 @@ private fun ContentState(
             ),
         ) {
             Column(modifier = Modifier.padding(KptTheme.spacing.md)) {
-                Text(
-                    "HSBC",
-                    style = KptTheme.typography.titleMedium,
-                    color = KptTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(Res.drawable.hsbc_logo),
+                        contentDescription = "HSBC",
+                        modifier = Modifier.height(20.dp),
+                    )
+                    Spacer(Modifier.width(KptTheme.spacing.sm))
+                    Text(
+                        "HSBC",
+                        style = KptTheme.typography.titleMedium,
+                        color = KptTheme.colorScheme.onSurface,
+                    )
+                }
                 Spacer(Modifier.height(KptTheme.spacing.sm))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.VerifiedUser, null, Modifier.size(16.dp), tint = KptTheme.colorScheme.primary)
@@ -174,7 +186,7 @@ private fun ContentState(
             color = KptTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = KptTheme.spacing.sm),
         )
-        state.permissions.forEach { PermissionListItem(it) }
+        PermissionList(state.permissions)
 
         Spacer(Modifier.height(KptTheme.spacing.sm))
         Text(

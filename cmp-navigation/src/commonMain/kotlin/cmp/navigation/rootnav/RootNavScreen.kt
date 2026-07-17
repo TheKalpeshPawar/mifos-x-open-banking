@@ -98,7 +98,7 @@ fun RootNavScreen(
     ) {
         splashDestination()
         onboardingDestination(
-            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
+            onNavigateToLogin = { navController.navigateToAuthGraph() },
         )
         authGraph()
         consentCallbackDestination(

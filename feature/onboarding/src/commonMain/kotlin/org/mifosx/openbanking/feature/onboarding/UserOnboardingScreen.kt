@@ -9,7 +9,6 @@
  */
 package org.mifosx.openbanking.feature.onboarding
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -20,14 +19,11 @@ import org.mifosx.openbanking.feature.onboarding.steps.EmptyStep
 import org.mifosx.openbanking.feature.onboarding.steps.ErrorStep
 import org.mifosx.openbanking.feature.onboarding.steps.IntroStep
 import org.mifosx.openbanking.feature.onboarding.steps.LoadingStep
-import org.mifosx.openbanking.feature.onboarding.steps.ObExplainerOpenStep
-import org.mifosx.openbanking.feature.onboarding.steps.PermissionsOverviewStep
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingEvent
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingUiState
 import org.mifosx.openbanking.feature.onboarding.ui.UserOnboardingViewModel
 import template.core.base.ui.effects.EventsEffect
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun UserOnboardingScreen(
     onNavigateToLogin: () -> Unit,
@@ -47,12 +43,6 @@ internal fun UserOnboardingScreen(
         is UserOnboardingUiState.Error -> ErrorStep(current, viewModel::trySendAction, modifier)
         is UserOnboardingUiState.Empty -> EmptyStep(viewModel::trySendAction, modifier)
         is UserOnboardingUiState.Intro -> IntroStep(current, viewModel::trySendAction, modifier)
-        is UserOnboardingUiState.PermissionsOverview -> PermissionsOverviewStep(
-            current,
-            viewModel::trySendAction,
-            modifier,
-        )
         is UserOnboardingUiState.ConsentExplainer -> ConsentExplainerStep(current, viewModel::trySendAction, modifier)
-        is UserOnboardingUiState.ObExplainerOpen -> ObExplainerOpenStep(current, viewModel::trySendAction, modifier)
     }
 }

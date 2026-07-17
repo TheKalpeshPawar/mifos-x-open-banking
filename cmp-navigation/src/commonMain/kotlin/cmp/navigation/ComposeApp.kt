@@ -9,6 +9,13 @@
  */
 package cmp.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cmp.navigation.rootnav.RootNavScreen
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
+import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import template.core.base.ui.effects.EventsEffect
 
 @Composable
@@ -44,14 +52,25 @@ fun ComposeApp(
         }
     }
 
+    val darkTheme = when (uiState.darkThemeConfig) {
+        DarkThemeConfig.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+        DarkThemeConfig.LIGHT -> false
+        DarkThemeConfig.DARK -> true
+    }
+
     MifosXOpenBankingTheme(
-        darkTheme = uiState.darkTheme,
+        darkTheme = darkTheme,
         androidTheme = uiState.isAndroidTheme,
         useDynamicColor = uiState.isDynamicColorsEnabled,
     ) {
-        RootNavScreen(
-            modifier = modifier,
-            onSplashScreenRemoved = onSplashScreenRemoved,
-        )
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            RootNavScreen(
+                modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+                onSplashScreenRemoved = onSplashScreenRemoved,
+            )
+        }
     }
 }
