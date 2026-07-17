@@ -115,14 +115,12 @@ class UserOnboardingViewModelTest {
     // ── NavigateToLogin ─────────────────────────────────────────────────────
 
     @Test
-    fun `NavigateToLogin sets firstTimeState to false`() = runTest {
+    fun `NavigateToLogin does not persist onboarding complete`() = runTest {
         val (vm, repo) = createViewModel(firstTimeUser = true)
         awaitIntro(vm)
         vm.trySendAction(UserOnboardingAction.NavigateToLogin)
-        // Let the launched coroutine run
-        vm.stateFlow.first { repo.firstTimeStateSetCount > 0 }
-        assertEquals(1, repo.firstTimeStateSetCount)
-        assertEquals(false, repo.lastFirstTimeStateValue)
+        vm.eventFlow.first { it is UserOnboardingEvent.NavigateToLogin }
+        assertEquals(0, repo.firstTimeStateSetCount)
     }
 
     @Test

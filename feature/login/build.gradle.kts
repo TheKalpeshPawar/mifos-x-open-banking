@@ -23,6 +23,7 @@ kotlin {
             implementation(projects.feature.onboarding)
             implementation(projects.coreBase.ui)
             implementation(projects.coreBase.network)
+            implementation(projects.coreBase.platform)
             implementation(libs.kotlinx.datetime)
 
             implementation(compose.ui)

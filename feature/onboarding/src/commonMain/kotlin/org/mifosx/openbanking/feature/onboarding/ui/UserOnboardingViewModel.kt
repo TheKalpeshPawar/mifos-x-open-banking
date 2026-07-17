@@ -32,8 +32,8 @@ sealed interface UserOnboardingUiState {
 
 sealed interface UserOnboardingEvent {
     /**
-     * Emitted after the ViewModel writes [UserDataRepository.setFirstTimeState](
-     * false). Navigation consumes this and transitions to the Auth (login) graph.
+     * Navigation consumes this and transitions to the Auth (login) graph. Onboarding is not
+     * marked complete here — that is persisted only once login succeeds.
      */
     data object NavigateToLogin : UserOnboardingEvent, BackgroundEvent
 }
@@ -109,9 +109,6 @@ class UserOnboardingViewModel(
     }
 
     private fun handleNavigateToLogin() {
-        viewModelScope.launch {
-            userDataRepository.setFirstTimeState(false)
-        }
         sendEvent(UserOnboardingEvent.NavigateToLogin)
     }
 

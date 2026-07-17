@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.ValidationResult
+import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
 import template.core.base.common.screen.ScreenState
@@ -49,6 +50,7 @@ sealed interface ConsentCallbackAction {
 class ConsentCallbackViewModel(
     private val repository: ConsentCallbackRepository,
     private val consentSession: ConsentSession,
+    private val userDataRepository: UserDataRepository,
     private val redirectUri: String,
 ) : BaseViewModel<ConsentCallbackUiState, ConsentCallbackEvent, ConsentCallbackAction>(
     initialState = ConsentCallbackUiState.Loading,
@@ -120,6 +122,7 @@ class ConsentCallbackViewModel(
                 is ScreenState.Content ->
                     when (result.data) {
                         ConsentStatus.Authorised -> {
+                            userDataRepository.setFirstTimeState(false)
                             updateState { ConsentCallbackUiState.Content }
                             delay(1500)
                             sendEvent(ConsentCallbackEvent.NavigateToHome)

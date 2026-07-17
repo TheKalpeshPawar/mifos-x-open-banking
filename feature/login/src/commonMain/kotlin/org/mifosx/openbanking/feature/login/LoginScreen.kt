@@ -73,6 +73,7 @@ import org.mifosx.openbanking.feature.login.ui.LoginViewModel
 import org.mifosx.openbanking.feature.onboarding.components.FilledPillButton
 import org.mifosx.openbanking.feature.onboarding.components.PermissionList
 import template.core.base.designsystem.theme.KptTheme
+import template.core.base.platform.LocalIntentManager
 import template.core.base.ui.effects.EventsEffect
 
 @Composable
@@ -81,10 +82,11 @@ internal fun LoginScreen(
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val intentManager = LocalIntentManager.current
 
     EventsEffect(viewModel.eventFlow) { event ->
         when (event) {
-            LoginEvent.NavigateBack -> {}
+            LoginEvent.NavigateBack -> intentManager.exitApplication()
         }
     }
 

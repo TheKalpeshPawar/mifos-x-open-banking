@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.callback.SettingsConsentSession
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.feature.consentcallback.ui.ConsentCallbackAction
@@ -38,11 +39,14 @@ class ConsentCallbackViewModelTest {
     /** The real session, so the tests pin the storage contract the navigator reads. */
     private val consentSession = SettingsConsentSession(secureSettings)
 
+    private val userDataRepository = FakeUserDataRepository()
+
     private fun createViewModel(): ConsentCallbackViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         return ConsentCallbackViewModel(
             repository = repository,
             consentSession = consentSession,
+            userDataRepository = userDataRepository,
             redirectUri = REDIRECT_URI,
         )
     }
@@ -103,6 +107,17 @@ class ConsentCallbackViewModelTest {
         val event = vm.eventFlow.first()
         assertIs<ConsentCallbackEvent.NavigateToHome>(event)
         assertIs<BackgroundEvent>(event)
+    }
+
+    @Test
+    fun `an authorised consent marks onboarding complete`() = runTest {
+        val vm = createViewModel()
+
+        vm.processCallback()
+        vm.stateFlow.first { it is ConsentCallbackUiState.Content }
+
+        assertEquals(1, userDataRepository.firstTimeStateSetCount)
+        assertEquals(false, userDataRepository.lastFirstTimeStateValue)
     }
 
     @Test

@@ -278,6 +278,13 @@ class IntentManagerImpl(
     }
 
     /**
+     * Finishes the hosting activity, returning the user to the launcher.
+     */
+    override fun exitApplication() {
+        (context as? Activity)?.finish()
+    }
+
+    /**
      * Creates an intent to open the Google Play Store for a specific application.
      *
      * This private helper method generates an ACTION_VIEW intent targeting the
