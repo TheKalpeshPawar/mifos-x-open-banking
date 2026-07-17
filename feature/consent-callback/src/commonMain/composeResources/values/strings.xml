@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_callback_loading_title">Verifying your authorisation…</string>
+    <string name="feature_callback_loading_body">Securely exchanging credentials with HSBC. This takes a few seconds.</string>
+
+    <string name="feature_callback_connected_title">Connected to HSBC</string>
+    <string name="feature_callback_connected_body">Your account data is ready. Taking you to your accounts now.</string>
+
+    <string name="feature_callback_awaiting_title">Waiting for HSBC to confirm</string>
+    <string name="feature_callback_awaiting_body">HSBC has not yet updated the consent status. Please wait a moment or try again.</string>
+    <string name="feature_callback_check_again">Check again</string>
+
+    <string name="feature_callback_error_title">Authorisation was declined</string>
+    <string name="feature_callback_error_body">HSBC reported that the consent was not approved. Please try connecting again.</string>
+    <string name="feature_callback_try_again">Try again</string>
+
+    <string name="feature_callback_access_denied_title">Access not shared</string>
+    <string name="feature_callback_access_denied_body">You chose not to share your HSBC account data. You can start again at any time.</string>
+    <string name="feature_callback_start_over">Start over</string>
+
+    <string name="feature_callback_security_error_title">Security check failed</string>
+    <string name="feature_callback_security_error_body">The authorisation response could not be verified. Please start the connection process again.</string>
+    <string name="feature_callback_start_again">Start again</string>
+</resources>

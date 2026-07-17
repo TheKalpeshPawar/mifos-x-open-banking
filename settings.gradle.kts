@@ -114,6 +114,7 @@ include(":core:ui")
 include(":feature:home")
 include(":feature:login")
 include(":feature:onboarding")
+include(":feature:consent-callback")
 
 include(":core-base:analytics")
 include(":core-base:common")

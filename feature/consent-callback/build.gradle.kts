@@ -1,0 +1,44 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+plugins {
+    alias(libs.plugins.cmp.feature.convention)
+}
+
+android {
+    namespace = "org.mifosx.openbanking.feature.consentcallback"
+}
+
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.core.data)
+            implementation(projects.core.model)
+            implementation(projects.core.network)
+            implementation(projects.coreBase.ui)
+            implementation(projects.coreBase.network)
+            implementation(projects.feature.onboarding)
+
+            implementation(compose.ui)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.components.resources)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
+            implementation(compose.components.uiToolingPreview)
+        }
+    }
+}
+
+compose {
+    resources {
+        packageOfResClass = "org.mifosx.openbanking.feature.consentcallback.generated.resources"
+    }
+}

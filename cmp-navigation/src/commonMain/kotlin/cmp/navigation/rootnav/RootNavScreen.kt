@@ -30,6 +30,7 @@ import cmp.navigation.splash.splashDestination
 import cmp.navigation.ui.rememberKptNavController
 import cmp.navigation.utils.toObjectNavigationRoute
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.feature.consentcallback.consentCallbackDestination
 import org.mifosx.openbanking.feature.login.AuthGraphRoute
 import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
@@ -82,6 +83,12 @@ fun RootNavScreen(
             onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions) },
         )
         authGraph()
+        consentCallbackDestination(
+            onNavigateToHome = {
+                navController.navigateToAuthenticatedGraph(rootNavOptions)
+            },
+            onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions) },
+        )
         authenticatedGraph(navController)
 //        userUnlockDestination()
     }

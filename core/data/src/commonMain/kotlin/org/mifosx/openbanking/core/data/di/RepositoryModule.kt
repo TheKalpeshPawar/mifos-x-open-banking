@@ -18,6 +18,8 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
+import org.mifosx.openbanking.core.data.callback.impl.ConsentCallbackRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.login.LoginRepository
@@ -50,6 +52,8 @@ val DataModule = module {
             redirectUri = get(named("hsbcRedirectUri")),
         )
     }
+
+    singleOf(::ConsentCallbackRepositoryImpl) bind ConsentCallbackRepository::class
 
     // Framework FetchedAtRepository — durable lastFetchedAt persistence backing
     // DataFreshnessIndicator timestamps. Room-only by design (no in-memory fallback).

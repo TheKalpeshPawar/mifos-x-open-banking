@@ -40,6 +40,12 @@ kotlin {
             api(libs.cmp.network.monitor)
         }
 
+        commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+        }
+
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.tracing.ktx)
