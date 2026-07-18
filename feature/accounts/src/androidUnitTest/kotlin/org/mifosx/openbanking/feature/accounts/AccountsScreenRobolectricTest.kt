@@ -41,7 +41,6 @@ class AccountsScreenRobolectricTest {
         composeRule.showContent()
 
         composeRule.onNodeWithTag(AccountsTestTags.CONTENT).assertExists()
-        composeRule.onNodeWithTag(AccountsTestTags.TOTAL_SUMMARY).assertExists()
         composeRule.onNodeWithTag(AccountsTestTags.FILTER_ROW).assertExists()
         composeRule.onNodeWithTag(AccountsTestTags.accountCard("acc-current")).assertExists()
         composeRule.onNodeWithTag(AccountsTestTags.BALANCE_OWED_BADGE, useUnmergedTree = true).assertExists()
@@ -143,8 +142,6 @@ private fun sampleAccountsData(consentExpiring: Boolean): AccountsData = Account
             isBalanceOwed = true,
         ),
     ),
-    totalBalanceLabel = "£15,797.63",
-    accountCount = 5,
     activeFilter = AccountFilter.ALL,
     isConsentExpiring = consentExpiring,
     consentDaysRemaining = 14,

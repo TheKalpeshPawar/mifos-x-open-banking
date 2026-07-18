@@ -35,7 +35,7 @@ private fun Account.toBankAccountOrNull(): BankAccount? {
     return BankAccount(
         accountId = id,
         nickname = name ?: description ?: id,
-        accountSubType = description ?: accountCategory ?: accountTypeCode ?: "",
+        accountSubType = accountSubType ?: accountTypeCode ?: accountCategory ?: description ?: "",
         currency = currency ?: "",
         sortCode = identification.take(SORT_CODE_LENGTH),
         accountNumber = identification.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),

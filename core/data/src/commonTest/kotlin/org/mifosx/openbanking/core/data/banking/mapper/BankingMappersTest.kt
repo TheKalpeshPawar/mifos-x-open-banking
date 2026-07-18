@@ -198,6 +198,19 @@ class BankingMappersTest {
     }
 
     @Test
+    fun accountMapperPrefersObieAccountSubTypeOverDescription() {
+        val response = AccountsResponse(
+            data = AccountsData(
+                account = listOf(
+                    Account(accountId = "acc-1", accountSubType = "CreditCard", description = "My card"),
+                ),
+            ),
+        )
+
+        assertEquals("CreditCard", response.toBankAccounts().single().accountSubType)
+    }
+
+    @Test
     fun balanceMapperPrefersBookedForCurrentAndAvailableForAvailable() {
         val response = BalancesResponse(
             data = BalancesData(

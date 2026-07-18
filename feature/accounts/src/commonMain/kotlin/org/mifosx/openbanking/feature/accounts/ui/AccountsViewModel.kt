@@ -13,9 +13,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.common.formatAccountIdentifier
-import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.common.formatMoney
-import org.mifosx.openbanking.core.common.sumMinorUnits
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
@@ -34,6 +32,24 @@ private const val SUBTYPE_GLOBAL_WALLET = "GlobalWallet"
 private const val CONSENT_EXPIRY_THRESHOLD_DAYS = 30
 private const val BALANCE_UNAVAILABLE = "—"
 
+/**
+ * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE `AccountSubType`
+ * enum case-insensitively and the common ISO-20022 cash-account codes (`CACC`, `SVGS`, `CCRD`) so the
+ * screen classifies correctly whether the bank populates `AccountSubType` or only `AccountTypeCode`.
+ */
+private fun String.canonicalSubtype(): String = when (lowercase()) {
+    "currentaccount", "current", "cacc" -> SUBTYPE_CURRENT
+    "savings", "svgs" -> SUBTYPE_SAVINGS
+    "creditcard", "credit", "card", "ccrd" -> SUBTYPE_CREDIT_CARD
+    "globalmoney" -> SUBTYPE_GLOBAL_MONEY
+    "globalwallet" -> SUBTYPE_GLOBAL_WALLET
+    else -> this
+}
+
+/** Formats a balance: the currency symbol for GBP, the ISO code form (e.g. `USD 250.00`) otherwise. */
+private fun formatBalance(amount: String, currency: String): String =
+    if (currency == GBP) formatMoney(amount, currency) else "$currency ${formatMoney(amount, "")}"
+
 /** The account category, resolved from the OBIE `AccountSubType`; drives the row icon and label. */
 enum class AccountUiType {
     CURRENT,
@@ -45,7 +61,7 @@ enum class AccountUiType {
     ;
 
     companion object {
-        fun fromSubtype(subType: String): AccountUiType = when (subType) {
+        fun fromSubtype(subType: String): AccountUiType = when (subType.canonicalSubtype()) {
             SUBTYPE_CURRENT -> CURRENT
             SUBTYPE_SAVINGS -> SAVINGS
             SUBTYPE_CREDIT_CARD -> CREDIT
@@ -65,7 +81,7 @@ enum class AccountFilter(private val subtypes: Set<String>?) {
     GLOBAL(setOf(SUBTYPE_GLOBAL_MONEY, SUBTYPE_GLOBAL_WALLET)),
     ;
 
-    fun matches(subType: String): Boolean = subtypes == null || subType in subtypes
+    fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes
 }
 
 /** A display-ready account row. All money and identifiers are pre-formatted; the card renders strings. */
@@ -78,11 +94,9 @@ data class AccountRowUi(
     val isBalanceOwed: Boolean,
 )
 
-/** Display-ready accounts payload: filtered rows, the net GBP total, and the consent-expiry banner state. */
+/** Display-ready accounts payload: filtered rows and the consent-expiry banner state. */
 data class AccountsData(
     val rows: List<AccountRowUi>,
-    val totalBalanceLabel: String,
-    val accountCount: Int,
     val activeFilter: AccountFilter,
     val isConsentExpiring: Boolean,
     val consentDaysRemaining: Int,
@@ -103,9 +117,9 @@ sealed interface AccountsAction {
 /**
  * Drives the accounts overview. Combines the offline-first [AccountsOverviewRepository] stream with a
  * client-side filter into one [ScreenState], mapping [AccountWithBalance] rows into a display-ready
- * [AccountsData]: per-account identifier and balance are formatted here, the net GBP total sums the
- * available balances of non-credit GBP accounts, and the consent-expiry banner is derived from the
- * stored consent expiry. Navigation is handled by the screen, so no events are emitted.
+ * [AccountsData]: per-account identifier and balance are formatted here, and the consent-expiry
+ * banner is derived from the stored consent expiry. Navigation is handled by the screen, so no
+ * events are emitted.
  */
 @OptIn(ExperimentalTime::class)
 class AccountsViewModel(
@@ -134,8 +148,6 @@ class AccountsViewModel(
         val days = consentDaysRemaining()
         return AccountsData(
             rows = accounts.filter { active.matches(it.account.accountSubType) }.map { it.toRowUi() },
-            totalBalanceLabel = netGbpBalanceLabel(accounts),
-            accountCount = accounts.size,
             activeFilter = active,
             isConsentExpiring = days < CONSENT_EXPIRY_THRESHOLD_DAYS,
             consentDaysRemaining = days,
@@ -147,13 +159,6 @@ class AccountsViewModel(
             ?.let { (it - Clock.System.now()).inWholeDays.toInt() }
             ?: Int.MAX_VALUE
 
-    private fun netGbpBalanceLabel(accounts: List<AccountWithBalance>): String {
-        val amounts = accounts
-            .filter { it.account.currency == GBP && it.account.accountSubType != SUBTYPE_CREDIT_CARD }
-            .mapNotNull { it.balance?.availableAmount }
-        return formatMinorUnits(sumMinorUnits(amounts), GBP)
-    }
-
     private fun AccountWithBalance.toRowUi(): AccountRowUi = AccountRowUi(
         id = account.accountId,
         type = AccountUiType.fromSubtype(account.accountSubType),
@@ -164,7 +169,7 @@ class AccountsViewModel(
             sortCode = account.sortCode,
             accountNumber = account.accountNumber,
         ),
-        balanceLabel = balance?.let { formatMoney(it.availableAmount, it.currency) } ?: BALANCE_UNAVAILABLE,
-        isBalanceOwed = account.accountSubType == SUBTYPE_CREDIT_CARD,
+        balanceLabel = balance?.let { formatBalance(it.availableAmount, it.currency) } ?: BALANCE_UNAVAILABLE,
+        isBalanceOwed = account.accountSubType.canonicalSubtype() == SUBTYPE_CREDIT_CARD,
     )
 }

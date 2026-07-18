@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import org.mifosx.openbanking.feature.accounts.components.AccountCard
-import org.mifosx.openbanking.feature.accounts.components.AccountTotalSummary
 import org.mifosx.openbanking.feature.accounts.components.AccountTypeFilterRow
 import org.mifosx.openbanking.feature.accounts.components.ConsentExpiryBanner
 import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
@@ -43,7 +42,6 @@ internal fun AccountsContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().testTag(AccountsTestTags.CONTENT)) {
-            AccountTotalSummary(totalLabel = data.totalBalanceLabel, accountCount = data.accountCount)
             AccountTypeFilterRow(active = data.activeFilter, onFilterChange = onFilterChange)
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),

@@ -9,8 +9,7 @@
     See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
 -->
 <resources>
-    <string name="feature_accounts_total_label">Total across accounts</string>
-    <string name="feature_accounts_account_count">%1$d accounts</string>
+    <string name="feature_accounts_screen_title">Accounts</string>
 
     <string name="feature_accounts_filter_all">All</string>
     <string name="feature_accounts_filter_current">Current</string>

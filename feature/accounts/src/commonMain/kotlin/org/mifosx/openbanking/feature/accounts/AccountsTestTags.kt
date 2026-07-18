@@ -17,7 +17,6 @@ import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
  */
 internal object AccountsTestTags {
     const val CONTENT = "accounts_content"
-    const val TOTAL_SUMMARY = "accounts_total_summary"
     const val FILTER_ROW = "accounts_filter_row"
     const val SKELETON = "accounts_skeleton"
     const val EMPTY = "accounts_empty"

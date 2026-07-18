@@ -62,7 +62,7 @@ class AccountsViewModelTest {
     private fun content(state: ScreenState<*>) = state as ScreenState.Content
 
     @Test
-    fun `content maps rows and nets the GBP total excluding credit and foreign currency`() = runTest {
+    fun `content maps every account into a display row`() = runTest {
         val vm = createViewModel()
         repo.emissions.value = ScreenState.Content(sampleAccounts(), DataFreshness.FRESH)
 
@@ -70,8 +70,6 @@ class AccountsViewModelTest {
         val data = content(state.uiState).data as AccountsData
 
         assertEquals(5, data.rows.size)
-        assertEquals(5, data.accountCount)
-        assertEquals("£15,797.63", data.totalBalanceLabel)
     }
 
     @Test
