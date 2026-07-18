@@ -18,8 +18,6 @@ data class UserData(
     val darkThemeConfig: DarkThemeConfig,
     val useDynamicColor: Boolean,
     val appLanguage: LanguageConfig,
-    val showOnboarding: Boolean,
-    val firstTimeUser: Boolean,
     val isAuthenticated: Boolean,
     val isUnlocked: Boolean,
     val passcode: String,
@@ -31,8 +29,8 @@ data class UserData(
         /**
          * A fresh install has seen nothing and authorised nothing.
          *
-         * These previously shipped as `isAuthenticated = true`, `firstTimeUser = false` and a
-         * hardcoded `passcode = "1234"` — template values that were never adjusted for this app. The
+         * These previously shipped as `isAuthenticated = true` and a hardcoded
+         * `passcode = "1234"` — template values that were never adjusted for this app. The
          * effect was that every launch fell through the navigator's gates straight to Home, so
          * onboarding, login and the consent callback were all unreachable.
          *
@@ -51,8 +49,6 @@ data class UserData(
             isUnlocked = true,
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
-            showOnboarding = true,
-            firstTimeUser = true,
             enableScreenCapture = false,
         )
     }

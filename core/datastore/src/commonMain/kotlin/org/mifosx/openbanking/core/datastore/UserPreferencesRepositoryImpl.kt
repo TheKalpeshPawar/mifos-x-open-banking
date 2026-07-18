@@ -150,12 +150,6 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         updatePreference { it.copy(isBiometricsEnabled = isBiometricsEnabled) }
 
-    override suspend fun setShowOnboarding(showOnboarding: Boolean) =
-        updatePreference { it.copy(showOnboarding = showOnboarding) }
-
-    override suspend fun setFirstTimeState(firstTimeState: Boolean) =
-        updatePreference { it.copy(firstTimeUser = firstTimeState) }
-
     override suspend fun setPasscode(passcode: String) =
         updatePreference { it.copy(passcode = passcode) }
 

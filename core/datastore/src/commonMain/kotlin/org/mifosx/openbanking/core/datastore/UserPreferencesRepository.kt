@@ -53,10 +53,6 @@ interface UserPreferencesRepository {
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
 
-    suspend fun setShowOnboarding(showOnboarding: Boolean)
-
-    suspend fun setFirstTimeState(firstTimeState: Boolean)
-
     suspend fun setPasscode(passcode: String)
 
     suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean)
