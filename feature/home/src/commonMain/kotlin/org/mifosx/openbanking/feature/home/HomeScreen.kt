@@ -9,24 +9,53 @@
  */
 package org.mifosx.openbanking.feature.home
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import template.core.base.designsystem.theme.KptTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
+import org.mifosx.openbanking.feature.home.ui.HomeAction
+import org.mifosx.openbanking.feature.home.ui.HomeViewModel
+import template.core.base.ui.screen.ScreenContent
 
+/**
+ * Consumer home dashboard. Renders the account overview across its loading / content / empty / error
+ * states inside the app scaffold; navigation is delegated to the caller via the `onNavigate*`
+ * callbacks so the feature stays decoupled from the app's route table.
+ */
 @Composable
-internal fun HomeScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "Accounts dashboard coming soon",
-            style = KptTheme.typography.bodyLarge,
-            color = KptTheme.colorScheme.onSurfaceVariant,
-        )
+internal fun HomeScreen(
+    onNavigateToTransactions: () -> Unit,
+    onNavigateToAccountDetail: () -> Unit,
+    onNavigateToStatements: () -> Unit,
+    onNavigateToConsents: () -> Unit,
+    onNavigateToTransactionDetail: () -> Unit,
+    onNavigateToSpending: () -> Unit,
+    onConnectBank: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = koinViewModel(),
+) {
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    KptScaffold(modifier = modifier) {
+        ScreenContent(
+            state = state.uiState,
+            onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) },
+            loading = { HomeSkeleton() },
+            empty = { HomeEmpty(onConnectBank = onConnectBank) },
+            error = { HomeError(onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) }) },
+        ) { data, _ ->
+            HomeContent(
+                data = data,
+                onSelectAccount = { viewModel.trySendAction(HomeAction.SelectAccount(it)) },
+                onNavigateToTransactions = onNavigateToTransactions,
+                onNavigateToAccountDetail = onNavigateToAccountDetail,
+                onNavigateToStatements = onNavigateToStatements,
+                onNavigateToConsents = onNavigateToConsents,
+                onNavigateToTransactionDetail = onNavigateToTransactionDetail,
+                onNavigateToSpending = onNavigateToSpending,
+            )
+        }
     }
 }

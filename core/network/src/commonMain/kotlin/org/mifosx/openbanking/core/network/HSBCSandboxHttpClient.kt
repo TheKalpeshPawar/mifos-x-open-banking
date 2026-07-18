@@ -25,10 +25,10 @@ import io.ktor.client.request.forms.submitForm
 import io.ktor.http.HttpHeaders
 import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
 import org.mifosx.openbanking.core.network.config.HsbcConfig
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
+import org.mifosx.openbanking.core.network.model.oauth.RefreshTokenResponse
 import org.mifosx.openbanking.core.network.mtls.MtlsIdentity
 import org.mifosx.openbanking.core.network.mtls.installMtls
 import template.core.base.network.httpClient
@@ -43,18 +43,16 @@ internal const val TOKEN_ENDPOINT = "v1.1/oauth2/token"
 private const val CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 private const val REQUEST_TIMEOUT_MS = 60_000L
 
-@Serializable
-data class AuthTokens(
-    val accessToken: String,
-    val refreshToken: String? = null,
-)
+private val tokenJson = Json { ignoreUnknownKeys = true }
 
-internal fun saveTokens(settings: Settings, accessTokens: AuthTokens) {
-    settings.putString(HSBC_TOKENS, Json.encodeToString(accessTokens))
+internal fun savePsuTokens(settings: Settings, tokens: PsuTokenResponse) {
+    settings.putString(HSBC_TOKENS, tokenJson.encodeToString(PsuTokenResponse.serializer(), tokens))
 }
 
-internal fun loadTokens(settings: Settings): AuthTokens? =
-    settings.getStringOrNull(HSBC_TOKENS)?.let { Json.decodeFromString(it) }
+internal fun loadPsuTokens(settings: Settings): PsuTokenResponse? =
+    settings.getStringOrNull(HSBC_TOKENS)?.let {
+        runCatching { tokenJson.decodeFromString(PsuTokenResponse.serializer(), it) }.getOrNull()
+    }
 
 /**
  * Exchanges a stored refresh token for a fresh PSU access token via the OAuth2 `refresh_token` grant
@@ -69,7 +67,7 @@ internal suspend fun refreshAccessToken(
     signingKeyPem: String,
     redirectUri: String,
     refreshToken: String,
-): AuthTokens {
+): PsuTokenResponse {
     val clientAssertion = buildClientAssertion(
         clientId = clientId,
         kid = kid,
@@ -89,9 +87,13 @@ internal suspend fun refreshAccessToken(
         },
     ).body()
 
-    return AuthTokens(
-        accessToken = response.accessToken ?: "",
-        refreshToken = response.refreshToken,
+    return PsuTokenResponse(
+        accesstoken = response.accessToken,
+        tokentype = response.tokenType,
+        refreshtoken = response.refreshToken ?: refreshToken,
+        expiresin = response.expiresIn,
+        scope = response.scope,
+        idtoken = response.idtToken,
     )
 }
 
@@ -121,10 +123,16 @@ fun hsbcSandboxHttpClient(
         install(Auth) {
             bearer {
                 loadTokens {
-                    loadTokens(settings)?.let { BearerTokens(it.accessToken, it.refreshToken) }
+                    val stored = loadPsuTokens(settings)
+                    val access = stored?.accesstoken
+                    if (access.isNullOrBlank()) {
+                        null
+                    } else {
+                        BearerTokens(access, stored.refreshtoken.orEmpty())
+                    }
                 }
                 refreshTokens {
-                    loadTokens(settings)?.refreshToken?.let { refreshToken ->
+                    loadPsuTokens(settings)?.refreshtoken?.let { refreshToken ->
                         val refreshed = refreshAccessToken(
                             httpClient = client,
                             tokenUrl = tokenUrl,
@@ -134,8 +142,8 @@ fun hsbcSandboxHttpClient(
                             redirectUri = config.redirectUri,
                             refreshToken = refreshToken,
                         )
-                        saveTokens(settings, refreshed)
-                        BearerTokens(refreshed.accessToken, refreshed.refreshToken)
+                        savePsuTokens(settings, refreshed)
+                        BearerTokens(refreshed.accesstoken.orEmpty(), refreshed.refreshtoken.orEmpty())
                     }
                 }
                 // The PSU bearer is auto-sent to AIS reads only. The token endpoint (client_assertion
@@ -164,7 +172,7 @@ fun hsbcSandboxHttpClient(
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
             logger = object : Logger {
                 override fun log(message: String) {
-                    KermitLogger.d(tag = "KtorClient", messageString = message)
+                    KermitLogger.i(tag = "KtorClient", messageString = message)
                 }
             }
         }

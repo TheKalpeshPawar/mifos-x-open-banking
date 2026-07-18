@@ -100,9 +100,9 @@ internal fun LoginScreen(
 }
 
 @Composable
-private fun LoadingState(modifier: Modifier = Modifier) {
+internal fun LoadingState(modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().testTag("login_loading_progress"))
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.LOADING_PROGRESS))
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 stringResource(Res.string.feature_login_connecting),
@@ -114,7 +114,7 @@ private fun LoadingState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ContentState(
+internal fun ContentState(
     state: LoginUiState.Content,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -125,7 +125,7 @@ private fun ContentState(
             .padding(KptTheme.spacing.md),
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth().testTag("hsbc_explainer_card"),
+            modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.EXPLAINER_CARD),
             shape = RoundedCornerShape(KptTheme.spacing.sm),
             colors = CardDefaults.cardColors(
                 containerColor = KptTheme.colorScheme.surfaceContainerLow,
@@ -212,12 +212,12 @@ private fun ContentState(
             stringResource(Res.string.feature_login_continue_hsbc),
             onClick = { onAction(LoginAction.StartOAuth) },
             icon = Icons.Outlined.OpenInNew,
-            testTag = "login_continue_hsbc",
+            testTag = LoginTestTags.CONTINUE_HSBC,
         )
         Spacer(Modifier.height(KptTheme.spacing.sm))
         TextButton(
             onClick = { onAction(LoginAction.Cancel) },
-            modifier = Modifier.fillMaxWidth().testTag("login_cancel"),
+            modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.CANCEL),
         ) {
             Text(
                 stringResource(Res.string.feature_login_cancel),
@@ -229,10 +229,10 @@ private fun ContentState(
 }
 
 @Composable
-private fun AuthorisingState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize().testTag("login_authorising"), contentAlignment = Alignment.Center) {
+internal fun AuthorisingState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.AUTHORISING), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(modifier = Modifier.size(48.dp).testTag("authorising_spinner"))
+            CircularProgressIndicator(modifier = Modifier.size(48.dp).testTag(LoginTestTags.AUTHORISING_SPINNER))
             Spacer(Modifier.height(24.dp))
             Text(
                 stringResource(Res.string.feature_login_opening_hsbc),
@@ -252,12 +252,12 @@ private fun AuthorisingState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ErrorState(
+internal fun ErrorState(
     state: LoginUiState.Error,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize().testTag("login_error"), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.ERROR), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
             Icon(Icons.Outlined.Lock, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.error)
             Spacer(Modifier.height(KptTheme.spacing.lg))
@@ -278,18 +278,18 @@ private fun ErrorState(
             MifosFilledPillButton(
                 stringResource(Res.string.feature_login_retry),
                 onClick = { onAction(LoginAction.Retry) },
-                testTag = "login_error_retry",
+                testTag = LoginTestTags.ERROR_RETRY,
             )
         }
     }
 }
 
 @Composable
-private fun EmptyState(
+internal fun EmptyState(
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize().testTag("login_empty"), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.EMPTY), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
             Icon(Icons.Outlined.ManageSearch, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(KptTheme.spacing.lg))
@@ -310,7 +310,7 @@ private fun EmptyState(
             MifosFilledPillButton(
                 stringResource(Res.string.feature_login_go_back),
                 onClick = { onAction(LoginAction.Cancel) },
-                testTag = "login_empty_go_back",
+                testTag = LoginTestTags.EMPTY_GO_BACK,
             )
         }
     }

@@ -23,11 +23,45 @@ kotlin {
             implementation(projects.core.model)
             implementation(projects.core.ui)
             implementation(projects.coreBase.store)
+            implementation(libs.kotlinx.coroutines.core)
 
             implementation(compose.ui)
             implementation(compose.material3)
             implementation(compose.foundation)
             implementation(compose.materialIconsExtended)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
         }
+
+        androidUnitTest.dependencies {
+            implementation(libs.robolectric)
+            implementation(libs.bundles.androidx.compose.ui.test)
+        }
+
+        androidInstrumentedTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.bundles.androidx.compose.ui.test)
+            implementation(libs.androidx.test.ext.junit)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.test.espresso.core)
+        }
+    }
+}
+
+android {
+    defaultConfig {
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+}
+
+compose {
+    resources {
+        packageOfResClass = "org.mifosx.openbanking.feature.home.generated.resources"
     }
 }

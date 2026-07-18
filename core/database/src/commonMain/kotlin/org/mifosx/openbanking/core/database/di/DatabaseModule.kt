@@ -28,6 +28,8 @@ val DatabaseModule = module {
     includes(platformModule)
     single { get<AppDatabase>().sampleDao }
     single { get<AppDatabase>().bookkeeperDao }
+    single { get<AppDatabase>().accountDao }
+    single { get<AppDatabase>().transactionDao }
 }
 
 /**

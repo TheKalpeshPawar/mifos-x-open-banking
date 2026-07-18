@@ -24,6 +24,7 @@ data class UserData(
     val enableScreenCapture: Boolean,
     val isPasscodeEnabled: Boolean,
     val isBiometricsEnabled: Boolean,
+    val selectedAccountId: String,
 ) {
     companion object {
         /**
@@ -50,6 +51,7 @@ data class UserData(
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
             enableScreenCapture = false,
+            selectedAccountId = "",
         )
     }
 }

@@ -48,9 +48,9 @@ class AppDatabaseTest {
 
     @Test
     fun databaseVersionIsCurrent() {
-        // Bumped to 5 in the v4→v5 schema migration. Update this constant when
-        // bumping AppDatabase.VERSION so this guardrail stays meaningful.
-        assertEquals(5, AppDatabase.VERSION)
+        // Bumped to 2 when the accounts + transactions cache tables landed. Update this
+        // constant when bumping AppDatabase.VERSION so this guardrail stays meaningful.
+        assertEquals(2, AppDatabase.VERSION)
     }
 
     @Test

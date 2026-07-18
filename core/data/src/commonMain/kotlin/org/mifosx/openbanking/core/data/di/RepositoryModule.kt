@@ -19,6 +19,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.di.BankingModule
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.PendingAuthStore
@@ -42,7 +43,7 @@ import template.core.base.store.infra.FetchedAtRepository
 import kotlin.time.Clock
 
 val DataModule = module {
-    includes(platformModule, CommonModule, DatabaseModule, DatastoreModule, NetworkModule)
+    includes(platformModule, CommonModule, DatabaseModule, DatastoreModule, NetworkModule, BankingModule)
 
     single<NetworkMonitor> { NetworkMonitorProvider.install() }
     singleOf(::UserDataRepositoryImpl) bind UserDataRepository::class
@@ -77,21 +78,14 @@ val DataModule = module {
         )
     }
 
-    // Framework FetchedAtRepository — durable lastFetchedAt persistence backing
-    // DataFreshnessIndicator timestamps. Room-only by design (no in-memory fallback).
     single<FetchedAtRepository> { RoomFetchedAtRepository(get<AppDatabase>().fetchedAtDao) }
 
-    // Framework DraftDao — generic backing store for SubmitOutbox / DraftSubmitHandler.
-    // Reused by OBP banking submit flows (payments, standing orders) in Phase 3+.
     single { get<AppDatabase>().draftDao }
 
     single<UserLogoutManager> { UserLogoutManagerImpl(get(), get(), get()) }
 
-    // App-scoped CoroutineScope for cross-VM long-running coroutines.
+    // App-scoped  for cross-VM long-running coroutines.
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
-
-    // OBP banking repositories (Accounts, Transactions, Payments, …) are registered
-    // here in Phase 3 — one Store5-backed repository per OBP service.
 }
 
 expect val platformModule: Module

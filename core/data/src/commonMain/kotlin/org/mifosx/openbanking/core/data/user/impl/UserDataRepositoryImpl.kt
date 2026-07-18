@@ -60,7 +60,8 @@ class UserDataRepositoryImpl(
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         preferencesRepository.setIsBiometricsEnabled(isBiometricsEnabled)
 
-    override suspend fun setPasscode(passcode: String) = preferencesRepository.setPasscode(passcode)
+    override suspend fun setSelectedAccountId(accountId: String) =
+        preferencesRepository.setSelectedAccountId(accountId)
 
     override suspend fun clearUserData() = preferencesRepository.clearUserData()
 }

@@ -53,7 +53,7 @@ interface UserDataRepository {
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
 
-    suspend fun setPasscode(passcode: String)
+    suspend fun setSelectedAccountId(accountId: String)
 
     suspend fun clearUserData()
 }

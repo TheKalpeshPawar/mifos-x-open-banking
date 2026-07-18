@@ -12,10 +12,10 @@ package org.mifosx.openbanking.core.network.api
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.parameters
-import org.mifosx.openbanking.core.model.createConsent.CreateConsentTokenSuccess
-import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
-import org.mifosx.openbanking.core.model.oauth.RefreshTokenResponse
 import org.mifosx.openbanking.core.network.buildClientAssertion
+import org.mifosx.openbanking.core.network.model.createConsent.CreateConsentTokenSuccess
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
+import org.mifosx.openbanking.core.network.model.oauth.RefreshTokenResponse
 import org.mifosx.openbanking.core.network.result.toNetworkResult
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult

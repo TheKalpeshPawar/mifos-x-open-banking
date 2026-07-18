@@ -8,7 +8,6 @@
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.network.api
-
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
@@ -17,16 +16,16 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import org.mifosx.openbanking.core.model.ais.accounts.AccountsResponse
-import org.mifosx.openbanking.core.model.ais.scheduledPayments.ScheduledPaymentsResponse
-import org.mifosx.openbanking.core.model.ais.standingOrders.StandingOrdersResponse
-import org.mifosx.openbanking.core.model.ais.statementDetails.StatementDetailsResponse
-import org.mifosx.openbanking.core.model.ais.statementTransactions.StatementTransactionsResponse
-import org.mifosx.openbanking.core.model.ais.statements.StatementsResponse
-import org.mifosx.openbanking.core.model.ais.transactions.TransactionsResponse
-import org.mifosx.openbanking.core.model.hsbcPermission.request.Data
-import org.mifosx.openbanking.core.model.hsbcPermission.request.HSBCCreateConsentRequest
-import org.mifosx.openbanking.core.model.hsbcPermission.request.Risk
+import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
+import org.mifosx.openbanking.core.network.model.ais.scheduledPayments.ScheduledPaymentsResponse
+import org.mifosx.openbanking.core.network.model.ais.standingOrders.StandingOrdersResponse
+import org.mifosx.openbanking.core.network.model.ais.statementDetails.StatementDetailsResponse
+import org.mifosx.openbanking.core.network.model.ais.statementTransactions.StatementTransactionsResponse
+import org.mifosx.openbanking.core.network.model.ais.statements.StatementsResponse
+import org.mifosx.openbanking.core.network.model.ais.transactions.TransactionsResponse
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.Data
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.HSBCCreateConsentRequest
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.Risk
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test

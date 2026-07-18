@@ -11,7 +11,7 @@ package org.mifosx.openbanking.core.data.callback
 
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.json.Json
-import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 
 /**
  * Whether the PSU has a usable HSBC session, and the tokens behind it.

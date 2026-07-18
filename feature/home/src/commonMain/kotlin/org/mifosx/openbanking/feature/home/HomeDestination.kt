@@ -26,12 +26,29 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
     navigate(HomeDestination, navOptions)
 }
 
-fun NavGraphBuilder.homeGraph() {
+@Suppress("LongParameterList")
+fun NavGraphBuilder.homeGraph(
+    onNavigateToTransactions: () -> Unit,
+    onNavigateToAccountDetail: () -> Unit,
+    onNavigateToStatements: () -> Unit,
+    onNavigateToConsents: () -> Unit,
+    onNavigateToTransactionDetail: () -> Unit,
+    onNavigateToSpending: () -> Unit,
+    onConnectBank: () -> Unit,
+) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
     ) {
         composableWithStayTransitions<HomeRoute> {
-            HomeScreen()
+            HomeScreen(
+                onNavigateToTransactions = onNavigateToTransactions,
+                onNavigateToAccountDetail = onNavigateToAccountDetail,
+                onNavigateToStatements = onNavigateToStatements,
+                onNavigateToConsents = onNavigateToConsents,
+                onNavigateToTransactionDetail = onNavigateToTransactionDetail,
+                onNavigateToSpending = onNavigateToSpending,
+                onConnectBank = onConnectBank,
+            )
         }
     }
 }

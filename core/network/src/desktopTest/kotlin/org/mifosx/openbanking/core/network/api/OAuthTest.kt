@@ -17,8 +17,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import org.mifosx.openbanking.core.model.createConsent.CreateConsentTokenSuccess
 import org.mifosx.openbanking.core.network.TestSigningKey
+import org.mifosx.openbanking.core.network.model.createConsent.CreateConsentTokenSuccess
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.test.Test

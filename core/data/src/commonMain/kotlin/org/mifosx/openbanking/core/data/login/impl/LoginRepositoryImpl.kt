@@ -12,13 +12,13 @@ package org.mifosx.openbanking.core.data.login.impl
 import org.mifosx.openbanking.core.data.login.ConsentResult
 import org.mifosx.openbanking.core.data.login.LoginRepository
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
-import org.mifosx.openbanking.core.model.hsbcPermission.request.Data
-import org.mifosx.openbanking.core.model.hsbcPermission.request.HSBCCreateConsentRequest
-import org.mifosx.openbanking.core.model.hsbcPermission.request.Risk
 import org.mifosx.openbanking.core.network.api.Aisp
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.authorize.generateConsentAuthorizationUrl
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.Data
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.HSBCCreateConsentRequest
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.Risk
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import kotlin.time.Clock

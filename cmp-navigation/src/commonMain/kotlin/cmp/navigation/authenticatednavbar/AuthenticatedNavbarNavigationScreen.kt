@@ -29,6 +29,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
+import cmp.navigation.placeholder.AccountDetailRoute
+import cmp.navigation.placeholder.ConsentManagerRoute
+import cmp.navigation.placeholder.PfmDashboardRoute
+import cmp.navigation.placeholder.StatementsRoute
+import cmp.navigation.placeholder.TransactionDetailRoute
+import cmp.navigation.placeholder.TransactionsRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -110,7 +116,15 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popEnterTransition = RootTransitionProviders.Enter.fadeIn,
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
-            homeGraph()
+            homeGraph(
+                onNavigateToTransactions = { navController.navigate(TransactionsRoute) },
+                onNavigateToAccountDetail = { navController.navigate(AccountDetailRoute) },
+                onNavigateToStatements = { navController.navigate(StatementsRoute) },
+                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onNavigateToTransactionDetail = { navController.navigate(TransactionDetailRoute) },
+                onNavigateToSpending = { navController.navigate(PfmDashboardRoute) },
+                onConnectBank = { navController.navigate(ConsentManagerRoute) },
+            )
             bankingPlaceholderDestinations()
         }
     }

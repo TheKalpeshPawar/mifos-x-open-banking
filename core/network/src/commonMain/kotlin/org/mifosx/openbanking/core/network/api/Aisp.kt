@@ -8,7 +8,6 @@
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.network.api
-
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
@@ -17,22 +16,22 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import org.mifosx.openbanking.core.model.ais.accountDetails.AccountDetailsResponse
-import org.mifosx.openbanking.core.model.ais.accounts.AccountsResponse
-import org.mifosx.openbanking.core.model.ais.balances.BalancesResponse
-import org.mifosx.openbanking.core.model.ais.beneficiaries.BeneficiariesResponse
-import org.mifosx.openbanking.core.model.ais.directDebits.DirectDebitsResponse
-import org.mifosx.openbanking.core.model.ais.parties.PartiesResponse
-import org.mifosx.openbanking.core.model.ais.party.PartyResponse
-import org.mifosx.openbanking.core.model.ais.product.ProductResponse
-import org.mifosx.openbanking.core.model.ais.scheduledPayments.ScheduledPaymentsResponse
-import org.mifosx.openbanking.core.model.ais.standingOrders.StandingOrdersResponse
-import org.mifosx.openbanking.core.model.ais.statementDetails.StatementDetailsResponse
-import org.mifosx.openbanking.core.model.ais.statementTransactions.StatementTransactionsResponse
-import org.mifosx.openbanking.core.model.ais.statements.StatementsResponse
-import org.mifosx.openbanking.core.model.ais.transactions.TransactionsResponse
-import org.mifosx.openbanking.core.model.hsbcPermission.request.HSBCCreateConsentRequest
-import org.mifosx.openbanking.core.model.hsbcPermission.response.HSBCCreateConsentResponse
+import org.mifosx.openbanking.core.network.model.ais.accountDetails.AccountDetailsResponse
+import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
+import org.mifosx.openbanking.core.network.model.ais.balances.BalancesResponse
+import org.mifosx.openbanking.core.network.model.ais.beneficiaries.BeneficiariesResponse
+import org.mifosx.openbanking.core.network.model.ais.directDebits.DirectDebitsResponse
+import org.mifosx.openbanking.core.network.model.ais.parties.PartiesResponse
+import org.mifosx.openbanking.core.network.model.ais.party.PartyResponse
+import org.mifosx.openbanking.core.network.model.ais.product.ProductResponse
+import org.mifosx.openbanking.core.network.model.ais.scheduledPayments.ScheduledPaymentsResponse
+import org.mifosx.openbanking.core.network.model.ais.standingOrders.StandingOrdersResponse
+import org.mifosx.openbanking.core.network.model.ais.statementDetails.StatementDetailsResponse
+import org.mifosx.openbanking.core.network.model.ais.statementTransactions.StatementTransactionsResponse
+import org.mifosx.openbanking.core.network.model.ais.statements.StatementsResponse
+import org.mifosx.openbanking.core.network.model.ais.transactions.TransactionsResponse
+import org.mifosx.openbanking.core.network.model.hsbcPermission.request.HSBCCreateConsentRequest
+import org.mifosx.openbanking.core.network.model.hsbcPermission.response.HSBCCreateConsentResponse
 import org.mifosx.openbanking.core.network.result.toNetworkResult
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult

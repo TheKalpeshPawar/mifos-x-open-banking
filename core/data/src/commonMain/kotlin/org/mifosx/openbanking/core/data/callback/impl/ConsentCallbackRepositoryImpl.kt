@@ -17,10 +17,10 @@ import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.data.util.toScreenState
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
-import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
 import org.mifosx.openbanking.core.network.api.Aisp
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.api.OAuth
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkResult

@@ -16,7 +16,7 @@ import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
-import org.mifosx.openbanking.core.model.oauth.PsuTokenResponse
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 import template.core.base.common.screen.ScreenState
 import template.core.base.ui.viewmodel.BackgroundEvent
 import template.core.base.ui.viewmodel.BaseViewModel

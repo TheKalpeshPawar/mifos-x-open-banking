@@ -18,6 +18,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.network.api.mockClient
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -49,30 +50,30 @@ class HsbcSandboxHttpClientTest {
             refreshToken = "old-ref",
         )
 
-        assertEquals("new-acc", tokens.accessToken)
-        assertEquals("new-ref", tokens.refreshToken)
+        assertEquals("new-acc", tokens.accesstoken)
+        assertEquals("new-ref", tokens.refreshtoken)
         assertEquals(HttpMethod.Post, request?.method)
         assertTrue(request?.url?.encodedPath?.contains("oauth2/token") == true)
     }
 
     @Test
-    fun `refreshAccessToken maps a missing access_token to an empty string`() = runTest {
+    fun `refreshAccessToken maps a missing access_token to null and reuses the sent refresh token`() = runTest {
         val client = mockClient { respond("{}", headers = jsonHeaders) }
         val tokens = refreshAccessToken(client, tokenUrl, "c", "k", TestSigningKey.pem(), "https://cb", "old-ref")
-        assertEquals("", tokens.accessToken)
-        assertNull(tokens.refreshToken)
+        assertNull(tokens.accesstoken)
+        assertEquals("old-ref", tokens.refreshtoken)
     }
 
     @Test
-    fun `saveTokens and loadTokens round-trip through Settings`() {
+    fun `savePsuTokens and loadPsuTokens round-trip through Settings`() {
         val settings = Settings().apply { clear() }
-        assertNull(loadTokens(settings))
+        assertNull(loadPsuTokens(settings))
 
-        saveTokens(settings, AuthTokens(accessToken = "acc", refreshToken = "ref"))
-        val loaded = loadTokens(settings)
+        savePsuTokens(settings, PsuTokenResponse(accesstoken = "acc", refreshtoken = "ref"))
+        val loaded = loadPsuTokens(settings)
 
-        assertEquals("acc", loaded?.accessToken)
-        assertEquals("ref", loaded?.refreshToken)
+        assertEquals("acc", loaded?.accesstoken)
+        assertEquals("ref", loaded?.refreshtoken)
         settings.clear()
     }
 }

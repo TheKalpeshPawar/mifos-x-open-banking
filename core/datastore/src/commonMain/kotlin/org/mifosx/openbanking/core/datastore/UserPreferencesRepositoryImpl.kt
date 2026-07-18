@@ -153,6 +153,9 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setPasscode(passcode: String) =
         updatePreference { it.copy(passcode = passcode) }
 
+    override suspend fun setSelectedAccountId(accountId: String) =
+        updatePreference { it.copy(selectedAccountId = accountId) }
+
     override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) =
         updatePreference { it.copy(enableScreenCapture = isScreenCaptureEnabled) }
 

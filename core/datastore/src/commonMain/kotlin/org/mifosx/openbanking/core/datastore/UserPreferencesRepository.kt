@@ -55,6 +55,8 @@ interface UserPreferencesRepository {
 
     suspend fun setPasscode(passcode: String)
 
+    suspend fun setSelectedAccountId(accountId: String)
+
     suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean)
 
     suspend fun clearUserData()
