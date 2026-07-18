@@ -43,9 +43,10 @@ fun KptMaterialTheme(
     theme: KptThemeProvider = KptThemeProviderImpl(),
     content: @Composable () -> Unit,
 ) {
-    // Convert KptTheme values to Material3 equivalents
     val materialColorScheme = theme.colors.toMaterial3ColorScheme()
-    val materialTypography = theme.typography.toMaterial3Typography()
+    val materialTypography = theme.typography.toMaterial3Typography(
+        fontFamily = theme.typography.bodyLarge.fontFamily,
+    )
     val materialShapes = theme.shapes.toMaterial3Shapes()
 
     // Provide both KptTheme composition locals and MaterialTheme

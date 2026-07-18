@@ -89,6 +89,8 @@ kmptoolkit = "3.2.3"
 
 # CMP Libraries
 compose-plugin = "1.10.3"
+maplibreCompose = "0.13.0"
+playServicesLocation = "21.3.0"
 coil = "3.3.0"
 backHandlerVersion = "2.5.0"
 constraintLayout = "0.6.0"
@@ -213,6 +215,8 @@ twitter-detekt-compose = { group = "com.twitter.compose.rules", name = "detekt",
 
 google-oss-licenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version.ref = "googleOss" }
 google-oss-licenses-plugin = { group = "com.google.android.gms", name = "oss-licenses-plugin", version.ref = "googleOssPlugin" }
+maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 junit = { group = "junit", name = "junit", version.ref = "junitVersion" }
 

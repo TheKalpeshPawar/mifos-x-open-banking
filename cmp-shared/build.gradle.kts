@@ -55,6 +55,10 @@ kotlin {
         ios.deploymentTarget = "16.0"
         podfile = project.file("../cmp-ios/Podfile")
 
+        pod("MapLibre") {
+            version = "6.25.1"
+        }
+
         framework {
             baseName = "ComposeApp"
             isStatic = true

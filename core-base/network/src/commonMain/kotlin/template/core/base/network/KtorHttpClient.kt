@@ -85,6 +85,7 @@ fun setupDefaultHttpClient(
         isLenient = true
         ignoreUnknownKeys = true
         explicitNulls = false
+        coerceInputValues = true
     },
     basicCredentialsProvider: (() -> BasicAuthCredentials)? = null,
     digestCredentialsProvider: (() -> DigestAuthCredentials)? = null,
