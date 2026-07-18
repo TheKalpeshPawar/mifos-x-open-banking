@@ -9,14 +9,19 @@
  */
 package org.mifosx.openbanking.core.ui.bottombar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import template.core.base.designsystem.theme.KptTheme
@@ -24,7 +29,6 @@ import template.core.base.designsystem.theme.KptTheme
 @Composable
 fun ColumnScope.KptNavigationRailItem(
     contentDescriptionRes: StringResource,
-    labelRes: StringResource,
     selectedIconRes: ImageVector,
     unselectedIconRes: ImageVector,
     isSelected: Boolean,
@@ -39,20 +43,22 @@ fun ColumnScope.KptNavigationRailItem(
             )
         },
         label = {
-            Text(
-                text = stringResource(labelRes),
-                style = KptTheme.typography.labelMedium,
+            Spacer(
+                modifier = Modifier
+                    .height(4.dp)
+                    .width(10.dp)
+                    .background(
+                        color = KptTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(999.dp),
+                    ),
             )
         },
         selected = isSelected,
-        alwaysShowLabel = true,
+        alwaysShowLabel = isSelected,
         onClick = onClick,
         colors = NavigationRailItemDefaults.colors(
             selectedIconColor = KptTheme.colorScheme.primary,
-            selectedTextColor = KptTheme.colorScheme.primary,
-            unselectedIconColor = KptTheme.colorScheme.outline,
-            unselectedTextColor = KptTheme.colorScheme.outline,
-            indicatorColor = KptTheme.colorScheme.primaryContainer,
+            unselectedIconColor = KptTheme.colorScheme.primary,
         ),
         modifier = modifier,
     )

@@ -39,13 +39,11 @@ kotlin {
             implementation(libs.coil.kt)
             implementation(libs.coil.kt.compose)
             implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.jb.composeNavigation)
             implementation(libs.filekit.compose)
             implementation(libs.filekit.core)
-            implementation(libs.kotlinx.datetime)
         }
         androidInstrumentedTest.dependencies {
             implementation(libs.bundles.androidx.compose.ui.test)

@@ -12,7 +12,6 @@ plugins {
     alias(libs.plugins.kmp.koin.convention)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -37,7 +36,6 @@ kotlin {
             implementation(libs.cmp.network.monitor)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.kermit.logging)
         }
     }

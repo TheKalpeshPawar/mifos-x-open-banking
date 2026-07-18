@@ -9,23 +9,10 @@
  */
 package org.mifosx.openbanking.core.store.di
 
-import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.mifosx.openbanking.core.store.AppStoreRegistry
-import org.mifosx.openbanking.core.store.accounts.provideAccountsStore
-import org.mifosx.openbanking.core.store.applications.provideAccountApplicationsStore
-import org.mifosx.openbanking.core.store.atm.provideAtmStore
-import org.mifosx.openbanking.core.store.cards.provideCardsStore
-import org.mifosx.openbanking.core.store.cards.provideUserCardsStore
-import org.mifosx.openbanking.core.store.customers.provideCustomersStore
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 import org.mifosx.openbanking.core.store.infra.impl.StoreCacheManagerImpl
-import org.mifosx.openbanking.core.store.kyc.provideKycDocumentsStore
-import org.mifosx.openbanking.core.store.messages.provideCustomerMessagesStore
-import org.mifosx.openbanking.core.store.payments.provideCounterpartiesStore
-import org.mifosx.openbanking.core.store.products.provideProductsStore
-import org.mifosx.openbanking.core.store.transactions.provideTransactionsStore
 
 /**
  * Koin module for app-level Store wiring.
@@ -50,60 +37,6 @@ val appStoreModule: Module = module {
         )
     }
 
-    single {
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            explicitNulls = false
-        }
-    }
-
-    single(AppStoreRegistry.Accounts) {
-        provideAccountsStore(api = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Transactions) {
-        provideTransactionsStore(api = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Cards) {
-        provideCardsStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.UserCards) {
-        provideUserCardsStore(api = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Counterparties) {
-        provideCounterpartiesStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Customers) {
-        provideCustomersStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.AccountApplications) {
-        provideAccountApplicationsStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.CustomerMessages) {
-        provideCustomerMessagesStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.KycDocuments) {
-        provideKycDocumentsStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Products) {
-        provideProductsStore(api = get(), config = get(), dao = get(), json = get())
-    }
-    single(AppStoreRegistry.Atms) {
-        provideAtmStore(api = get(), config = get(), dao = get(), json = get())
-    }
-
-    single(createdAtStart = true) {
-        val mgr = get<StoreCacheManager>() as StoreCacheManagerImpl
-        mgr.register(get(AppStoreRegistry.Accounts))
-        mgr.register(get(AppStoreRegistry.Transactions))
-        mgr.register(get(AppStoreRegistry.Cards))
-        mgr.register(get(AppStoreRegistry.UserCards))
-        mgr.register(get(AppStoreRegistry.Counterparties))
-        mgr.register(get(AppStoreRegistry.Customers))
-        mgr.register(get(AppStoreRegistry.AccountApplications))
-        mgr.register(get(AppStoreRegistry.CustomerMessages))
-        mgr.register(get(AppStoreRegistry.KycDocuments))
-        mgr.register(get(AppStoreRegistry.Products))
-        mgr.register(get(AppStoreRegistry.Atms))
-    }
+    // OBP banking stores (Accounts, Transactions, …) are registered here in Phase 3
+    // and registered with the StoreCacheManager for logout cache clearing.
 }

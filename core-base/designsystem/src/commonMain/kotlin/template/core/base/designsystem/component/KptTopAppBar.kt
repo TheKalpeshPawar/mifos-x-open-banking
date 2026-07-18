@@ -55,14 +55,6 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             }
         }
 
-    val defaultColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = KptTheme.colorScheme.background,
-        scrolledContainerColor = KptTheme.colorScheme.background,
-        titleContentColor = KptTheme.colorScheme.onBackground,
-        navigationIconContentColor = KptTheme.colorScheme.onBackground,
-        actionIconContentColor = KptTheme.colorScheme.onBackground,
-    )
-
     val titleContent: @Composable () -> Unit = {
         Column {
             Text(
@@ -117,7 +109,7 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             navigationIcon = navigationIconContent,
             actions = actionsContent,
             windowInsets = configuration.windowInsets ?: TopAppBarDefaults.windowInsets,
-            colors = configuration.colors ?: defaultColors,
+            colors = configuration.colors ?: TopAppBarDefaults.topAppBarColors(),
             scrollBehavior = configuration.scrollBehavior,
         )
 
@@ -127,7 +119,7 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             navigationIcon = navigationIconContent,
             actions = actionsContent,
             windowInsets = configuration.windowInsets ?: TopAppBarDefaults.windowInsets,
-            colors = configuration.colors ?: defaultColors,
+            colors = configuration.colors ?: TopAppBarDefaults.topAppBarColors(),
             scrollBehavior = configuration.scrollBehavior,
         )
 
@@ -137,7 +129,7 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             navigationIcon = navigationIconContent,
             actions = actionsContent,
             windowInsets = configuration.windowInsets ?: TopAppBarDefaults.windowInsets,
-            colors = configuration.colors ?: defaultColors,
+            colors = configuration.colors ?: TopAppBarDefaults.topAppBarColors(),
             scrollBehavior = configuration.scrollBehavior,
         )
 
@@ -147,7 +139,7 @@ fun KptTopAppBar(configuration: KptTopAppBarConfiguration) {
             navigationIcon = navigationIconContent,
             actions = actionsContent,
             windowInsets = configuration.windowInsets ?: TopAppBarDefaults.windowInsets,
-            colors = configuration.colors ?: defaultColors,
+            colors = configuration.colors ?: TopAppBarDefaults.topAppBarColors(),
             scrollBehavior = configuration.scrollBehavior,
         )
     }

@@ -27,6 +27,6 @@ actual class SecureSettingsFactory(private val context: Context) {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
-        return SharedPreferencesSettings(encryptedPrefs, commit = true)
+        return SharedPreferencesSettings(encryptedPrefs)
     }
 }
