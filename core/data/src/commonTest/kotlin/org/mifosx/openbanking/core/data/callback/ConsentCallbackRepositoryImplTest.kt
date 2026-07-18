@@ -57,6 +57,7 @@ class ConsentCallbackRepositoryImplTest {
         tokenStatus: HttpStatusCode = HttpStatusCode.OK,
         consentStatus: String = "Authorised",
         consentHttpStatus: HttpStatusCode = HttpStatusCode.OK,
+        consentExpiration: String = "",
     ): ConsentCallbackRepositoryImpl {
         val client = HttpClient(
             MockEngine { request ->
@@ -65,7 +66,7 @@ class ConsentCallbackRepositoryImplTest {
                         respond(tokenJson, tokenStatus, jsonHeaders)
 
                     request.url.encodedPath.contains("account-access-consents") ->
-                        respond(consentJson(consentStatus), consentHttpStatus, jsonHeaders)
+                        respond(consentJson(consentStatus, consentExpiration), consentHttpStatus, jsonHeaders)
 
                     else -> respond("{}", HttpStatusCode.OK, jsonHeaders)
                 }
@@ -81,9 +82,9 @@ class ConsentCallbackRepositoryImplTest {
     }
 
     /** Assembled from parts so no single line exceeds the 120-char limit. */
-    private fun consentJson(status: String) =
+    private fun consentJson(status: String, expiration: String = "") =
         """{"Data":{"ConsentId":"cn-1","Status":"$status",""" +
-            """"CreationDateTime":"","ExpirationDateTime":"","Permissions":[],""" +
+            """"CreationDateTime":"","ExpirationDateTime":"$expiration","Permissions":[],""" +
             """"StatusUpdateDateTime":"","TransactionFromDateTime":"","TransactionToDateTime":""},""" +
             """"Links":{"Self":""},"Meta":{"TotalPages":1},"Risk":{}}"""
 
@@ -317,14 +318,26 @@ class ConsentCallbackRepositoryImplTest {
     fun `pollConsentStatus maps an authorised consent to Content`() = runTest {
         val polled = buildRepo(consentStatus = "Authorised").pollConsentStatus("cn-1")
 
-        assertEquals(ConsentStatus.Authorised, assertIs<ScreenState.Content<*>>(polled).data)
+        val content = assertIs<ScreenState.Content<ConsentStatusResult>>(polled)
+        assertEquals(ConsentStatus.Authorised, content.data.status)
     }
 
     @Test
     fun `pollConsentStatus maps an awaiting consent to Content`() = runTest {
         val polled = buildRepo(consentStatus = "AwaitingAuthorisation").pollConsentStatus("cn-1")
 
-        assertEquals(ConsentStatus.AwaitingAuthorisation, assertIs<ScreenState.Content<*>>(polled).data)
+        val content = assertIs<ScreenState.Content<ConsentStatusResult>>(polled)
+        assertEquals(ConsentStatus.AwaitingAuthorisation, content.data.status)
+    }
+
+    @Test
+    fun `pollConsentStatus surfaces the consent expiry alongside the status`() = runTest {
+        val polled = buildRepo(consentStatus = "Authorised", consentExpiration = "2026-07-01T00:00:00Z")
+            .pollConsentStatus("cn-1")
+
+        val content = assertIs<ScreenState.Content<ConsentStatusResult>>(polled)
+        assertEquals(ConsentStatus.Authorised, content.data.status)
+        assertEquals("2026-07-01T00:00:00Z", content.data.expirationDateTime)
     }
 
     @Test

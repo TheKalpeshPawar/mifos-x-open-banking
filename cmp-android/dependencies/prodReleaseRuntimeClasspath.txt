@@ -20,6 +20,7 @@
 :core:network
 :core:store
 :core:ui
+:feature:accounts
 :feature:consent-callback
 :feature:home
 :feature:login

@@ -39,5 +39,6 @@ private fun Account.toBankAccountOrNull(): BankAccount? {
         currency = currency ?: "",
         sortCode = identification.take(SORT_CODE_LENGTH),
         accountNumber = identification.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),
+        rawIdentification = identification,
     )
 }

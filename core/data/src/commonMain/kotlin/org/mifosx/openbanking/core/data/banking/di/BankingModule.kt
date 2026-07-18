@@ -11,9 +11,11 @@ package org.mifosx.openbanking.core.data.banking.di
 
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
+import org.mifosx.openbanking.core.data.banking.impl.AccountsOverviewRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionsRepositoryImpl
@@ -69,6 +71,15 @@ val BankingModule: Module = module {
             store = get(AppStoreRegistry.Transactions),
             networkMonitor = get(),
             fetchedAtRepository = get(),
+        )
+    }
+
+    single<AccountsOverviewRepository> {
+        AccountsOverviewRepositoryImpl(
+            get(AppStoreRegistry.Accounts),
+            get(AppStoreRegistry.Balances),
+            get(),
+            get(),
         )
     }
 }

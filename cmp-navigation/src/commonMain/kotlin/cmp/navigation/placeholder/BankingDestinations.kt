@@ -29,8 +29,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
  */
 
 // ─── Consumer ────────────────────────────────────────────────────────────────
-@Serializable data object AccountsRoute
-
 @Serializable data object AccountDetailRoute
 
 @Serializable data object TransactionsRoute
@@ -87,7 +85,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 @Serializable data object ForgotPasswordRoute
 
 // ─── Bottom-nav navigation helpers ───────────────────────────────────────────
-fun NavController.navigateToAccounts(navOptions: NavOptions? = null) = navigate(AccountsRoute, navOptions)
 fun NavController.navigateToSendMoney(navOptions: NavOptions? = null) = navigate(SendMoneyRoute, navOptions)
 fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(CardsRoute, navOptions)
 
@@ -96,7 +93,6 @@ fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(Car
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    composableWithStayTransitions<AccountsRoute> { PlaceholderScreen("Accounts") }
     composableWithStayTransitions<AccountDetailRoute> { PlaceholderScreen("Account detail") }
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }

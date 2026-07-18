@@ -54,4 +54,15 @@ class FormatMoneyTest {
     fun fallsBackToCurrencyCodeForUnknownSymbol() {
         assertEquals("PLN 5.00", formatMinorUnits(500, "PLN"))
     }
+
+    @Test
+    fun sumsMinorUnitsExactly() {
+        assertEquals(384763, sumMinorUnits(listOf("2847.63", "1000.00")))
+        assertEquals(0, sumMinorUnits(emptyList()))
+    }
+
+    @Test
+    fun sumMinorUnitsTreatsMalformedAmountsAsZero() {
+        assertEquals(500, sumMinorUnits(listOf("5.00", "not-a-number")))
+    }
 }

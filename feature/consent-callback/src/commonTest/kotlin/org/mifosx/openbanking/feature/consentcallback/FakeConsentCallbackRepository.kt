@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.consentcallback
 
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
+import org.mifosx.openbanking.core.data.callback.ConsentStatusResult
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
@@ -26,8 +27,8 @@ class FakeConsentCallbackRepository : ConsentCallbackRepository {
     )
 
     /** Successive poll results, so the awaiting-then-authorised journey can be driven. */
-    var pollResults: MutableList<ScreenState<ConsentStatus>> = mutableListOf(
-        ScreenState.Content(ConsentStatus.Authorised, DataFreshness.FRESH),
+    var pollResults: MutableList<ScreenState<ConsentStatusResult>> = mutableListOf(
+        ScreenState.Content(ConsentStatusResult(ConsentStatus.Authorised, null), DataFreshness.FRESH),
     )
 
     var validatedUrls: MutableList<String> = mutableListOf()
@@ -49,7 +50,7 @@ class FakeConsentCallbackRepository : ConsentCallbackRepository {
         return exchangeResult
     }
 
-    override suspend fun pollConsentStatus(consentId: String): ScreenState<ConsentStatus> {
+    override suspend fun pollConsentStatus(consentId: String): ScreenState<ConsentStatusResult> {
         polledConsentIds += consentId
         return if (pollResults.size > 1) pollResults.removeFirst() else pollResults.first()
     }

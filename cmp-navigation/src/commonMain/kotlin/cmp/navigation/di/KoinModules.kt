@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.data.di.DataModule
 import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.store.di.appStoreModule
+import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.consentcallback.di.ConsentCallbackModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
@@ -46,6 +47,7 @@ object KoinModules {
     private val featureModule = module {
         includes(
             HomeModule,
+            AccountsModule,
             LoginModule,
             ConsentCallbackModule,
         )

@@ -26,4 +26,5 @@ data class AccountEntity(
     val currency: String,
     val sortCode: String,
     val accountNumber: String,
+    val rawIdentification: String = "",
 )

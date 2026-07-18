@@ -49,5 +49,17 @@ interface ConsentCallbackRepository {
 
     suspend fun pollConsentStatus(
         consentId: String,
-    ): ScreenState<ConsentStatus>
+    ): ScreenState<ConsentStatusResult>
 }
+
+/**
+ * The outcome of a consent-status poll: the mapped [status] plus the raw ISO-8601
+ * [expirationDateTime] the bank returned, so the caller can persist when the consent expires.
+ *
+ * @property status The consent's current status.
+ * @property expirationDateTime The consent's expiry as HSBC sent it, or null when absent.
+ */
+data class ConsentStatusResult(
+    val status: ConsentStatus,
+    val expirationDateTime: String?,
+)

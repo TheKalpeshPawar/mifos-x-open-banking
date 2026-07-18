@@ -24,6 +24,9 @@ import kotlinx.serialization.Serializable
  * @property currency ISO-4217 currency code.
  * @property sortCode Six-digit UK sort code, unformatted (e.g. `400515`).
  * @property accountNumber Eight-digit UK account number.
+ * @property rawIdentification The unflattened OBIE `Identification` value (e.g. a full card number
+ *   or IBAN), preserved so the UI can render the card/IBAN form the sort-code split would lose.
+ *   Empty string when the OBIE payload carried no identification.
  */
 @Serializable
 data class BankAccount(
@@ -33,4 +36,5 @@ data class BankAccount(
     val currency: String,
     val sortCode: String,
     val accountNumber: String,
+    val rawIdentification: String = "",
 )

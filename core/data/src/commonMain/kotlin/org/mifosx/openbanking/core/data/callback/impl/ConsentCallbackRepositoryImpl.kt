@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
+import org.mifosx.openbanking.core.data.callback.ConsentStatusResult
 import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.data.util.toScreenState
@@ -96,7 +97,7 @@ class ConsentCallbackRepositoryImpl(
 
     override suspend fun pollConsentStatus(
         consentId: String,
-    ): ScreenState<ConsentStatus> {
+    ): ScreenState<ConsentStatusResult> {
         val tokenResult = oauth.clientCredentialsToken(ConsentCreationScope.ACCOUNTS)
         val accessToken = when (tokenResult) {
             is NetworkResult.Success -> tokenResult.data.accessToken
@@ -107,7 +108,10 @@ class ConsentCallbackRepositoryImpl(
 
         return when (screen) {
             is ScreenState.Content -> ScreenState.Content(
-                ConsentStatus.fromString(screen.data.data.status),
+                ConsentStatusResult(
+                    status = ConsentStatus.fromString(screen.data.data.status),
+                    expirationDateTime = screen.data.data.expirationDateTime,
+                ),
                 DataFreshness.FRESH,
             )
             is ScreenState.Error -> ScreenState.Error(screen.error)

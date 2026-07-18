@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_accounts_total_label">Total across accounts</string>
+    <string name="feature_accounts_account_count">%1$d accounts</string>
+
+    <string name="feature_accounts_filter_all">All</string>
+    <string name="feature_accounts_filter_current">Current</string>
+    <string name="feature_accounts_filter_savings">Savings</string>
+    <string name="feature_accounts_filter_credit">Credit</string>
+    <string name="feature_accounts_filter_global">Global</string>
+
+    <string name="feature_accounts_type_current">Current account</string>
+    <string name="feature_accounts_type_savings">Savings</string>
+    <string name="feature_accounts_type_credit">Credit card</string>
+    <string name="feature_accounts_type_global_money">Global money</string>
+    <string name="feature_accounts_type_global_wallet">Global wallet</string>
+    <string name="feature_accounts_type_other">Account</string>
+
+    <string name="feature_accounts_balance_owed">Balance owed</string>
+
+    <string name="feature_accounts_empty_title">No accounts found</string>
+    <string name="feature_accounts_empty_body">Your Open Banking consent did not include any accounts. Please revoke and re-authorise.</string>
+    <string name="feature_accounts_manage_consents">Manage consents</string>
+
+    <string name="feature_accounts_error_title">Could not load accounts</string>
+    <string name="feature_accounts_error_body">Unable to load accounts. Please retry.</string>
+    <string name="feature_accounts_error_retry">Retry</string>
+
+    <string name="feature_accounts_consent_expiring_title">Consent expiring soon</string>
+    <string name="feature_accounts_consent_expiring_body">Account access expires in %1$d days. Tap to reconfirm.</string>
+    <string name="feature_accounts_consent_reconfirm">Reconfirm access</string>
+</resources>

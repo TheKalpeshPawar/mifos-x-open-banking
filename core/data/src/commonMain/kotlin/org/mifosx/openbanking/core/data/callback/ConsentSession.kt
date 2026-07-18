@@ -12,6 +12,8 @@ package org.mifosx.openbanking.core.data.callback
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Whether the PSU has a usable HSBC session, and the tokens behind it.
@@ -31,6 +33,16 @@ interface ConsentSession {
     fun tokens(): PsuTokenResponse?
 
     fun save(tokens: PsuTokenResponse)
+
+    /** Persists the consent's id and its ISO-8601 expiry alongside the tokens. */
+    fun saveConsentMeta(consentId: String, expirationDateTime: String)
+
+    /** The stored consent id, or null when none was saved. */
+    fun consentId(): String?
+
+    /** The stored consent expiry parsed to an [Instant], or null when absent or unparseable. */
+    @OptIn(ExperimentalTime::class)
+    fun consentExpiration(): Instant?
 
     fun clear()
 }
@@ -52,11 +64,27 @@ class SettingsConsentSession(
         secureSettings.putString(KEY_TOKENS, json.encodeToString(PsuTokenResponse.serializer(), tokens))
     }
 
+    override fun saveConsentMeta(consentId: String, expirationDateTime: String) {
+        secureSettings.putString(KEY_CONSENT_ID, consentId)
+        secureSettings.putString(KEY_CONSENT_EXPIRATION, expirationDateTime)
+    }
+
+    override fun consentId(): String? = secureSettings.getStringOrNull(KEY_CONSENT_ID)
+
+    @OptIn(ExperimentalTime::class)
+    override fun consentExpiration(): Instant? =
+        secureSettings.getStringOrNull(KEY_CONSENT_EXPIRATION)
+            ?.let { runCatching { Instant.parse(it) }.getOrNull() }
+
     override fun clear() {
         secureSettings.remove(KEY_TOKENS)
+        secureSettings.remove(KEY_CONSENT_ID)
+        secureSettings.remove(KEY_CONSENT_EXPIRATION)
     }
 
     private companion object {
         const val KEY_TOKENS = "hsbc_tokens"
+        const val KEY_CONSENT_ID = "hsbc_consent_id"
+        const val KEY_CONSENT_EXPIRATION = "hsbc_consent_expiration"
     }
 }

@@ -48,9 +48,9 @@ class AppDatabaseTest {
 
     @Test
     fun databaseVersionIsCurrent() {
-        // Bumped to 2 when the accounts + transactions cache tables landed. Update this
-        // constant when bumping AppDatabase.VERSION so this guardrail stays meaningful.
-        assertEquals(2, AppDatabase.VERSION)
+        // Bumped to 3 when AccountEntity gained rawIdentification. Update this constant when
+        // bumping AppDatabase.VERSION so this guardrail stays meaningful.
+        assertEquals(3, AppDatabase.VERSION)
     }
 
     @Test

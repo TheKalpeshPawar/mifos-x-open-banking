@@ -58,6 +58,51 @@ class BankingMappersTest {
         assertEquals("400515", account.sortCode)
         assertEquals("12345678", account.accountNumber)
         assertEquals("GBP", account.currency)
+        assertEquals("40051512345678", account.rawIdentification)
+    }
+
+    @Test
+    fun accountMapperPreservesRawIdentificationForAnIban() {
+        val response = AccountsResponse(
+            data = AccountsData(
+                account = listOf(
+                    Account(
+                        accountId = "acc-iban",
+                        name = "Global Money",
+                        currency = "EUR",
+                        account = listOf(
+                            Account(schemeName = "UK.OBIE.IBAN", identification = "GB29HBUK40051512345678"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val account = response.toBankAccounts().single()
+
+        assertEquals("GB29HBUK40051512345678", account.rawIdentification)
+    }
+
+    @Test
+    fun accountMapperPreservesRawIdentificationForACardNumber() {
+        val response = AccountsResponse(
+            data = AccountsData(
+                account = listOf(
+                    Account(
+                        accountId = "acc-card",
+                        name = "Credit Card",
+                        currency = "GBP",
+                        account = listOf(
+                            Account(schemeName = "UK.OBIE.PAN", identification = "4111111111117654"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val account = response.toBankAccounts().single()
+
+        assertEquals("4111111111117654", account.rawIdentification)
     }
 
     @Test

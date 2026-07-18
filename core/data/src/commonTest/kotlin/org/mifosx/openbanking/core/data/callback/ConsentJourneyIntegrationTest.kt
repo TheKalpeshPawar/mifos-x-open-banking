@@ -129,8 +129,8 @@ class ConsentJourneyIntegrationTest {
 
         assertIs<ScreenState.Content<*>>(callback.exchangeCode(valid.code, REDIRECT_URI))
 
-        val polled = assertIs<ScreenState.Content<*>>(callback.pollConsentStatus(valid.consentId))
-        assertEquals(ConsentStatus.Authorised, polled.data)
+        val polled = assertIs<ScreenState.Content<ConsentStatusResult>>(callback.pollConsentStatus(valid.consentId))
+        assertEquals(ConsentStatus.Authorised, polled.data.status)
     }
 
     @Test
@@ -196,9 +196,9 @@ class ConsentJourneyIntegrationTest {
             callback.validateCallback(redirectFor(minted.state, minted.nonce)),
         )
 
-        val polled = assertIs<ScreenState.Content<*>>(callback.pollConsentStatus(valid.consentId))
+        val polled = assertIs<ScreenState.Content<ConsentStatusResult>>(callback.pollConsentStatus(valid.consentId))
 
-        assertEquals(ConsentStatus.AwaitingAuthorisation, polled.data)
+        assertEquals(ConsentStatus.AwaitingAuthorisation, polled.data.status)
     }
 
     private companion object {

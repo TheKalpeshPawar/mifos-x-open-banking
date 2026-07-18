@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.accounts.accountsGraph
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import template.core.base.ui.util.RootTransitionProviders
@@ -124,6 +125,10 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToTransactionDetail = { navController.navigate(TransactionDetailRoute) },
                 onNavigateToSpending = { navController.navigate(PfmDashboardRoute) },
                 onConnectBank = { navController.navigate(ConsentManagerRoute) },
+            )
+            accountsGraph(
+                onNavigateToAccountDetail = { navController.navigate(AccountDetailRoute) },
+                onNavigateToConsentReconfirm = { navController.navigate(ConsentManagerRoute) },
             )
             bankingPlaceholderDestinations()
         }

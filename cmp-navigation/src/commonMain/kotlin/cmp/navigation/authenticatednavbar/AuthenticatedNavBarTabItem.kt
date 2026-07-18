@@ -20,7 +20,6 @@ import cmp.navigation.generated.resources.accounts
 import cmp.navigation.generated.resources.home
 import cmp.navigation.generated.resources.more
 import cmp.navigation.generated.resources.transactions
-import cmp.navigation.placeholder.AccountsRoute
 import cmp.navigation.placeholder.MoreRoute
 import cmp.navigation.placeholder.TransactionsRoute
 import cmp.navigation.utils.toObjectNavigationRoute
@@ -28,6 +27,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.StringResource
 import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.accounts.AccountsDestination
+import org.mifosx.openbanking.feature.accounts.AccountsRoute
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.HomeRoute
 
@@ -64,7 +65,7 @@ sealed class AuthenticatedNavBarTabItem(
         icon = Icons.Filled.AccountBalance,
         labelRes = Res.string.accounts,
         contentDescriptionRes = Res.string.accounts,
-        graphRoute = AccountsRoute.toObjectNavigationRoute(),
+        graphRoute = AccountsDestination.toObjectNavigationRoute(),
         startDestinationRoute = AccountsRoute.toObjectNavigationRoute(),
         testTag = "AccountsTab",
     )

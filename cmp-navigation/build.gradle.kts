@@ -31,6 +31,7 @@ kotlin {
             implementation(projects.coreBase.security)
 
             implementation(projects.feature.home)
+            implementation(projects.feature.accounts)
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
 

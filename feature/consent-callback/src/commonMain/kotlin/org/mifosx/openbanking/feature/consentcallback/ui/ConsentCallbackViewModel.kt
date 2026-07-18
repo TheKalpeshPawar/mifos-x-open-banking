@@ -118,8 +118,9 @@ class ConsentCallbackViewModel(
         viewModelScope.launch {
             when (val result = repository.pollConsentStatus(consentId)) {
                 is ScreenState.Content ->
-                    when (result.data) {
+                    when (result.data.status) {
                         ConsentStatus.Authorised -> {
+                            consentSession.saveConsentMeta(consentId, result.data.expirationDateTime.orEmpty())
                             updateState { ConsentCallbackUiState.Content }
                             delay(1500)
                             sendEvent(ConsentCallbackEvent.NavigateToHome)
@@ -128,7 +129,7 @@ class ConsentCallbackViewModel(
                             updateState { ConsentCallbackUiState.Awaiting }
 
                         else ->
-                            updateState { ConsentCallbackUiState.Error("Consent was ${result.data}.") }
+                            updateState { ConsentCallbackUiState.Error("Consent was ${result.data.status}.") }
                     }
 
                 is ScreenState.Error ->

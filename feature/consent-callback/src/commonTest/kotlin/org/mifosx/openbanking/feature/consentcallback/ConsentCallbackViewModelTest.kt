@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.callback.ConsentStatusResult
 import org.mifosx.openbanking.core.data.callback.SettingsConsentSession
 import org.mifosx.openbanking.core.data.callback.ValidationResult
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
@@ -91,6 +92,23 @@ class ConsentCallbackViewModelTest {
 
         val stored = secureSettings.getStringOrNull("hsbc_tokens")
         assertTrue(stored != null && stored.contains("psu-access-token"))
+    }
+
+    @Test
+    fun `an authorised consent persists the consent id and expiry`() = runTest {
+        repository.pollResults = mutableListOf(
+            ScreenState.Content(
+                ConsentStatusResult(ConsentStatus.Authorised, "2026-07-01T00:00:00Z"),
+                DataFreshness.FRESH,
+            ),
+        )
+        val vm = createViewModel()
+
+        vm.processCallback()
+        vm.stateFlow.first { it is ConsentCallbackUiState.Content }
+
+        assertEquals("cn-1", consentSession.consentId())
+        assertEquals("2026-07-01T00:00:00Z", secureSettings.getStringOrNull("hsbc_consent_expiration"))
     }
 
     @Test
@@ -194,7 +212,7 @@ class ConsentCallbackViewModelTest {
     @Test
     fun `an awaiting consent surfaces the Awaiting state`() = runTest {
         repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatus.AwaitingAuthorisation, DataFreshness.FRESH),
+            ScreenState.Content(ConsentStatusResult(ConsentStatus.AwaitingAuthorisation, null), DataFreshness.FRESH),
         )
         val vm = createViewModel()
 
@@ -206,7 +224,7 @@ class ConsentCallbackViewModelTest {
     @Test
     fun `a rejected consent surfaces an Error naming the status`() = runTest {
         repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatus.Rejected, DataFreshness.FRESH),
+            ScreenState.Content(ConsentStatusResult(ConsentStatus.Rejected, null), DataFreshness.FRESH),
         )
         val vm = createViewModel()
 
@@ -254,8 +272,8 @@ class ConsentCallbackViewModelTest {
     @Test
     fun `PollConsentStatus re-polls the pending consent and can reach Content`() = runTest {
         repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatus.AwaitingAuthorisation, DataFreshness.FRESH),
-            ScreenState.Content(ConsentStatus.Authorised, DataFreshness.FRESH),
+            ScreenState.Content(ConsentStatusResult(ConsentStatus.AwaitingAuthorisation, null), DataFreshness.FRESH),
+            ScreenState.Content(ConsentStatusResult(ConsentStatus.Authorised, null), DataFreshness.FRESH),
         )
         val vm = createViewModel()
         vm.processCallback()

@@ -36,6 +36,12 @@ fun parseMinorUnits(amount: String): Long? {
     return if (negative) -magnitude else magnitude
 }
 
+/**
+ * Sums a list of decimal amount strings as exact minor units (pence). Amounts that are not
+ * well-formed decimals contribute zero, so a single unparseable figure never poisons the total.
+ */
+fun sumMinorUnits(amounts: List<String>): Long = amounts.sumOf { parseMinorUnits(it) ?: 0L }
+
 /** Formats an integer count of minor units (pence) into a display string, e.g. `"£2,847.63"`. */
 fun formatMinorUnits(minorUnits: Long, currency: String): String {
     val negative = minorUnits < 0

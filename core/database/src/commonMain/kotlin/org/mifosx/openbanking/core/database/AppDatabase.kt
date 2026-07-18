@@ -75,7 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val DATABASE_NAME = "mifos_database.db"
     }
 }

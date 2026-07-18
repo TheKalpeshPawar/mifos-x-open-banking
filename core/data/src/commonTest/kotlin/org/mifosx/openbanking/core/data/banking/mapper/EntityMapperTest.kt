@@ -28,6 +28,7 @@ class EntityMapperTest {
             currency = "GBP",
             sortCode = "400515",
             accountNumber = "12345678",
+            rawIdentification = "40051512345678",
         )
 
         assertEquals(account, account.toAccountEntity().toBankAccount())
@@ -42,6 +43,7 @@ class EntityMapperTest {
             currency = "EUR",
             sortCode = "112233",
             accountNumber = "87654321",
+            rawIdentification = "11223387654321",
         )
 
         val domain = entity.toBankAccount()
@@ -52,6 +54,7 @@ class EntityMapperTest {
         assertEquals("EUR", domain.currency)
         assertEquals("112233", domain.sortCode)
         assertEquals("87654321", domain.accountNumber)
+        assertEquals("11223387654321", domain.rawIdentification)
     }
 
     @Test
