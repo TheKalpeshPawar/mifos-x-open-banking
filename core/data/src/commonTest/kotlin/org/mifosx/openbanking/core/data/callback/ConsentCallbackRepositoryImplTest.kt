@@ -270,7 +270,7 @@ class ConsentCallbackRepositoryImplTest {
     }
 
     @Test
-    fun `an unpadded id_token validates, as every real jwt is unpadded base64url`() = runTest {
+    fun `an unpadded id_token validates as every real jwt is unpadded base64url`() = runTest {
         savePending(nonce = "no-1")
         val unpadded = idTokenWithNonce("no-1")
         assertTrue(!unpadded.contains('='), "fixture must model a real JWT")

@@ -31,6 +31,12 @@ kotlin {
     applyDefaultHierarchyTemplate()
 
     sourceSets {
+        // The Res class is generated into commonMain (generateResClass = always), so the Compose
+        // resources runtime must be available there — not only in the jsWasmMain leaf set.
+        commonMain.dependencies {
+            implementation(compose.components.resources)
+        }
+
         val jsWasmMain by creating {
             dependsOn(commonMain.get())
             dependencies {
