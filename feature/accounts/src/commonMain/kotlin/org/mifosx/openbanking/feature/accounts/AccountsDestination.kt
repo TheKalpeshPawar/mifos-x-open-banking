@@ -27,7 +27,7 @@ fun NavController.navigateToAccounts(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.accountsGraph(
-    onNavigateToAccountDetail: () -> Unit,
+    onNavigateToTransactions: (accountId: String) -> Unit,
     onNavigateToConsentReconfirm: () -> Unit,
 ) {
     navigation<AccountsDestination>(
@@ -35,7 +35,7 @@ fun NavGraphBuilder.accountsGraph(
     ) {
         composableWithStayTransitions<AccountsRoute> {
             AccountsScreen(
-                onNavigateToAccountDetail = onNavigateToAccountDetail,
+                onNavigateToTransactions = onNavigateToTransactions,
                 onNavigateToConsentReconfirm = onNavigateToConsentReconfirm,
             )
         }

@@ -113,6 +113,7 @@ include(":core:ui")
 
 include(":feature:home")
 include(":feature:accounts")
+include(":feature:transactions")
 include(":feature:login")
 include(":feature:consent-callback")
 

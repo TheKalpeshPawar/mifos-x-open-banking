@@ -12,16 +12,23 @@ package org.mifosx.openbanking.core.data.banking.impl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
+import org.mifosx.openbanking.core.data.banking.mapper.toTransactionsPage
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.model.banking.TransactionItem
+import org.mifosx.openbanking.core.model.banking.TransactionsPage
+import org.mifosx.openbanking.core.network.api.Aisp
+import org.mifosx.openbanking.core.network.model.ais.transactions.TransactionsResponse
 import org.mobilenativefoundation.store.store5.Store
 import template.core.base.common.screen.ScreenState
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
 import template.core.base.store.infra.FetchedAtRepository
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.asScreenStream
 
 internal class TransactionsRepositoryImpl(
     private val store: Store<String, List<TransactionItem>>,
+    private val aisp: Aisp,
     private val networkMonitor: NetworkMonitor,
     private val fetchedAtRepository: FetchedAtRepository,
 ) : TransactionsRepository {
@@ -45,6 +52,19 @@ internal class TransactionsRepositoryImpl(
 
     override fun refresh() {
         stream?.refresh()
+    }
+
+    override suspend fun firstPage(accountId: String): NetworkResult<TransactionsPage, NetworkError> =
+        aisp.getTransactions(accountId).toPage(accountId)
+
+    override suspend fun nextPage(nextLink: String): NetworkResult<TransactionsPage, NetworkError> =
+        aisp.getTransactionsPage(nextLink).toPage(accountId = "")
+
+    private fun NetworkResult<TransactionsResponse, NetworkError>.toPage(
+        accountId: String,
+    ): NetworkResult<TransactionsPage, NetworkError> = when (this) {
+        is NetworkResult.Success -> NetworkResult.Success(data.toTransactionsPage(accountId))
+        is NetworkResult.Error -> this
     }
 
     private companion object {

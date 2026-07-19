@@ -29,7 +29,7 @@ import template.core.base.ui.screen.ScreenContent
  */
 @Composable
 internal fun AccountsScreen(
-    onNavigateToAccountDetail: () -> Unit,
+    onNavigateToTransactions: (accountId: String) -> Unit,
     onNavigateToConsentReconfirm: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AccountsViewModel = koinViewModel(),
@@ -51,7 +51,7 @@ internal fun AccountsScreen(
             AccountsContent(
                 data = data,
                 onFilterChange = { viewModel.trySendAction(AccountsAction.FilterAccounts(it)) },
-                onAccountClick = { onNavigateToAccountDetail() },
+                onAccountClick = { accountId -> onNavigateToTransactions(accountId) },
                 onReconfirmConsent = onNavigateToConsentReconfirm,
             )
         }

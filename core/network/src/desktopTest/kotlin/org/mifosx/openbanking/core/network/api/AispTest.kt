@@ -121,6 +121,46 @@ class AispTest {
     }
 
     @Test
+    fun `getTransactionsPage follows the absolute Next cursor URL verbatim`() = runTest {
+        var request: HttpRequestData? = null
+        val nextUrl = "https://secure.sandbox.ob.hsbc.co.uk/obie/open-banking/v4.0/aisp/" +
+            "accounts/acc-1/transactions?page=1"
+        val body = """
+            {"Data":{"Transaction":[{"AccountId":"acc-1","TransactionId":"page2-1",
+            "CreditDebitIndicator":"Credit","Status":"BOOK","BookingDateTime":"2026-06-20T09:00:00+00:00",
+            "Amount":{"Amount":"2400.00","Currency":"GBP"}}]},
+            "Links":{"Self":"$nextUrl"},"Meta":{"TotalPages":2}}
+        """.trimIndent()
+        val result = aisp(body, onRequest = { request = it }).getTransactionsPage(nextUrl)
+
+        assertIs<NetworkResult.Success<TransactionsResponse>>(result)
+        assertEquals(HttpMethod.Get, request?.method)
+        assertEquals(nextUrl, request?.url.toString())
+        assertEquals("page2-1", result.data.data?.transaction?.first()?.transactionId)
+    }
+
+    @Test
+    fun `getTransactions surfaces Links Next when more pages remain`() = runTest {
+        val next = "https://secure.sandbox.ob.hsbc.co.uk/obie/open-banking/v4.0/aisp/" +
+            "accounts/acc-1/transactions?page=1"
+        val body = """
+            {"Data":{"Transaction":[]},"Links":{"Next":"$next"},"Meta":{"TotalPages":3}}
+        """.trimIndent()
+        val result = aisp(body).getTransactions("acc-1")
+
+        assertIs<NetworkResult.Success<TransactionsResponse>>(result)
+        assertEquals(next, result.data.links?.next)
+        assertEquals(3, result.data.meta?.totalPages)
+    }
+
+    @Test
+    fun `getTransactionsPage maps 429 to RateLimited`() = runTest {
+        val result = aisp("slow down", HttpStatusCode.TooManyRequests)
+            .getTransactionsPage("https://host/x?page=2")
+        assertIs<NetworkResult.Error<NetworkError>>(result)
+    }
+
+    @Test
     fun `getStandingOrders GETs the standing-orders path`() = runTest {
         var request: HttpRequestData? = null
         val body = """

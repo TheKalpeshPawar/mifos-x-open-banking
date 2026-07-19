@@ -69,6 +69,7 @@ val BankingModule: Module = module {
     single<TransactionsRepository> {
         TransactionsRepositoryImpl(
             store = get(AppStoreRegistry.Transactions),
+            aisp = get(),
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )

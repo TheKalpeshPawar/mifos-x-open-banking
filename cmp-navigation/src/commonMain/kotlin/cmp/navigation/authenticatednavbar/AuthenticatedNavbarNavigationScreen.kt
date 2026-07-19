@@ -34,7 +34,6 @@ import cmp.navigation.placeholder.ConsentManagerRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.StatementsRoute
 import cmp.navigation.placeholder.TransactionDetailRoute
-import cmp.navigation.placeholder.TransactionsRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -46,7 +45,10 @@ import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accounts.accountsGraph
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.transactions.TransactionsRoute
+import org.mifosx.openbanking.feature.transactions.transactionsScreen
 import template.core.base.ui.util.RootTransitionProviders
+import cmp.navigation.placeholder.TransactionsRoute as TransactionsPlaceholderRoute
 
 @Composable
 internal fun AuthenticatedNavbarNavigationScreen(
@@ -118,7 +120,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
             homeGraph(
-                onNavigateToTransactions = { navController.navigate(TransactionsRoute) },
+                onNavigateToTransactions = { navController.navigate(TransactionsPlaceholderRoute) },
                 onNavigateToAccountDetail = { navController.navigate(AccountDetailRoute) },
                 onNavigateToStatements = { navController.navigate(StatementsRoute) },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
@@ -127,8 +129,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onConnectBank = { navController.navigate(ConsentManagerRoute) },
             )
             accountsGraph(
-                onNavigateToAccountDetail = { navController.navigate(AccountDetailRoute) },
+                onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
                 onNavigateToConsentReconfirm = { navController.navigate(ConsentManagerRoute) },
+            )
+            transactionsScreen(
+                onNavigateToTransactionDetail = { _, _ -> navController.navigate(TransactionDetailRoute) },
+                onBack = { navController.popBackStack() },
             )
             bankingPlaceholderDestinations()
         }

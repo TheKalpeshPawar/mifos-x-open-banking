@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_transactions_screen_title">Transactions</string>
+
+    <string name="feature_transactions_money_in">Money in</string>
+    <string name="feature_transactions_money_out">Money out</string>
+
+    <string name="feature_transactions_filter_all">All</string>
+    <string name="feature_transactions_filter_money_in">Money in</string>
+    <string name="feature_transactions_filter_money_out">Money out</string>
+    <string name="feature_transactions_filter_date_range">Date range</string>
+
+    <string name="feature_transactions_search_hint">Merchant, reference…</string>
+    <string name="feature_transactions_search_clear">Clear search</string>
+
+    <string name="feature_transactions_pending">Pending</string>
+    <string name="feature_transactions_load_more">Load more</string>
+
+    <string name="feature_transactions_date_apply">Apply</string>
+    <string name="feature_transactions_date_cancel">Cancel</string>
+
+    <string name="feature_transactions_category_groceries">Groceries</string>
+    <string name="feature_transactions_category_dining">Dining</string>
+    <string name="feature_transactions_category_subscriptions">Subscriptions</string>
+    <string name="feature_transactions_category_shopping">Shopping</string>
+    <string name="feature_transactions_category_transport">Transport</string>
+    <string name="feature_transactions_category_transfer">Transfer</string>
+    <string name="feature_transactions_category_other">Other</string>
+
+    <string name="feature_transactions_credit_icon_description">Money in</string>
+    <string name="feature_transactions_debit_icon_description">Money out</string>
+
+    <string name="feature_transactions_empty_title">No transactions found</string>
+    <string name="feature_transactions_empty_body">Try adjusting your filters or date range.</string>
+    <string name="feature_transactions_clear_filters">Clear filters</string>
+
+    <string name="feature_transactions_error_title">Could not load transactions</string>
+    <string name="feature_transactions_error_retry">Retry</string>
+    <string name="feature_transactions_error_consent_hint">If the problem persists, check your Open Banking consent or contact your bank.</string>
+    <string name="feature_transactions_error_status_session_expired">401 — Session expired</string>
+    <string name="feature_transactions_error_status_consent_withdrawn">403 — Consent withdrawn</string>
+    <string name="feature_transactions_error_status_rate_limited">429 — Rate limited</string>
+    <string name="feature_transactions_error_status_network">No connection</string>
+    <string name="feature_transactions_error_body_session_expired">Your session has expired. Please retry to sign in again.</string>
+    <string name="feature_transactions_error_body_consent_withdrawn">Your Open Banking consent was withdrawn. Re-authorise access to view transactions.</string>
+    <string name="feature_transactions_error_body_rate_limited">Too many requests. Please wait a moment and retry.</string>
+    <string name="feature_transactions_error_body_network">Something went wrong. Please check your connection and retry.</string>
+</resources>

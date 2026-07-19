@@ -22,6 +22,7 @@ import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.consentcallback.di.ConsentCallbackModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
 import template.core.base.platform.di.platformModule
@@ -48,6 +49,7 @@ object KoinModules {
         includes(
             HomeModule,
             AccountsModule,
+            TransactionsModule,
             LoginModule,
             ConsentCallbackModule,
         )

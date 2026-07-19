@@ -104,6 +104,17 @@ class Aisp(
     suspend fun getTransactions(accountId: String): NetworkResult<TransactionsResponse, NetworkError> =
         httpClient.get("$AIS/accounts/$accountId/transactions").toNetworkResult()
 
+    /**
+     * Follows an OBIE `Links.Next` cursor to fetch the next transactions page.
+     *
+     * [nextUrl] is the server-generated **absolute** URL from a prior response's `Links.Next`
+     * (HSBC returns e.g. `https://.../accounts/{id}/transactions?page=1`). An absolute URL
+     * overrides the client's `defaultRequest` base; the `Auth` + mTLS plugins still attach the
+     * PSU bearer and transport cert automatically. Do not build page/offset params by hand.
+     */
+    suspend fun getTransactionsPage(nextUrl: String): NetworkResult<TransactionsResponse, NetworkError> =
+        httpClient.get(nextUrl).toNetworkResult()
+
     suspend fun getStandingOrders(accountId: String): NetworkResult<StandingOrdersResponse, NetworkError> =
         httpClient.get("$AIS/accounts/$accountId/standing-orders").toNetworkResult()
 
