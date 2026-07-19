@@ -30,7 +30,16 @@ android {
 }
 
 // ── Generate HsbcConfig.kt from local.properties (our own reader, not BuildKonfig) ──
-val hsbcConfigOutputDir = layout.buildDirectory.dir("generated/hsbcconfig/commonMain/kotlin")
+//
+// This is a MANUAL-ONLY task: it must never run as part of a normal build/compile.
+// It writes secrets (client id, transport passphrase, ...) into a generated Kotlin
+// file, so its output lives outside `build/` (which gets wiped by `clean`) at a
+// stable, gitignored path: core/network/generated/hsbcconfig/commonMain/kotlin.
+// The Kotlin source set below adds that PATH as a plain source directory — never
+// the task or its TaskProvider — so Gradle does not wire an implicit
+// compile-depends-on-generate relationship. Run `./gradlew :core:network:generateHsbcConfig`
+// by hand (or after `clean`/deleting the generated/ dir) before building.
+val hsbcConfigOutputDir = layout.projectDirectory.dir("generated/hsbcconfig/commonMain/kotlin")
 
 val generateHsbcConfig = tasks.register("generateHsbcConfig") {
     val localPropsFile = rootProject.file("local.properties")
@@ -71,7 +80,7 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
                 .replace("\$", "\\\$")
                 .replace("\"", "\\\"")
 
-        val pkgDir = outputDir.get().asFile.resolve("org/mifosx/openbanking/core/network/config")
+        val pkgDir = outputDir.asFile.resolve("org/mifosx/openbanking/core/network/config")
         pkgDir.mkdirs()
         pkgDir.resolve("HsbcConfig.kt").writeText(
             """
@@ -115,7 +124,9 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
 kotlin {
     sourceSets {
         commonMain {
-            kotlin.srcDir(generateHsbcConfig)
+            // Plain path, NOT the task/TaskProvider — see the comment above
+            // generateHsbcConfig's registration for why this must stay a path.
+            kotlin.srcDir(hsbcConfigOutputDir)
             dependencies {
                 api(projects.core.common)
                 api(projects.core.model)

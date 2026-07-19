@@ -22,6 +22,10 @@ gen/
 out/
 build/
 build-cache/
+
+# HsbcConfig.kt secrets — generated manually via `./gradlew :core:network:generateHsbcConfig`,
+# never committed (see core/network/build.gradle.kts)
+/core/network/generated/
 .externalNativeBuild
 .cxx
 iosApp/Podfile.lock
