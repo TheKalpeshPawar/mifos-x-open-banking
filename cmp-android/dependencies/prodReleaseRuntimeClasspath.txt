@@ -24,6 +24,7 @@
 :feature:consent-callback
 :feature:home
 :feature:login
+:feature:transactions
 androidx.activity:activity-compose:1.12.2
 androidx.activity:activity-ktx:1.12.2
 androidx.activity:activity:1.12.2
