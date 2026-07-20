@@ -91,3 +91,8 @@ jobs:
       build_ios: true # <-- Change to 'false' if you don't want to build iOS
       use_cocoapods: true
       shared_module: ':cmp-shared'
+      # The actionhub default is Xcode 16.4, which the macos-latest image no longer
+      # ships (it now carries 26.x only), so setup-xcode fails with "Could not find
+      # Xcode version that satisfied version spec: '16.4'". 26.0 matches the default
+      # adopted upstream in actionhub v1.0.61 and tracks the image's current iOS SDK.
+      xcode-version: '26.0'
