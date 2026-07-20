@@ -33,6 +33,12 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
         }
 
+        commonTest.dependencies {
+            // The TransactionsRepository fake implements the cursor pager, whose signatures
+            // are typed on NetworkResult / NetworkError.
+            implementation(projects.coreBase.network)
+        }
+
         androidUnitTest.dependencies {
             implementation(libs.robolectric)
             implementation(libs.bundles.androidx.compose.ui.test)

@@ -23,11 +23,14 @@ import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.TransactionItem
+import org.mifosx.openbanking.core.model.banking.TransactionsPage
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
 import org.mifosx.openbanking.core.model.user.UserData
 import template.core.base.common.screen.ScreenState
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
 
 class FakeAccountsRepository : AccountsRepository {
     val emissions = MutableStateFlow<ScreenState<List<BankAccount>>>(ScreenState.Loading)
@@ -66,6 +69,14 @@ class FakeTransactionsRepository : TransactionsRepository {
     override fun refresh() {
         refreshCount++
     }
+
+    // Home renders the store-backed stream above and never pages, so the cursor pager
+    // returns an empty terminal page.
+    override suspend fun firstPage(accountId: String): NetworkResult<TransactionsPage, NetworkError> =
+        NetworkResult.Success(TransactionsPage(emptyList(), nextLink = null, totalPages = null))
+
+    override suspend fun nextPage(nextLink: String): NetworkResult<TransactionsPage, NetworkError> =
+        NetworkResult.Success(TransactionsPage(emptyList(), nextLink = null, totalPages = null))
 }
 
 /**

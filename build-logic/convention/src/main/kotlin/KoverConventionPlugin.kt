@@ -1,4 +1,5 @@
-import org.convention.configureKoverRootReports
+import org.convention.configureKoverFilters
+import org.convention.configureKoverVerify
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -26,8 +27,12 @@ class KoverConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("org.jetbrains.kotlinx.kover")
 
+            // Filters apply to every project: CI's per-module floor gate reads each
+            // module's own koverXmlReport, so leaf modules must honour the excludes too.
+            configureKoverFilters()
+
             if (project == rootProject) {
-                configureKoverRootReports()
+                configureKoverVerify()
             } else {
                 // Self-register into root's kover aggregation. Root's `kover`
                 // configuration is created when KoverConventionPlugin applies
