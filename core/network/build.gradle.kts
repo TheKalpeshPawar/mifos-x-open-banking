@@ -29,63 +29,88 @@ android {
     }
 }
 
-// ── Generate HsbcConfig.kt from local.properties (our own reader, not BuildKonfig) ──
+// ── Generate HsbcConfig.kt (our own reader, not BuildKonfig) ──
 //
-// This is a MANUAL-ONLY task: it must never run as part of a normal build/compile.
-// It writes secrets (client id, transport passphrase, ...) into a generated Kotlin
-// file, so its output lives outside `build/` (which gets wiped by `clean`) at a
-// stable, gitignored path: core/network/generated/hsbcconfig/commonMain/kotlin.
-// The Kotlin source set below adds that PATH as a plain source directory — never
-// the task or its TaskProvider — so Gradle does not wire an implicit
-// compile-depends-on-generate relationship. Run `./gradlew :core:network:generateHsbcConfig`
-// by hand (or after `clean`/deleting the generated/ dir) before building.
-val hsbcConfigOutputDir = layout.projectDirectory.dir("generated/hsbcconfig/commonMain/kotlin")
+// This task is TOTAL: it never fails. A checkout with no secrets at all (CI, a fresh
+// clone) still generates a compilable HsbcConfig with blank credentials, so the build
+// is green everywhere and the missing-credential error surfaces at RUNTIME, at the
+// point the HSBC client is actually constructed (see hsbcSandboxHttpClient) rather
+// than breaking compilation for everyone.
+//
+// Each key resolves in priority order:
+//     environment variable  →  local.properties  →  gradle property  →  default
+// so real values can be injected on CI purely through env vars, with no code change.
+//
+// Every key defaults to "". A missing local.properties — or a key missing/blank within
+// it — yields a blank constant instead of a build failure. Nothing is ever hardcoded
+// here: this file is tracked, so a real value would be a committed secret.
+//
+// The output lives under `build/` (not the project dir) so source-scanning tools like
+// spotless and detekt do not pick the generated file up. The Kotlin source set below
+// registers the TASK PROVIDER, so compilation depends on generation and CI / fresh
+// clones need no manual step. The task also regenerates on EVERY build (see
+// upToDateWhen below) rather than being skipped as UP-TO-DATE.
+val hsbcConfigOutputDir = layout.buildDirectory.dir("generated/hsbcconfig/commonMain/kotlin")
+
+// Read local.properties once, at configuration time. Absent file → empty properties.
+val hsbcLocalProperties = Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        localPropsFile.inputStream().use { load(it) }
+    }
+}
+
+// Every key falls back to a blank constant — never hardcode a real value into this file.
+val hsbcConfigKeys = mapOf(
+    "HSBC_CLIENT_ID" to "",
+    "HSBC_KID" to "",
+    "HSBC_SOFTWARE_STATEMENT" to "",
+    "HSBC_BANK_HOST" to "",
+    "HSBC_AUTHORIZE_HOST" to "",
+    "HSBC_REDIRECT_URI" to "",
+    "HSBC_TRANSPORT_P12_PASSWORD" to "",
+)
+
+// env var → local.properties → gradle property → default. Blank is treated as absent
+// so an empty env var on CI falls through instead of blanking a good local value.
+fun resolveHsbcValue(key: String, default: String): String =
+    providers.environmentVariable(key).orNull?.takeIf { it.isNotBlank() }
+        ?: hsbcLocalProperties.getProperty(key)?.takeIf { it.isNotBlank() }
+        ?: providers.gradleProperty(key).orNull?.takeIf { it.isNotBlank() }
+        ?: default
 
 val generateHsbcConfig = tasks.register("generateHsbcConfig") {
-    val localPropsFile = rootProject.file("local.properties")
     val outputDir = hsbcConfigOutputDir
-    inputs.file(localPropsFile).optional(true)
+    // Resolve at configuration time into plain Strings, so `doLast` never touches
+    // `project` / `providers` — keeps the task configuration-cache safe.
+    val resolved: Map<String, String> = hsbcConfigKeys.mapValues { (key, default) ->
+        resolveHsbcValue(key, default)
+    }
+    // Declared for correctness (and build-cache accuracy), though the task always runs.
+    resolved.forEach { (key, value) -> inputs.property(key, value) }
     outputs.dir(outputDir)
+    // Regenerate on every build command rather than being skipped as UP-TO-DATE, so the
+    // generated constants always reflect the current local.properties / env. Cheap: when
+    // the emitted bytes are unchanged, Kotlin compilation still stays UP-TO-DATE because
+    // Gradle hashes file content, not timestamps.
+    outputs.upToDateWhen { false }
     doLast {
-        if (!localPropsFile.exists()) {
-            throw GradleException(
-                "local.properties not found at ${localPropsFile.absolutePath}. " +
-                    "Add the HSBC sandbox keys: HSBC_CLIENT_ID, HSBC_KID, HSBC_SOFTWARE_STATEMENT, " +
-                    "HSBC_BANK_HOST, HSBC_REDIRECT_URI, HSBC_TRANSPORT_P12_PASSWORD.",
-            )
-        }
-        val props = Properties()
-        localPropsFile.inputStream().use { props.load(it) }
-
-        val requiredKeys = listOf(
-            "HSBC_CLIENT_ID",
-            "HSBC_KID",
-            "HSBC_SOFTWARE_STATEMENT",
-            "HSBC_BANK_HOST",
-            "HSBC_AUTHORIZE_HOST",
-            "HSBC_REDIRECT_URI",
-            "HSBC_TRANSPORT_P12_PASSWORD",
-        )
-        val missing = requiredKeys.filter { props.getProperty(it).isNullOrBlank() }
-        if (missing.isNotEmpty()) {
-            throw GradleException(
-                "Missing or blank required key(s) in local.properties: ${missing.joinToString()}",
-            )
-        }
-
         // Escape for safe embedding in a Kotlin "..." literal: backslash first, then $ (template), then quote.
         fun value(key: String): String =
-            props.getProperty(key)!!.trim()
+            resolved.getValue(key).trim()
                 .replace("\\", "\\\\")
                 .replace("\$", "\\\$")
                 .replace("\"", "\\\"")
 
-        val pkgDir = outputDir.asFile.resolve("org/mifosx/openbanking/core/network/config")
+        val pkgDir = outputDir.get().asFile.resolve("org/mifosx/openbanking/core/network/config")
         pkgDir.mkdirs()
         pkgDir.resolve("HsbcConfig.kt").writeText(
             """
             |/*
-            | * GENERATED from local.properties by the :core:network `generateHsbcConfig` task.
+            | * GENERATED by the :core:network `generateHsbcConfig` task, which resolves each key
+            | * from: environment variable → local.properties → gradle property → default.
+            | * Credentials with no configured value are generated blank, so a checkout with no
+            | * secrets still compiles; the failure surfaces at runtime instead.
             | * DO NOT EDIT — changes will be overwritten on the next build.
             | */
             |package org.mifosx.openbanking.core.network.config
@@ -124,9 +149,9 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
 kotlin {
     sourceSets {
         commonMain {
-            // Plain path, NOT the task/TaskProvider — see the comment above
-            // generateHsbcConfig's registration for why this must stay a path.
-            kotlin.srcDir(hsbcConfigOutputDir)
+            // The TaskProvider, not a plain path: this is what makes Kotlin compilation
+            // depend on generateHsbcConfig, so a fresh clone / CI needs no manual step.
+            kotlin.srcDir(generateHsbcConfig)
             dependencies {
                 api(projects.core.common)
                 api(projects.core.model)

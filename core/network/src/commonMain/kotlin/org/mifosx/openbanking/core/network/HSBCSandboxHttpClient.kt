@@ -45,6 +45,18 @@ private const val REQUEST_TIMEOUT_MS = 60_000L
 
 private val tokenJson = Json { ignoreUnknownKeys = true }
 
+/**
+ * Guards a credential that [org.mifosx.openbanking.core.network.config.HsbcConfig] generates blank
+ * when nothing is configured. Called only from client construction, never at class-load or DI
+ * declaration time, so builds and tests that never build the HSBC client are unaffected.
+ */
+internal fun requireHsbcCredential(key: String, value: String) {
+    require(value.isNotBlank()) {
+        "$key is blank — add it to local.properties or set the $key environment variable " +
+            "before building, then re-run `./gradlew :core:network:generateHsbcConfig`."
+    }
+}
+
 internal fun savePsuTokens(settings: Settings, tokens: PsuTokenResponse) {
     settings.putString(HSBC_TOKENS, tokenJson.encodeToString(PsuTokenResponse.serializer(), tokens))
 }
@@ -116,6 +128,13 @@ fun hsbcSandboxHttpClient(
     val tokenUrl = getBaseUrl(config) + TOKEN_ENDPOINT
     val clientId = HsbcConfig.CLIENT_ID
     val kid = HsbcConfig.KID
+
+    // HsbcConfig is generated with blank credentials when none are configured, so a
+    // checkout with no secrets still compiles. Fail here — where the client is actually
+    // built — rather than at build time, and say exactly how to fix it.
+    requireHsbcCredential("HSBC_CLIENT_ID", clientId)
+    requireHsbcCredential("HSBC_KID", kid)
+    requireHsbcCredential("HSBC_REDIRECT_URI", config.redirectUri)
 
     return httpClient {
         installMtls(identity)
