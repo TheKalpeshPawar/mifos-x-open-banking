@@ -113,7 +113,10 @@ include(":core:ui")
 
 include(":feature:home")
 include(":feature:accounts")
+include(":feature:account-detail")
 include(":feature:transactions")
+include(":feature:direct-debits")
+include(":feature:standing-orders")
 include(":feature:login")
 include(":feature:consent-callback")
 

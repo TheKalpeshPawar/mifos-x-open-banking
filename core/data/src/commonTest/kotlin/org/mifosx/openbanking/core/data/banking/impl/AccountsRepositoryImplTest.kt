@@ -56,35 +56,29 @@ class AccountsRepositoryImplTest {
 
     @Test
     fun accountsStateEmitsContentWithFetchedAccounts() = runTest(UnconfinedTestDispatcher()) {
-        val state = repo().accountsState(backgroundScope).first { it is ScreenState.Content }
+        val state = repo().accountsStream(backgroundScope).state.first { it is ScreenState.Content }
 
         val content = assertIs<ScreenState.Content<List<BankAccount>>>(state)
         assertEquals(accounts, content.data)
     }
 
     @Test
-    fun accountsStateReusesCachedStreamOnSecondCall() = runTest(UnconfinedTestDispatcher()) {
+    fun asecondCallReturnsAnIndependentStream() = runTest(UnconfinedTestDispatcher()) {
         val repo = repo()
-        repo.accountsState(backgroundScope).first { it is ScreenState.Content }
+        repo.accountsStream(backgroundScope).state.first { it is ScreenState.Content }
 
-        val second = repo.accountsState(backgroundScope).first { it is ScreenState.Content }
+        val second = repo.accountsStream(backgroundScope).state.first { it is ScreenState.Content }
 
         assertIs<ScreenState.Content<List<BankAccount>>>(second)
     }
 
     @Test
-    fun refreshBeforeAnyStateCallIsNoOp() {
-        repo().refresh()
-    }
+    fun refreshingAStreamReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
+        val stream = repo().accountsStream(backgroundScope)
+        stream.state.first { it is ScreenState.Content }
 
-    @Test
-    fun refreshAfterStateCallReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
-        val repo = repo()
-        repo.accountsState(backgroundScope).first { it is ScreenState.Content }
+        stream.refresh()
 
-        repo.refresh()
-
-        val state = repo.accountsState(backgroundScope).first { it is ScreenState.Content }
-        assertIs<ScreenState.Content<List<BankAccount>>>(state)
+        assertIs<ScreenState.Content<List<BankAccount>>>(stream.state.first { it is ScreenState.Content })
     }
 }

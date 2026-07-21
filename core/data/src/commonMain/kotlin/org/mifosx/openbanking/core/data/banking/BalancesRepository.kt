@@ -12,17 +12,22 @@ package org.mifosx.openbanking.core.data.banking
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.model.banking.AccountBalance
-import template.core.base.common.screen.ScreenState
+import template.core.base.store.screen.ScreenDataStream
 
 /**
- * Streams the balance for whichever account [accountIdFlow] currently selects, re-fetching when the
- * selection changes. Balances are volatile, so the backing store is in-memory only.
+ * Opens the balance stream for whichever account [accountIdFlow] currently selects, re-keying when
+ * the selection changes. Balances are volatile, so the backing store is in-memory only.
+ *
+ * The id is a flow here because home switches account from its chip row without navigating, so the
+ * key changes while the screen is alive.
+ *
+ * Each call builds a stream bound to the caller's [CoroutineScope], which the caller owns for the
+ * lifetime of its screen.
  */
 interface BalancesRepository {
 
-    /** Streams the selected account's balance as [ScreenState], keyed by the emitted account id. */
-    fun balanceState(accountIdFlow: Flow<String>, scope: CoroutineScope): Flow<ScreenState<AccountBalance>>
-
-    /** Triggers a network refresh for the current account. */
-    fun refresh()
+    fun balanceStream(
+        accountIdFlow: Flow<String>,
+        scope: CoroutineScope,
+    ): ScreenDataStream<AccountBalance>
 }

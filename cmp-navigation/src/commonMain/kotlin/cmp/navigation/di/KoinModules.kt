@@ -18,10 +18,13 @@ import org.mifosx.openbanking.core.data.di.DataModule
 import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.store.di.appStoreModule
+import org.mifosx.openbanking.feature.accountdetail.di.AccountDetailModule
 import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.consentcallback.di.ConsentCallbackModule
+import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
 import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
@@ -49,7 +52,10 @@ object KoinModules {
         includes(
             HomeModule,
             AccountsModule,
+            AccountDetailModule,
             TransactionsModule,
+            DirectDebitsModule,
+            StandingOrdersModule,
             LoginModule,
             ConsentCallbackModule,
         )

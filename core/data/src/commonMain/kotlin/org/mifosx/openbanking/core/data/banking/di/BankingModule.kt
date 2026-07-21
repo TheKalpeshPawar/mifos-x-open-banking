@@ -11,17 +11,27 @@ package org.mifosx.openbanking.core.data.banking.di
 
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.AccountDetailRepository
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
+import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
+import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
+import org.mifosx.openbanking.core.data.banking.impl.AccountDetailRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsOverviewRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.StandingOrdersRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
 import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
+import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.store.AppStoreRegistry
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
@@ -29,12 +39,13 @@ import org.mifosx.openbanking.core.store.infra.impl.StoreCacheManagerImpl
 import org.mobilenativefoundation.store.store5.Store
 
 /**
- * Wires the home dashboard's Store5 stores and repositories.
+ * Wires the banking Store5 stores and repositories.
  *
- * Each store is built with [BankingStores] (via the framework [template.core.base.store.infra.StoreFactory]),
- * bound under its [AppStoreRegistry] qualifier, and registered with the [StoreCacheManager] so it is
- * cleared on logout. The repositories wrap those stores; only the repository interfaces are exposed
- * to feature modules.
+ * Each store is built with [BankingStores], bound under its [AppStoreRegistry] qualifier, and
+ * registered with the [StoreCacheManager] so it is cleared on logout. Repositories wrap those
+ * stores; only the repository interfaces are exposed to feature modules.
+ *
+ * Stores and repositories are singletons.
  */
 val BankingModule: Module = module {
 
@@ -50,6 +61,22 @@ val BankingModule: Module = module {
         BankingStores.transactionsStore(aisp = get(), transactionDao = get()).registerForLogout(get())
     }
 
+    single<Store<String, AccountDetail>>(AppStoreRegistry.AccountDetail) {
+        BankingStores.accountDetailStore(aisp = get()).registerForLogout(get())
+    }
+
+    single<Store<String, List<AccountBalanceLine>>>(AppStoreRegistry.BalanceLines) {
+        BankingStores.balanceLinesStore(aisp = get()).registerForLogout(get())
+    }
+
+    single<Store<String, DirectDebitsSummary>>(AppStoreRegistry.DirectDebits) {
+        BankingStores.directDebitsStore(aisp = get()).registerForLogout(get())
+    }
+
+    single<Store<String, StandingOrdersSummary>>(AppStoreRegistry.StandingOrders) {
+        BankingStores.standingOrdersStore(aisp = get()).registerForLogout(get())
+    }
+
     single<AccountsRepository> {
         AccountsRepositoryImpl(
             store = get(AppStoreRegistry.Accounts),
@@ -61,6 +88,31 @@ val BankingModule: Module = module {
     single<BalancesRepository> {
         BalancesRepositoryImpl(
             store = get(AppStoreRegistry.Balances),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<AccountDetailRepository> {
+        AccountDetailRepositoryImpl(
+            detailStore = get(AppStoreRegistry.AccountDetail),
+            balanceLinesStore = get(AppStoreRegistry.BalanceLines),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<DirectDebitsRepository> {
+        DirectDebitsRepositoryImpl(
+            store = get(AppStoreRegistry.DirectDebits),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<StandingOrdersRepository> {
+        StandingOrdersRepositoryImpl(
+            store = get(AppStoreRegistry.StandingOrders),
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )

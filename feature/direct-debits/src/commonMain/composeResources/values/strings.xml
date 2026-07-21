@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_direct_debits_screen_title">Direct Debits</string>
+    <string name="feature_direct_debits_loading_accessibility">Loading direct debits</string>
+    <string name="feature_direct_debits_navigate_back">Navigate back to account detail</string>
+
+    <string name="feature_direct_debits_summary_accessibility">Mandate summary</string>
+    <string name="feature_direct_debits_active_count">Active (%d)</string>
+    <string name="feature_direct_debits_active_count_accessibility">%d active direct debits</string>
+    <string name="feature_direct_debits_inactive_count">Inactive (%d)</string>
+    <string name="feature_direct_debits_inactive_count_accessibility">%d inactive direct debits</string>
+
+    <string name="feature_direct_debits_list_accessibility">Direct debit mandates list</string>
+    <string name="feature_direct_debits_card_accessibility">%1$s, %2$s</string>
+    <string name="feature_direct_debits_status_accessibility">Status: %s</string>
+    <string name="feature_direct_debits_amount_accessibility">Last payment: %s</string>
+    <string name="feature_direct_debits_last_collected">Last collected: %s</string>
+    <string name="feature_direct_debits_mandate_reference">Mandate: %s</string>
+
+    <string name="feature_direct_debits_empty_title">No direct debits</string>
+    <string name="feature_direct_debits_empty_body">There are no direct debit mandates set up on this account.</string>
+    <string name="feature_direct_debits_empty_accessibility">No direct debits on this account</string>
+
+    <string name="feature_direct_debits_error_title">Could not load direct debits</string>
+    <string name="feature_direct_debits_error_accessibility">Error loading direct debits</string>
+    <string name="feature_direct_debits_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_direct_debits_error_consent_revoked">Account access consent has been revoked. Re-authorise in Consents.</string>
+    <string name="feature_direct_debits_error_rate_limited">Too many requests. Please wait a moment and try again.</string>
+    <string name="feature_direct_debits_error_server">HSBC server error. Please try again.</string>
+    <string name="feature_direct_debits_error_network">No network connection. Check your connection and retry.</string>
+    <string name="feature_direct_debits_retry">Retry</string>
+    <string name="feature_direct_debits_retry_accessibility">Retry loading direct debits</string>
+</resources>

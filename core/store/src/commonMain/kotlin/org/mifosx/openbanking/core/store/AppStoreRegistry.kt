@@ -36,6 +36,10 @@ import template.core.base.store.infra.StoreRegistry
  */
 object AppStoreRegistry : StoreRegistry() {
     val Accounts = store("accounts")
+    val AccountDetail = store("accountDetail")
     val Balances = store("balances")
+    val BalanceLines = store("balanceLines")
     val Transactions = store("transactions")
+    val DirectDebits = store("directDebits")
+    val StandingOrders = store("standingOrders")
 }

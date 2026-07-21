@@ -57,7 +57,7 @@ class BalancesRepositoryImplTest {
     fun balanceStateEmitsContentAndUsesPerAccountCacheKey() = runTest(UnconfinedTestDispatcher()) {
         val fetchedAt = FakeFetchedAtRepository()
         val state = repo(fetchedAt)
-            .balanceState(flowOf("acc-1"), backgroundScope)
+            .balanceStream(flowOf("acc-1"), backgroundScope).state
             .first { it is ScreenState.Content }
 
         val content = assertIs<ScreenState.Content<AccountBalance>>(state)
@@ -65,29 +65,29 @@ class BalancesRepositoryImplTest {
         assertTrue("home:balance:acc-1" in fetchedAt.readKeys)
     }
 
+    /**
+     * One repository instance serves every caller, so a second account must get its own stream and
+     * its own cache key rather than the first account's.
+     */
     @Test
-    fun balanceStateReusesCachedStreamOnSecondCall() = runTest(UnconfinedTestDispatcher()) {
-        val repo = repo(FakeFetchedAtRepository())
-        repo.balanceState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+    fun aSecondAccountOnTheSameInstanceUsesItsOwnCacheKey() = runTest(UnconfinedTestDispatcher()) {
+        val fetchedAt = FakeFetchedAtRepository()
+        val repo = repo(fetchedAt)
 
-        val second = repo.balanceState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+        repo.balanceStream(flowOf("acc-1"), backgroundScope).state.first { it is ScreenState.Content }
+        repo.balanceStream(flowOf("acc-2"), backgroundScope).state.first { it is ScreenState.Content }
 
-        assertIs<ScreenState.Content<AccountBalance>>(second)
+        assertTrue("home:balance:acc-1" in fetchedAt.readKeys)
+        assertTrue("home:balance:acc-2" in fetchedAt.readKeys)
     }
 
     @Test
-    fun refreshBeforeAnyStateCallIsNoOp() {
-        repo(FakeFetchedAtRepository()).refresh()
-    }
+    fun refreshingAStreamReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
+        val stream = repo(FakeFetchedAtRepository()).balanceStream(flowOf("acc-1"), backgroundScope)
+        stream.state.first { it is ScreenState.Content }
 
-    @Test
-    fun refreshAfterStateCallReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
-        val repo = repo(FakeFetchedAtRepository())
-        repo.balanceState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+        stream.refresh()
 
-        repo.refresh()
-
-        val state = repo.balanceState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
-        assertIs<ScreenState.Content<AccountBalance>>(state)
+        assertIs<ScreenState.Content<AccountBalance>>(stream.state.first { it is ScreenState.Content })
     }
 }

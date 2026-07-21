@@ -32,7 +32,10 @@ kotlin {
 
             implementation(projects.feature.home)
             implementation(projects.feature.accounts)
+            implementation(projects.feature.accountDetail)
             implementation(projects.feature.transactions)
+            implementation(projects.feature.directDebits)
+            implementation(projects.feature.standingOrders)
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
 

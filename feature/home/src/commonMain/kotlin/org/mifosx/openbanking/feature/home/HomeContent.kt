@@ -35,7 +35,7 @@ internal fun HomeContent(
     data: HomeData,
     onSelectAccount: (String) -> Unit,
     onNavigateToTransactions: () -> Unit,
-    onNavigateToAccountDetail: () -> Unit,
+    onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: () -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: () -> Unit,
@@ -61,7 +61,7 @@ internal fun HomeContent(
             balanceLabel = data.balanceLabel,
             availableAmountLabel = data.availableAmountLabel,
             accountNumberLabel = data.accountNumberLabel,
-            onClick = onNavigateToAccountDetail,
+            onClick = { onNavigateToAccountDetail(data.selectedAccountId) },
         )
         QuickActionsRow(
             onTransactions = onNavigateToTransactions,

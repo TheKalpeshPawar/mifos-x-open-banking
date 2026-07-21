@@ -20,10 +20,13 @@
 :core:network
 :core:store
 :core:ui
+:feature:account-detail
 :feature:accounts
 :feature:consent-callback
+:feature:direct-debits
 :feature:home
 :feature:login
+:feature:standing-orders
 :feature:transactions
 androidx.activity:activity-compose:1.12.2
 androidx.activity:activity-ktx:1.12.2

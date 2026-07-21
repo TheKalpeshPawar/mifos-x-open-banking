@@ -17,22 +17,30 @@ import kotlin.time.Instant
  * In-memory [FetchedAtRepository] for tests, mirroring the framework fixture. Records the store keys
  * it is asked to read and write so a test can assert the `cacheKeyFor` prefix the repository
  * computed (e.g. `home:balance:acc-1`).
+ *
+ * Recorded keys are held copy-on-write, so they stay safe to read while background stream
+ * coroutines are still appending to them.
  */
 @OptIn(ExperimentalTime::class)
 class FakeFetchedAtRepository : FetchedAtRepository {
 
-    val readKeys = mutableListOf<String>()
-    val writeKeys = mutableListOf<String>()
+    /** Store keys passed to [read], oldest first. */
+    var readKeys: List<String> = emptyList()
+        private set
+
+    /** Store keys passed to [write], oldest first. */
+    var writeKeys: List<String> = emptyList()
+        private set
 
     private val store = mutableMapOf<String, Instant>()
 
     override suspend fun read(storeKey: String): Instant? {
-        readKeys += storeKey
+        readKeys = readKeys + storeKey
         return store[storeKey]
     }
 
     override suspend fun write(storeKey: String, instant: Instant) {
-        writeKeys += storeKey
+        writeKeys = writeKeys + storeKey
         store[storeKey] = instant
     }
 }

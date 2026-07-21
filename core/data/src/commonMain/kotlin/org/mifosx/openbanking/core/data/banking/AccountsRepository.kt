@@ -10,19 +10,18 @@
 package org.mifosx.openbanking.core.data.banking
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.model.banking.BankAccount
-import template.core.base.common.screen.ScreenState
+import template.core.base.store.screen.ScreenDataStream
 
 /**
- * Exposes the consented accounts as an offline-first [ScreenState] stream. Wraps the accounts Store
- * so the home ViewModel never sees Store5 directly — keeping it fakeable in tests.
+ * Opens the stream of consented accounts. Wraps the accounts Store so callers never see Store5
+ * directly, keeping it fakeable in tests.
+ *
+ * The whole consented set lives under one key, so no account id is needed. Each call builds a
+ * stream bound to the caller's [CoroutineScope], which the caller owns for the lifetime of its
+ * screen.
  */
 interface AccountsRepository {
 
-    /** Streams the account list, decided into [ScreenState] against live connectivity. */
-    fun accountsState(scope: CoroutineScope): Flow<ScreenState<List<BankAccount>>>
-
-    /** Triggers a network refresh, preserving cached content while loading. */
-    fun refresh()
+    fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<BankAccount>>
 }

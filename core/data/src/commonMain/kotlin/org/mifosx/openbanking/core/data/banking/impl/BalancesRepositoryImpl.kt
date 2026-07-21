@@ -15,7 +15,6 @@ import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mobilenativefoundation.store.store5.Store
-import template.core.base.common.screen.ScreenState
 import template.core.base.store.infra.FetchedAtRepository
 import template.core.base.store.screen.ScreenDataStream
 import template.core.base.store.screen.asScreenStream
@@ -26,23 +25,17 @@ internal class BalancesRepositoryImpl(
     private val fetchedAtRepository: FetchedAtRepository,
 ) : BalancesRepository {
 
-    private var stream: ScreenDataStream<AccountBalance>? = null
-
-    private fun stream(accountIdFlow: Flow<String>, scope: CoroutineScope): ScreenDataStream<AccountBalance> =
-        stream ?: store.asScreenStream(
+    override fun balanceStream(
+        accountIdFlow: Flow<String>,
+        scope: CoroutineScope,
+    ): ScreenDataStream<AccountBalance> =
+        store.asScreenStream(
             keyFlow = accountIdFlow,
             networkMonitor = networkMonitor,
             fetchedAtRepository = fetchedAtRepository,
             cacheKeyFor = { accountId -> "$CACHE_KEY:$accountId" },
             scope = scope,
-        ).also { stream = it }
-
-    override fun balanceState(accountIdFlow: Flow<String>, scope: CoroutineScope): Flow<ScreenState<AccountBalance>> =
-        stream(accountIdFlow, scope).state
-
-    override fun refresh() {
-        stream?.refresh()
-    }
+        )
 
     private companion object {
         const val CACHE_KEY = "home:balance"

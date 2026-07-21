@@ -18,6 +18,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.login.LoginRepository
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
+import org.mifosx.openbanking.feature.login.browser.BrowserLaunchException
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
@@ -114,8 +115,16 @@ class LoginViewModel(
                         nonce = result.data.nonce,
                         consentId = result.data.consentId,
                     )
-                    browserLauncher.launch(result.data.authorizationUrl)
-                    updateState { LoginUiState.Authorising }
+                    // Authorising means "the PSU is away at HSBC" and is only cleared by the
+                    // redirect coming back. Entering it when no browser actually opened would
+                    // strand them there forever, so the transition is gated on the launch.
+                    try {
+                        browserLauncher.launch(result.data.authorizationUrl)
+                        updateState { LoginUiState.Authorising }
+                    } catch (e: BrowserLaunchException) {
+                        pendingAuthStore.clear()
+                        updateState { LoginUiState.Error(BROWSER_LAUNCH_FAILED_MESSAGE) }
+                    }
                 }
                 is NetworkResult.Error -> {
                     updateState { LoginUiState.Error(mapErrorToMessage(result.error)) }
@@ -144,6 +153,10 @@ class LoginViewModel(
     companion object {
         const val UNSUPPORTED_PLATFORM_MESSAGE =
             "Connecting to HSBC isn't supported on this platform. Please use the Android, iOS or desktop app."
+
+        const val BROWSER_LAUNCH_FAILED_MESSAGE =
+            "Couldn't open your browser to continue with HSBC. Please check that a " +
+                "default browser is set, then try again."
 
         fun mapErrorToMessage(error: NetworkError): String = when (error) {
             is NetworkError.Client.Unauthorized -> "Authorisation failed. The app may need to re-register with HSBC."

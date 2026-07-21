@@ -125,3 +125,8 @@ cmp-ios/iosApp/certs/
 
 # Generated knowledge-graph output
 graphify-out/
+
+# JVM heap dumps. -XX:+HeapDumpOnOutOfMemoryError writes these next to the build on
+# any OOM, and they are multi-GB snapshots of process memory -- so they are both repo
+# bloat and a credential leak, since the dumped heap can contain live access tokens.
+*.hprof

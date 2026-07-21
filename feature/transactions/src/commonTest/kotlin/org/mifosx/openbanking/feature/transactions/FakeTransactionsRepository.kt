@@ -11,13 +11,14 @@ package org.mifosx.openbanking.feature.transactions
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.model.banking.TransactionsPage
-import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import template.core.base.store.screen.ScreenDataStream
 
 /**
  * In-memory [TransactionsRepository] for ViewModel tests. Only the cursor pager ([firstPage] /
@@ -38,12 +39,11 @@ class FakeTransactionsRepository : TransactionsRepository {
     var lastNextLink: String? = null
         private set
 
-    override fun transactionsState(
+    override fun transactionsStream(
         accountIdFlow: Flow<String>,
         scope: CoroutineScope,
-    ): Flow<ScreenState<List<TransactionItem>>> = emptyFlow()
-
-    override fun refresh() = Unit
+    ): ScreenDataStream<List<TransactionItem>> =
+        ScreenDataStream(state = emptyFlow(), refreshTrigger = MutableSharedFlow(extraBufferCapacity = 1))
 
     override suspend fun firstPage(accountId: String): NetworkResult<TransactionsPage, NetworkError> {
         firstPageCount++

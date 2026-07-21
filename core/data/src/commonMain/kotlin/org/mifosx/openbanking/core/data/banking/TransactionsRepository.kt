@@ -13,9 +13,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.model.banking.TransactionsPage
-import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import template.core.base.store.screen.ScreenDataStream
 
 /**
  * Streams the transactions for whichever account [accountIdFlow] currently selects, re-fetching when
@@ -27,14 +27,16 @@ import template.core.base.network.NetworkResult
  */
 interface TransactionsRepository {
 
-    /** Streams the selected account's transactions as [ScreenState], keyed by the emitted account id. */
-    fun transactionsState(
+    /**
+     * Opens the selected account's transaction stream, re-keyed as [accountIdFlow] emits.
+     *
+     * The id is a flow because home switches account from its chip row without navigating. Each
+     * call builds a stream bound to [scope], which the caller owns for its screen's lifetime.
+     */
+    fun transactionsStream(
         accountIdFlow: Flow<String>,
         scope: CoroutineScope,
-    ): Flow<ScreenState<List<TransactionItem>>>
-
-    /** Triggers a network refresh for the current account. */
-    fun refresh()
+    ): ScreenDataStream<List<TransactionItem>>
 
     /** Fetches the first transactions page for [accountId], including the next-page cursor. */
     suspend fun firstPage(accountId: String): NetworkResult<TransactionsPage, NetworkError>

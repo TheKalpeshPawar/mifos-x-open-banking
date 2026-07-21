@@ -97,7 +97,7 @@ class TransactionsRepositoryImplTest {
     fun transactionsStateEmitsContentAndUsesPerAccountCacheKey() = runTest(UnconfinedTestDispatcher()) {
         val fetchedAt = FakeFetchedAtRepository()
         val state = repo(fetchedAt)
-            .transactionsState(flowOf("acc-1"), backgroundScope)
+            .transactionsStream(flowOf("acc-1"), backgroundScope).state
             .first { it is ScreenState.Content }
 
         val content = assertIs<ScreenState.Content<List<TransactionItem>>>(state)
@@ -105,30 +105,30 @@ class TransactionsRepositoryImplTest {
         assertTrue("home:transactions:acc-1" in fetchedAt.readKeys)
     }
 
+    /**
+     * One repository instance serves every caller, so a second account must get its own stream and
+     * its own cache key rather than the first account's.
+     */
     @Test
-    fun transactionsStateReusesCachedStreamOnSecondCall() = runTest(UnconfinedTestDispatcher()) {
-        val repo = repo(FakeFetchedAtRepository())
-        repo.transactionsState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+    fun aSecondAccountOnTheSameInstanceUsesItsOwnCacheKey() = runTest(UnconfinedTestDispatcher()) {
+        val fetchedAt = FakeFetchedAtRepository()
+        val repo = repo(fetchedAt)
 
-        val second = repo.transactionsState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+        repo.transactionsStream(flowOf("acc-1"), backgroundScope).state.first { it is ScreenState.Content }
+        repo.transactionsStream(flowOf("acc-2"), backgroundScope).state.first { it is ScreenState.Content }
 
-        assertIs<ScreenState.Content<List<TransactionItem>>>(second)
+        assertTrue("home:transactions:acc-1" in fetchedAt.readKeys)
+        assertTrue("home:transactions:acc-2" in fetchedAt.readKeys)
     }
 
     @Test
-    fun refreshBeforeAnyStateCallIsNoOp() {
-        repo(FakeFetchedAtRepository()).refresh()
-    }
+    fun refreshingAStreamReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
+        val stream = repo(FakeFetchedAtRepository()).transactionsStream(flowOf("acc-1"), backgroundScope)
+        stream.state.first { it is ScreenState.Content }
 
-    @Test
-    fun refreshAfterStateCallReEmitsContent() = runTest(UnconfinedTestDispatcher()) {
-        val repo = repo(FakeFetchedAtRepository())
-        repo.transactionsState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
+        stream.refresh()
 
-        repo.refresh()
-
-        val state = repo.transactionsState(flowOf("acc-1"), backgroundScope).first { it is ScreenState.Content }
-        assertIs<ScreenState.Content<List<TransactionItem>>>(state)
+        assertIs<ScreenState.Content<List<TransactionItem>>>(stream.state.first { it is ScreenState.Content })
     }
 
     @Test

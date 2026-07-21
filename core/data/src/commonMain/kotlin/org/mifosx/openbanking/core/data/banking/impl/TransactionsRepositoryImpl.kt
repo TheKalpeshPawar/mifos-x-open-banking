@@ -19,7 +19,6 @@ import org.mifosx.openbanking.core.model.banking.TransactionsPage
 import org.mifosx.openbanking.core.network.api.Aisp
 import org.mifosx.openbanking.core.network.model.ais.transactions.TransactionsResponse
 import org.mobilenativefoundation.store.store5.Store
-import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import template.core.base.store.infra.FetchedAtRepository
@@ -33,26 +32,17 @@ internal class TransactionsRepositoryImpl(
     private val fetchedAtRepository: FetchedAtRepository,
 ) : TransactionsRepository {
 
-    private var stream: ScreenDataStream<List<TransactionItem>>? = null
-
-    private fun stream(accountIdFlow: Flow<String>, scope: CoroutineScope): ScreenDataStream<List<TransactionItem>> =
-        stream ?: store.asScreenStream(
+    override fun transactionsStream(
+        accountIdFlow: Flow<String>,
+        scope: CoroutineScope,
+    ): ScreenDataStream<List<TransactionItem>> =
+        store.asScreenStream(
             keyFlow = accountIdFlow,
             networkMonitor = networkMonitor,
             fetchedAtRepository = fetchedAtRepository,
             cacheKeyFor = { accountId -> "$CACHE_KEY:$accountId" },
             scope = scope,
-        ).also { stream = it }
-
-    override fun transactionsState(
-        accountIdFlow: Flow<String>,
-        scope: CoroutineScope,
-    ): Flow<ScreenState<List<TransactionItem>>> =
-        stream(accountIdFlow, scope).state
-
-    override fun refresh() {
-        stream?.refresh()
-    }
+        )
 
     override suspend fun firstPage(accountId: String): NetworkResult<TransactionsPage, NetworkError> =
         aisp.getTransactions(accountId).toPage(accountId)

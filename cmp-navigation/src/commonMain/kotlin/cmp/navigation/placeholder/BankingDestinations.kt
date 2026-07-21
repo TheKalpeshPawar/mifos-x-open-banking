@@ -29,8 +29,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
  */
 
 // ─── Consumer ────────────────────────────────────────────────────────────────
-@Serializable data object AccountDetailRoute
-
 @Serializable data object TransactionsRoute
 
 @Serializable data object TransactionDetailRoute
@@ -47,13 +45,13 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object CardDetailRoute
 
-@Serializable data object StandingOrdersRoute
-
 @Serializable data object StandingOrderDetailRoute
 
 @Serializable data object StandingOrderEditRoute
 
-@Serializable data object DirectDebitsRoute
+@Serializable data object ScheduledPaymentsRoute
+
+@Serializable data object PartyRoute
 
 @Serializable data object DirectDebitDetailRoute
 
@@ -93,7 +91,6 @@ fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(Car
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
-    composableWithStayTransitions<AccountDetailRoute> { PlaceholderScreen("Account detail") }
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
@@ -102,10 +99,10 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<BeneficiariesRoute> { PlaceholderScreen("Beneficiaries") }
     composableWithStayTransitions<CardsRoute> { PlaceholderScreen("Cards") }
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
-    composableWithStayTransitions<StandingOrdersRoute> { PlaceholderScreen("Standing orders") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
     composableWithStayTransitions<StandingOrderEditRoute> { PlaceholderScreen("Edit standing order") }
-    composableWithStayTransitions<DirectDebitsRoute> { PlaceholderScreen("Direct debits") }
+    composableWithStayTransitions<ScheduledPaymentsRoute> { PlaceholderScreen("Scheduled payments") }
+    composableWithStayTransitions<PartyRoute> { PlaceholderScreen("Account holder") }
     composableWithStayTransitions<DirectDebitDetailRoute> { PlaceholderScreen("Direct debit detail") }
     composableWithStayTransitions<PfmDashboardRoute> { PlaceholderScreen("Insights") }
     composableWithStayTransitions<FxRatesRoute> { PlaceholderScreen("FX rates") }

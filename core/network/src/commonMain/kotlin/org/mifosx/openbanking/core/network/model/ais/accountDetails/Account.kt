@@ -22,6 +22,12 @@ data class Account(
     val accountCategory: String? = null,
     @SerialName("AccountTypeCode")
     val accountTypeCode: String? = null,
+    @SerialName("AccountSubType")
+    val accountSubType: String? = null,
+    @SerialName("Nickname")
+    val nickname: String? = null,
+    @SerialName("StatusUpdateDateTime")
+    val statusUpdateDateTime: String? = null,
     @SerialName("Description")
     val description: String? = null,
     @SerialName("Servicer")

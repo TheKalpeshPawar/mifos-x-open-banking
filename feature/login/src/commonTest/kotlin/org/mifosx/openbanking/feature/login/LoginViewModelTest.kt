@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.login.ConsentResult
+import org.mifosx.openbanking.feature.login.browser.BrowserLaunchException
 import org.mifosx.openbanking.feature.login.ui.LoginAction
 import org.mifosx.openbanking.feature.login.ui.LoginEvent
 import org.mifosx.openbanking.feature.login.ui.LoginUiState
@@ -26,6 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LoginViewModelTest {
@@ -267,6 +269,44 @@ class LoginViewModelTest {
         )
         assertEquals(0, browser.launchCount)
         assertEquals(0, pendingAuthStore.saveCount)
+    }
+
+    @Test
+    fun `StartOAuth surfaces an error instead of Authorising when the browser cannot be opened`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val browser = object : FakeBrowserLauncher() {
+            override fun launch(url: String) {
+                throw BrowserLaunchException("no browser")
+            }
+        }
+        val (vm, _) = createViewModel(repo, browser)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+
+        val state = vm.stateFlow.first { it is LoginUiState.Error }
+        assertIs<LoginUiState.Error>(state)
+        assertEquals(LoginViewModel.BROWSER_LAUNCH_FAILED_MESSAGE, state.message)
+    }
+
+    @Test
+    fun `StartOAuth clears the pending auth when the browser cannot be opened`() = runTest {
+        val repo = FakeLoginRepository().apply { createConsentResult = successResult() }
+        val browser = object : FakeBrowserLauncher() {
+            override fun launch(url: String) {
+                throw BrowserLaunchException("no browser")
+            }
+        }
+        val (vm, _) = createViewModel(repo, browser)
+        vm.stateFlow.first { it is LoginUiState.Content }
+
+        vm.trySendAction(LoginAction.StartOAuth)
+        vm.stateFlow.first { it is LoginUiState.Error }
+
+        // A saved state/nonce that no redirect can consume would be inherited by the next attempt
+        // and fail its CSRF check, so the aborted attempt must leave nothing behind. Asserted via
+        // consume() rather than `saved`, which is a spy of the last write and survives clear().
+        assertNull(pendingAuthStore.consume(), "an unreachable pending auth must not outlive the attempt")
     }
 
     @Test

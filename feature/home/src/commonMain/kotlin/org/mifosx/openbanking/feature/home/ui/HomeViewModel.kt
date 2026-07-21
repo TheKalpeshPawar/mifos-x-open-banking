@@ -99,8 +99,11 @@ class HomeViewModel(
     private val userDataRepository: UserDataRepository,
 ) : BaseViewModel<HomeState, Nothing, HomeAction>(initialState = HomeState()) {
 
+    /** The three streams this screen renders, scoped to this view model. */
+    private val accountsStream = accountsRepository.accountsStream(viewModelScope)
+
     private val accounts: Flow<ScreenState<List<BankAccount>>> =
-        accountsRepository.accountsState(viewModelScope)
+        accountsStream.state
             .shareIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), replay = 1)
 
     private val selectedAccountId: Flow<String> = combine(
@@ -113,11 +116,14 @@ class HomeViewModel(
         }
     }.distinctUntilChanged().filter { it.isNotBlank() }
 
-    private val balance: Flow<ScreenState<AccountBalance>> =
-        balancesRepository.balanceState(selectedAccountId, viewModelScope)
+    private val balanceStream = balancesRepository.balanceStream(selectedAccountId, viewModelScope)
 
-    private val transactions: Flow<ScreenState<List<TransactionItem>>> =
-        transactionsRepository.transactionsState(selectedAccountId, viewModelScope)
+    private val transactionsStream =
+        transactionsRepository.transactionsStream(selectedAccountId, viewModelScope)
+
+    private val balance: Flow<ScreenState<AccountBalance>> = balanceStream.state
+
+    private val transactions: Flow<ScreenState<List<TransactionItem>>> = transactionsStream.state
 
     init {
         viewModelScope.launch {
@@ -191,9 +197,9 @@ class HomeViewModel(
     )
 
     private fun retry() {
-        accountsRepository.refresh()
-        balancesRepository.refresh()
-        transactionsRepository.refresh()
+        accountsStream.refresh()
+        balanceStream.refresh()
+        transactionsStream.refresh()
     }
 
     private fun currentYearMonth(): String = Clock.System.now().toString().take(YEAR_MONTH_LENGTH)

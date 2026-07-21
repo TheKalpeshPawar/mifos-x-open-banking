@@ -29,9 +29,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
-import cmp.navigation.placeholder.AccountDetailRoute
+import cmp.navigation.placeholder.AtmLocatorRoute
+import cmp.navigation.placeholder.BeneficiariesRoute
 import cmp.navigation.placeholder.ConsentManagerRoute
+import cmp.navigation.placeholder.PartyRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
+import cmp.navigation.placeholder.ProductsRoute
+import cmp.navigation.placeholder.ScheduledPaymentsRoute
 import cmp.navigation.placeholder.StatementsRoute
 import cmp.navigation.placeholder.TransactionDetailRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
@@ -42,9 +46,16 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
+import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
+import org.mifosx.openbanking.feature.accountdetail.AccountDetailRoute
+import org.mifosx.openbanking.feature.accountdetail.accountDetailScreen
 import org.mifosx.openbanking.feature.accounts.accountsGraph
+import org.mifosx.openbanking.feature.directdebits.DirectDebitsRoute
+import org.mifosx.openbanking.feature.directdebits.directDebitsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
+import org.mifosx.openbanking.feature.standingorders.standingOrdersScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsRoute
 import org.mifosx.openbanking.feature.transactions.transactionsScreen
 import template.core.base.ui.util.RootTransitionProviders
@@ -121,7 +132,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
         ) {
             homeGraph(
                 onNavigateToTransactions = { navController.navigate(TransactionsPlaceholderRoute) },
-                onNavigateToAccountDetail = { navController.navigate(AccountDetailRoute) },
+                onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
                 onNavigateToStatements = { navController.navigate(StatementsRoute) },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
                 onNavigateToTransactionDetail = { navController.navigate(TransactionDetailRoute) },
@@ -129,15 +140,41 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onConnectBank = { navController.navigate(ConsentManagerRoute) },
             )
             accountsGraph(
-                onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
+                onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
                 onNavigateToConsentReconfirm = { navController.navigate(ConsentManagerRoute) },
+            )
+            accountDetailScreen(
+                onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },
+                onBack = { navController.popBackStack() },
             )
             transactionsScreen(
                 onNavigateToTransactionDetail = { _, _ -> navController.navigate(TransactionDetailRoute) },
                 onBack = { navController.popBackStack() },
             )
+            directDebitsScreen(onBack = { navController.popBackStack() })
+            standingOrdersScreen(onBack = { navController.popBackStack() })
             bankingPlaceholderDestinations()
         }
+    }
+}
+
+/**
+ * Resolves an Explore chip to its destination, carrying the account id.
+ *
+ * Transactions, Direct Debits and Standing Orders have real feature modules today; the rest
+ * resolve to their placeholder routes and are repointed as each feature ships.
+ */
+private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountId: String) {
+    when (chip) {
+        AccountDetailChip.Transactions -> navigate(TransactionsRoute(accountId))
+        AccountDetailChip.Statements -> navigate(StatementsRoute)
+        AccountDetailChip.StandingOrders -> navigate(StandingOrdersRoute(accountId))
+        AccountDetailChip.DirectDebits -> navigate(DirectDebitsRoute(accountId))
+        AccountDetailChip.ScheduledPayments -> navigate(ScheduledPaymentsRoute)
+        AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute)
+        AccountDetailChip.AtmLocator -> navigate(AtmLocatorRoute)
+        AccountDetailChip.Product -> navigate(ProductsRoute)
+        AccountDetailChip.Party -> navigate(PartyRoute)
     }
 }
 

@@ -58,7 +58,7 @@ import template.core.base.store.infra.FetchedAtRepository
  * }
  * ```
  */
-class ScreenDataStream<T> internal constructor(
+class ScreenDataStream<T>(
     /**
      * Cold Flow of ScreenState decisions. Consumer should call .stateIn() once.
      * Intentionally cold Flow (not StateFlow) to avoid double-sharing

@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.home
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,44 +32,43 @@ import org.mifosx.openbanking.core.model.user.UserData
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import template.core.base.store.screen.ScreenDataStream
+
+private const val REFRESH_REPLAY = 16
 
 class FakeAccountsRepository : AccountsRepository {
     val emissions = MutableStateFlow<ScreenState<List<BankAccount>>>(ScreenState.Loading)
-    var refreshCount = 0
-        private set
+    private val refreshes = MutableSharedFlow<Unit>(replay = REFRESH_REPLAY)
 
-    override fun accountsState(scope: CoroutineScope): Flow<ScreenState<List<BankAccount>>> = emissions
-    override fun refresh() {
-        refreshCount++
-    }
+    val refreshCount: Int get() = refreshes.replayCache.size
+
+    override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<BankAccount>> =
+        ScreenDataStream(state = emissions, refreshTrigger = refreshes)
 }
 
 class FakeBalancesRepository : BalancesRepository {
     val emissions = MutableStateFlow<ScreenState<AccountBalance>>(ScreenState.Loading)
-    var refreshCount = 0
-        private set
+    private val refreshes = MutableSharedFlow<Unit>(replay = REFRESH_REPLAY)
 
-    override fun balanceState(accountIdFlow: Flow<String>, scope: CoroutineScope): Flow<ScreenState<AccountBalance>> =
-        emissions
+    val refreshCount: Int get() = refreshes.replayCache.size
 
-    override fun refresh() {
-        refreshCount++
-    }
+    override fun balanceStream(
+        accountIdFlow: Flow<String>,
+        scope: CoroutineScope,
+    ): ScreenDataStream<AccountBalance> = ScreenDataStream(state = emissions, refreshTrigger = refreshes)
 }
 
 class FakeTransactionsRepository : TransactionsRepository {
     val emissions = MutableStateFlow<ScreenState<List<TransactionItem>>>(ScreenState.Loading)
-    var refreshCount = 0
-        private set
+    private val refreshes = MutableSharedFlow<Unit>(replay = REFRESH_REPLAY)
 
-    override fun transactionsState(
+    val refreshCount: Int get() = refreshes.replayCache.size
+
+    override fun transactionsStream(
         accountIdFlow: Flow<String>,
         scope: CoroutineScope,
-    ): Flow<ScreenState<List<TransactionItem>>> = emissions
-
-    override fun refresh() {
-        refreshCount++
-    }
+    ): ScreenDataStream<List<TransactionItem>> =
+        ScreenDataStream(state = emissions, refreshTrigger = refreshes)
 
     // Home renders the store-backed stream above and never pages, so the cursor pager
     // returns an empty terminal page.
