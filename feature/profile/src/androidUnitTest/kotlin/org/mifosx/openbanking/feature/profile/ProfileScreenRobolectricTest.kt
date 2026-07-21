@@ -25,7 +25,6 @@ import org.mifosx.openbanking.feature.profile.ui.ProfileState
 import org.mifosx.openbanking.feature.profile.ui.ProfileUiState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private const val ROBOLECTRIC_SDK = 34
@@ -125,10 +124,24 @@ class ProfileScreenRobolectricTest {
     }
 
     @Test
-    fun theConnectionCardRendersExactlyFourPermissionRows() {
+    fun theGrantedPermissionsAreCollapsedByDefault() {
         render(ProfileFixtures.contentState())
 
-        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_HEADER, useUnmergedTree = true)
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE, useUnmergedTree = true)
+            .assertExists()
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_LIST, useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeRule.onNodeWithTag(
+            ProfileTestTags.permissionRow(PermissionId.ReadAccountsDetail),
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun expandingThePermissionsRevealsEveryGrantedRow() {
+        render(ProfileFixtures.contentPermissionsExpandedState())
+
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_LIST, useUnmergedTree = true)
             .assertExists()
         ProfileFixtures.permissions().forEach { permission ->
             composeRule.onNodeWithTag(
@@ -136,11 +149,16 @@ class ProfileScreenRobolectricTest {
                 useUnmergedTree = true,
             ).assertExists()
         }
-        assertEquals(EXPECTED_PERMISSION_COUNT, ProfileFixtures.permissions().size)
-        composeRule.onNodeWithTag(
-            ProfileTestTags.permissionRow(PermissionId.ReadDirectDebits),
-            useUnmergedTree = true,
-        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingThePermissionsToggleDispatchesTogglePermissions() {
+        render(ProfileFixtures.contentState())
+
+        scrollTo(ProfileTestTags.PERMISSIONS_TOGGLE)
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE).performClick()
+
+        assertTrue(actions.contains(ProfileAction.TogglePermissions))
     }
 
     /** A healthy consent must not raise the warning strip. */
@@ -167,17 +185,13 @@ class ProfileScreenRobolectricTest {
     }
 
     @Test
-    fun expiringContentStillRendersTheIdentityAndPermissionRows() {
+    fun expiringContentStillRendersTheIdentityAndPermissionsSection() {
         render(ProfileFixtures.expiringState())
 
         composeRule.onNodeWithTag(ProfileTestTags.IDENTITY_CARD).assertExists()
         composeRule.onNodeWithTag(ProfileTestTags.EMAIL_ROW, useUnmergedTree = true).assertExists()
-        ProfileFixtures.permissions().forEach { permission ->
-            composeRule.onNodeWithTag(
-                ProfileTestTags.permissionRow(permission.id),
-                useUnmergedTree = true,
-            ).assertExists()
-        }
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE, useUnmergedTree = true)
+            .assertExists()
     }
 
     @Test
@@ -211,12 +225,8 @@ class ProfileScreenRobolectricTest {
         composeRule.onNodeWithTag(ProfileTestTags.EMAIL_ROW, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(ProfileTestTags.CONNECTION_CARD, useUnmergedTree = true)
             .assertExists()
-        ProfileFixtures.permissions().forEach { permission ->
-            composeRule.onNodeWithTag(
-                ProfileTestTags.permissionRow(permission.id),
-                useUnmergedTree = true,
-            ).assertExists()
-        }
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE, useUnmergedTree = true)
+            .assertExists()
     }
 
     @Test
@@ -273,9 +283,5 @@ class ProfileScreenRobolectricTest {
         composeRule.onNodeWithTag(ProfileTestTags.ERROR_STATE).assertExists()
         composeRule.onNodeWithTag(ProfileTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(ProfileTestTags.RETRY_BUTTON).assertDoesNotExist()
-    }
-
-    private companion object {
-        const val EXPECTED_PERMISSION_COUNT = 4
     }
 }

@@ -21,7 +21,6 @@ import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
-import org.mifosx.openbanking.core.model.hsbcPermission.PermissionId
 import org.mifosx.openbanking.feature.profile.ui.ProfileAction
 import org.mifosx.openbanking.feature.profile.ui.ProfileConnectionUi
 import org.mifosx.openbanking.feature.profile.ui.ProfileErrorKind
@@ -48,17 +47,8 @@ private val priya: PartyProfile = PartyProfile(
     addressLine = "12 Baker Street, London W1U 6TZ",
 )
 
-private val permissionIds: List<PermissionId> = listOf(
-    PermissionId.ReadAccountsDetail,
-    PermissionId.ReadBalances,
-    PermissionId.ReadTransactionsDetail,
-    PermissionId.ReadParty,
-)
-
-private fun permissions(): List<ProfilePermissionUi> {
-    val granted = OBPermission.ALL.map { it.id }.toSet()
-    return permissionIds.map { ProfilePermissionUi(id = it, isGranted = it in granted) }
-}
+private fun permissions(): List<ProfilePermissionUi> =
+    OBPermission.ALL.map { ProfilePermissionUi(id = it.id, label = it.label) }
 
 private fun content(): ProfileUiState.Content = ProfileUiState.Content(
     profile = priya,
@@ -67,6 +57,7 @@ private fun content(): ProfileUiState.Content = ProfileUiState.Content(
         expiryLabel = "26 Sep 2026",
     ),
     permissions = permissions(),
+    arePermissionsExpanded = false,
     isExpiring = false,
     daysRemaining = Int.MAX_VALUE,
     isConfirmingSignOut = false,
@@ -74,6 +65,9 @@ private fun content(): ProfileUiState.Content = ProfileUiState.Content(
 
 private fun contentState(): ProfileState =
     ProfileState(accountId = ACCOUNT_ID, uiState = content())
+
+private fun contentPermissionsExpandedState(): ProfileState =
+    ProfileState(accountId = ACCOUNT_ID, uiState = content().copy(arePermissionsExpanded = true))
 
 private fun expiringState(): ProfileState = ProfileState(
     accountId = ACCOUNT_ID,
@@ -150,17 +144,25 @@ class ProfileScreenInstrumentedTest {
     }
 
     @Test
-    fun theConnectionCardRendersExactlyFourPermissionRows() {
+    fun theGrantedPermissionsAreCollapsedByDefault() {
         render(contentState())
 
-        permissionIds.forEach { id ->
-            composeRule.onNodeWithTag(ProfileTestTags.permissionRow(id), useUnmergedTree = true)
-                .assertExists()
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE, useUnmergedTree = true)
+            .assertExists()
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_LIST, useUnmergedTree = true)
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun expandingThePermissionsRevealsTheGrantedRows() {
+        render(contentPermissionsExpandedState())
+
+        permissions().forEach { permission ->
+            composeRule.onNodeWithTag(
+                ProfileTestTags.permissionRow(permission.id),
+                useUnmergedTree = true,
+            ).assertExists()
         }
-        composeRule.onNodeWithTag(
-            ProfileTestTags.permissionRow(PermissionId.ReadDirectDebits),
-            useUnmergedTree = true,
-        ).assertDoesNotExist()
     }
 
     @Test
@@ -190,10 +192,8 @@ class ProfileScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(ProfileTestTags.SIGN_OUT_DIALOG).assertExists()
         composeRule.onNodeWithTag(ProfileTestTags.IDENTITY_CARD).assertExists()
-        permissionIds.forEach { id ->
-            composeRule.onNodeWithTag(ProfileTestTags.permissionRow(id), useUnmergedTree = true)
-                .assertExists()
-        }
+        composeRule.onNodeWithTag(ProfileTestTags.PERMISSIONS_TOGGLE, useUnmergedTree = true)
+            .assertExists()
     }
 
     @Test

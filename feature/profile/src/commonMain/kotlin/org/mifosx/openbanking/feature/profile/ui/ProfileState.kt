@@ -45,7 +45,10 @@ sealed interface ProfileUiState {
      * @property profile The party identity. Its fields are blank rather than null when the bank sent
      *   nothing, and each identity row hides itself on a blank value.
      * @property connection The consent behind this session, derived rather than stored.
-     * @property permissions The four permissions this screen reports on, in display order.
+     * @property permissions Every permission this consent grants, in display order. Hidden behind
+     *   [arePermissionsExpanded] because the full OBIE scope runs to twenty-odd entries.
+     * @property arePermissionsExpanded True while the granted-permissions list is revealed. Preserved
+     *   across stream re-emissions so a refresh cannot collapse a list the user opened.
      * @property isExpiring True when the consent lapses within [EXPIRY_WARNING_DAYS] days; raises
      *   the banner and tints the expiry row.
      * @property daysRemaining Whole days until the consent expires. [Int.MAX_VALUE] when no expiry
@@ -58,6 +61,7 @@ sealed interface ProfileUiState {
         val profile: PartyProfile,
         val connection: ProfileConnectionUi,
         val permissions: List<ProfilePermissionUi>,
+        val arePermissionsExpanded: Boolean,
         val isExpiring: Boolean,
         val daysRemaining: Int,
         val isConfirmingSignOut: Boolean,
@@ -81,17 +85,18 @@ data class ProfileConnectionUi(
 )
 
 /**
- * One permission row.
+ * One granted-permission row.
  *
- * The label is not carried here: it is a user-facing string, so it is resolved from
- * `composeResources` at render time and only the [id] travels through the state.
+ * The label is carried here rather than resolved from `composeResources` by [id]: the OBIE scope
+ * names live once in [org.mifosx.openbanking.core.model.hsbcPermission.OBPermission], and mirroring
+ * all twenty of them into per-id string keys would be a second list to keep in step with the first.
  *
- * @property id The OBIE scope this row reports on.
- * @property isGranted Whether the scope is part of the consent this app requests.
+ * @property id The OBIE scope this row reports on, used only for its test tag.
+ * @property label The scope's display name, taken from the consent catalogue.
  */
 data class ProfilePermissionUi(
     val id: PermissionId,
-    val isGranted: Boolean,
+    val label: String,
 )
 
 /**
@@ -117,6 +122,9 @@ sealed interface ProfileAction {
 
     /** Dismisses the confirmation without clearing anything. */
     data object DismissSignOut : ProfileAction
+
+    /** Reveals or hides the granted-permissions list. */
+    data object TogglePermissions : ProfileAction
 
     /** Clears the session's tokens and consent from this device. */
     data object ConfirmSignOut : ProfileAction
