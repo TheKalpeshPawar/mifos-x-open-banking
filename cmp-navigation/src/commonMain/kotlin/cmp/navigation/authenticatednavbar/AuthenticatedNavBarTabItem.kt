@@ -20,7 +20,6 @@ import cmp.navigation.generated.resources.accounts
 import cmp.navigation.generated.resources.home
 import cmp.navigation.generated.resources.more
 import cmp.navigation.generated.resources.transactions
-import cmp.navigation.placeholder.MoreRoute
 import cmp.navigation.placeholder.TransactionsRoute
 import cmp.navigation.utils.toObjectNavigationRoute
 import kotlinx.collections.immutable.ImmutableList
@@ -31,6 +30,7 @@ import org.mifosx.openbanking.feature.accounts.AccountsDestination
 import org.mifosx.openbanking.feature.accounts.AccountsRoute
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.HomeRoute
+import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
  * Consumer bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:
@@ -85,8 +85,8 @@ sealed class AuthenticatedNavBarTabItem(
         icon = Icons.Filled.MoreHoriz,
         labelRes = Res.string.more,
         contentDescriptionRes = Res.string.more,
-        graphRoute = MoreRoute.toObjectNavigationRoute(),
-        startDestinationRoute = MoreRoute.toObjectNavigationRoute(),
+        graphRoute = SettingsRoute.toObjectNavigationRoute(),
+        startDestinationRoute = SettingsRoute.toObjectNavigationRoute(),
         testTag = "MoreTab",
     )
 }

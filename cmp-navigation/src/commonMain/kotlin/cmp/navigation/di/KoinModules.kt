@@ -24,6 +24,8 @@ import org.mifosx.openbanking.feature.consentcallback.di.ConsentCallbackModule
 import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.profile.di.ProfileModule
+import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
 import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
 import template.core.base.analytics.di.analyticsModule
@@ -56,6 +58,8 @@ object KoinModules {
             TransactionsModule,
             DirectDebitsModule,
             StandingOrdersModule,
+            SettingsModule,
+            ProfileModule,
             LoginModule,
             ConsentCallbackModule,
         )

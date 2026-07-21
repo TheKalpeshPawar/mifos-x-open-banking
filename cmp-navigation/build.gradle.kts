@@ -36,6 +36,8 @@ kotlin {
             implementation(projects.feature.transactions)
             implementation(projects.feature.directDebits)
             implementation(projects.feature.standingOrders)
+            implementation(projects.feature.settings)
+            implementation(projects.feature.profile)
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
 
