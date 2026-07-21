@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_profile_screen_title">Profile</string>
+    <string name="feature_profile_loading_accessibility">Loading profile</string>
+    <string name="feature_profile_loading_caption">Loading profile</string>
+
+    <string name="feature_profile_identity_card_accessibility">%1$s, %2$s</string>
+    <string name="feature_profile_avatar_accessibility">Profile initials %1$s</string>
+
+    <string name="feature_profile_section_identity">Identity</string>
+    <string name="feature_profile_section_connection">Open Banking Connection</string>
+
+    <string name="feature_profile_label_email">Email</string>
+    <string name="feature_profile_label_mobile">Mobile</string>
+    <string name="feature_profile_label_address">Address</string>
+    <string name="feature_profile_detail_accessibility">%1$s: %2$s</string>
+
+    <string name="feature_profile_connected_to_bank">Connected to HSBC</string>
+    <string name="feature_profile_label_status">Status</string>
+    <string name="feature_profile_label_consent_expires">Consent Expires</string>
+    <string name="feature_profile_consent_expires_in_days">%1$s — in %2$d days</string>
+
+    <string name="feature_profile_status_authorised">Authorised</string>
+    <string name="feature_profile_status_revoked">Revoked</string>
+    <string name="feature_profile_status_expired">Expired</string>
+    <string name="feature_profile_status_awaiting">Awaiting authorisation</string>
+    <string name="feature_profile_status_rejected">Rejected</string>
+    <string name="feature_profile_status_consumed">Consumed</string>
+
+    <string name="feature_profile_permissions_header">Permissions Granted</string>
+    <string name="feature_profile_permission_accounts_detail">Account details</string>
+    <string name="feature_profile_permission_balances">Balances</string>
+    <string name="feature_profile_permission_transactions_detail">Transactions</string>
+    <string name="feature_profile_permission_party">Identity (Party)</string>
+    <string name="feature_profile_permission_granted_accessibility">%1$s granted</string>
+
+    <string name="feature_profile_button_manage_consent">Manage Consent</string>
+    <string name="feature_profile_button_sign_out">Sign Out</string>
+
+    <string name="feature_profile_expiry_banner_accessibility">Consent expiry warning</string>
+    <string name="feature_profile_expiry_banner_body">Your consent expires in %1$d days. Re-authorise now to keep access.</string>
+    <string name="feature_profile_button_renew_consent">Renew Consent</string>
+
+    <string name="feature_profile_sign_out_dialog_title">Sign out?</string>
+    <string name="feature_profile_sign_out_dialog_body">This will clear your access tokens and Open Banking consent from this device. You will need to re-authorise with HSBC to use the app again.</string>
+    <string name="feature_profile_button_cancel">Cancel</string>
+
+    <string name="feature_profile_empty_title">No profile data available</string>
+    <string name="feature_profile_empty_body">Your profile information could not be loaded. Your Open Banking consent may not include identity data.</string>
+    <string name="feature_profile_empty_accessibility">No profile data available</string>
+    <string name="feature_profile_button_reauthorise">Re-authorise</string>
+
+    <string name="feature_profile_error_title">Could not load profile</string>
+    <string name="feature_profile_error_accessibility">Error loading profile</string>
+    <string name="feature_profile_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_profile_error_consent_missing_party">Consent does not include profile access. The ReadParty permission was not granted when you authorised this app.</string>
+    <string name="feature_profile_error_profile_not_found">HSBC has no identity record for this account.</string>
+    <string name="feature_profile_error_load_failed">Could not reach HSBC. Check your connection and retry.</string>
+    <string name="feature_profile_button_retry">Retry</string>
+</resources>
