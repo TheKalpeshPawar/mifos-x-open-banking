@@ -29,6 +29,13 @@
     <string name="feature_direct_debits_empty_title">No direct debits</string>
     <string name="feature_direct_debits_empty_body">There are no direct debit mandates set up on this account.</string>
     <string name="feature_direct_debits_empty_accessibility">No direct debits on this account</string>
+    <!--
+      Title and accessibility label only. The body of the unsupported state is the bank's own
+      message, rendered verbatim from the API response rather than authored here — HSBC knows why
+      it refused, and restating it would mean maintaining a translation of their error catalogue.
+    -->
+    <string name="feature_direct_debits_unsupported_title">Not available for this account</string>
+    <string name="feature_direct_debits_unsupported_accessibility">Direct debits are not available for this account</string>
 
     <string name="feature_direct_debits_error_title">Could not load direct debits</string>
     <string name="feature_direct_debits_error_accessibility">Error loading direct debits</string>

@@ -34,6 +34,13 @@
     <string name="feature_standing_orders_empty_title">No standing orders</string>
     <string name="feature_standing_orders_empty_body">No standing orders are set up for this account.</string>
     <string name="feature_standing_orders_empty_accessibility">No standing orders found for this account</string>
+    <!--
+      Title and accessibility label only. The body of the unsupported state is the bank's own
+      message, rendered verbatim from the API response rather than authored here — HSBC knows why
+      it refused, and restating it would mean maintaining a translation of their error catalogue.
+    -->
+    <string name="feature_standing_orders_unsupported_title">Not available for this account</string>
+    <string name="feature_standing_orders_unsupported_accessibility">Standing orders are not available for this account</string>
 
     <string name="feature_standing_orders_error_title">Could not load standing orders</string>
     <string name="feature_standing_orders_error_accessibility">Error loading standing orders</string>

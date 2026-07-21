@@ -245,6 +245,42 @@ class StandingOrdersViewModelTest {
         assertEquals(StandingOrdersErrorKind.ConsentRevoked, error.kind)
     }
 
+    /**
+     * A U000 refusal is not a failure — the product simply has no standing orders. Routing it to an
+     * error kind would offer a Retry that can never succeed.
+     */
+    @Test
+    fun aU000BadRequestRendersUnsupportedRatherThanAnError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = U000_BODY)),
+        )
+
+        assertIs<StandingOrdersUiState.Unsupported>(viewModel(repository).stateFlow.value.uiState)
+    }
+
+    /** The bank's own wording is shown, not copy authored here. */
+    @Test
+    fun theUnsupportedStateCarriesTheBanksOwnMessage() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = U000_BODY)),
+        )
+        val state = assertIs<StandingOrdersUiState.Unsupported>(
+            viewModel(repository).stateFlow.value.uiState,
+        )
+
+        assertEquals("This action is not allowed on the account type in the request", state.message)
+    }
+
+    /** A 400 for any other reason stays an error, so its Retry survives. */
+    @Test
+    fun aBadRequestWithoutU000StaysAnError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = """{"Code":"400"}""")),
+        )
+
+        assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+    }
+
     @Test
     fun rateLimitedMapsToRateLimited() {
         val repository = FakeStandingOrdersRepository(remoteFailure(NetworkError.Client.RateLimited()))
@@ -355,5 +391,12 @@ class StandingOrdersViewModelTest {
         const val SERVER_ERROR_STATUS = 500
         const val PUREGYM_INDEX = 2
         const val MARCUS_INDEX = 3
+
+        /** Captured from the HSBC sandbox verbatim. */
+        const val U000_BODY = """
+            {"Code":"400","Id":"842f0682-ba4a-4f17-9107-a5ce8b98fdbd","Message":"Bad Request",
+             "Errors":[{"ErrorCode":"U000",
+                        "Message":"This action is not allowed on the account type in the request"}]}
+        """
     }
 }

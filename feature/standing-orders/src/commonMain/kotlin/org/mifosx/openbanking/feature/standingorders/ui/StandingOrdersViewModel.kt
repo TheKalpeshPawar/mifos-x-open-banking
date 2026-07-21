@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
+import org.mifosx.openbanking.core.data.util.isUnsupportedForProduct
+import org.mifosx.openbanking.core.data.util.obieMessage
 import org.mifosx.openbanking.core.model.banking.StandingOrderItem
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import template.core.base.common.screen.ScreenState
@@ -59,7 +61,13 @@ class StandingOrdersViewModel(
 
     private fun ScreenState<StandingOrdersSummary>.toUiState(): StandingOrdersUiState = when (this) {
         is ScreenState.Content -> data.toUiState()
-        is ScreenState.Error -> StandingOrdersUiState.Error(classifyStandingOrdersError(error))
+        // Checked before classification: a U000 refusal is a statement about the product, not a
+        // failure, so it must not be routed to a retryable error kind.
+        is ScreenState.Error -> if (error.isUnsupportedForProduct()) {
+            StandingOrdersUiState.Unsupported(error.obieMessage().orEmpty())
+        } else {
+            StandingOrdersUiState.Error(classifyStandingOrdersError(error))
+        }
         is ScreenState.NoNetwork -> StandingOrdersUiState.Error(StandingOrdersErrorKind.NetworkError)
         ScreenState.Unauthenticated -> StandingOrdersUiState.Error(StandingOrdersErrorKind.TokenExpired)
         ScreenState.Empty -> StandingOrdersUiState.Empty

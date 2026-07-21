@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.data.banking.store
 
 import kotlinx.coroutines.flow.map
+import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountBalance
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountBalanceLines
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountDetail
@@ -21,6 +22,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItem
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItems
+import org.mifosx.openbanking.core.data.util.isUnsupportedForProduct
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.database.banking.dao.AccountDao
 import org.mifosx.openbanking.core.database.banking.dao.TransactionDao
@@ -31,10 +33,12 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.TransactionItem
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.Aisp
 import org.mobilenativefoundation.store.store5.Fetcher
 import org.mobilenativefoundation.store.store5.SourceOfTruth
 import org.mobilenativefoundation.store.store5.Store
+import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 import template.core.base.store.infra.DefaultValidator
 import template.core.base.store.infra.StoreFactory
@@ -161,12 +165,22 @@ object BankingStores {
      * that can be withdrawn at any moment, so a cached copy could outlive the user's permission to
      * hold it. A miss costs one request, and the OBIE endpoint returns the full list unpaginated.
      */
-    fun directDebitsStore(aisp: Aisp): Store<String, DirectDebitsSummary> =
+    fun directDebitsStore(
+        aisp: Aisp,
+        capabilityRegistry: AccountCapabilityRegistry,
+    ): Store<String, DirectDebitsSummary> =
         StoreFactory.createMemoryStore(
             fetcher = Fetcher.of { accountId ->
                 when (val result = aisp.getDirectDebits(accountId)) {
                     is NetworkResult.Success -> result.data.toDirectDebitsSummary()
-                    is NetworkResult.Error -> throw result.error.toThrowable()
+                    is NetworkResult.Error -> {
+                        result.error.recordIfUnsupported(
+                            accountId = accountId,
+                            endpoint = AccountEndpoint.DirectDebits,
+                            registry = capabilityRegistry,
+                        )
+                        throw result.error.toThrowable()
+                    }
                 }
             },
         )
@@ -180,13 +194,38 @@ object BankingStores {
      * a cached copy could outlive the user's permission to hold it. A miss costs one request, and
      * the OBIE endpoint returns the full list unpaginated.
      */
-    fun standingOrdersStore(aisp: Aisp): Store<String, StandingOrdersSummary> =
+    fun standingOrdersStore(
+        aisp: Aisp,
+        capabilityRegistry: AccountCapabilityRegistry,
+    ): Store<String, StandingOrdersSummary> =
         StoreFactory.createMemoryStore(
             fetcher = Fetcher.of { accountId ->
                 when (val result = aisp.getStandingOrders(accountId)) {
                     is NetworkResult.Success -> result.data.toStandingOrdersSummary()
-                    is NetworkResult.Error -> throw result.error.toThrowable()
+                    is NetworkResult.Error -> {
+                        result.error.recordIfUnsupported(
+                            accountId = accountId,
+                            endpoint = AccountEndpoint.StandingOrders,
+                            registry = capabilityRegistry,
+                        )
+                        throw result.error.toThrowable()
+                    }
                 }
             },
         )
+
+    /**
+     * Notes a `U000` refusal so the account-detail screen stops offering the feature.
+     *
+     * Recorded in the fetcher rather than a ViewModel because this is the one point every call to
+     * these endpoints passes through — including a deep link that bypasses the chip entirely — and
+     * because the record has to outlive any single screen.
+     */
+    private fun NetworkError.recordIfUnsupported(
+        accountId: String,
+        endpoint: AccountEndpoint,
+        registry: AccountCapabilityRegistry,
+    ) {
+        if (isUnsupportedForProduct()) registry.markUnsupported(accountId, endpoint)
+    }
 }

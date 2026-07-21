@@ -68,6 +68,11 @@ internal fun DirectDebitsScreenContent(
 
         DirectDebitsUiState.Empty -> DirectDebitsEmpty(modifier = modifier)
 
+        is DirectDebitsUiState.Unsupported -> DirectDebitsUnsupported(
+            message = current.message,
+            modifier = modifier,
+        )
+
         is DirectDebitsUiState.Error -> DirectDebitsError(
             kind = current.kind,
             onRetry = { onAction(DirectDebitsAction.RetryLoad) },

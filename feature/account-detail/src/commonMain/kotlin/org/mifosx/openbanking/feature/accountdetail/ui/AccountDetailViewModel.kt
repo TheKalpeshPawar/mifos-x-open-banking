@@ -11,13 +11,16 @@ package org.mifosx.openbanking.feature.accountdetail.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.mifosx.openbanking.core.common.formatSortCode
+import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountDetailRepository
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.AccountDetailWithBalances
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineScreenStates
 import template.core.base.ui.viewmodel.BaseViewModel
@@ -34,6 +37,7 @@ import template.core.base.ui.viewmodel.BaseViewModel
 class AccountDetailViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: AccountDetailRepository,
+    private val capabilityRegistry: AccountCapabilityRegistry,
 ) : BaseViewModel<AccountDetailState, Nothing, AccountDetailAction>(
     initialState = AccountDetailState(
         accountId = savedStateHandle.get<String>(ACCOUNT_ID_ARG).orEmpty(),
@@ -48,7 +52,20 @@ class AccountDetailViewModel(
         combineScreenStates(detail.state, balanceLines.state) { account, balances ->
             AccountDetailWithBalances(detail = account, balances = balances)
         }
-            .onEach { screenState -> updateState { copy(uiState = screenState.toUiState()) } }
+            .combine(capabilityRegistry.unsupportedStream(state.accountId)) { screenState, unsupported ->
+                screenState to unsupported
+            }
+            .onEach { (screenState, unsupported) ->
+                updateState {
+                    copy(
+                        uiState = screenState.toUiState(),
+                        availableChips = availableChipsFor(
+                            productType = screenState.productTypeOrUnknown(),
+                            unsupported = unsupported,
+                        ),
+                    )
+                }
+            }
             .launchIn(viewModelScope)
     }
 
@@ -60,6 +77,16 @@ class AccountDetailViewModel(
             }
         }
     }
+
+    /**
+     * The product, once the account has actually loaded.
+     *
+     * Every other state reports [HsbcProductType.Unknown], which keeps the full chip set — those
+     * states render no chips anyway, and treating "not loaded yet" as "unsupported" would make the
+     * row flicker as the stream settles.
+     */
+    private fun ScreenState<AccountDetailWithBalances>.productTypeOrUnknown(): HsbcProductType =
+        (this as? ScreenState.Content)?.data?.detail?.productType ?: HsbcProductType.Unknown
 
     private fun ScreenState<AccountDetailWithBalances>.toUiState(): AccountDetailUiState = when (this) {
         is ScreenState.Content -> data.toUiState()

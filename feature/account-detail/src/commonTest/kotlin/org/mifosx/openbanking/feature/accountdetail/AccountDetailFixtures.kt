@@ -25,6 +25,10 @@ object AccountDetailFixtures {
         accountNumber: String = "12345678",
         servicerIdentification: String = "MIDLGB2105V",
         statusUpdateDateTime: String = "2026-06-28T18:30:00Z",
+        // Defaults describe an ordinary personal current account, so a test that does not care
+        // about capabilities gets every chip without saying so.
+        accountTypeCode: String = "CACC",
+        description: String = "Description of the account",
     ): AccountDetail = AccountDetail(
         accountId = accountId,
         nickname = nickname,
@@ -34,6 +38,8 @@ object AccountDetailFixtures {
         accountNumber = accountNumber,
         servicerIdentification = servicerIdentification,
         statusUpdateDateTime = statusUpdateDateTime,
+        accountTypeCode = accountTypeCode,
+        description = description,
     )
 
     fun balances(): List<AccountBalanceLine> = listOf(

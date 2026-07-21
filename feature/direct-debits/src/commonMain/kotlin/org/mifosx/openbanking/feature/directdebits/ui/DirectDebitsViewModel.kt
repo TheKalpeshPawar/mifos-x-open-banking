@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
+import org.mifosx.openbanking.core.data.util.isUnsupportedForProduct
+import org.mifosx.openbanking.core.data.util.obieMessage
 import org.mifosx.openbanking.core.model.banking.DirectDebitItem
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import template.core.base.common.screen.ScreenState
@@ -57,7 +59,13 @@ class DirectDebitsViewModel(
 
     private fun ScreenState<DirectDebitsSummary>.toUiState(): DirectDebitsUiState = when (this) {
         is ScreenState.Content -> data.toUiState()
-        is ScreenState.Error -> DirectDebitsUiState.Error(classifyDirectDebitsError(error))
+        // Checked before classification: a U000 refusal is a statement about the product, not a
+        // failure, so it must not be routed to a retryable error kind.
+        is ScreenState.Error -> if (error.isUnsupportedForProduct()) {
+            DirectDebitsUiState.Unsupported(error.obieMessage().orEmpty())
+        } else {
+            DirectDebitsUiState.Error(classifyDirectDebitsError(error))
+        }
         is ScreenState.NoNetwork -> DirectDebitsUiState.Error(DirectDebitsErrorKind.NetworkError)
         ScreenState.Unauthenticated -> DirectDebitsUiState.Error(DirectDebitsErrorKind.TokenExpired)
         ScreenState.Empty -> DirectDebitsUiState.Empty

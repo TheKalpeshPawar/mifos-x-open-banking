@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.model.banking
 
 import kotlinx.serialization.Serializable
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 
 /**
  * Full account model for the account-detail screen, derived from OBIE `GET /accounts/{AccountId}`.
@@ -28,6 +29,12 @@ import kotlinx.serialization.Serializable
  *   institution (e.g. `MIDLGB2105V`). Empty string when the payload carried no servicer.
  * @property statusUpdateDateTime OBIE `StatusUpdateDateTime` as an ISO-8601 string; formatted for
  *   display in the ViewModel. Empty string when absent.
+ * @property accountTypeCode OBIE `AccountTypeCode` verbatim (e.g. `CACC`). Held separately from
+ *   [accountSubType] — which is a lossy fallback chain — because [productType] needs to know which
+ *   field the value actually came from. Empty string when absent.
+ * @property description OBIE `Description` verbatim (e.g. `GLOBAL MONEY ACCOUNT`). The only signal
+ *   that distinguishes a Global Money wallet from an ordinary current account; see [productType].
+ *   Empty string when absent.
  */
 @Serializable
 data class AccountDetail(
@@ -39,4 +46,19 @@ data class AccountDetail(
     val accountNumber: String,
     val servicerIdentification: String = "",
     val statusUpdateDateTime: String = "",
-)
+    val accountTypeCode: String = "",
+    val description: String = "",
+) {
+    /**
+     * HSBC's product classification, which decides what this account's endpoints will serve.
+     *
+     * Derived rather than stored — the inputs are already here, and a stored copy would be one more
+     * thing to keep in step. Follows the same shape as `AccountDetailWithBalances.hasNoBalances`.
+     */
+    val productType: HsbcProductType
+        get() = HsbcProductType.resolve(
+            accountSubType = accountSubType,
+            accountTypeCode = accountTypeCode,
+            description = description,
+        )
+}

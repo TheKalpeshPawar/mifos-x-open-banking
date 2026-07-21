@@ -89,6 +89,37 @@ class AccountDetailMapperTest {
         assertEquals("", response(Account(accountId = "a")).toAccountDetail()?.accountSubType)
     }
 
+    /**
+     * Carried verbatim, deliberately bypassing the fallback chain above.
+     *
+     * Product classification has to know which field a value came from — `CACC` in `AccountTypeCode`
+     * means something different from `CACC` arriving via `resolveSubType`'s fallback — and the chain
+     * collapses exactly that distinction.
+     */
+    @Test
+    fun toAccountDetailCarriesTheAccountTypeCodeAndDescriptionVerbatim() {
+        val account = Account(
+            accountId = "a",
+            accountSubType = "CurrentAccount",
+            accountTypeCode = "CACC",
+            description = "GLOBAL MONEY ACCOUNT",
+        )
+        val detail = response(account).toAccountDetail()
+
+        assertEquals("CACC", detail?.accountTypeCode)
+        assertEquals("GLOBAL MONEY ACCOUNT", detail?.description)
+        // The lossy chain still wins for accountSubType — the two live side by side.
+        assertEquals("CurrentAccount", detail?.accountSubType)
+    }
+
+    @Test
+    fun toAccountDetailDefaultsTheAccountTypeCodeAndDescriptionToEmptyStrings() {
+        val detail = response(Account(accountId = "a")).toAccountDetail()
+
+        assertEquals("", detail?.accountTypeCode)
+        assertEquals("", detail?.description)
+    }
+
     @Test
     fun toAccountDetailPrefersTheSortCodeSchemeOverTheFirstNestedEntry() {
         val detail = response(

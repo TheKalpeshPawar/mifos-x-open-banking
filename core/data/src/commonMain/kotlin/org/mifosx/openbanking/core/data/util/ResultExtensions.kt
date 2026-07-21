@@ -26,9 +26,13 @@ class RemoteException(
 
 /** Maps each [NetworkError] to a [RemoteException] with a user-facing message. */
 fun NetworkError.toThrowable(): Throwable = when (this) {
+    // A 400 from an OBIE ASPSP usually explains itself — e.g. U000's "This action is not allowed
+    // on the account type in the request". Prefer that over our own copy: the bank knows why it
+    // refused, and paraphrasing loses the detail the user (and we) need. The generic line stands in
+    // only when the body carried no parseable message.
     is NetworkError.Client.BadRequest -> RemoteException(
         networkError = this,
-        message = "Something went wrong with your request. Please try again.",
+        message = obieMessage() ?: "Something went wrong with your request. Please try again.",
     )
 
     is NetworkError.Client.NotFound -> RemoteException(

@@ -80,6 +80,11 @@ internal fun StandingOrdersScreenContent(
 
         StandingOrdersUiState.Empty -> StandingOrdersEmpty(modifier = modifier)
 
+        is StandingOrdersUiState.Unsupported -> StandingOrdersUnsupported(
+            message = current.message,
+            modifier = modifier,
+        )
+
         is StandingOrdersUiState.Error -> StandingOrdersError(
             kind = current.kind,
             onRetry = { onAction(StandingOrdersAction.RetryLoad) },

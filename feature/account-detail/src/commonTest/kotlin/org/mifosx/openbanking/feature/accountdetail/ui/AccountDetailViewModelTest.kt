@@ -17,9 +17,14 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.AccountDetailWithBalances
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
+import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailFixtures
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailRoute
+import org.mifosx.openbanking.feature.accountdetail.FakeAccountCapabilityRegistry
 import org.mifosx.openbanking.feature.accountdetail.FakeAccountDetailRepository
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
@@ -38,12 +43,13 @@ import kotlin.test.assertTrue
 class AccountDetailViewModelTest {
 
     private val repo = FakeAccountDetailRepository()
+    private val capabilityRegistry = FakeAccountCapabilityRegistry()
 
     private fun viewModel(
         handle: SavedStateHandle = SavedStateHandle(mapOf("accountId" to "acc-1")),
     ): AccountDetailViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        return AccountDetailViewModel(handle, repo)
+        return AccountDetailViewModel(handle, repo, capabilityRegistry)
     }
 
     private fun content(data: AccountDetailWithBalances): ScreenState<AccountDetailWithBalances> =
@@ -335,5 +341,101 @@ class AccountDetailViewModelTest {
         assertTrue(AccountDetailErrorKind.Network.recoverable)
         assertTrue(AccountDetailErrorKind.Unexpected.recoverable)
         assertEquals(3, AccountDetailErrorKind.entries.count { it.recoverable })
+    }
+
+    // --- capability gating --------------------------------------------------------------------
+
+    private val gatedChips = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
+
+    private suspend fun chipsFor(detail: AccountDetail): Set<AccountDetailChip> {
+        val vm = viewModel()
+        repo.emit(content(AccountDetailFixtures.withBalances(detail = detail)))
+        return vm.stateFlow.value.availableChips
+    }
+
+    @Test
+    fun allNineChipsAreAvailableForAPersonalCurrentAccount() = runTest {
+        val chips = chipsFor(AccountDetailFixtures.detail(accountTypeCode = "CACC"))
+
+        assertEquals(AccountDetailChip.entries.toSet(), chips)
+    }
+
+    @Test
+    fun standingOrdersAndDirectDebitsAreHiddenForASavingsAccount() = runTest {
+        val chips = chipsFor(
+            AccountDetailFixtures.detail(
+                accountSubType = "Savings",
+                accountTypeCode = "SVGS",
+                description = "BMM ACCOUNT",
+            ),
+        )
+
+        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+    }
+
+    @Test
+    fun standingOrdersAndDirectDebitsAreHiddenForACreditCard() = runTest {
+        val chips = chipsFor(
+            AccountDetailFixtures.detail(
+                accountSubType = "CreditCard",
+                accountTypeCode = "CARD",
+                description = "",
+            ),
+        )
+
+        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+    }
+
+    /**
+     * Pins sandbox account `1123456843`. It reports `CACC` exactly like a working current account,
+     * so only the description tells them apart — if the resolver ever consults the type code first
+     * this test is what fails.
+     */
+    @Test
+    fun standingOrdersAndDirectDebitsAreHiddenForAGlobalMoneyAccountReportingCacc() = runTest {
+        val chips = chipsFor(
+            AccountDetailFixtures.detail(
+                accountSubType = "",
+                accountTypeCode = "CACC",
+                description = "GLOBAL MONEY ACCOUNT",
+            ),
+        )
+
+        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+    }
+
+    /** The runtime half: a refusal removes a chip the matrix was happy to show. */
+    @Test
+    fun aRecordedU000RemovesTheChipEvenWhenTheMatrixPredictedSupport() = runTest {
+        val vm = viewModel()
+        repo.emit(content(AccountDetailFixtures.withBalances()))
+        assertTrue(AccountDetailChip.StandingOrders in vm.stateFlow.value.availableChips)
+
+        capabilityRegistry.markUnsupported("acc-1", AccountEndpoint.StandingOrders)
+
+        val chips = vm.stateFlow.value.availableChips
+        assertEquals(false, AccountDetailChip.StandingOrders in chips)
+        assertTrue(AccountDetailChip.DirectDebits in chips, "only the refused endpoint goes")
+    }
+
+    /** Only the two gated destinations are ever hideable; the other seven are unconditional. */
+    @Test
+    fun chipsOtherThanStandingOrdersAndDirectDebitsAreNeverHidden() {
+        HsbcProductType.entries.forEach { product ->
+            val chips = availableChipsFor(product, AccountEndpoint.entries.toSet())
+            assertEquals(
+                AccountDetailChip.entries.toSet() - gatedChips,
+                chips,
+                "the ungated chips must survive every product and every refusal, but did not for $product",
+            )
+        }
+    }
+
+    @Test
+    fun availableChipsForKeepsEverythingWhenTheProductIsUnknown() {
+        assertEquals(
+            AccountDetailChip.entries.toSet(),
+            availableChipsFor(HsbcProductType.Unknown, emptySet()),
+        )
     }
 }

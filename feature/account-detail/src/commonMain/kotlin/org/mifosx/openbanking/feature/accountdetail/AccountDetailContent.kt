@@ -56,12 +56,14 @@ private val ROW_MIN_HEIGHT = 56.dp
  *
  * An account with no balance rows renders the empty block in place of the list while keeping the
  * header and — importantly — the chip row. Dropping the chips here would strand the account: this
- * screen is the only route to its standing orders and direct debits.
+ * screen is the only route to its standing orders and direct debits. That reasoning still holds for
+ * whichever chips [availableChips] leaves in.
  */
 @Composable
 internal fun AccountDetailContent(
     header: AccountHeaderUi,
     balances: List<BalanceRowUi>,
+    availableChips: Set<AccountDetailChip>,
     onChipClick: (AccountDetailChip) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -92,7 +94,7 @@ internal fun AccountDetailContent(
             testTag = AccountDetailTestTags.EXPLORE_HEADER,
         )
 
-        ExploreChipRow(onChipClick = onChipClick)
+        ExploreChipRow(availableChips = availableChips, onChipClick = onChipClick)
     }
 }
 

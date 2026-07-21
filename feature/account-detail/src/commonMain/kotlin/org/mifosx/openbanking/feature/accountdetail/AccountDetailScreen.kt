@@ -79,6 +79,7 @@ internal fun AccountDetailScreenContent(
         is AccountDetailUiState.Content -> AccountDetailContent(
             header = current.header,
             balances = current.balances,
+            availableChips = state.availableChips,
             onChipClick = onChipClick,
             modifier = modifier,
         )
@@ -86,6 +87,7 @@ internal fun AccountDetailScreenContent(
         is AccountDetailUiState.Empty -> AccountDetailContent(
             header = current.header,
             balances = emptyList(),
+            availableChips = state.availableChips,
             onChipClick = onChipClick,
             modifier = modifier,
         )

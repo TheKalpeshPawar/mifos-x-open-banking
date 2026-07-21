@@ -31,6 +31,10 @@ internal object DirectDebitsTestTags {
     const val EMPTY_TITLE = "directDebits:emptyTitle"
     const val EMPTY_BODY = "directDebits:emptyBody"
 
+    const val UNSUPPORTED_STATE = "directDebits:unsupportedState"
+    const val UNSUPPORTED_TITLE = "directDebits:unsupportedTitle"
+    const val UNSUPPORTED_BODY = "directDebits:unsupportedBody"
+
     const val ERROR_STATE = "directDebits:errorState"
     const val ERROR_TITLE = "directDebits:errorTitle"
     const val ERROR_BODY = "directDebits:errorBody"

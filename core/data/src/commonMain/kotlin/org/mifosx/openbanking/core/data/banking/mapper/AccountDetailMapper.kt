@@ -42,6 +42,11 @@ private fun Account.toAccountDetailOrNull(): AccountDetail? {
         accountNumber = flattened.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),
         servicerIdentification = servicer?.identification ?: "",
         statusUpdateDateTime = statusUpdateDateTime ?: "",
+        // Carried verbatim, deliberately bypassing resolveSubType()'s fallback chain: product
+        // classification has to know whether a value came from AccountTypeCode or Description, and
+        // the chain collapses that distinction away.
+        accountTypeCode = accountTypeCode ?: "",
+        description = description ?: "",
     )
 }
 

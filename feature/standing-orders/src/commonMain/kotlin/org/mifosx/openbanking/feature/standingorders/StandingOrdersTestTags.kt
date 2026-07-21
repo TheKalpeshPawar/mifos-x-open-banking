@@ -29,6 +29,10 @@ internal object StandingOrdersTestTags {
     const val EMPTY_TITLE = "standingOrders:emptyTitle"
     const val EMPTY_BODY = "standingOrders:emptyBody"
 
+    const val UNSUPPORTED_STATE = "standingOrders:unsupportedState"
+    const val UNSUPPORTED_TITLE = "standingOrders:unsupportedTitle"
+    const val UNSUPPORTED_BODY = "standingOrders:unsupportedBody"
+
     const val ERROR_STATE = "standingOrders:errorState"
     const val ERROR_TITLE = "standingOrders:errorTitle"
     const val ERROR_BODY = "standingOrders:errorBody"

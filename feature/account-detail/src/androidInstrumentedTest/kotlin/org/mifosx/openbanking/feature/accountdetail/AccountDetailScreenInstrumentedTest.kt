@@ -45,14 +45,23 @@ private val balances = listOf(
     BalanceRowUi(type = "InterimBooked", amountLabel = "2,905.10 GBP"),
 )
 
-private fun contentState() = AccountDetailState(
+/** The two destinations HSBC gates on product type; everything else always renders. */
+private val GATED_CHIPS = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
+
+private fun contentState(
+    availableChips: Set<AccountDetailChip> = AccountDetailChip.entries.toSet(),
+) = AccountDetailState(
     accountId = ACCOUNT_ID,
     uiState = AccountDetailUiState.Content(header = header, balances = balances),
+    availableChips = availableChips,
 )
 
-private fun emptyState() = AccountDetailState(
+private fun emptyState(
+    availableChips: Set<AccountDetailChip> = AccountDetailChip.entries.toSet(),
+) = AccountDetailState(
     accountId = ACCOUNT_ID,
     uiState = AccountDetailUiState.Empty(header = header),
+    availableChips = availableChips,
 )
 
 private fun errorState(kind: AccountDetailErrorKind) = AccountDetailState(
@@ -168,6 +177,63 @@ class AccountDetailScreenInstrumentedTest {
         }
 
         assertEquals(AccountDetailChip.entries.map { it to ACCOUNT_ID }, chipClicks)
+    }
+
+    /**
+     * An account whose HSBC product serves neither endpoint — a savings account, a credit card or a
+     * Global Money wallet. The chips are absent rather than disabled: there is nothing behind them.
+     */
+    @Test
+    fun chipsAbsentFromAvailableChipsAreNotRendered() {
+        render(contentState(availableChips = AccountDetailChip.entries.toSet() - GATED_CHIPS))
+        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
+
+        composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.StandingOrders))
+            .assertDoesNotExist()
+        composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.DirectDebits))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun theRemainingChipsStillRenderWhenTwoAreHidden() {
+        render(contentState(availableChips = AccountDetailChip.entries.toSet() - GATED_CHIPS))
+        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
+
+        (AccountDetailChip.entries - GATED_CHIPS).forEach { chip ->
+            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
+                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).assertExists()
+        }
+    }
+
+    /**
+     * Hiding must not reorder. `ExploreChipRow` filters `entries` rather than iterating the set
+     * precisely because a Set has no guaranteed order — if that is ever inverted, this fails.
+     */
+    @Test
+    fun hidingAChipDoesNotDisturbTheOrderOfTheRest() {
+        val remaining = AccountDetailChip.entries - GATED_CHIPS
+        render(contentState(availableChips = remaining.toSet()))
+        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
+
+        remaining.forEach { chip ->
+            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
+                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performClick()
+        }
+
+        assertEquals(remaining.map { it to ACCOUNT_ID }, chipClicks)
+    }
+
+    @Test
+    fun hiddenChipsAreAlsoAbsentFromTheEmptyState() {
+        render(emptyState(availableChips = AccountDetailChip.entries.toSet() - GATED_CHIPS))
+        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
+
+        composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.StandingOrders))
+            .assertDoesNotExist()
+        composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.Transactions))
+            .assertExists()
     }
 
     @Test

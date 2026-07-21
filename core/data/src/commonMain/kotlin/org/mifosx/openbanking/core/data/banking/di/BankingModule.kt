@@ -11,11 +11,13 @@ package org.mifosx.openbanking.core.data.banking.di
 
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountDetailRepository
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
+import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
 import org.mifosx.openbanking.core.data.banking.impl.AccountDetailRepositoryImpl
@@ -49,6 +51,8 @@ import org.mobilenativefoundation.store.store5.Store
  */
 val BankingModule: Module = module {
 
+    single<AccountCapabilityRegistry> { InMemoryAccountCapabilityRegistry() }
+
     single<Store<String, List<BankAccount>>>(AppStoreRegistry.Accounts) {
         BankingStores.accountsStore(aisp = get(), accountDao = get()).registerForLogout(get())
     }
@@ -70,11 +74,13 @@ val BankingModule: Module = module {
     }
 
     single<Store<String, DirectDebitsSummary>>(AppStoreRegistry.DirectDebits) {
-        BankingStores.directDebitsStore(aisp = get()).registerForLogout(get())
+        BankingStores.directDebitsStore(aisp = get(), capabilityRegistry = get())
+            .registerForLogout(get())
     }
 
     single<Store<String, StandingOrdersSummary>>(AppStoreRegistry.StandingOrders) {
-        BankingStores.standingOrdersStore(aisp = get()).registerForLogout(get())
+        BankingStores.standingOrdersStore(aisp = get(), capabilityRegistry = get())
+            .registerForLogout(get())
     }
 
     single<AccountsRepository> {

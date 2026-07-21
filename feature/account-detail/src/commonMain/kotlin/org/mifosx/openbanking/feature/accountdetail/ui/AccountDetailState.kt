@@ -10,6 +10,10 @@
 package org.mifosx.openbanking.feature.accountdetail.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
+import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import template.core.base.network.NetworkError
 
 /**
@@ -17,10 +21,18 @@ import template.core.base.network.NetworkError
  *
  * @property accountId The route argument; also handed to every Explore chip as it navigates on.
  * @property uiState What the screen currently renders.
+ * @property availableChips Which Explore chips this account can actually reach. Sits alongside
+ *   [accountId] rather than inside [uiState] because both `Content` and `Empty` render the chip row.
+ *
+ *   The default is the **full** set, and that is load-bearing in two ways: an account whose product
+ *   we cannot classify keeps every feature rather than losing them to a guess, and the UI suites
+ *   that assert all nine chips render in declaration order keep passing without being rewritten.
+ *   Do not "tidy" this to `emptySet()`.
  */
 data class AccountDetailState(
     val accountId: String,
     val uiState: AccountDetailUiState = AccountDetailUiState.Loading,
+    val availableChips: Set<AccountDetailChip> = AccountDetailChip.entries.toSet(),
 )
 
 /**
@@ -96,3 +108,25 @@ internal fun classifyAccountDetailError(throwable: Throwable): AccountDetailErro
         is NetworkError.Network -> AccountDetailErrorKind.Network
         else -> AccountDetailErrorKind.Unexpected
     }
+
+/**
+ * The chips this account can reach, from HSBC's documented product matrix minus anything the bank
+ * has since refused at runtime.
+ *
+ * Only Standing Orders and Direct Debits are gated, and that is stated explicitly rather than
+ * derived, so a chip added to [AccountDetailChip] later cannot silently become hideable — a new
+ * destination has to opt in by adding its [AccountEndpoint] here.
+ */
+internal fun availableChipsFor(
+    productType: HsbcProductType,
+    unsupported: Set<AccountEndpoint>,
+): Set<AccountDetailChip> {
+    val gated = mapOf(
+        AccountDetailChip.StandingOrders to AccountEndpoint.StandingOrders,
+        AccountDetailChip.DirectDebits to AccountEndpoint.DirectDebits,
+    )
+    return AccountDetailChip.entries.filterTo(mutableSetOf()) { chip ->
+        val endpoint = gated[chip] ?: return@filterTo true
+        endpoint !in unsupported && HsbcProductCapability.supports(endpoint, productType)
+    }
+}

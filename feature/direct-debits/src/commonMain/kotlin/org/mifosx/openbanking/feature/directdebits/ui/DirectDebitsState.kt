@@ -42,6 +42,17 @@ sealed interface DirectDebitsUiState {
 
     data object Empty : DirectDebitsUiState
 
+    /**
+     * The account's HSBC product does not offer direct debits at all.
+     *
+     * A sibling of [Empty], not an [Error]: the bank has not failed, it has given a definitive
+     * answer. Every [DirectDebitsErrorKind] offers Retry, and retrying can never change this.
+     *
+     * @property message The ASPSP's own explanation, shown verbatim rather than paraphrased here.
+     *   Empty when the response carried no message.
+     */
+    data class Unsupported(val message: String) : DirectDebitsUiState
+
     data class Error(val kind: DirectDebitsErrorKind) : DirectDebitsUiState
 }
 

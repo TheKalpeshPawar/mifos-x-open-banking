@@ -66,13 +66,18 @@ private val CHIP_GAP = 8.dp
 private val CHIP_ICON_SIZE = 18.dp
 
 /**
- * Horizontally scrolling row of the nine account sub-screens.
+ * Horizontally scrolling row of the account sub-screens this account can reach.
  *
  * Order is [AccountDetailChip]'s declaration order, so Standing Orders sits before Direct Debits
  * as designed. Each chip hands the caller its destination; the screen supplies the `accountId`.
+ *
+ * @param availableChips Which destinations to render. Chips the account's HSBC product cannot serve
+ *   are omitted rather than disabled — a savings account has no standing orders to show, so a
+ *   greyed-out chip would only advertise a dead end.
  */
 @Composable
 internal fun ExploreChipRow(
+    availableChips: Set<AccountDetailChip>,
     onChipClick: (AccountDetailChip) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +91,9 @@ internal fun ExploreChipRow(
             .semantics { contentDescription = rowDescription },
         horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
     ) {
-        AccountDetailChip.entries.forEach { chip ->
+        // Iterate `entries` and filter, never iterate `availableChips` — a Set has no guaranteed
+        // order, and the UI suites assert declaration order.
+        AccountDetailChip.entries.filter { it in availableChips }.forEach { chip ->
             ExploreChip(chip = chip, onClick = { onChipClick(chip) })
         }
     }

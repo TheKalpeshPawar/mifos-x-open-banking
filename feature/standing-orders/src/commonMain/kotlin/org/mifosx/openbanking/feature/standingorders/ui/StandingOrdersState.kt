@@ -24,11 +24,16 @@ data class StandingOrdersState(
 )
 
 /**
- * The four rendered states.
+ * The five rendered states.
  *
  * [Content] carries the two summary counts alongside the rows because the summary line is a
  * display-only readout of this exact payload — deriving it again in the composable would let the
  * summary and the list disagree.
+ *
+ * [Unsupported] is a sibling of [Empty], not an [Error]: the bank has not failed, it has told us
+ * this product does not have standing orders at all. Modelling it as an error kind would be wrong
+ * on both counts — every [StandingOrdersErrorKind] offers Retry, and retrying can never change
+ * this answer.
  */
 sealed interface StandingOrdersUiState {
 
@@ -41,6 +46,13 @@ sealed interface StandingOrdersUiState {
     ) : StandingOrdersUiState
 
     data object Empty : StandingOrdersUiState
+
+    /**
+     * @property message The ASPSP's own explanation, shown verbatim. Deliberately not app-authored:
+     *   the bank knows why it refused, and paraphrasing means maintaining a translation of someone
+     *   else's error catalogue. Empty when the response carried no message.
+     */
+    data class Unsupported(val message: String) : StandingOrdersUiState
 
     data class Error(val kind: StandingOrdersErrorKind) : StandingOrdersUiState
 }

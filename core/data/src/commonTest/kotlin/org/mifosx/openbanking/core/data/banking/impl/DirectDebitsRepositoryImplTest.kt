@@ -28,11 +28,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.data.banking.FakeAccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
 import org.mifosx.openbanking.core.data.banking.store.FakeFetchedAtRepository
 import org.mifosx.openbanking.core.data.banking.store.FakeNetworkMonitor
 import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.Aisp
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
@@ -87,8 +89,12 @@ class DirectDebitsRepositoryImplTest {
         body: String = fourMandates,
         status: HttpStatusCode = HttpStatusCode.OK,
         fetchedAt: FakeFetchedAtRepository = FakeFetchedAtRepository(),
+        capabilityRegistry: FakeAccountCapabilityRegistry = FakeAccountCapabilityRegistry(),
     ): DirectDebitsRepositoryImpl = DirectDebitsRepositoryImpl(
-        store = BankingStores.directDebitsStore(aisp(body, status)),
+        store = BankingStores.directDebitsStore(
+            aisp = aisp(body, status),
+            capabilityRegistry = capabilityRegistry,
+        ),
         networkMonitor = FakeNetworkMonitor(NetworkStatus.Available(onlineInfo)),
         fetchedAtRepository = fetchedAt,
     )
@@ -204,8 +210,46 @@ class DirectDebitsRepositoryImplTest {
         assertIs<ScreenState.Content<DirectDebitsSummary>>(state)
     }
 
+    /**
+     * The runtime half of capability detection.
+     *
+     * Recorded in the fetcher rather than a ViewModel because this is the one point every call
+     * passes through — including a deep link that never touched the account-detail chips — so the
+     * refusal is noticed however the screen was reached.
+     */
+    @Test
+    fun aU000RefusalIsRecordedInTheCapabilityRegistry() = runTest(UnconfinedTestDispatcher()) {
+        val registry = FakeAccountCapabilityRegistry()
+
+        repo(body = U000_BODY, status = HttpStatusCode.BadRequest, capabilityRegistry = registry)
+            .directDebitsStream(ACCOUNT_ID, backgroundScope).state
+            .first { it is ScreenState.Error }
+
+        assertEquals(listOf(ACCOUNT_ID to AccountEndpoint.DirectDebits), registry.marked)
+    }
+
+    /** A 400 for any other reason must not permanently hide a feature that works. */
+    @Test
+    fun aBadRequestWithoutU000IsNotRecordedInTheCapabilityRegistry() = runTest(UnconfinedTestDispatcher()) {
+        val registry = FakeAccountCapabilityRegistry()
+        val body = """{"Code":"400","Errors":[{"ErrorCode":"UK.OBIE.Field.Invalid"}]}"""
+
+        repo(body = body, status = HttpStatusCode.BadRequest, capabilityRegistry = registry)
+            .directDebitsStream(ACCOUNT_ID, backgroundScope).state
+            .first { it is ScreenState.Error }
+
+        assertTrue(registry.marked.isEmpty(), "expected nothing recorded, got ${registry.marked}")
+    }
+
     private companion object {
         const val ACCOUNT_ID = "40051512345678"
         const val OTHER_ACCOUNT_ID = "40051599999999"
+
+        /** Captured from the HSBC sandbox verbatim. */
+        const val U000_BODY = """
+            {"Code":"400","Id":"842f0682-ba4a-4f17-9107-a5ce8b98fdbd","Message":"Bad Request",
+             "Errors":[{"ErrorCode":"U000",
+                        "Message":"This action is not allowed on the account type in the request"}]}
+        """
     }
 }
