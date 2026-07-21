@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
+import org.mifosx.openbanking.core.data.banking.ProfileRepository
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
 import org.mifosx.openbanking.core.data.banking.impl.AccountDetailRepositoryImpl
@@ -25,6 +26,7 @@ import org.mifosx.openbanking.core.data.banking.impl.AccountsOverviewRepositoryI
 import org.mifosx.openbanking.core.data.banking.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrdersRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
@@ -33,6 +35,7 @@ import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
+import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.store.AppStoreRegistry
@@ -83,6 +86,10 @@ val BankingModule: Module = module {
             .registerForLogout(get())
     }
 
+    single<Store<String, PartyProfile>>(AppStoreRegistry.Party) {
+        BankingStores.partyStore(aisp = get()).registerForLogout(get())
+    }
+
     single<AccountsRepository> {
         AccountsRepositoryImpl(
             store = get(AppStoreRegistry.Accounts),
@@ -119,6 +126,14 @@ val BankingModule: Module = module {
     single<StandingOrdersRepository> {
         StandingOrdersRepositoryImpl(
             store = get(AppStoreRegistry.StandingOrders),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<ProfileRepository> {
+        ProfileRepositoryImpl(
+            store = get(AppStoreRegistry.Party),
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )

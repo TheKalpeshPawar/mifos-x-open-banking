@@ -36,4 +36,6 @@ data class Party(
     val mobile: String? = null,
     @SerialName("Relationships")
     val relationships: Relationships? = null,
+    @SerialName("Address")
+    val address: List<PartyAddress>? = null,
 )
