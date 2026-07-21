@@ -37,6 +37,15 @@ class PartySerializationTest {
         ),
     )
 
+    private fun sampleAddress() = PartyAddress(
+        addressType = "Residential",
+        streetName = "Baker Street",
+        buildingNumber = "12",
+        postCode = "W1U 6TZ",
+        townName = "London",
+        country = "GB",
+    )
+
     private fun sampleResponse() = PartyResponse(
         data = Data(party = sampleParty()),
         links = Links(self = "/self"),
@@ -62,6 +71,73 @@ class PartySerializationTest {
         assertEquals("acc-1", party?.relationships?.account?.id)
         assertEquals("info@acme.test", party?.emailAddress)
         assertEquals(3, decoded.meta?.totalPages)
+    }
+
+    @Test
+    fun `party address survives the round-trip`() {
+        val original = sampleResponse().let {
+            it.copy(data = it.data?.copy(party = sampleParty().copy(address = listOf(sampleAddress()))))
+        }
+        val decoded = json.decodeFromString(
+            PartyResponse.serializer(),
+            json.encodeToString(PartyResponse.serializer(), original),
+        )
+        val address = decoded.data?.party?.address?.firstOrNull()
+        assertEquals("Residential", address?.addressType)
+        assertEquals("Baker Street", address?.streetName)
+        assertEquals("12", address?.buildingNumber)
+        assertEquals("London", address?.townName)
+        assertEquals("W1U 6TZ", address?.postCode)
+        assertEquals("GB", address?.country)
+    }
+
+    /**
+     * The HSBC UK Personal sandbox returns no `Address` on the party endpoints, so absent must
+     * decode to null rather than an empty list — the profile row is hidden on null.
+     */
+    @Test
+    fun `a party with no address decodes to null`() {
+        val decoded = json.decodeFromString(
+            PartyResponse.serializer(),
+            json.encodeToString(PartyResponse.serializer(), sampleResponse()),
+        )
+        assertEquals(null, decoded.data?.party?.address)
+    }
+
+    @Test
+    fun `multiple addresses are all decoded in order`() {
+        val correspondence = sampleAddress().copy(addressType = "Correspondence", townName = "Leeds")
+        val original = sampleResponse().let {
+            it.copy(
+                data = it.data?.copy(
+                    party = sampleParty().copy(address = listOf(sampleAddress(), correspondence)),
+                ),
+            )
+        }
+        val decoded = json.decodeFromString(
+            PartyResponse.serializer(),
+            json.encodeToString(PartyResponse.serializer(), original),
+        )
+        assertEquals(
+            listOf("Residential", "Correspondence"),
+            decoded.data?.party?.address?.map { it.addressType },
+        )
+    }
+
+    /** Some banks send only the unstructured `AddressLine` list and no structured components. */
+    @Test
+    fun `address line array decodes when the bank sends no structured fields`() {
+        val unstructured = PartyAddress(addressLine = listOf("12 Baker Street", "London W1U 6TZ"))
+        val original = sampleResponse().let {
+            it.copy(data = it.data?.copy(party = sampleParty().copy(address = listOf(unstructured))))
+        }
+        val decoded = json.decodeFromString(
+            PartyResponse.serializer(),
+            json.encodeToString(PartyResponse.serializer(), original),
+        )
+        val address = decoded.data?.party?.address?.firstOrNull()
+        assertEquals(listOf("12 Baker Street", "London W1U 6TZ"), address?.addressLine)
+        assertEquals(null, address?.streetName)
     }
 
     @Test
