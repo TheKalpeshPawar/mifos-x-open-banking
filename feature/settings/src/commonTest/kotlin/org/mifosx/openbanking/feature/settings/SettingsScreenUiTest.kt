@@ -17,6 +17,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.feature.settings.ui.SettingsAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Headless smoke coverage for [SettingsScreenContent] on the desktop renderer, over the same
@@ -77,6 +78,42 @@ class SettingsScreenUiTest {
         onNodeWithTag(SettingsTestTags.THEME_ROW).performClick()
 
         assertEquals(listOf<SettingsAction>(SettingsAction.ToggleThemeMenu), actions)
+    }
+
+    @Test
+    fun tappingLicencesRowFiresNavigateToLicencesAndKeepsItsChevron() = runComposeUiTest {
+        var navigated = false
+        setContent {
+            SettingsScreenContent(
+                state = SettingsFixtures.contentState(),
+                onAction = {},
+                onNavigateToLicences = { navigated = true },
+            )
+        }
+
+        onNodeWithTag(SettingsTestTags.LICENCES_ROW).performClick()
+
+        assertTrue(navigated)
+        onNodeWithTag(
+            SettingsTestTags.chevron(SettingsTestTags.LICENCES_ROW),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    @Test
+    fun tappingPrivacyRowOpensTheMifosPrivacyPolicyUrl() = runComposeUiTest {
+        val opened = mutableListOf<String>()
+        setContent {
+            SettingsScreenContent(
+                state = SettingsFixtures.contentState(),
+                onAction = {},
+                onOpenUrl = { opened.add(it) },
+            )
+        }
+
+        onNodeWithTag(SettingsTestTags.PRIVACY_ROW).performClick()
+
+        assertEquals(listOf("https://mifos.org/privacy-policy/"), opened)
     }
 
     @Test

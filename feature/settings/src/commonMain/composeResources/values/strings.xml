@@ -33,9 +33,9 @@
     <string name="feature_settings_profile_title">Profile</string>
     <string name="feature_settings_profile_subtitle">Connected identity and sign out</string>
 
-    <string name="feature_settings_terms_title">Terms of Service</string>
     <string name="feature_settings_privacy_title">Privacy Policy</string>
     <string name="feature_settings_licences_title">Open-Source Licences</string>
+    <string name="feature_settings_licences_screen_title">Open-Source Licences</string>
     <string name="feature_settings_app_version_title">App Version</string>
 
     <string name="feature_settings_opens_in_app_accessibility">Opens in the app</string>

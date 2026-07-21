@@ -43,11 +43,13 @@ internal object SettingsTestTags {
     const val CONSENTS_ROW = "settings:row:consents"
     const val PROFILE_ROW = "settings:row:profile"
 
-    const val TERMS_ROW = "settings:row:terms"
     const val PRIVACY_ROW = "settings:row:privacy"
     const val LICENCES_ROW = "settings:row:licences"
     const val APP_VERSION_ROW = "settings:row:appVersion"
     const val APP_VERSION_VALUE = "settings:appVersionValue"
+
+    const val LICENCES_SCREEN = "settings:licences:screen"
+    const val LICENCES_LIST = "settings:licences:list"
 
     const val EMPTY_STATE = "settings:emptyState"
     const val EMPTY_TITLE = "settings:emptyTitle"

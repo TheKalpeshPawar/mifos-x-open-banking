@@ -23,26 +23,22 @@ import org.mifosx.openbanking.feature.settings.ui.SettingsState
 import org.mifosx.openbanking.feature.settings.ui.SettingsUiState
 import org.mifosx.openbanking.feature.settings.ui.SettingsViewModel
 
-/** The hosted Terms of Service page. */
-private const val TERMS_URL = "https://mifos.org/legal/terms-of-service"
-
-/** The hosted Privacy Policy page. */
-private const val PRIVACY_URL = "https://mifos.org/legal/privacy-policy"
-
-/** The hosted open-source attribution page. */
-private const val LICENCES_URL = "https://mifos.org/legal/open-source-licences"
+/** The Mifos Initiative privacy policy page, opened in an external browser. */
+private const val PRIVACY_URL = "https://mifos.org/privacy-policy/"
 
 /**
  * The settings hub. A bottom-nav tab root, so it carries no navigation icon — there is nothing
  * behind it to go back to.
  *
  * Every outbound move is delegated: [onNavigateToProfile] receives the stored account id from
- * state, [onNavigateToConsents] takes none, and the legal pages go out through [onOpenUrl].
+ * state, [onNavigateToConsents] and [onNavigateToLicences] take none, and the privacy policy opens
+ * in a browser through [onOpenUrl].
  */
 @Composable
 internal fun SettingsScreen(
     onNavigateToProfile: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
+    onNavigateToLicences: () -> Unit,
     onOpenUrl: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = koinViewModel(),
@@ -59,6 +55,7 @@ internal fun SettingsScreen(
             onAction = viewModel::trySendAction,
             onNavigateToProfile = onNavigateToProfile,
             onNavigateToConsents = onNavigateToConsents,
+            onNavigateToLicences = onNavigateToLicences,
             onOpenUrl = onOpenUrl,
         )
     }
@@ -77,6 +74,7 @@ internal fun SettingsScreenContent(
     modifier: Modifier = Modifier,
     onNavigateToProfile: (String) -> Unit = {},
     onNavigateToConsents: () -> Unit = {},
+    onNavigateToLicences: () -> Unit = {},
     onOpenUrl: (String) -> Unit = {},
 ) {
     when (val current = state.uiState) {
@@ -89,9 +87,8 @@ internal fun SettingsScreenContent(
             onDismissThemeMenu = { onAction(SettingsAction.DismissThemeMenu) },
             onNavigateToConsents = onNavigateToConsents,
             onNavigateToProfile = { onNavigateToProfile(current.selectedAccountId) },
-            onOpenTerms = { onOpenUrl(TERMS_URL) },
             onOpenPrivacy = { onOpenUrl(PRIVACY_URL) },
-            onOpenLicences = { onOpenUrl(LICENCES_URL) },
+            onNavigateToLicences = onNavigateToLicences,
             modifier = modifier,
         )
 

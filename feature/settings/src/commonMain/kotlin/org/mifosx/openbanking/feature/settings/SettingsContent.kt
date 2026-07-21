@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Policy
@@ -45,7 +44,6 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_about
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_account
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_appearance
-import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_terms_title
 
 /**
  * The settings body: Appearance, Account, and About & Legal, in that order.
@@ -65,9 +63,8 @@ internal fun SettingsContent(
     onDismissThemeMenu: () -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onOpenTerms: () -> Unit,
     onOpenPrivacy: () -> Unit,
-    onOpenLicences: () -> Unit,
+    onNavigateToLicences: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(Res.string.feature_settings_content_accessibility)
@@ -91,9 +88,8 @@ internal fun SettingsContent(
         )
         AboutSection(
             appVersionLabel = appVersionLabel,
-            onOpenTerms = onOpenTerms,
             onOpenPrivacy = onOpenPrivacy,
-            onOpenLicences = onOpenLicences,
+            onNavigateToLicences = onNavigateToLicences,
         )
     }
 }
@@ -162,15 +158,14 @@ private fun AccountSection(
 }
 
 /**
- * Terms and Privacy leave for a browser and say so with the external-link glyph; Licences opens in
- * the app and gets a chevron. App Version closes the group as a static readout.
+ * Privacy leaves for a browser and says so with the external-link glyph; Licences opens in the app
+ * and gets a chevron. App Version closes the group as a static readout.
  */
 @Composable
 private fun AboutSection(
     appVersionLabel: String,
-    onOpenTerms: () -> Unit,
     onOpenPrivacy: () -> Unit,
-    onOpenLicences: () -> Unit,
+    onNavigateToLicences: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val opensExternally = stringResource(Res.string.feature_settings_opens_externally_accessibility)
@@ -180,17 +175,6 @@ private fun AboutSection(
         testTag = SettingsTestTags.SECTION_ABOUT,
         modifier = modifier,
     ) {
-        SettingsRow(
-            title = stringResource(Res.string.feature_settings_terms_title),
-            testTag = SettingsTestTags.TERMS_ROW,
-            icon = Icons.AutoMirrored.Filled.Article,
-            onClick = onOpenTerms,
-        ) {
-            SettingsRowExternalLink(
-                description = opensExternally,
-                testTag = SettingsTestTags.externalLink(SettingsTestTags.TERMS_ROW),
-            )
-        }
         SettingsRow(
             title = stringResource(Res.string.feature_settings_privacy_title),
             testTag = SettingsTestTags.PRIVACY_ROW,
@@ -206,7 +190,7 @@ private fun AboutSection(
             title = stringResource(Res.string.feature_settings_licences_title),
             testTag = SettingsTestTags.LICENCES_ROW,
             icon = Icons.Filled.Info,
-            onClick = onOpenLicences,
+            onClick = onNavigateToLicences,
         ) {
             SettingsRowChevron(
                 description = opensInApp,

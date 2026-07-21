@@ -124,15 +124,11 @@ class SettingsScreenRobolectricTest {
         ).assertExists()
     }
 
-    /** Terms and Privacy leave the app; Licences stays inside it. The glyphs must say so. */
+    /** Privacy leaves the app; Licences stays inside it. The glyphs must say so. */
     @Test
     fun aboutRowsCarryTheTrailingIconTheirDestinationImplies() {
         render(SettingsFixtures.contentState())
 
-        composeRule.onNodeWithTag(
-            SettingsTestTags.externalLink(SettingsTestTags.TERMS_ROW),
-            useUnmergedTree = true,
-        ).assertExists()
         composeRule.onNodeWithTag(
             SettingsTestTags.externalLink(SettingsTestTags.PRIVACY_ROW),
             useUnmergedTree = true,
@@ -141,6 +137,10 @@ class SettingsScreenRobolectricTest {
             SettingsTestTags.chevron(SettingsTestTags.LICENCES_ROW),
             useUnmergedTree = true,
         ).assertExists()
+        composeRule.onNodeWithTag(
+            SettingsTestTags.externalLink(SettingsTestTags.LICENCES_ROW),
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
     }
 
     @Test
@@ -208,6 +208,18 @@ class SettingsScreenRobolectricTest {
         composeRule.onNodeWithTag(SettingsTestTags.RETRY_BUTTON).performClick()
 
         assertEquals(listOf<SettingsAction>(SettingsAction.RetryLoad), actions)
+    }
+
+    /**
+     * The licences screen composes without a crash and stands up its scaffold. The AboutLibraries
+     * catalogue loads asynchronously off a Compose resource, so this pins the frame around it rather
+     * than the list contents, which are covered on device.
+     */
+    @Test
+    fun licencesScreenRendersItsScaffoldFrame() {
+        composeRule.setContent { LicencesScreen(onBack = {}) }
+
+        composeRule.onNodeWithTag(SettingsTestTags.LICENCES_SCREEN).assertExists()
     }
 
     @Test

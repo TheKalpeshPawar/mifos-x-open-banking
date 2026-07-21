@@ -30,19 +30,35 @@ data object SettingsRoute
  * Registers the settings screen in the host graph.
  *
  * Every outbound move is the host's: [onNavigateToProfile] receives the stored account id,
- * [onNavigateToConsents] takes no argument, and [onOpenUrl] hands off the legal pages. The feature
- * never sees the route table.
+ * [onNavigateToConsents] and [onNavigateToLicences] take no argument, and [onOpenUrl] hands off the
+ * privacy policy to a browser. The feature never sees the route table.
  */
 fun NavGraphBuilder.settingsScreen(
     onNavigateToProfile: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
+    onNavigateToLicences: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
     composableWithStayTransitions<SettingsRoute> {
         SettingsScreen(
             onNavigateToProfile = onNavigateToProfile,
             onNavigateToConsents = onNavigateToConsents,
+            onNavigateToLicences = onNavigateToLicences,
             onOpenUrl = onOpenUrl,
         )
+    }
+}
+
+/**
+ * The open-source licences route. Reached as a single pushed screen from the About & Legal section,
+ * carrying no argument — the catalogue it renders is bundled in the module's Compose resources.
+ */
+@Serializable
+data object LicencesRoute
+
+/** Registers the open-source licences screen in the host graph. */
+fun NavGraphBuilder.licencesScreen(onBack: () -> Unit) {
+    composableWithStayTransitions<LicencesRoute> {
+        LicencesScreen(onBack = onBack)
     }
 }
