@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toAccountEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccount
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccounts
 import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
+import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
 import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItem
@@ -31,6 +32,7 @@ import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
+import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -181,6 +183,27 @@ object BankingStores {
                         )
                         throw result.error.toThrowable()
                     }
+                }
+            },
+        )
+
+    /**
+     * The connected party's identity for one account, keyed by `AccountId`.
+     *
+     * In-memory with no Room persistence, for the same reason as [directDebitsStore]: identity is
+     * read-only reference data behind a consent that can be withdrawn at any moment, and it is the
+     * most personal payload the app holds — a cached copy outliving the consent is exactly what
+     * should not happen. A miss costs one request.
+     *
+     * Takes no capability registry: there is no `AccountEndpoint.Party`, so a `U000` refusal is not
+     * recorded and the screen surfaces it as an ordinary error.
+     */
+    fun partyStore(aisp: Aisp): Store<String, PartyProfile> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { accountId ->
+                when (val result = aisp.getParty(accountId)) {
+                    is NetworkResult.Success -> result.data.toPartyProfile()
+                    is NetworkResult.Error -> throw result.error.toThrowable()
                 }
             },
         )
