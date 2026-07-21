@@ -211,15 +211,17 @@ class SettingsScreenRobolectricTest {
     }
 
     /**
-     * The licences screen composes without a crash and stands up its scaffold. The AboutLibraries
-     * catalogue loads asynchronously off a Compose resource, so this pins the frame around it rather
-     * than the list contents, which are covered on device.
+     * The licences screen composes without a crash and stands up its scaffold and the licence body.
+     * The MPL-2.0 text loads asynchronously off a Compose resource, so this pins the frame and the
+     * body node rather than the resolved text.
      */
     @Test
     fun licencesScreenRendersItsScaffoldFrame() {
         composeRule.setContent { LicencesScreen(onBack = {}) }
 
         composeRule.onNodeWithTag(SettingsTestTags.LICENCES_SCREEN).assertExists()
+        composeRule.onNodeWithTag(SettingsTestTags.LICENCES_LIST, useUnmergedTree = true)
+            .assertExists()
     }
 
     @Test
