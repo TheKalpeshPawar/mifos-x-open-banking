@@ -10,36 +10,20 @@
 package org.mifosx.openbanking.feature.profile.ui
 
 import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
-import org.mifosx.openbanking.core.model.hsbcPermission.PermissionId
 
 /**
- * The four permissions the profile screen reports on, in the order the design renders them.
+ * Builds one row per granted permission, in the order the consent catalogue declares them.
  *
- * A deliberate subset, not the full consent. The app requests twenty scopes, and listing all of them
- * turns the card into a compliance dump nobody reads. These four are the ones a user can map onto
- * something the app visibly does — see your accounts, your balances, your transactions, and your
- * own identity — so the card answers "what did I agree to" rather than reciting OBIE vocabulary.
- */
-internal val PROFILE_PERMISSION_IDS: List<PermissionId> = listOf(
-    PermissionId.ReadAccountsDetail,
-    PermissionId.ReadBalances,
-    PermissionId.ReadTransactionsDetail,
-    PermissionId.ReadParty,
-)
-
-/**
- * Builds the four permission rows, marking each granted when it is part of the scope this app
- * requests.
+ * The whole scope is listed rather than a headline subset: HSBC grants the consent all-or-nothing,
+ * so an account authorised at all carries every requested permission, and a user auditing what they
+ * agreed to is owed the full list rather than a curated four. The card keeps it out of the way
+ * behind an expandable toggle instead of trimming it.
  *
  * Kept free of any Compose reference so the mapping is unit-testable on the JVM without a renderer,
- * and read from [OBPermission.ALL] rather than a second hardcoded list — the requested scope is
- * declared there once, and a permission dropped from it must stop reading as granted here.
+ * and read from [OBPermission.ALL] — the requested scope is declared there once, with its display
+ * labels, and a permission added to or dropped from it flows through here without a second edit.
  */
 internal fun profilePermissions(
-    requested: List<OBPermission> = OBPermission.ALL,
-): List<ProfilePermissionUi> {
-    val grantedIds = requested.map { it.id }.toSet()
-    return PROFILE_PERMISSION_IDS.map { id ->
-        ProfilePermissionUi(id = id, isGranted = id in grantedIds)
-    }
-}
+    granted: List<OBPermission> = OBPermission.ALL,
+): List<ProfilePermissionUi> =
+    granted.map { permission -> ProfilePermissionUi(id = permission.id, label = permission.label) }

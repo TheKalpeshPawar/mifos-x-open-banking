@@ -66,10 +66,15 @@ object ProfileFixtures {
         profile = priya,
         connection = connection(),
         permissions = permissions(),
+        arePermissionsExpanded = false,
         isExpiring = false,
         daysRemaining = Int.MAX_VALUE,
         isConfirmingSignOut = false,
     )
+
+    /** The permissions list opened, for the suites that assert its rows. */
+    fun contentPermissionsExpanded(): ProfileUiState.Content =
+        content().copy(arePermissionsExpanded = true)
 
     fun expiring(): ProfileUiState.Content = content().copy(
         connection = connection(expiryLabel = EXPIRING_LABEL),
@@ -79,6 +84,9 @@ object ProfileFixtures {
 
     fun contentState(): ProfileState =
         ProfileState(accountId = ACCOUNT_ID, uiState = content())
+
+    fun contentPermissionsExpandedState(): ProfileState =
+        ProfileState(accountId = ACCOUNT_ID, uiState = contentPermissionsExpanded())
 
     fun expiringState(): ProfileState =
         ProfileState(accountId = ACCOUNT_ID, uiState = expiring())

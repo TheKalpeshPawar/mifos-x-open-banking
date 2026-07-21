@@ -49,6 +49,8 @@ internal object ProfileTestTags {
     const val EXPIRY_VALUE = "profile:expiryValue"
 
     const val PERMISSIONS_HEADER = "profile:permissionsHeader"
+    const val PERMISSIONS_TOGGLE = "profile:permissionsToggle"
+    const val PERMISSIONS_LIST = "profile:permissionsList"
     const val MANAGE_CONSENT_BUTTON = "profile:manageConsentButton"
 
     const val SIGN_OUT_BUTTON = "profile:signOutButton"

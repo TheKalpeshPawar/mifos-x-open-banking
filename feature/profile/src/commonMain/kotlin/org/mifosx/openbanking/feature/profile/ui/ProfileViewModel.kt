@@ -65,6 +65,7 @@ class ProfileViewModel(
             ProfileAction.RequestSignOut -> setConfirmingSignOut(true)
             ProfileAction.DismissSignOut -> setConfirmingSignOut(false)
             ProfileAction.ConfirmSignOut -> signOut()
+            ProfileAction.TogglePermissions -> togglePermissions()
             ProfileAction.ManageConsent,
             ProfileAction.RenewConsent,
             ProfileAction.Reauthorise,
@@ -83,6 +84,20 @@ class ProfileViewModel(
         val current = state.uiState
         if (current !is ProfileUiState.Content) return
         updateState { copy(uiState = current.copy(isConfirmingSignOut = confirming)) }
+    }
+
+    /**
+     * Reveals or hides the granted-permissions list.
+     *
+     * A no-op outside [ProfileUiState.Content], for the same reason as the sign-out flag: there is no
+     * permission list to expand over a skeleton or an error.
+     */
+    private fun togglePermissions() {
+        val current = state.uiState
+        if (current !is ProfileUiState.Content) return
+        updateState {
+            copy(uiState = current.copy(arePermissionsExpanded = !current.arePermissionsExpanded))
+        }
     }
 
     /**
@@ -121,6 +136,7 @@ class ProfileViewModel(
                 expiryLabel = expiry?.let(::formatConsentExpiry).orEmpty(),
             ),
             permissions = profilePermissions(),
+            arePermissionsExpanded = arePermissionsExpanded(),
             isExpiring = days <= EXPIRY_WARNING_DAYS,
             daysRemaining = days,
             isConfirmingSignOut = isConfirmingSignOut(),
@@ -130,6 +146,10 @@ class ProfileViewModel(
     /** Preserves a raised dialog across a stream re-emission, so a refresh cannot dismiss it. */
     private fun isConfirmingSignOut(): Boolean =
         (state.uiState as? ProfileUiState.Content)?.isConfirmingSignOut == true
+
+    /** Preserves the expanded permissions list across a stream re-emission, for the same reason. */
+    private fun arePermissionsExpanded(): Boolean =
+        (state.uiState as? ProfileUiState.Content)?.arePermissionsExpanded == true
 
     /**
      * Resolves the consent's status from the session rather than a stored label.

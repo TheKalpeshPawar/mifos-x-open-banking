@@ -37,10 +37,8 @@
     <string name="feature_profile_status_consumed">Consumed</string>
 
     <string name="feature_profile_permissions_header">Permissions Granted</string>
-    <string name="feature_profile_permission_accounts_detail">Account details</string>
-    <string name="feature_profile_permission_balances">Balances</string>
-    <string name="feature_profile_permission_transactions_detail">Transactions</string>
-    <string name="feature_profile_permission_party">Identity (Party)</string>
+    <string name="feature_profile_permissions_show_accessibility">Show granted permissions</string>
+    <string name="feature_profile_permissions_hide_accessibility">Hide granted permissions</string>
     <string name="feature_profile_permission_granted_accessibility">%1$s granted</string>
 
     <string name="feature_profile_button_manage_consent">Manage Consent</string>

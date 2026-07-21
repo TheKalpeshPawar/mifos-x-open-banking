@@ -16,7 +16,7 @@ import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
-import org.mifosx.openbanking.core.model.hsbcPermission.PermissionId
+import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
 import org.mifosx.openbanking.feature.profile.FakeConsentSession
 import org.mifosx.openbanking.feature.profile.FakeProfileRepository
 import org.mifosx.openbanking.feature.profile.ProfileFixtures
@@ -334,35 +334,69 @@ class ProfileViewModelTest {
     // ── Permissions ──────────────────────────────────────────────────────
 
     @Test
-    fun contentReportsExactlyFourPermissionRows() {
-        assertEquals(EXPECTED_PERMISSION_COUNT, rendered(contentViewModel()).permissions.size)
+    fun contentListsEveryGrantedPermission() {
+        assertEquals(OBPermission.ALL.size, rendered(contentViewModel()).permissions.size)
     }
 
     @Test
-    fun permissionsAreTheFourProfileScopesInDisplayOrder() {
+    fun permissionsAreTheFullGrantedScopeInCatalogueOrder() {
         assertEquals(
-            listOf(
-                PermissionId.ReadAccountsDetail,
-                PermissionId.ReadBalances,
-                PermissionId.ReadTransactionsDetail,
-                PermissionId.ReadParty,
-            ),
+            OBPermission.ALL.map { it.id },
             rendered(contentViewModel()).permissions.map { it.id },
         )
     }
 
     @Test
-    fun everyProfileScopeIsPartOfTheRequestedConsent() {
-        assertTrue(rendered(contentViewModel()).permissions.all { it.isGranted })
+    fun eachPermissionCarriesItsCatalogueLabel() {
+        assertEquals(
+            OBPermission.ALL.map { it.label },
+            rendered(contentViewModel()).permissions.map { it.label },
+        )
     }
 
-    /** A scope dropped from the requested set must stop reading as granted. */
     @Test
-    fun aScopeAbsentFromTheRequestedConsentIsNotGranted() {
-        val rows = profilePermissions(requested = emptyList())
+    fun anEmptyGrantedScopeYieldsNoRows() {
+        assertTrue(profilePermissions(granted = emptyList()).isEmpty())
+    }
 
-        assertEquals(EXPECTED_PERMISSION_COUNT, rows.size)
-        assertTrue(rows.none { it.isGranted })
+    @Test
+    fun theGrantedPermissionsStartCollapsed() {
+        assertFalse(rendered(contentViewModel()).arePermissionsExpanded)
+    }
+
+    @Test
+    fun togglePermissionsRevealsTheList() {
+        val vm = contentViewModel()
+
+        vm.trySendAction(ProfileAction.TogglePermissions)
+
+        assertTrue(rendered(vm).arePermissionsExpanded)
+    }
+
+    @Test
+    fun togglePermissionsAgainHidesTheList() {
+        val vm = contentViewModel()
+        vm.trySendAction(ProfileAction.TogglePermissions)
+
+        vm.trySendAction(ProfileAction.TogglePermissions)
+
+        assertFalse(rendered(vm).arePermissionsExpanded)
+    }
+
+    @Test
+    fun anExpandedPermissionsListSurvivesAStreamReEmission() {
+        val repository = FakeProfileRepository(content(ProfileFixtures.priya))
+        val vm = viewModel(repository)
+        vm.trySendAction(ProfileAction.TogglePermissions)
+
+        repository.emit(
+            ScreenState.Content(
+                data = ProfileFixtures.priya,
+                freshness = DataFreshness.STALE,
+            ),
+        )
+
+        assertTrue(rendered(vm).arePermissionsExpanded)
     }
 
     // ── Error classification ─────────────────────────────────────────────
@@ -449,7 +483,6 @@ class ProfileViewModelTest {
     }
 
     private companion object {
-        const val EXPECTED_PERMISSION_COUNT = 4
         const val SEVEN_DAYS = 7
         const val EIGHT_DAYS = 8
         const val FAR_FUTURE_DAYS = 90

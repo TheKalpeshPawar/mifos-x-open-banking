@@ -9,7 +9,9 @@
  */
 package org.mifosx.openbanking.feature.profile.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.outlined.AccountBalance
@@ -42,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
-import org.mifosx.openbanking.core.model.hsbcPermission.PermissionId
 import org.mifosx.openbanking.feature.profile.ProfileSectionHeader
 import org.mifosx.openbanking.feature.profile.ProfileTestTags
 import org.mifosx.openbanking.feature.profile.generated.resources.Res
@@ -54,12 +57,10 @@ import org.mifosx.openbanking.feature.profile.generated.resources.feature_profil
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_expiry_banner_body
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_label_consent_expires
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_label_status
-import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permission_accounts_detail
-import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permission_balances
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permission_granted_accessibility
-import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permission_party
-import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permission_transactions_detail
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permissions_header
+import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permissions_hide_accessibility
+import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_permissions_show_accessibility
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_section_connection
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_status_authorised
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_status_awaiting
@@ -123,7 +124,11 @@ internal fun ProfileConnectionCard(
                     rowTestTag = ProfileTestTags.STATUS_ROW,
                 )
                 ExpiryRow(content = content)
-                PermissionsBlock(permissions = content.permissions)
+                PermissionsBlock(
+                    permissions = content.permissions,
+                    expanded = content.arePermissionsExpanded,
+                    onToggle = { onAction(ProfileAction.TogglePermissions) },
+                )
                 ManageConsentRow(onManage = { onAction(ProfileAction.ManageConsent) })
             }
         }
@@ -292,23 +297,72 @@ private fun ConnectionDetailRow(
     }
 }
 
+/**
+ * The granted-permissions section: a header that doubles as the reveal control, and the list it
+ * hides.
+ *
+ * Collapsed by default because the full OBIE scope is twenty-odd rows — enough to bury the Manage
+ * Consent button below it. The list is a real disclosure, not a menu: it expands in place, pushing
+ * the rows that follow rather than floating over them.
+ */
 @Composable
 private fun PermissionsBlock(
     permissions: List<ProfilePermissionUi>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        PermissionsToggleRow(expanded = expanded, onToggle = onToggle)
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.testTag(ProfileTestTags.PERMISSIONS_LIST)) {
+                permissions.forEach { permission ->
+                    PermissionRow(permission = permission)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The "Permissions Granted" control. The chevron points down while the list is hidden and up while
+ * it is shown, the standard reading of an inline disclosure.
+ */
+@Composable
+private fun PermissionsToggleRow(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val description = stringResource(
+        if (expanded) {
+            Res.string.feature_profile_permissions_hide_accessibility
+        } else {
+            Res.string.feature_profile_permissions_show_accessibility
+        },
+    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(ROW_PADDING)
+            .testTag(ProfileTestTags.PERMISSIONS_TOGGLE)
+            .semantics { contentDescription = description },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = stringResource(Res.string.feature_profile_permissions_header),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .padding(ROW_PADDING)
-                .testTag(ProfileTestTags.PERMISSIONS_HEADER),
+            modifier = Modifier.testTag(ProfileTestTags.PERMISSIONS_HEADER),
         )
-        permissions.forEach { permission ->
-            PermissionRow(permission = permission)
-        }
+        Icon(
+            imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(ROW_ICON_SIZE),
+        )
     }
 }
 
@@ -320,7 +374,7 @@ private fun PermissionsBlock(
  */
 @Composable
 private fun PermissionRow(permission: ProfilePermissionUi, modifier: Modifier = Modifier) {
-    val label = stringResource(permission.id.labelResource())
+    val label = permission.label
     val description = stringResource(
         Res.string.feature_profile_permission_granted_accessibility,
         label,
@@ -373,19 +427,4 @@ private fun ConsentStatus.labelResource(): StringResource = when (this) {
     ConsentStatus.AwaitingAuthorisation -> Res.string.feature_profile_status_awaiting
     ConsentStatus.Rejected -> Res.string.feature_profile_status_rejected
     ConsentStatus.Consumed -> Res.string.feature_profile_status_consumed
-}
-
-/**
- * The display label for a permission row.
- *
- * Deliberately partial: the twenty-one OBIE scopes in [PermissionId] are the protocol's vocabulary,
- * whereas this card renders only the four `PROFILE_PERMISSION_IDS` declares. `ReadParty` is the
- * `else` branch as the last of those four — a fifth id reaching here means the list grew without a
- * string, which the permission-row suite catches by asserting the rendered labels.
- */
-private fun PermissionId.labelResource(): StringResource = when (this) {
-    PermissionId.ReadAccountsDetail -> Res.string.feature_profile_permission_accounts_detail
-    PermissionId.ReadBalances -> Res.string.feature_profile_permission_balances
-    PermissionId.ReadTransactionsDetail -> Res.string.feature_profile_permission_transactions_detail
-    else -> Res.string.feature_profile_permission_party
 }
