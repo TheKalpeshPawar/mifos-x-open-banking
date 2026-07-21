@@ -2699,6 +2699,32 @@
 |    |    |    +--- org.jetbrains.compose.material:material-icons-extended:1.7.3 (*)
 |    |    |    +--- org.jetbrains.compose.components:components-resources:1.10.3 (*)
 |    |    |    +--- org.jetbrains.compose.components:components-ui-tooling-preview:1.10.3 (*)
+|    |    |    +--- com.mikepenz:aboutlibraries-compose-m3:13.2.1
+|    |    |    |    \--- com.mikepenz:aboutlibraries-compose-m3-android:13.2.1
+|    |    |    |         +--- org.jetbrains.compose.ui:ui-tooling-preview:1.10.0-rc02
+|    |    |    |         |    +--- androidx.annotation:annotation:1.9.1 (*)
+|    |    |    |         |    +--- androidx.compose.ui:ui-tooling-preview:1.10.0 -> 1.10.5 (*)
+|    |    |    |         |    +--- org.jetbrains.compose.runtime:runtime:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         |    \--- org.jetbrains.kotlin:kotlin-stdlib -> 2.3.20 (*)
+|    |    |    |         +--- androidx.core:core-ktx:1.17.0 (*)
+|    |    |    |         +--- com.mikepenz:aboutlibraries-core:13.2.1
+|    |    |    |         |    \--- com.mikepenz:aboutlibraries-core-android:13.2.1
+|    |    |    |         |         +--- org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0 (*)
+|    |    |    |         |         +--- org.jetbrains.kotlin:kotlin-stdlib:2.3.0 -> 2.3.20 (*)
+|    |    |    |         |         \--- org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0 -> 1.10.0 (*)
+|    |    |    |         +--- com.mikepenz:aboutlibraries-compose-core:13.2.1
+|    |    |    |         |    \--- com.mikepenz:aboutlibraries-compose-core-android:13.2.1
+|    |    |    |         |         +--- org.jetbrains.compose.ui:ui-tooling-preview:1.10.0-rc02 (*)
+|    |    |    |         |         +--- com.mikepenz:aboutlibraries-core:13.2.1 (*)
+|    |    |    |         |         +--- org.jetbrains.kotlin:kotlin-stdlib:2.3.0 -> 2.3.20 (*)
+|    |    |    |         |         +--- org.jetbrains.compose.runtime:runtime:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         |         +--- org.jetbrains.compose.ui:ui:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         |         \--- org.jetbrains.compose.foundation:foundation:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         +--- org.jetbrains.kotlin:kotlin-stdlib:2.3.0 -> 2.3.20 (*)
+|    |    |    |         +--- org.jetbrains.compose.runtime:runtime:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         +--- org.jetbrains.compose.ui:ui:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         +--- org.jetbrains.compose.foundation:foundation:1.10.0-rc02 -> 1.10.3 (*)
+|    |    |    |         \--- org.jetbrains.compose.material3:material3:1.9.0-beta03 -> 1.9.0 (*)
 |    |    |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
 |    |    +--- project :feature:profile
 |    |    |    +--- io.insert-koin:koin-bom:4.1.1 (*)
