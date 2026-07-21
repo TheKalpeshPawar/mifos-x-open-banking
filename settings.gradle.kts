@@ -117,6 +117,8 @@ include(":feature:account-detail")
 include(":feature:transactions")
 include(":feature:direct-debits")
 include(":feature:standing-orders")
+include(":feature:settings")
+include(":feature:profile")
 include(":feature:login")
 include(":feature:consent-callback")
 
