@@ -36,6 +36,7 @@
     <string name="feature_settings_privacy_title">Privacy Policy</string>
     <string name="feature_settings_licences_title">Open-Source Licences</string>
     <string name="feature_settings_licences_screen_title">Open-Source Licences</string>
+    <string name="feature_settings_licences_intro">mifos-x-open-banking is open-source software, licensed under the Mozilla Public License 2.0.</string>
     <string name="feature_settings_app_version_title">App Version</string>
 
     <string name="feature_settings_opens_in_app_accessibility">Opens in the app</string>
