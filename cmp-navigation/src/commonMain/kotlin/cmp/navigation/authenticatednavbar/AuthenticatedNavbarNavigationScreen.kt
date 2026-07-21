@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -54,6 +55,9 @@ import org.mifosx.openbanking.feature.directdebits.DirectDebitsRoute
 import org.mifosx.openbanking.feature.directdebits.directDebitsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.profile.ProfileRoute
+import org.mifosx.openbanking.feature.profile.profileScreen
+import org.mifosx.openbanking.feature.settings.settingsScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
 import org.mifosx.openbanking.feature.standingorders.standingOrdersScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsRoute
@@ -100,6 +104,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
 ) {
     val navigationItems = consumerNavBarTabs
     val startDestination: Any = HomeDestination
+    val uriHandler = LocalUriHandler.current
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -153,6 +158,15 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             directDebitsScreen(onBack = { navController.popBackStack() })
             standingOrdersScreen(onBack = { navController.popBackStack() })
+            settingsScreen(
+                onNavigateToProfile = { accountId -> navController.navigate(ProfileRoute(accountId)) },
+                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onOpenUrl = { url -> uriHandler.openUri(url) },
+            )
+            profileScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+            )
             bankingPlaceholderDestinations()
         }
     }
