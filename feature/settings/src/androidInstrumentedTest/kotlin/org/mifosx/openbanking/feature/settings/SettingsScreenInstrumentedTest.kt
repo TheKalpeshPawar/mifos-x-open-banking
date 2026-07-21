@@ -27,7 +27,7 @@ import kotlin.test.assertEquals
 
 private const val ACCOUNT_ID = "40051512345678"
 private const val APP_VERSION = "0.1.0 (build 1)"
-private const val EXPECTED_ROW_COUNT = 7
+private const val EXPECTED_ROW_COUNT = 6
 private const val EXPECTED_SECTION_COUNT = 3
 
 /**
@@ -125,10 +125,6 @@ class SettingsScreenInstrumentedTest {
         ).assertExists()
         composeRule.onNodeWithTag(
             SettingsTestTags.chevron(SettingsTestTags.PROFILE_ROW),
-            useUnmergedTree = true,
-        ).assertExists()
-        composeRule.onNodeWithTag(
-            SettingsTestTags.externalLink(SettingsTestTags.TERMS_ROW),
             useUnmergedTree = true,
         ).assertExists()
         composeRule.onNodeWithTag(

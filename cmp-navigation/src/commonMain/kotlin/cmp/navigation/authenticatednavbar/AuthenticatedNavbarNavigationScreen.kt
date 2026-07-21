@@ -57,6 +57,8 @@ import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.ProfileRoute
 import org.mifosx.openbanking.feature.profile.profileScreen
+import org.mifosx.openbanking.feature.settings.LicencesRoute
+import org.mifosx.openbanking.feature.settings.licencesScreen
 import org.mifosx.openbanking.feature.settings.settingsScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
 import org.mifosx.openbanking.feature.standingorders.standingOrdersScreen
@@ -161,12 +163,14 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             settingsScreen(
                 onNavigateToProfile = { accountId -> navController.navigate(ProfileRoute(accountId)) },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onNavigateToLicences = { navController.navigate(LicencesRoute) },
                 onOpenUrl = { url -> uriHandler.openUri(url) },
             )
             profileScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
             )
+            licencesScreen(onBack = { navController.popBackStack() })
             bankingPlaceholderDestinations()
         }
     }

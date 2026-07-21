@@ -88,7 +88,7 @@ internal fun SettingsRow(
 /**
  * Rows with a leading icon and rows without it share one left edge for their text.
  *
- * The About group mixes both — Terms carries an icon, App Version does not — and letting the
+ * The About group mixes both — Privacy carries an icon, App Version does not — and letting the
  * unadorned row start further left would read as a different kind of row rather than the same one
  * without a glyph.
  */

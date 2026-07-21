@@ -11,6 +11,7 @@ import org.jetbrains.compose.ExperimentalComposeLibrary
 
 plugins {
     alias(libs.plugins.cmp.feature.convention)
+    alias(libs.plugins.aboutLibraries)
 }
 
 android {
@@ -32,6 +33,8 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+
+            implementation(libs.aboutlibraries.compose.m3)
         }
 
         commonTest.dependencies {
@@ -89,4 +92,36 @@ compose {
     resources {
         packageOfResClass = "org.mifosx.openbanking.feature.settings.generated.resources"
     }
+}
+
+/**
+ * The generated open-source licence catalogue, written into this module's Compose resources so the
+ * Licences screen can read it at runtime through `Res.readBytes("files/aboutlibraries.json")`.
+ */
+val aboutLibrariesOutput = layout.projectDirectory.file(
+    "src/commonMain/composeResources/files/aboutlibraries.json",
+)
+
+aboutLibraries {
+    export {
+        outputFile.set(aboutLibrariesOutput)
+        prettyPrint.set(true)
+    }
+}
+
+/**
+ * Regenerates the catalogue before the Compose resource pipeline copies this module's `files/`, so a
+ * fresh build always packages an up-to-date `aboutlibraries.json` rather than a stale checked-in
+ * copy. The variant-less `exportLibraryDefinitions` collects the full transitive graph, and the
+ * copy/prepare tasks that consume `composeResources` are the ones that read the generated file.
+ */
+val composeResourceConsumers = listOf(
+    "copyNonXmlValueResources",
+    "convertXmlValueResources",
+    "prepareComposeResourcesTask",
+    "generateResourceAccessors",
+    "generateComposeResClass",
+)
+tasks.matching { task -> composeResourceConsumers.any { task.name.startsWith(it) } }.configureEach {
+    dependsOn("exportLibraryDefinitions")
 }
