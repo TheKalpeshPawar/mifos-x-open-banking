@@ -40,6 +40,7 @@ object AppStoreRegistry : StoreRegistry() {
     val Balances = store("balances")
     val BalanceLines = store("balanceLines")
     val Transactions = store("transactions")
+    val TransactionDetails = store("transactionDetails")
     val DirectDebits = store("directDebits")
     val StandingOrders = store("standingOrders")
     val Party = store("party")

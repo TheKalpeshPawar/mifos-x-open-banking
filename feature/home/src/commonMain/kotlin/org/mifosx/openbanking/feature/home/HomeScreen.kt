@@ -30,7 +30,7 @@ internal fun HomeScreen(
     onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
-    onNavigateToTransactionDetail: () -> Unit,
+    onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
     onNavigateToSpending: () -> Unit,
     onConnectBank: () -> Unit,
     modifier: Modifier = Modifier,

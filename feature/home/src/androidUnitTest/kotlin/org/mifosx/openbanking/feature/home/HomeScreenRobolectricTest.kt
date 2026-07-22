@@ -95,7 +95,7 @@ private fun ComposeContentTestRule.showHomeContent(onSelectAccount: (String) -> 
         onNavigateToAccountDetail = {},
         onNavigateToStatements = {},
         onNavigateToConsents = {},
-        onNavigateToTransactionDetail = {},
+        onNavigateToTransactionDetail = { _, _ -> },
         onNavigateToSpending = {},
     )
 }

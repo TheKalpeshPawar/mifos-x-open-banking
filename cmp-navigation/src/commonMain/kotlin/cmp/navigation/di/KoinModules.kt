@@ -30,6 +30,7 @@ import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
 import org.mifosx.openbanking.feature.statements.StatementFileHandler
 import org.mifosx.openbanking.feature.statements.di.StatementsModule
+import org.mifosx.openbanking.feature.transactiondetail.di.TransactionDetailModule
 import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
@@ -59,6 +60,7 @@ object KoinModules {
             AccountsModule,
             AccountDetailModule,
             TransactionsModule,
+            TransactionDetailModule,
             DirectDebitsModule,
             StandingOrdersModule,
             StatementsModule,

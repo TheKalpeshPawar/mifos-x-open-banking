@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_transaction_detail_screen_title">Transaction</string>
+    <string name="feature_transaction_detail_back_a11y">Navigate back to transactions</string>
+    <string name="feature_transaction_detail_loading">Loading transaction detail</string>
+
+    <string name="feature_transaction_detail_amount_a11y_prefix">Amount</string>
+    <string name="feature_transaction_detail_currency_a11y_prefix">Currency</string>
+    <string name="feature_transaction_detail_merchant_a11y_prefix">Merchant</string>
+    <string name="feature_transaction_detail_status_a11y_prefix">Transaction status</string>
+
+    <string name="feature_transaction_detail_card_title">Details</string>
+    <string name="feature_transaction_detail_booking_date">Booking date</string>
+    <string name="feature_transaction_detail_value_date">Value date</string>
+    <string name="feature_transaction_detail_category">Category</string>
+    <string name="feature_transaction_detail_mcc">Merchant category code</string>
+    <string name="feature_transaction_detail_balance_after">Balance after</string>
+    <string name="feature_transaction_detail_reference">Reference</string>
+    <string name="feature_transaction_detail_copy_reference_a11y">Tap to copy reference</string>
+    <string name="feature_transaction_detail_bank_code">Bank code</string>
+    <string name="feature_transaction_detail_bank_code_issued_by">issued by</string>
+    <string name="feature_transaction_detail_copy_success">Reference copied</string>
+
+    <string name="feature_transaction_detail_error_title">Could not load transaction</string>
+    <string name="feature_transaction_detail_error_accessibility">Could not load transaction</string>
+    <string name="feature_transaction_detail_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_transaction_detail_error_consent_withdrawn">Access to transactions has been withdrawn.</string>
+    <string name="feature_transaction_detail_error_network">No network connection. Please check your connection and retry.</string>
+    <string name="feature_transaction_detail_error_unexpected">Something went wrong. Please try again.</string>
+    <string name="feature_transaction_detail_retry">Retry</string>
+    <string name="feature_transaction_detail_go_back">Go back</string>
+
+    <string name="feature_transaction_detail_empty_title">Transaction not found</string>
+    <string name="feature_transaction_detail_empty_body">It may have been removed or your consent has expired.</string>
+    <string name="feature_transaction_detail_empty_accessibility">Transaction not found</string>
+
+    <string name="feature_transaction_detail_category_groceries">Groceries</string>
+    <string name="feature_transaction_detail_category_dining">Dining</string>
+    <string name="feature_transaction_detail_category_subscriptions">Subscriptions</string>
+    <string name="feature_transaction_detail_category_shopping">Shopping</string>
+    <string name="feature_transaction_detail_category_transport">Transport</string>
+    <string name="feature_transaction_detail_category_transfer">Transfer</string>
+    <string name="feature_transaction_detail_category_other">Other</string>
+</resources>

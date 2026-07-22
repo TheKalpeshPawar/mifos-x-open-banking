@@ -21,6 +21,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
 import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toStatementPeriods
+import org.mifosx.openbanking.core.data.banking.mapper.toTransactionDetails
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItem
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItems
@@ -36,6 +37,7 @@ import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.StatementPeriod
+import org.mifosx.openbanking.core.model.banking.TransactionDetail
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.Aisp
@@ -121,6 +123,28 @@ object BankingStores {
             validator = validator,
         )
     }
+
+    /**
+     * Every rich transaction record for one account, keyed by `AccountId`, as the transaction-detail
+     * screen resolves them client-side by `transactionId`.
+     *
+     * In-memory with no Room persistence, for the same reason as [directDebitsStore]: transaction
+     * detail is read-only reference data behind a consent that can be withdrawn at any moment, so a
+     * cached copy could outlive the user's permission to hold it. A miss costs one request, and the
+     * OBIE transactions endpoint returns the list unpaginated for the detail lookup.
+     *
+     * Takes no capability registry: the transactions endpoint is supported for every HSBC product, so
+     * a refusal is not an unsupported-feature signal and surfaces as an ordinary error.
+     */
+    fun transactionDetailsStore(aisp: Aisp): Store<String, List<TransactionDetail>> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { accountId ->
+                when (val result = aisp.getTransactions(accountId)) {
+                    is NetworkResult.Success -> result.data.toTransactionDetails(accountId)
+                    is NetworkResult.Error -> throw result.error.toThrowable()
+                }
+            },
+        )
 
     fun balancesStore(aisp: Aisp): Store<String, AccountBalance> =
         StoreFactory.createMemoryStore(

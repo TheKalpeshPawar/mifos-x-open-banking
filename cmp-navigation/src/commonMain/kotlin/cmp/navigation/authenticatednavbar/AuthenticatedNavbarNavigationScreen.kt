@@ -38,7 +38,6 @@ import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
 import cmp.navigation.placeholder.ScheduledPaymentsRoute
 import cmp.navigation.placeholder.StatementDetailRoute
-import cmp.navigation.placeholder.TransactionDetailRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -64,6 +63,8 @@ import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
 import org.mifosx.openbanking.feature.standingorders.standingOrdersScreen
 import org.mifosx.openbanking.feature.statements.StatementsRoute
 import org.mifosx.openbanking.feature.statements.statementsScreen
+import org.mifosx.openbanking.feature.transactiondetail.TransactionDetailRoute
+import org.mifosx.openbanking.feature.transactiondetail.transactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsRoute
 import org.mifosx.openbanking.feature.transactions.transactionsScreen
 import template.core.base.ui.util.RootTransitionProviders
@@ -144,7 +145,9 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
                 onNavigateToStatements = { accountId -> navController.navigate(StatementsRoute(accountId)) },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
-                onNavigateToTransactionDetail = { navController.navigate(TransactionDetailRoute) },
+                onNavigateToTransactionDetail = { transactionId, accountId ->
+                    navController.navigate(TransactionDetailRoute(transactionId, accountId))
+                },
                 onNavigateToSpending = { navController.navigate(PfmDashboardRoute) },
                 onConnectBank = { navController.navigate(ConsentManagerRoute) },
             )
@@ -157,9 +160,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onBack = { navController.popBackStack() },
             )
             transactionsScreen(
-                onNavigateToTransactionDetail = { _, _ -> navController.navigate(TransactionDetailRoute) },
+                onNavigateToTransactionDetail = { transactionId, accountId ->
+                    navController.navigate(TransactionDetailRoute(transactionId, accountId))
+                },
                 onBack = { navController.popBackStack() },
             )
+            transactionDetailScreen(onBack = { navController.popBackStack() })
             directDebitsScreen(onBack = { navController.popBackStack() })
             standingOrdersScreen(onBack = { navController.popBackStack() })
             statementsScreen(

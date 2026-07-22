@@ -46,7 +46,7 @@ private val CategoryIconSize = 40.dp
 internal fun RecentTransactionsSection(
     transactions: List<TransactionRowUi>,
     onViewAll: () -> Unit,
-    onTransactionClick: () -> Unit,
+    onTransactionClick: (transactionId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -68,7 +68,7 @@ internal fun RecentTransactionsSection(
             }
         }
         transactions.forEach { transaction ->
-            TransactionRow(transaction = transaction, onClick = onTransactionClick)
+            TransactionRow(transaction = transaction, onClick = { onTransactionClick(transaction.id) })
         }
     }
 }

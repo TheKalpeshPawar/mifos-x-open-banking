@@ -38,7 +38,7 @@ internal fun HomeContent(
     onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
-    onNavigateToTransactionDetail: () -> Unit,
+    onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
     onNavigateToSpending: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -72,7 +72,9 @@ internal fun HomeContent(
         RecentTransactionsSection(
             transactions = data.recentTransactions,
             onViewAll = onNavigateToTransactions,
-            onTransactionClick = onNavigateToTransactionDetail,
+            onTransactionClick = { transactionId ->
+                onNavigateToTransactionDetail(transactionId, data.selectedAccountId)
+            },
         )
         data.spending?.let { spending ->
             SpendingSnapshotCard(spending = spending, onClick = onNavigateToSpending)

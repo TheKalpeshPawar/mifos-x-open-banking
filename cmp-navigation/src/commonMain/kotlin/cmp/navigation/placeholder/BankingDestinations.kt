@@ -31,8 +31,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 // ─── Consumer ────────────────────────────────────────────────────────────────
 @Serializable data object TransactionsRoute
 
-@Serializable data object TransactionDetailRoute
-
 @Serializable data object TransactionTagsRoute
 
 @Serializable data object SendMoneyRoute
@@ -90,7 +88,6 @@ fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(Car
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
-    composableWithStayTransitions<TransactionDetailRoute> { PlaceholderScreen("Transaction detail") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
     composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
