@@ -132,6 +132,22 @@ class HsbcProductCapabilityTest {
         assertFalse(HsbcProductCapability.supports(AccountEndpoint.DirectDebits, fx))
     }
 
+    /**
+     * Statements is the only credit-card-only endpoint: HSBC exposes a statement document over AIS
+     * for credit cards and nothing else, so every other product hides the Statements chip.
+     */
+    @Test
+    fun creditCardSupportsStatements() {
+        assertTrue(HsbcProductCapability.supports(AccountEndpoint.Statements, HsbcProductType.CreditCard))
+    }
+
+    @Test
+    fun personalCurrentAccountDoesNotSupportStatements() {
+        assertFalse(
+            HsbcProductCapability.supports(AccountEndpoint.Statements, HsbcProductType.PersonalCurrentAccount),
+        )
+    }
+
     @Test
     fun balancesAndTransactionsAreSupportedByEveryProduct() {
         HsbcProductType.entries.forEach { product ->

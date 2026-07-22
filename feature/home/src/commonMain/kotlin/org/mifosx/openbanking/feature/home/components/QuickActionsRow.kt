@@ -43,14 +43,16 @@ private val ActionIconSize = 24.dp
 private const val DISABLED_ALPHA = 0.4f
 
 /**
- * Row of primary account actions. Pay is disabled (payment initiation is not yet available); the
- * others navigate via their callbacks.
+ * Row of primary account actions. Pay is disabled (payment initiation is not yet available), and
+ * Statements is disabled unless [statementsEnabled] — HSBC exposes statements on credit cards only;
+ * the others navigate via their callbacks.
  */
 @Composable
 internal fun QuickActionsRow(
     onTransactions: () -> Unit,
     onStatements: () -> Unit,
     onConsents: () -> Unit,
+    statementsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -76,7 +78,7 @@ internal fun QuickActionsRow(
         QuickAction(
             icon = Icons.Filled.Description,
             label = stringResource(Res.string.feature_home_action_statements),
-            enabled = true,
+            enabled = statementsEnabled,
             onClick = onStatements,
         )
         QuickAction(

@@ -345,7 +345,11 @@ class AccountDetailViewModelTest {
 
     // --- capability gating --------------------------------------------------------------------
 
-    private val gatedChips = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
+    /** Standing orders and direct debits are hidden on every product except a personal current account. */
+    private val standingOrderChips = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
+
+    /** The three product-gated chips: standing orders, direct debits and the credit-card-only statements. */
+    private val gatedChips = standingOrderChips + AccountDetailChip.Statements
 
     private suspend fun chipsFor(detail: AccountDetail): Set<AccountDetailChip> {
         val vm = viewModel()
@@ -353,15 +357,16 @@ class AccountDetailViewModelTest {
         return vm.stateFlow.value.availableChips
     }
 
+    /** A personal current account keeps standing orders and direct debits, but loses statements. */
     @Test
-    fun allNineChipsAreAvailableForAPersonalCurrentAccount() = runTest {
+    fun aPersonalCurrentAccountKeepsEverythingExceptStatements() = runTest {
         val chips = chipsFor(AccountDetailFixtures.detail(accountTypeCode = "CACC"))
 
-        assertEquals(AccountDetailChip.entries.toSet(), chips)
+        assertEquals(AccountDetailChip.entries.toSet() - AccountDetailChip.Statements, chips)
     }
 
     @Test
-    fun standingOrdersAndDirectDebitsAreHiddenForASavingsAccount() = runTest {
+    fun standingOrdersDirectDebitsAndStatementsAreHiddenForASavingsAccount() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
                 accountSubType = "Savings",
@@ -373,8 +378,9 @@ class AccountDetailViewModelTest {
         assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
     }
 
+    /** A credit card is the one product that keeps statements, though it still loses SO and DD. */
     @Test
-    fun standingOrdersAndDirectDebitsAreHiddenForACreditCard() = runTest {
+    fun aCreditCardHidesStandingOrdersAndDirectDebitsButKeepsStatements() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
                 accountSubType = "CreditCard",
@@ -383,7 +389,8 @@ class AccountDetailViewModelTest {
             ),
         )
 
-        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+        assertEquals(AccountDetailChip.entries.toSet() - standingOrderChips, chips)
+        assertTrue(AccountDetailChip.Statements in chips)
     }
 
     /**
@@ -392,7 +399,7 @@ class AccountDetailViewModelTest {
      * this test is what fails.
      */
     @Test
-    fun standingOrdersAndDirectDebitsAreHiddenForAGlobalMoneyAccountReportingCacc() = runTest {
+    fun standingOrdersDirectDebitsAndStatementsAreHiddenForAGlobalMoneyAccountReportingCacc() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
                 accountSubType = "",
@@ -418,9 +425,9 @@ class AccountDetailViewModelTest {
         assertTrue(AccountDetailChip.DirectDebits in chips, "only the refused endpoint goes")
     }
 
-    /** Only the two gated destinations are ever hideable; the other seven are unconditional. */
+    /** Only the three gated destinations are ever hideable; the other six are unconditional. */
     @Test
-    fun chipsOtherThanStandingOrdersAndDirectDebitsAreNeverHidden() {
+    fun theUngatedChipsAreNeverHiddenForAnyProductOrRefusal() {
         HsbcProductType.entries.forEach { product ->
             val chips = availableChipsFor(product, AccountEndpoint.entries.toSet())
             assertEquals(
@@ -429,6 +436,17 @@ class AccountDetailViewModelTest {
                 "the ungated chips must survive every product and every refusal, but did not for $product",
             )
         }
+    }
+
+    @Test
+    fun aCreditCardKeepsStatements() {
+        assertTrue(AccountDetailChip.Statements in availableChipsFor(HsbcProductType.CreditCard, emptySet()))
+    }
+
+    @Test
+    fun aPersonalCurrentAccountHidesStatements() {
+        val chips = availableChipsFor(HsbcProductType.PersonalCurrentAccount, emptySet())
+        assertEquals(false, AccountDetailChip.Statements in chips)
     }
 
     @Test

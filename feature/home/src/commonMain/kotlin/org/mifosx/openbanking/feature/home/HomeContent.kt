@@ -67,6 +67,7 @@ internal fun HomeContent(
             onTransactions = onNavigateToTransactions,
             onStatements = { onNavigateToStatements(data.selectedAccountId) },
             onConsents = onNavigateToConsents,
+            statementsEnabled = data.statementsAvailable,
         )
         RecentTransactionsSection(
             transactions = data.recentTransactions,

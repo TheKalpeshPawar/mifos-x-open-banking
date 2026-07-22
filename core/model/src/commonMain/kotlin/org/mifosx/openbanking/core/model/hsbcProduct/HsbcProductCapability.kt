@@ -62,7 +62,13 @@ data class HsbcProductCapability(
             HsbcProductCapability(AccountEndpoint.Transactions, ALL_PRODUCTS),
             HsbcProductCapability(AccountEndpoint.Party, ALL_PRODUCTS),
             HsbcProductCapability(AccountEndpoint.Product, ALL_PRODUCTS),
-            HsbcProductCapability(AccountEndpoint.Statements, ALL_PRODUCTS),
+
+            // "Supported product types (Credit Cards)" — statements are a credit-card-only
+            // resource; the other products expose no statement document over AIS.
+            HsbcProductCapability(
+                AccountEndpoint.Statements,
+                setOf(HsbcProductType.CreditCard),
+            ),
 
             // "Supported product types (Personal Current Account, Savings Account,
             //  Foreign Currency Accounts, Global Money)" — credit cards excluded.

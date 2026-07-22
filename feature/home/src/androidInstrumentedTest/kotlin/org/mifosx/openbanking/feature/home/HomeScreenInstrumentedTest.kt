@@ -117,4 +117,5 @@ private fun sampleHomeData(): HomeData = HomeData(
         ),
     ),
     spending = SpendingRowUi(totalLabel = "£1,204.00", topCategory = "Groceries"),
+    statementsAvailable = false,
 )

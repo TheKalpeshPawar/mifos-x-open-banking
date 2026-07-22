@@ -27,6 +27,7 @@ import template.core.base.common.screen.ScreenState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class HomeViewModelTest {
 
@@ -40,8 +41,8 @@ class HomeViewModelTest {
         return HomeViewModel(accountsRepo, balancesRepo, transactionsRepo, userDataRepo)
     }
 
-    private fun account(id: String) =
-        BankAccount(id, "Nickname $id", "CurrentAccount", "GBP", "400515", "12345678")
+    private fun account(id: String, subType: String = "CurrentAccount") =
+        BankAccount(id, "Nickname $id", subType, "GBP", "400515", "12345678")
 
     private fun balance(id: String) = AccountBalance(id, "GBP", "2900.00", "2847.63")
 
@@ -68,6 +69,21 @@ class HomeViewModelTest {
         assertEquals("£2,900.00", data.balanceLabel)
         assertEquals("40-05-15  12345678", data.accountNumberLabel)
         assertEquals(5, data.recentTransactions.size)
+        assertEquals(false, data.statementsAvailable)
+    }
+
+    @Test
+    fun `statements is available when the selected account is a credit card`() = runTest {
+        val vm = createViewModel()
+        accountsRepo.emissions.value =
+            ScreenState.Content(listOf(account("acc-1", subType = "CreditCard")), DataFreshness.FRESH)
+        balancesRepo.emissions.value = ScreenState.Content(balance("acc-1"), DataFreshness.FRESH)
+        transactionsRepo.emissions.value = ScreenState.Content(emptyList(), DataFreshness.FRESH)
+
+        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
+        val data = (state.uiState as ScreenState.Content).data
+
+        assertTrue(data.statementsAvailable)
     }
 
     @Test

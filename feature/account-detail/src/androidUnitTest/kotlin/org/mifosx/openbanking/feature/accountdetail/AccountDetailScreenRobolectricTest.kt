@@ -48,7 +48,11 @@ private val balances = listOf(
 )
 
 /** The two destinations HSBC gates on product type; everything else always renders. */
-private val GATED_CHIPS = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
+private val GATED_CHIPS = setOf(
+    AccountDetailChip.StandingOrders,
+    AccountDetailChip.DirectDebits,
+    AccountDetailChip.Statements,
+)
 
 private fun contentState(
     availableChips: Set<AccountDetailChip> = AccountDetailChip.entries.toSet(),

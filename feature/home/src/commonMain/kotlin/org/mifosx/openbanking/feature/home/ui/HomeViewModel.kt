@@ -34,6 +34,9 @@ import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.TransactionItem
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineScreenStates
 import template.core.base.common.screen.dataOrNull
@@ -70,6 +73,8 @@ data class HomeData(
     val accountNumberLabel: String,
     val recentTransactions: List<TransactionRowUi>,
     val spending: SpendingRowUi?,
+    /** Whether the Statements quick action is enabled — HSBC exposes statements on credit cards only. */
+    val statementsAvailable: Boolean,
 )
 
 data class HomeState(
@@ -167,6 +172,9 @@ class HomeViewModel(
     ): HomeData {
         val selectedId = balance.accountId
         val selected = accounts.firstOrNull { it.accountId == selectedId }
+        val productType = selected
+            ?.let { HsbcProductType.resolve(it.accountSubType, accountTypeCode = "", description = "") }
+            ?: HsbcProductType.Unknown
         val snapshot = computeSpendingSnapshot(transactions, currentYearMonth())
         return HomeData(
             accounts = accounts.map { AccountChipUi(id = it.accountId, nickname = it.nickname) },
@@ -185,6 +193,7 @@ class HomeViewModel(
             } else {
                 null
             },
+            statementsAvailable = HsbcProductCapability.supports(AccountEndpoint.Statements, productType),
         )
     }
 
