@@ -36,7 +36,6 @@ import cmp.navigation.placeholder.ConsentManagerRoute
 import cmp.navigation.placeholder.PartyRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
-import cmp.navigation.placeholder.StatementDetailRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -62,6 +61,8 @@ import org.mifosx.openbanking.feature.settings.licencesScreen
 import org.mifosx.openbanking.feature.settings.settingsScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
 import org.mifosx.openbanking.feature.standingorders.standingOrdersScreen
+import org.mifosx.openbanking.feature.statementdetail.StatementDetailRoute
+import org.mifosx.openbanking.feature.statementdetail.statementDetailScreen
 import org.mifosx.openbanking.feature.statements.StatementsRoute
 import org.mifosx.openbanking.feature.statements.statementsScreen
 import org.mifosx.openbanking.feature.transactiondetail.TransactionDetailRoute
@@ -168,11 +169,19 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             transactionDetailScreen(onBack = { navController.popBackStack() })
             scheduledPaymentsScreen(onBack = { navController.popBackStack() })
+            statementDetailScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToTransactionDetail = { transactionId, accountId ->
+                    navController.navigate(TransactionDetailRoute(transactionId, accountId))
+                },
+            )
             directDebitsScreen(onBack = { navController.popBackStack() })
             standingOrdersScreen(onBack = { navController.popBackStack() })
             statementsScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToStatementDetail = { _, _ -> navController.navigate(StatementDetailRoute) },
+                onNavigateToStatementDetail = { statementId, accountId ->
+                    navController.navigate(StatementDetailRoute(accountId = accountId, statementId = statementId))
+                },
             )
             settingsScreen(
                 onNavigateToProfile = { accountId -> navController.navigate(ProfileRoute(accountId)) },

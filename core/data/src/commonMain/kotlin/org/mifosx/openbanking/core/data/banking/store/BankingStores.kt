@@ -21,7 +21,9 @@ import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
 import org.mifosx.openbanking.core.data.banking.mapper.toScheduledPaymentItems
 import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
+import org.mifosx.openbanking.core.data.banking.mapper.toStatementDetail
 import org.mifosx.openbanking.core.data.banking.mapper.toStatementPeriods
+import org.mifosx.openbanking.core.data.banking.mapper.toStatementTransactionItems
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionDetails
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItem
@@ -38,6 +40,7 @@ import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
+import org.mifosx.openbanking.core.model.banking.StatementDetail
 import org.mifosx.openbanking.core.model.banking.StatementPeriod
 import org.mifosx.openbanking.core.model.banking.TransactionDetail
 import org.mifosx.openbanking.core.model.banking.TransactionItem
@@ -249,6 +252,48 @@ object BankingStores {
             fetcher = Fetcher.of { accountId ->
                 when (val result = aisp.getStatements(accountId)) {
                     is NetworkResult.Success -> result.data.toStatementPeriods()
+                    is NetworkResult.Error -> throw result.error.toThrowable()
+                }
+            },
+        )
+
+    /**
+     * One statement's identity, period and money lines, keyed by a composite `"$accountId|$statementId"`
+     * so the fetcher can reach both path segments the OBIE call needs.
+     *
+     * In-memory with no Room persistence, for the same reason as [directDebitsStore]: statement detail
+     * is read-only reference data behind a consent that can be withdrawn at any moment. An empty
+     * `Statement` array is a not-found — the mapper returns `null` and the fetcher throws, surfacing it
+     * as an error rather than a blank screen.
+     *
+     * Takes no capability registry: statement detail sits behind the already-gated Statements chip, and
+     * the detail/transactions endpoints do not answer `U000`, so a refusal is an ordinary error.
+     */
+    fun statementDetailStore(aisp: Aisp): Store<String, StatementDetail> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { key ->
+                val (accountId, statementId) = key.split("|", limit = 2)
+                when (val result = aisp.getStatementDetails(accountId, statementId)) {
+                    is NetworkResult.Success ->
+                        result.data.toStatementDetail(accountId, statementId)
+                            ?: throw NoSuchElementException("No statement $statementId for account $accountId")
+
+                    is NetworkResult.Error -> throw result.error.toThrowable()
+                }
+            },
+        )
+
+    /**
+     * Every transaction booked within one statement's period, keyed by the same composite
+     * `"$accountId|$statementId"` the detail store uses. In-memory, for the same consent-scope reason as
+     * [statementDetailStore].
+     */
+    fun statementTransactionsStore(aisp: Aisp): Store<String, List<TransactionItem>> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { key ->
+                val (accountId, statementId) = key.split("|", limit = 2)
+                when (val result = aisp.getStatementTransactions(accountId, statementId)) {
+                    is NetworkResult.Success -> result.data.toStatementTransactionItems(accountId)
                     is NetworkResult.Error -> throw result.error.toThrowable()
                 }
             },

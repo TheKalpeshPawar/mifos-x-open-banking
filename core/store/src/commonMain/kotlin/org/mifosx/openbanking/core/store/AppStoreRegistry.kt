@@ -46,4 +46,6 @@ object AppStoreRegistry : StoreRegistry() {
     val StandingOrders = store("standingOrders")
     val Party = store("party")
     val Statements = store("statements")
+    val StatementDetail = store("statementDetail")
+    val StatementTransactions = store("statementTransactions")
 }
