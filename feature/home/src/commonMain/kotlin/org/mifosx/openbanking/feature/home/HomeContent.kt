@@ -34,7 +34,7 @@ import template.core.base.designsystem.theme.KptTheme
 internal fun HomeContent(
     data: HomeData,
     onSelectAccount: (String) -> Unit,
-    onNavigateToTransactions: () -> Unit,
+    onNavigateToTransactions: (accountId: String) -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
@@ -64,14 +64,14 @@ internal fun HomeContent(
             onClick = { onNavigateToAccountDetail(data.selectedAccountId) },
         )
         QuickActionsRow(
-            onTransactions = onNavigateToTransactions,
+            onTransactions = { onNavigateToTransactions(data.selectedAccountId) },
             onStatements = { onNavigateToStatements(data.selectedAccountId) },
             onConsents = onNavigateToConsents,
             statementsEnabled = data.statementsAvailable,
         )
         RecentTransactionsSection(
             transactions = data.recentTransactions,
-            onViewAll = onNavigateToTransactions,
+            onViewAll = { onNavigateToTransactions(data.selectedAccountId) },
             onTransactionClick = { transactionId ->
                 onNavigateToTransactionDetail(transactionId, data.selectedAccountId)
             },

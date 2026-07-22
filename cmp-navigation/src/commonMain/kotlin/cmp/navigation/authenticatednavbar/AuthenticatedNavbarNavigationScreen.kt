@@ -70,7 +70,6 @@ import org.mifosx.openbanking.feature.transactiondetail.transactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsRoute
 import org.mifosx.openbanking.feature.transactions.transactionsScreen
 import template.core.base.ui.util.RootTransitionProviders
-import cmp.navigation.placeholder.TransactionsRoute as TransactionsPlaceholderRoute
 
 @Composable
 internal fun AuthenticatedNavbarNavigationScreen(
@@ -143,7 +142,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
             homeGraph(
-                onNavigateToTransactions = { navController.navigate(TransactionsPlaceholderRoute) },
+                onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
                 onNavigateToStatements = { accountId -> navController.navigate(StatementsRoute(accountId)) },
                 onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
@@ -220,7 +219,13 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
 }
 
 private fun NavHostController.navigateToTab(tab: NavigationItem) {
-    navigate(route = tab.startDestinationRoute) {
+    // Navigate to the tab's graph route, not its inner start-destination route. For the Home tab
+    // those differ (`HomeDestination` graph vs `HomeRoute`), and `HomeRoute` is also the NavHost's
+    // start destination — the same id this `popUpTo` targets. Navigating to that id with
+    // `restoreState = true` restored the sibling tab's just-saved back stack instead of Home, so the
+    // Home tab was unreachable. Targeting the graph route decouples the two. (Flat tabs — Transactions
+    // placeholder, More — have graphRoute == startDestinationRoute, so they are unaffected.)
+    navigate(route = tab.graphRoute) {
         popUpTo(graph.findStartDestination().id) {
             saveState = true
         }

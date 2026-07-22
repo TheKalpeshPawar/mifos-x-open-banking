@@ -28,7 +28,7 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 
 @Suppress("LongParameterList")
 fun NavGraphBuilder.homeGraph(
-    onNavigateToTransactions: () -> Unit,
+    onNavigateToTransactions: (accountId: String) -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,

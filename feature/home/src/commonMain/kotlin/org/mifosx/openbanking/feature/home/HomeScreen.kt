@@ -26,7 +26,7 @@ import template.core.base.ui.screen.ScreenContent
  */
 @Composable
 internal fun HomeScreen(
-    onNavigateToTransactions: () -> Unit,
+    onNavigateToTransactions: (accountId: String) -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
     onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
