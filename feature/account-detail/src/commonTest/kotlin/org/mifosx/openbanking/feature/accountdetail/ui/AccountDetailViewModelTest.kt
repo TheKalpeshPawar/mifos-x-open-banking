@@ -348,8 +348,15 @@ class AccountDetailViewModelTest {
     /** Standing orders and direct debits are hidden on every product except a personal current account. */
     private val standingOrderChips = setOf(AccountDetailChip.StandingOrders, AccountDetailChip.DirectDebits)
 
-    /** The three product-gated chips: standing orders, direct debits and the credit-card-only statements. */
-    private val gatedChips = standingOrderChips + AccountDetailChip.Statements
+    /**
+     * Every chip the matrix can gate: standing orders, direct debits, the credit-card-only statements,
+     * and scheduled payments, which every product except a credit card can serve.
+     */
+    private val gatedChips =
+        standingOrderChips + AccountDetailChip.Statements + AccountDetailChip.ScheduledPayments
+
+    /** Hidden on a savings or global-money account: SO, DD and statements — scheduled payments stay. */
+    private val savingsHidden = standingOrderChips + AccountDetailChip.Statements
 
     private suspend fun chipsFor(detail: AccountDetail): Set<AccountDetailChip> {
         val vm = viewModel()
@@ -375,12 +382,16 @@ class AccountDetailViewModelTest {
             ),
         )
 
-        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+        assertEquals(AccountDetailChip.entries.toSet() - savingsHidden, chips)
+        assertTrue(AccountDetailChip.ScheduledPayments in chips, "savings can still schedule payments")
     }
 
-    /** A credit card is the one product that keeps statements, though it still loses SO and DD. */
+    /**
+     * A credit card is the one product that keeps statements, but it loses standing orders, direct
+     * debits and scheduled payments — the mirror of statements, which only a credit card serves.
+     */
     @Test
-    fun aCreditCardHidesStandingOrdersAndDirectDebitsButKeepsStatements() = runTest {
+    fun aCreditCardHidesStandingOrdersDirectDebitsAndScheduledPaymentsButKeepsStatements() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
                 accountSubType = "CreditCard",
@@ -389,8 +400,12 @@ class AccountDetailViewModelTest {
             ),
         )
 
-        assertEquals(AccountDetailChip.entries.toSet() - standingOrderChips, chips)
+        assertEquals(
+            AccountDetailChip.entries.toSet() - standingOrderChips - AccountDetailChip.ScheduledPayments,
+            chips,
+        )
         assertTrue(AccountDetailChip.Statements in chips)
+        assertEquals(false, AccountDetailChip.ScheduledPayments in chips)
     }
 
     /**
@@ -408,7 +423,8 @@ class AccountDetailViewModelTest {
             ),
         )
 
-        assertEquals(AccountDetailChip.entries.toSet() - gatedChips, chips)
+        assertEquals(AccountDetailChip.entries.toSet() - savingsHidden, chips)
+        assertTrue(AccountDetailChip.ScheduledPayments in chips, "global money can still schedule payments")
     }
 
     /** The runtime half: a refusal removes a chip the matrix was happy to show. */
@@ -447,6 +463,18 @@ class AccountDetailViewModelTest {
     fun aPersonalCurrentAccountHidesStatements() {
         val chips = availableChipsFor(HsbcProductType.PersonalCurrentAccount, emptySet())
         assertEquals(false, AccountDetailChip.Statements in chips)
+    }
+
+    @Test
+    fun aCreditCardHidesScheduledPayments() {
+        val chips = availableChipsFor(HsbcProductType.CreditCard, emptySet())
+        assertEquals(false, AccountDetailChip.ScheduledPayments in chips)
+    }
+
+    @Test
+    fun aPersonalCurrentAccountKeepsScheduledPayments() {
+        val chips = availableChipsFor(HsbcProductType.PersonalCurrentAccount, emptySet())
+        assertTrue(AccountDetailChip.ScheduledPayments in chips)
     }
 
     @Test

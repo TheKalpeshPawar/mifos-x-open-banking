@@ -19,6 +19,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toBankAccount
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccounts
 import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
+import org.mifosx.openbanking.core.data.banking.mapper.toScheduledPaymentItems
 import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toStatementPeriods
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionDetails
@@ -35,6 +36,7 @@ import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
+import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.StatementPeriod
 import org.mifosx.openbanking.core.model.banking.TransactionDetail
@@ -273,6 +275,39 @@ object BankingStores {
                         result.error.recordIfUnsupported(
                             accountId = accountId,
                             endpoint = AccountEndpoint.StandingOrders,
+                            registry = capabilityRegistry,
+                        )
+                        throw result.error.toThrowable()
+                    }
+                }
+            },
+        )
+
+    /**
+     * Every future-dated scheduled payment for one account, keyed by `AccountId`, in the order the
+     * bank returned them.
+     *
+     * In-memory with no Room persistence, for the same reason as [directDebitsStore]: scheduled
+     * payments are read-only reference data behind a consent that can be withdrawn at any moment, so
+     * a cached copy could outlive the user's permission to hold it. A miss costs one request, and the
+     * OBIE endpoint returns the full list unpaginated.
+     *
+     * Product-gated like [directDebitsStore] and [standingOrdersStore]: scheduled payments are not
+     * offered on a credit card, so a `U000` refusal is recorded against
+     * [AccountEndpoint.ScheduledPayments] before rethrowing, letting account-detail hide the chip.
+     */
+    fun scheduledPaymentsStore(
+        aisp: Aisp,
+        capabilityRegistry: AccountCapabilityRegistry,
+    ): Store<String, List<ScheduledPaymentItem>> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { accountId ->
+                when (val result = aisp.getScheduledPayments(accountId)) {
+                    is NetworkResult.Success -> result.data.toScheduledPaymentItems(accountId)
+                    is NetworkResult.Error -> {
+                        result.error.recordIfUnsupported(
+                            accountId = accountId,
+                            endpoint = AccountEndpoint.ScheduledPayments,
                             registry = capabilityRegistry,
                         )
                         throw result.error.toThrowable()

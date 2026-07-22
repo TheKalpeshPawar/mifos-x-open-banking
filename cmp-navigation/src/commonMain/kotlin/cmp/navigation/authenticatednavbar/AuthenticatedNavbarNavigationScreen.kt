@@ -36,7 +36,6 @@ import cmp.navigation.placeholder.ConsentManagerRoute
 import cmp.navigation.placeholder.PartyRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
-import cmp.navigation.placeholder.ScheduledPaymentsRoute
 import cmp.navigation.placeholder.StatementDetailRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
@@ -56,6 +55,8 @@ import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.profile.ProfileRoute
 import org.mifosx.openbanking.feature.profile.profileScreen
+import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
+import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
 import org.mifosx.openbanking.feature.settings.LicencesRoute
 import org.mifosx.openbanking.feature.settings.licencesScreen
 import org.mifosx.openbanking.feature.settings.settingsScreen
@@ -166,6 +167,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onBack = { navController.popBackStack() },
             )
             transactionDetailScreen(onBack = { navController.popBackStack() })
+            scheduledPaymentsScreen(onBack = { navController.popBackStack() })
             directDebitsScreen(onBack = { navController.popBackStack() })
             standingOrdersScreen(onBack = { navController.popBackStack() })
             statementsScreen(
@@ -200,7 +202,7 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
         AccountDetailChip.Statements -> navigate(StatementsRoute(accountId))
         AccountDetailChip.StandingOrders -> navigate(StandingOrdersRoute(accountId))
         AccountDetailChip.DirectDebits -> navigate(DirectDebitsRoute(accountId))
-        AccountDetailChip.ScheduledPayments -> navigate(ScheduledPaymentsRoute)
+        AccountDetailChip.ScheduledPayments -> navigate(ScheduledPaymentsRoute(accountId))
         AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute)
         AccountDetailChip.AtmLocator -> navigate(AtmLocatorRoute)
         AccountDetailChip.Product -> navigate(ProductsRoute)

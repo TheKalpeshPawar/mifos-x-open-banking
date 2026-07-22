@@ -19,6 +19,7 @@ import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.ProfileRepository
+import org.mifosx.openbanking.core.data.banking.ScheduledPaymentsRepository
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
 import org.mifosx.openbanking.core.data.banking.StatementFileRepository
 import org.mifosx.openbanking.core.data.banking.StatementsRepository
@@ -30,6 +31,7 @@ import org.mifosx.openbanking.core.data.banking.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ProfileRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.ScheduledPaymentsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrdersRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StatementFileRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StatementsRepositoryImpl
@@ -42,6 +44,7 @@ import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
+import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
 import org.mifosx.openbanking.core.model.banking.StatementPeriod
 import org.mifosx.openbanking.core.model.banking.TransactionDetail
@@ -98,6 +101,11 @@ val BankingModule: Module = module {
             .registerForLogout(get())
     }
 
+    single<Store<String, List<ScheduledPaymentItem>>>(AppStoreRegistry.ScheduledPayments) {
+        BankingStores.scheduledPaymentsStore(aisp = get(), capabilityRegistry = get())
+            .registerForLogout(get())
+    }
+
     single<Store<String, PartyProfile>>(AppStoreRegistry.Party) {
         BankingStores.partyStore(aisp = get()).registerForLogout(get())
     }
@@ -134,6 +142,14 @@ val BankingModule: Module = module {
     single<DirectDebitsRepository> {
         DirectDebitsRepositoryImpl(
             store = get(AppStoreRegistry.DirectDebits),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<ScheduledPaymentsRepository> {
+        ScheduledPaymentsRepositoryImpl(
+            store = get(AppStoreRegistry.ScheduledPayments),
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )

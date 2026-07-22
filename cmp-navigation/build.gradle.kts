@@ -35,6 +35,7 @@ kotlin {
             implementation(projects.feature.accountDetail)
             implementation(projects.feature.transactions)
             implementation(projects.feature.transactionDetail)
+            implementation(projects.feature.scheduledPayments)
             implementation(projects.feature.directDebits)
             implementation(projects.feature.standingOrders)
             implementation(projects.feature.statements)

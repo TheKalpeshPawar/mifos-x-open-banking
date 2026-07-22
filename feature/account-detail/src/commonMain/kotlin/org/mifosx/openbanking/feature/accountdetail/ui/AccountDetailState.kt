@@ -113,10 +113,11 @@ internal fun classifyAccountDetailError(throwable: Throwable): AccountDetailErro
  * The chips this account can reach, from HSBC's documented product matrix minus anything the bank
  * has since refused at runtime.
  *
- * Only Standing Orders, Direct Debits and Statements are gated, and that is stated explicitly
- * rather than derived, so a chip added to [AccountDetailChip] later cannot silently become
- * hideable — a new destination has to opt in by adding its [AccountEndpoint] here. Statements is
- * credit-card-only per the matrix, so every non-credit-card product hides it.
+ * Only Standing Orders, Direct Debits, Statements and Scheduled Payments are gated, and that is
+ * stated explicitly rather than derived, so a chip added to [AccountDetailChip] later cannot silently
+ * become hideable — a new destination has to opt in by adding its [AccountEndpoint] here. Statements
+ * is credit-card-only per the matrix, so every non-credit-card product hides it; Scheduled Payments is
+ * the mirror image — every product except a credit card can serve it, so a credit card hides it.
  */
 internal fun availableChipsFor(
     productType: HsbcProductType,
@@ -126,6 +127,7 @@ internal fun availableChipsFor(
         AccountDetailChip.StandingOrders to AccountEndpoint.StandingOrders,
         AccountDetailChip.DirectDebits to AccountEndpoint.DirectDebits,
         AccountDetailChip.Statements to AccountEndpoint.Statements,
+        AccountDetailChip.ScheduledPayments to AccountEndpoint.ScheduledPayments,
     )
     return AccountDetailChip.entries.filterTo(mutableSetOf()) { chip ->
         val endpoint = gated[chip] ?: return@filterTo true
