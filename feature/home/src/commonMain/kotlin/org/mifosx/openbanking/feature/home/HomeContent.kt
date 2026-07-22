@@ -36,7 +36,7 @@ internal fun HomeContent(
     onSelectAccount: (String) -> Unit,
     onNavigateToTransactions: () -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToStatements: () -> Unit,
+    onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: () -> Unit,
     onNavigateToSpending: () -> Unit,
@@ -65,7 +65,7 @@ internal fun HomeContent(
         )
         QuickActionsRow(
             onTransactions = onNavigateToTransactions,
-            onStatements = onNavigateToStatements,
+            onStatements = { onNavigateToStatements(data.selectedAccountId) },
             onConsents = onNavigateToConsents,
         )
         RecentTransactionsSection(

@@ -30,7 +30,7 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 fun NavGraphBuilder.homeGraph(
     onNavigateToTransactions: () -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToStatements: () -> Unit,
+    onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: () -> Unit,
     onNavigateToSpending: () -> Unit,

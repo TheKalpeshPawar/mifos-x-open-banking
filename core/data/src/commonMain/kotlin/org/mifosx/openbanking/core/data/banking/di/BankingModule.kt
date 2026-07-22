@@ -20,6 +20,8 @@ import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.ProfileRepository
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
+import org.mifosx.openbanking.core.data.banking.StatementFileRepository
+import org.mifosx.openbanking.core.data.banking.StatementsRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
 import org.mifosx.openbanking.core.data.banking.impl.AccountDetailRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsOverviewRepositoryImpl
@@ -28,6 +30,8 @@ import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrdersRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.StatementFileRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.StatementsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
 import org.mifosx.openbanking.core.model.banking.AccountBalance
@@ -37,6 +41,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
+import org.mifosx.openbanking.core.model.banking.StatementPeriod
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.store.AppStoreRegistry
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
@@ -90,6 +95,10 @@ val BankingModule: Module = module {
         BankingStores.partyStore(aisp = get()).registerForLogout(get())
     }
 
+    single<Store<String, List<StatementPeriod>>>(AppStoreRegistry.Statements) {
+        BankingStores.statementsStore(aisp = get()).registerForLogout(get())
+    }
+
     single<AccountsRepository> {
         AccountsRepositoryImpl(
             store = get(AppStoreRegistry.Accounts),
@@ -121,6 +130,18 @@ val BankingModule: Module = module {
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )
+    }
+
+    single<StatementsRepository> {
+        StatementsRepositoryImpl(
+            store = get(AppStoreRegistry.Statements),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<StatementFileRepository> {
+        StatementFileRepositoryImpl(aisp = get())
     }
 
     single<StandingOrdersRepository> {

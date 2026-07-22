@@ -28,7 +28,7 @@ import template.core.base.ui.screen.ScreenContent
 internal fun HomeScreen(
     onNavigateToTransactions: () -> Unit,
     onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToStatements: () -> Unit,
+    onNavigateToStatements: (accountId: String) -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: () -> Unit,
     onNavigateToSpending: () -> Unit,

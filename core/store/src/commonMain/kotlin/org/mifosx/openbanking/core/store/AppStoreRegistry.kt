@@ -43,4 +43,5 @@ object AppStoreRegistry : StoreRegistry() {
     val DirectDebits = store("directDebits")
     val StandingOrders = store("standingOrders")
     val Party = store("party")
+    val Statements = store("statements")
 }

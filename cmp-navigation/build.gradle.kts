@@ -36,6 +36,7 @@ kotlin {
             implementation(projects.feature.transactions)
             implementation(projects.feature.directDebits)
             implementation(projects.feature.standingOrders)
+            implementation(projects.feature.statements)
             implementation(projects.feature.settings)
             implementation(projects.feature.profile)
             implementation(projects.feature.login)
@@ -51,6 +52,15 @@ kotlin {
             implementation(libs.window.size)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+        }
+
+        // FileKit provides the platform save/share primitives for the app-layer
+        // StatementFileHandler. Its file-saver + write APIs are non-web only, so the
+        // real implementation lives in nonJsCommonMain (Android, desktop, iOS); the
+        // web targets fall back to the no-op actual in jsCommonMain.
+        nonJsCommonMain.dependencies {
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialog.compose)
         }
     }
 }

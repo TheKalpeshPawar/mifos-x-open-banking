@@ -12,6 +12,7 @@ package cmp.navigation.di
 import cmp.navigation.AppViewModel
 import cmp.navigation.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
 import cmp.navigation.rootnav.RootNavViewModel
+import cmp.navigation.statements.platformStatementFileHandler
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.data.di.DataModule
@@ -27,6 +28,8 @@ import org.mifosx.openbanking.feature.login.di.LoginModule
 import org.mifosx.openbanking.feature.profile.di.ProfileModule
 import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
+import org.mifosx.openbanking.feature.statements.StatementFileHandler
+import org.mifosx.openbanking.feature.statements.di.StatementsModule
 import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
@@ -58,11 +61,16 @@ object KoinModules {
             TransactionsModule,
             DirectDebitsModule,
             StandingOrdersModule,
+            StatementsModule,
             SettingsModule,
             ProfileModule,
             LoginModule,
             ConsentCallbackModule,
         )
+
+        // App-layer binding for the statements feature's platform delivery seam; the impl is
+        // supplied per-platform (real FileKit on nonJs, no-op on web) via the expect/actual factory.
+        single<StatementFileHandler> { platformStatementFileHandler() }
     }
 
     val allModules = listOf(

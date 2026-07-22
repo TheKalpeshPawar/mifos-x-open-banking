@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.network.api
 import io.ktor.client.HttpClient
+import io.ktor.client.request.accept
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -135,4 +136,20 @@ class Aisp(
         statementId: String,
     ): NetworkResult<StatementTransactionsResponse, NetworkError> =
         httpClient.get("$AIS/accounts/$accountId/statements/$statementId/transactions").toNetworkResult()
+
+    /**
+     * Fetches the rendered statement file (PDF or CSV) for one statement as raw bytes.
+     *
+     * The `Accept` headers ask the bank for a PDF, then CSV as a fallback; the body is read as a
+     * [ByteArray] via Ktor's built-in byte transformer, so it bypasses JSON content negotiation and
+     * the raw file is returned untouched.
+     */
+    suspend fun getStatementFile(
+        accountId: String,
+        statementId: String,
+    ): NetworkResult<ByteArray, NetworkError> =
+        httpClient.get("$AIS/accounts/$accountId/statements/$statementId/file") {
+            accept(ContentType.Application.Pdf)
+            accept(ContentType.parse("text/csv"))
+        }.toNetworkResult()
 }

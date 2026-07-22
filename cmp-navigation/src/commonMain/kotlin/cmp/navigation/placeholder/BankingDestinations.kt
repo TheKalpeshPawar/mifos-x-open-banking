@@ -65,7 +65,7 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object ConsentManagerRoute
 
-@Serializable data object StatementsRoute
+@Serializable data object StatementDetailRoute
 
 // ─── Shared (non-tab) ────────────────────────────────────────────────────────
 @Serializable data object ChangePasswordRoute
@@ -107,7 +107,7 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
     composableWithStayTransitions<ProductsRoute> { PlaceholderScreen("Products") }
     composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
-    composableWithStayTransitions<StatementsRoute> { PlaceholderScreen("Statements") }
+    composableWithStayTransitions<StatementDetailRoute> { PlaceholderScreen("Statement detail") }
 
     composableWithStayTransitions<ChangePasswordRoute> { PlaceholderScreen("Change password") }
     composableWithStayTransitions<AboutRoute> { PlaceholderScreen("About") }

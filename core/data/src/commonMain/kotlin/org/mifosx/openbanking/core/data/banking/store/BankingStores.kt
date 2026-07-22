@@ -20,6 +20,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toBankAccounts
 import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
 import org.mifosx.openbanking.core.data.banking.mapper.toStandingOrdersSummary
+import org.mifosx.openbanking.core.data.banking.mapper.toStatementPeriods
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItem
 import org.mifosx.openbanking.core.data.banking.mapper.toTransactionItems
@@ -34,6 +35,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
+import org.mifosx.openbanking.core.model.banking.StatementPeriod
 import org.mifosx.openbanking.core.model.banking.TransactionItem
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.Aisp
@@ -203,6 +205,24 @@ object BankingStores {
             fetcher = Fetcher.of { accountId ->
                 when (val result = aisp.getParty(accountId)) {
                     is NetworkResult.Success -> result.data.toPartyProfile()
+                    is NetworkResult.Error -> throw result.error.toThrowable()
+                }
+            },
+        )
+
+    /**
+     * Every statement period for one account, keyed by `AccountId`, sorted newest-first.
+     *
+     * In-memory with no Room persistence, for the same reason as [directDebitsStore]: statements are
+     * read-only reference data behind a consent that can be withdrawn at any moment, so a cached copy
+     * could outlive the user's permission to hold it. A miss costs one request, and the OBIE endpoint
+     * returns the full list unpaginated.
+     */
+    fun statementsStore(aisp: Aisp): Store<String, List<StatementPeriod>> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { accountId ->
+                when (val result = aisp.getStatements(accountId)) {
+                    is NetworkResult.Success -> result.data.toStatementPeriods()
                     is NetworkResult.Error -> throw result.error.toThrowable()
                 }
             },
