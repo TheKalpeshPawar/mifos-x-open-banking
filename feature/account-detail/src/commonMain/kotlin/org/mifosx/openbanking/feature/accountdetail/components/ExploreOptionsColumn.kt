@@ -9,14 +9,15 @@
  */
 package org.mifosx.openbanking.feature.accountdetail.components
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.LocalAtm
@@ -25,12 +26,12 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Subscriptions
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -62,69 +63,85 @@ import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_chip_transactions
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_chip_transactions_accessibility
 
-private val CHIP_GAP = 8.dp
-private val CHIP_ICON_SIZE = 18.dp
+private val OPTION_HORIZONTAL_PADDING = 16.dp
+private val OPTION_VERTICAL_PADDING = 14.dp
+private val LEADING_ICON_SIZE = 24.dp
+private val TRAILING_ICON_SIZE = 20.dp
+private val OPTION_GAP = 16.dp
 
 /**
- * Horizontally scrolling row of the account sub-screens this account can reach.
+ * Full-width, edge-to-edge column of the account sub-screens this account can reach.
  *
  * Order is [AccountDetailChip]'s declaration order, so Standing Orders sits before Direct Debits
- * as designed. Each chip hands the caller its destination; the screen supplies the `accountId`.
+ * as designed. Each option hands the caller its destination; the screen supplies the `accountId`.
+ * A thin divider separates adjacent options; the last option has none.
  *
- * @param availableChips Which destinations to render. Chips the account's HSBC product cannot serve
- *   are omitted rather than disabled — a savings account has no standing orders to show, so a
- *   greyed-out chip would only advertise a dead end.
+ * @param availableChips Which destinations to render. Destinations the account's HSBC product
+ *   cannot serve are omitted rather than disabled — a savings account has no standing orders to
+ *   show, so a greyed-out option would only advertise a dead end.
  */
 @Composable
-internal fun ExploreChipRow(
+internal fun ExploreOptionsColumn(
     availableChips: Set<AccountDetailChip>,
     onChipClick: (AccountDetailChip) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rowDescription = stringResource(Res.string.feature_account_detail_chip_row_accessibility)
-    Row(
+    val columnDescription = stringResource(Res.string.feature_account_detail_chip_row_accessibility)
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(bottom = 6.dp)
             .testTag(AccountDetailTestTags.CHIP_ROW)
-            .semantics { contentDescription = rowDescription },
-        horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
+            .semantics { contentDescription = columnDescription },
     ) {
         // Iterate `entries` and filter, never iterate `availableChips` — a Set has no guaranteed
         // order, and the UI suites assert declaration order.
-        AccountDetailChip.entries.filter { it in availableChips }.forEach { chip ->
-            ExploreChip(chip = chip, onClick = { onChipClick(chip) })
+        val chips = AccountDetailChip.entries.filter { it in availableChips }
+        chips.forEachIndexed { index, chip ->
+            ExploreOption(chip = chip, onClick = { onChipClick(chip) })
+            if (index != chips.lastIndex) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
         }
     }
 }
 
 @Composable
-private fun ExploreChip(
+private fun ExploreOption(
     chip: AccountDetailChip,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val label = stringResource(chip.labelResource())
     val description = stringResource(chip.accessibilityResource())
-    AssistChip(
-        onClick = onClick,
-        label = { Text(text = label, style = MaterialTheme.typography.labelLarge) },
-        leadingIcon = {
-            Icon(
-                imageVector = chip.icon(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(CHIP_ICON_SIZE),
-            )
-        },
-        colors = AssistChipDefaults.assistChipColors(
-            labelColor = MaterialTheme.colorScheme.onSurface,
-        ),
+    Row(
         modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
             .testTag(AccountDetailTestTags.chip(chip))
-            .semantics { contentDescription = description },
-    )
+            .semantics { contentDescription = description }
+            .padding(horizontal = OPTION_HORIZONTAL_PADDING, vertical = OPTION_VERTICAL_PADDING),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OPTION_GAP),
+    ) {
+        Icon(
+            imageVector = chip.icon(),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(LEADING_ICON_SIZE),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(TRAILING_ICON_SIZE),
+        )
+    }
 }
 
 private fun AccountDetailChip.icon(): ImageVector = when (this) {

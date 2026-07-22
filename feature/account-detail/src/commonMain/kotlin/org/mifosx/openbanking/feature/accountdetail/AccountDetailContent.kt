@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.feature.accountdetail.components.AccountHeaderCard
-import org.mifosx.openbanking.feature.accountdetail.components.ExploreChipRow
+import org.mifosx.openbanking.feature.accountdetail.components.ExploreOptionsColumn
 import org.mifosx.openbanking.feature.accountdetail.components.OpenBankingBadge
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_balances_empty_accessibility
@@ -52,10 +52,10 @@ private val ROW_MIN_HEIGHT = 56.dp
 
 /**
  * The account-detail body: header card, Open Banking assurance badge, the typed balance rows and
- * the Explore chip row.
+ * the Explore options column.
  *
  * An account with no balance rows renders the empty block in place of the list while keeping the
- * header and — importantly — the chip row. Dropping the chips here would strand the account: this
+ * header and — importantly — the Explore options. Dropping them here would strand the account: this
  * screen is the only route to its standing orders and direct debits. That reasoning still holds for
  * whichever chips [availableChips] leaves in.
  */
@@ -94,7 +94,7 @@ internal fun AccountDetailContent(
             testTag = AccountDetailTestTags.EXPLORE_HEADER,
         )
 
-        ExploreChipRow(availableChips = availableChips, onChipClick = onChipClick)
+        ExploreOptionsColumn(availableChips = availableChips, onChipClick = onChipClick)
     }
 }
 

@@ -9,12 +9,10 @@
  */
 package org.mifosx.openbanking.feature.accountdetail
 
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performScrollToNode
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -167,8 +165,7 @@ class AccountDetailScreenRobolectricTest {
     fun everyExploreChipIsRenderedInDeclarationOrder() {
         render(contentState())
         AccountDetailChip.entries.forEach { chip ->
-            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
-                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performScrollTo()
             composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).assertExists()
         }
     }
@@ -179,8 +176,7 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
 
         AccountDetailChip.entries.forEach { chip ->
-            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
-                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performScrollTo()
             composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performClick()
         }
 
@@ -208,14 +204,13 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
 
         (AccountDetailChip.entries - GATED_CHIPS).forEach { chip ->
-            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
-                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performScrollTo()
             composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).assertExists()
         }
     }
 
     /**
-     * Hiding must not reorder. `ExploreChipRow` filters `entries` rather than iterating the set
+     * Hiding must not reorder. `ExploreOptionsColumn` filters `entries` rather than iterating the set
      * precisely because a Set has no guaranteed order — if that is ever inverted, this fails.
      */
     @Test
@@ -225,8 +220,7 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
 
         remaining.forEach { chip ->
-            composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
-                .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(chip)))
+            composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performScrollTo()
             composeRule.onNodeWithTag(AccountDetailTestTags.chip(chip)).performClick()
         }
 
@@ -247,9 +241,7 @@ class AccountDetailScreenRobolectricTest {
     @Test
     fun chipsRemainReachableFromTheEmptyState() {
         render(emptyState())
-        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW).performScrollTo()
-        composeRule.onNodeWithTag(AccountDetailTestTags.CHIP_ROW)
-            .performScrollToNode(hasTestTag(AccountDetailTestTags.chip(AccountDetailChip.Transactions)))
+        composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.Transactions)).performScrollTo()
         composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.Transactions)).performClick()
 
         assertEquals(listOf(AccountDetailChip.Transactions to ACCOUNT_ID), chipClicks)
