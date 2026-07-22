@@ -29,6 +29,7 @@
 :feature:profile
 :feature:settings
 :feature:standing-orders
+:feature:statements
 :feature:transactions
 androidx.activity:activity-compose:1.12.2
 androidx.activity:activity-ktx:1.12.2
