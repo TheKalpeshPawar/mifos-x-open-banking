@@ -113,7 +113,6 @@ class AccountDetailScreenInstrumentedTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.CURRENCY_BADGE, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.SERVICER_BADGE, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.LAST_UPDATED, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.OPEN_BANKING_BADGE).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.BALANCES_HEADER, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.BALANCES_LIST).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.EXPLORE_HEADER, useUnmergedTree = true).assertExists()

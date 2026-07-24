@@ -29,8 +29,6 @@ internal object AccountDetailTestTags {
     const val SERVICER_BADGE = "accountDetail:servicerBadge"
     const val LAST_UPDATED = "accountDetail:lastUpdated"
 
-    const val OPEN_BANKING_BADGE = "accountDetail:openBankingBadge"
-
     const val BALANCES_HEADER = "accountDetail:balancesHeader"
     const val BALANCES_LIST = "accountDetail:balancesList"
     const val BALANCES_EMPTY_STATE = "accountDetail:balancesEmptyState"

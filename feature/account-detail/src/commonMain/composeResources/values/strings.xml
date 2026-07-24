@@ -18,8 +18,6 @@
     <string name="feature_account_detail_identification_accessibility">Account number</string>
     <string name="feature_account_detail_last_updated">Last updated</string>
 
-    <string name="feature_account_detail_open_banking_badge">Secured via UK Open Banking</string>
-    <string name="feature_account_detail_open_banking_accessibility">This account data is secured via regulated UK Open Banking</string>
 
     <string name="feature_account_detail_section_balances">Balances</string>
     <string name="feature_account_detail_section_balances_accessibility">Account balances section</string>
