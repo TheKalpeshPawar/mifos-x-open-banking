@@ -115,6 +115,7 @@ class AccountDetailViewModel(
         currency = currency,
         servicerIdentification = servicerIdentification,
         lastUpdatedLabel = formatStatusTimestamp(statusUpdateDateTime),
+        accountNumber = accountNumber,
     )
 
     private fun AccountBalanceLine.toRowUi(): BalanceRowUi = BalanceRowUi(

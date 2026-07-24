@@ -31,8 +31,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AtmLocatorRoute
-import cmp.navigation.placeholder.BeneficiariesRoute
-import cmp.navigation.placeholder.ConsentManagerRoute
 import cmp.navigation.placeholder.PartyRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
@@ -48,10 +46,18 @@ import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailRoute
 import org.mifosx.openbanking.feature.accountdetail.accountDetailScreen
 import org.mifosx.openbanking.feature.accounts.accountsGraph
+import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesRoute
+import org.mifosx.openbanking.feature.beneficiaries.beneficiariesScreen
+import org.mifosx.openbanking.feature.consentdetail.ConsentDetailRoute
+import org.mifosx.openbanking.feature.consentdetail.consentDetailScreen
+import org.mifosx.openbanking.feature.consentlist.ConsentListRoute
+import org.mifosx.openbanking.feature.consentlist.consentListScreen
 import org.mifosx.openbanking.feature.directdebits.DirectDebitsRoute
 import org.mifosx.openbanking.feature.directdebits.directDebitsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
+import org.mifosx.openbanking.feature.login.LoginRenewRoute
+import org.mifosx.openbanking.feature.login.loginRenewScreen
 import org.mifosx.openbanking.feature.profile.ProfileRoute
 import org.mifosx.openbanking.feature.profile.profileScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
@@ -145,16 +151,14 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
                 onNavigateToStatements = { accountId -> navController.navigate(StatementsRoute(accountId)) },
-                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
                 onNavigateToTransactionDetail = { transactionId, accountId ->
                     navController.navigate(TransactionDetailRoute(transactionId, accountId))
                 },
                 onNavigateToSpending = { navController.navigate(PfmDashboardRoute) },
-                onConnectBank = { navController.navigate(ConsentManagerRoute) },
             )
             accountsGraph(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
-                onNavigateToConsentReconfirm = { navController.navigate(ConsentManagerRoute) },
             )
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },
@@ -168,6 +172,24 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             transactionDetailScreen(onBack = { navController.popBackStack() })
             scheduledPaymentsScreen(onBack = { navController.popBackStack() })
+            beneficiariesScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
+            )
+            consentListScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { consentId -> navController.navigate(ConsentDetailRoute(consentId)) },
+                // Connecting and re-authenticating both stage a fresh consent, which is the login
+                // screen's job — reached here without the onboarding intro via LoginRenewRoute.
+                onConnectBank = { navController.navigate(LoginRenewRoute) },
+                onReauthenticate = { navController.navigate(LoginRenewRoute) },
+            )
+            consentDetailScreen(
+                onBack = { navController.popBackStack() },
+                // Reconfirm re-runs the consent authorisation on the same login screen.
+                onReconfirm = { navController.navigate(LoginRenewRoute) },
+            )
+            loginRenewScreen(onBack = { navController.popBackStack() })
             statementDetailScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToTransactionDetail = { transactionId, accountId ->
@@ -184,13 +206,13 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             settingsScreen(
                 onNavigateToProfile = { accountId -> navController.navigate(ProfileRoute(accountId)) },
-                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
                 onNavigateToLicences = { navController.navigate(LicencesRoute) },
                 onOpenUrl = { url -> uriHandler.openUri(url) },
             )
             profileScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToConsents = { navController.navigate(ConsentManagerRoute) },
+                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
             )
             licencesScreen(onBack = { navController.popBackStack() })
             bankingPlaceholderDestinations()
@@ -211,7 +233,7 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
         AccountDetailChip.StandingOrders -> navigate(StandingOrdersRoute(accountId))
         AccountDetailChip.DirectDebits -> navigate(DirectDebitsRoute(accountId))
         AccountDetailChip.ScheduledPayments -> navigate(ScheduledPaymentsRoute(accountId))
-        AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute)
+        AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute(accountId))
         AccountDetailChip.AtmLocator -> navigate(AtmLocatorRoute)
         AccountDetailChip.Product -> navigate(ProductsRoute)
         AccountDetailChip.Party -> navigate(PartyRoute)

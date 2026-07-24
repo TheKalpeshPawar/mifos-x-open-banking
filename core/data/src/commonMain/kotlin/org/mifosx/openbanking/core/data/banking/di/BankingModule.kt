@@ -16,6 +16,9 @@ import org.mifosx.openbanking.core.data.banking.AccountDetailRepository
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
+import org.mifosx.openbanking.core.data.banking.BeneficiariesRepository
+import org.mifosx.openbanking.core.data.banking.ConsentDetailRepository
+import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.ProfileRepository
@@ -30,6 +33,9 @@ import org.mifosx.openbanking.core.data.banking.impl.AccountDetailRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsOverviewRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.AccountsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.BalancesRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.BeneficiariesRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.ConsentDetailRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.ConsentRevokeRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ScheduledPaymentsRepositoryImpl
@@ -40,10 +46,13 @@ import org.mifosx.openbanking.core.data.banking.impl.StatementsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionDetailRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.TransactionsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
+import org.mifosx.openbanking.core.data.banking.store.ConsentStores
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
+import org.mifosx.openbanking.core.model.banking.ConsentSummary
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
@@ -109,6 +118,14 @@ val BankingModule: Module = module {
             .registerForLogout(get())
     }
 
+    single<Store<String, List<BeneficiaryItem>>>(AppStoreRegistry.Beneficiaries) {
+        BankingStores.beneficiariesStore(aisp = get()).registerForLogout(get())
+    }
+
+    single<Store<String, ConsentSummary>>(AppStoreRegistry.ConsentDetail) {
+        ConsentStores.consentDetailStore(aisp = get(), oauth = get()).registerForLogout(get())
+    }
+
     single<Store<String, PartyProfile>>(AppStoreRegistry.Party) {
         BankingStores.partyStore(aisp = get()).registerForLogout(get())
     }
@@ -148,6 +165,26 @@ val BankingModule: Module = module {
             networkMonitor = get(),
             fetchedAtRepository = get(),
         )
+    }
+
+    single<BeneficiariesRepository> {
+        BeneficiariesRepositoryImpl(
+            store = get(AppStoreRegistry.Beneficiaries),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<ConsentDetailRepository> {
+        ConsentDetailRepositoryImpl(
+            store = get(AppStoreRegistry.ConsentDetail),
+            networkMonitor = get(),
+            fetchedAtRepository = get(),
+        )
+    }
+
+    single<ConsentRevokeRepository> {
+        ConsentRevokeRepositoryImpl(aisp = get(), oauth = get())
     }
 
     single<DirectDebitsRepository> {

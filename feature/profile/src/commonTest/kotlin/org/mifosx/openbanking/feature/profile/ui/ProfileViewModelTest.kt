@@ -13,6 +13,7 @@ import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
@@ -48,6 +49,7 @@ class ProfileViewModelTest {
     private fun viewModel(
         repository: FakeProfileRepository = FakeProfileRepository(),
         session: FakeConsentSession = FakeConsentSession(),
+        appLogout: FakeAppLogout = FakeAppLogout(),
         accountId: String = ProfileFixtures.ACCOUNT_ID,
     ): ProfileViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -55,6 +57,7 @@ class ProfileViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
             repository = repository,
             consentSession = session,
+            appLogout = appLogout,
         )
     }
 
@@ -90,6 +93,7 @@ class ProfileViewModelTest {
             savedStateHandle = SavedStateHandle(),
             repository = FakeProfileRepository(),
             consentSession = FakeConsentSession(),
+            appLogout = FakeAppLogout(),
         )
         assertEquals("", vm.stateFlow.value.accountId)
     }
@@ -172,7 +176,8 @@ class ProfileViewModelTest {
 
         vm.trySendAction(ProfileAction.RequestSignOut)
 
-        assertTrue(rendered(vm).isConfirmingSignOut)
+        assertTrue(vm.stateFlow.value.isConfirmingSignOut)
+        assertIs<ProfileUiState.Content>(vm.stateFlow.value.uiState)
     }
 
     @Test
@@ -182,39 +187,58 @@ class ProfileViewModelTest {
 
         vm.trySendAction(ProfileAction.DismissSignOut)
 
-        assertFalse(rendered(vm).isConfirmingSignOut)
+        assertFalse(vm.stateFlow.value.isConfirmingSignOut)
     }
 
     @Test
-    fun dismissSignOutDoesNotClearTheSession() {
-        val session = FakeConsentSession()
-        val vm = contentViewModel(session)
+    fun dismissSignOutDoesNotLogOut() {
+        val appLogout = FakeAppLogout()
+        val vm = viewModel(FakeProfileRepository(content(ProfileFixtures.priya)), appLogout = appLogout)
         vm.trySendAction(ProfileAction.RequestSignOut)
 
         vm.trySendAction(ProfileAction.DismissSignOut)
 
-        assertEquals(0, session.clearCount)
+        assertEquals(0, appLogout.logOutCount)
     }
 
     @Test
-    fun confirmSignOutClearsTheSessionAndLowersTheDialog() {
-        val session = FakeConsentSession()
-        val vm = contentViewModel(session)
+    fun confirmSignOutLogsOutAndLowersTheDialog() {
+        val appLogout = FakeAppLogout()
+        val vm = viewModel(FakeProfileRepository(content(ProfileFixtures.priya)), appLogout = appLogout)
         vm.trySendAction(ProfileAction.RequestSignOut)
 
         vm.trySendAction(ProfileAction.ConfirmSignOut)
 
-        assertEquals(1, session.clearCount)
-        assertFalse(rendered(vm).isConfirmingSignOut)
+        assertEquals(1, appLogout.logOutCount)
+        assertFalse(vm.stateFlow.value.isConfirmingSignOut)
     }
 
+    /**
+     * The fix: sign-out must be reachable from a failed profile. An expired consent renders the error
+     * state, and that is exactly when a user needs to log out — the previous no-op left them stuck.
+     */
     @Test
-    fun requestSignOutOnANonContentStateIsANoOp() {
-        val vm = viewModel(FakeProfileRepository(ScreenState.Empty))
+    fun requestSignOutFromTheErrorStateRaisesTheConfirmation() {
+        val vm = viewModel(FakeProfileRepository(remoteFailure(NetworkError.Client.Unauthorized())))
 
         vm.trySendAction(ProfileAction.RequestSignOut)
 
-        assertIs<ProfileUiState.Empty>(vm.stateFlow.value.uiState)
+        assertTrue(vm.stateFlow.value.isConfirmingSignOut)
+        assertIs<ProfileUiState.Error>(vm.stateFlow.value.uiState)
+    }
+
+    @Test
+    fun confirmSignOutFromTheErrorStateLogsOut() {
+        val appLogout = FakeAppLogout()
+        val vm = viewModel(
+            FakeProfileRepository(remoteFailure(NetworkError.Client.Unauthorized())),
+            appLogout = appLogout,
+        )
+        vm.trySendAction(ProfileAction.RequestSignOut)
+
+        vm.trySendAction(ProfileAction.ConfirmSignOut)
+
+        assertEquals(1, appLogout.logOutCount)
     }
 
     @Test
@@ -230,7 +254,7 @@ class ProfileViewModelTest {
             ),
         )
 
-        assertTrue(rendered(vm).isConfirmingSignOut)
+        assertTrue(vm.stateFlow.value.isConfirmingSignOut)
     }
 
     // ── Consent status derivation ────────────────────────────────────────
@@ -487,5 +511,15 @@ class ProfileViewModelTest {
         const val EIGHT_DAYS = 8
         const val FAR_FUTURE_DAYS = 90
         val HALF_DAY = 12.hours
+    }
+}
+
+/** Records that the shared logout ran. Test source sets do not cross Gradle modules. */
+private class FakeAppLogout : AppLogout {
+    var logOutCount: Int = 0
+        private set
+
+    override suspend fun logOut() {
+        logOutCount++
     }
 }

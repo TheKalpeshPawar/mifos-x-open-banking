@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_consent_detail_screen_title">HSBC Connection</string>
+    <string name="feature_consent_detail_back_a11y">Navigate back to consents list</string>
+    <string name="feature_consent_detail_loading_a11y">Loading consent detail</string>
+
+    <string name="feature_consent_detail_status_a11y">Consent status: %1$s</string>
+    <string name="feature_consent_detail_consent_id">Consent ID: %1$s</string>
+    <string name="feature_consent_detail_expiry_warning">Expires in %1$d days — please reconfirm your consent</string>
+
+    <string name="feature_consent_detail_section_access_period">Access period</string>
+    <string name="feature_consent_detail_label_connected_on">Connected on</string>
+    <string name="feature_consent_detail_label_expires_on">Expires on</string>
+    <string name="feature_consent_detail_label_transaction_from">Transaction data from</string>
+    <string name="feature_consent_detail_label_transaction_to">Transaction data to</string>
+
+    <string name="feature_consent_detail_section_data_shared">Data you have shared</string>
+    <string name="feature_consent_detail_permissions_a11y">Permissions granted to this consent</string>
+
+    <string name="feature_consent_detail_reconfirm_button">Reconfirm before expiry</string>
+    <string name="feature_consent_detail_reconfirm_a11y">Reconfirm consent access before it expires</string>
+    <string name="feature_consent_detail_revoke_button">Revoke access</string>
+    <string name="feature_consent_detail_revoke_a11y">Revoke HSBC account access — this is a destructive action</string>
+
+    <string name="feature_consent_detail_revoke_dialog_title">Revoke HSBC access?</string>
+    <string name="feature_consent_detail_revoke_dialog_body">Mifos will immediately lose access to all HSBC account data. This cannot be undone — you will need to reconnect to restore access.</string>
+    <string name="feature_consent_detail_revoke_dialog_a11y">Confirm revoking HSBC access</string>
+    <string name="feature_consent_detail_revoke_dialog_cancel">Keep access</string>
+    <string name="feature_consent_detail_revoke_dialog_confirm">Yes, revoke</string>
+
+    <string name="feature_consent_detail_revoking_label">Revoking access…</string>
+    <string name="feature_consent_detail_revoking_hint">Removing your HSBC connection. Please do not close the app.</string>
+    <string name="feature_consent_detail_revoking_a11y">Revoking HSBC access, please wait</string>
+
+    <string name="feature_consent_detail_empty_title">Consent not found</string>
+    <string name="feature_consent_detail_empty_body">This consent is no longer available. It may have been revoked or expired. Return to view your active connections.</string>
+    <string name="feature_consent_detail_empty_a11y">Consent not found or no longer available</string>
+    <string name="feature_consent_detail_go_back">Back to connections</string>
+    <string name="feature_consent_detail_go_back_a11y">Go back to the connected banks list</string>
+
+    <string name="feature_consent_detail_error_title">Could not load consent</string>
+    <string name="feature_consent_detail_error_a11y">Error loading consent detail</string>
+    <string name="feature_consent_detail_error_not_found">This consent no longer exists at HSBC. It may already have been revoked.</string>
+    <string name="feature_consent_detail_error_revoked">Access to this consent has been withdrawn.</string>
+    <string name="feature_consent_detail_error_token_expired">Your session has expired. Sign in again to view this consent.</string>
+    <string name="feature_consent_detail_error_network">Unable to reach HSBC servers. Please check your internet connection and try again.</string>
+    <string name="feature_consent_detail_error_server">Something went wrong on the HSBC side. Please try again.</string>
+    <string name="feature_consent_detail_retry">Retry</string>
+    <string name="feature_consent_detail_retry_a11y">Retry loading consent detail</string>
+
+    <string name="feature_consent_detail_status_authorised">Authorised</string>
+    <string name="feature_consent_detail_status_expired">Expired</string>
+    <string name="feature_consent_detail_status_revoked">Revoked</string>
+    <string name="feature_consent_detail_status_rejected">Rejected</string>
+    <string name="feature_consent_detail_status_awaiting">Awaiting authorisation</string>
+    <string name="feature_consent_detail_status_consumed">Consumed</string>
+</resources>

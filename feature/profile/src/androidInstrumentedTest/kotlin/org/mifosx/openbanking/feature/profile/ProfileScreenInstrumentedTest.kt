@@ -60,7 +60,6 @@ private fun content(): ProfileUiState.Content = ProfileUiState.Content(
     arePermissionsExpanded = false,
     isExpiring = false,
     daysRemaining = Int.MAX_VALUE,
-    isConfirmingSignOut = false,
 )
 
 private fun contentState(): ProfileState =
@@ -76,7 +75,8 @@ private fun expiringState(): ProfileState = ProfileState(
 
 private fun confirmingSignOutState(): ProfileState = ProfileState(
     accountId = ACCOUNT_ID,
-    uiState = content().copy(isConfirmingSignOut = true),
+    uiState = content(),
+    isConfirmingSignOut = true,
 )
 
 /**

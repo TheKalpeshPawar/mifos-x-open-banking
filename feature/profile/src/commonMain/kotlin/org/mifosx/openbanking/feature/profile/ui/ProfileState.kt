@@ -24,6 +24,13 @@ import template.core.base.network.NetworkError
 data class ProfileState(
     val accountId: String,
     val uiState: ProfileUiState = ProfileUiState.Loading,
+    /**
+     * True while the sign-out confirmation is raised. Screen-level rather than a flag on
+     * [ProfileUiState.Content], so sign-out is reachable when the profile failed to load — an
+     * expired consent lands the screen in [ProfileUiState.Error], and logout must work from there.
+     * The dialog renders over whatever `uiState` is showing.
+     */
+    val isConfirmingSignOut: Boolean = false,
 )
 
 /**
@@ -54,8 +61,6 @@ sealed interface ProfileUiState {
      * @property daysRemaining Whole days until the consent expires. [Int.MAX_VALUE] when no expiry
      *   was ever stored, which is why [isExpiring] is carried separately rather than recomputed by
      *   the composable from this number.
-     * @property isConfirmingSignOut True while the sign-out confirmation is raised. The content tree
-     *   still renders beneath it.
      */
     data class Content(
         val profile: PartyProfile,
@@ -64,7 +69,6 @@ sealed interface ProfileUiState {
         val arePermissionsExpanded: Boolean,
         val isExpiring: Boolean,
         val daysRemaining: Int,
-        val isConfirmingSignOut: Boolean,
     ) : ProfileUiState
 
     data object Empty : ProfileUiState

@@ -34,7 +34,11 @@ private fun Account.toBankAccountOrNull(): BankAccount? {
         ?: ""
     return BankAccount(
         accountId = id,
-        nickname = name ?: description ?: id,
+        // Only a bank-provided name is a name. `Description` is free text (the HSBC sandbox returns
+        // the literal "Description of the account") and the nested `Account[].Name` is the account
+        // holder, not the account — so when neither `Name` nor `Nickname` is present this is left
+        // blank and the UI renders a "type ·· last 4" label instead.
+        nickname = name ?: "",
         accountSubType = accountSubType ?: accountTypeCode ?: accountCategory ?: description ?: "",
         currency = currency ?: "",
         sortCode = identification.take(SORT_CODE_LENGTH),

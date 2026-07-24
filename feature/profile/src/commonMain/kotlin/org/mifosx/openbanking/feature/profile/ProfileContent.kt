@@ -44,7 +44,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.feature.profile.components.ProfileConnectionCard
-import org.mifosx.openbanking.feature.profile.components.ProfileSignOutDialog
 import org.mifosx.openbanking.feature.profile.generated.resources.Res
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_avatar_accessibility
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_button_sign_out
@@ -98,13 +97,6 @@ internal fun ProfileContent(
         ProfileIdentitySection(profile = content.profile)
         ProfileConnectionCard(content = content, onAction = onAction)
         SignOutButton(onClick = { onAction(ProfileAction.RequestSignOut) })
-    }
-
-    if (content.isConfirmingSignOut) {
-        ProfileSignOutDialog(
-            onConfirm = { onAction(ProfileAction.ConfirmSignOut) },
-            onDismiss = { onAction(ProfileAction.DismissSignOut) },
-        )
     }
 }
 

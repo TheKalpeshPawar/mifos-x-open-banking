@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.home.components.AccountSwitcherRow
 import org.mifosx.openbanking.feature.home.components.HeroBalanceCard
 import org.mifosx.openbanking.feature.home.components.QuickActionsRow
@@ -57,7 +58,12 @@ internal fun HomeContent(
         )
         HeroBalanceCard(
             accountTypeLabel = data.accountTypeLabel,
-            nickname = data.accountNickname,
+            nickname = accountDisplayName(
+                nickname = data.accountNickname,
+                accountSubType = data.accountSubType,
+                accountNumber = data.accountNumber,
+                rawIdentification = data.rawIdentification,
+            ),
             balanceLabel = data.balanceLabel,
             availableAmountLabel = data.availableAmountLabel,
             accountNumberLabel = data.accountNumberLabel,

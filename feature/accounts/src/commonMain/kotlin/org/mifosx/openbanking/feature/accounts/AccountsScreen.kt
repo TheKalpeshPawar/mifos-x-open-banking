@@ -24,13 +24,12 @@ import template.core.base.ui.screen.ScreenContent
 
 /**
  * Accounts overview: every consented account with its balance, a net-GBP total, and a type filter.
- * Renders across loading / content / consent-expiring / empty / error states inside the app scaffold;
- * navigation is delegated to the caller so the feature stays decoupled from the app's route table.
+ * Renders across loading / content / empty / error states inside the app scaffold; navigation is
+ * delegated to the caller so the feature stays decoupled from the app's route table.
  */
 @Composable
 internal fun AccountsScreen(
     onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToConsentReconfirm: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AccountsViewModel = koinViewModel(),
 ) {
@@ -45,14 +44,13 @@ internal fun AccountsScreen(
             state = state.uiState,
             onRetry = { viewModel.trySendAction(AccountsAction.RetryLoad) },
             loading = { AccountsSkeleton() },
-            empty = { AccountsEmpty(onManageConsents = onNavigateToConsentReconfirm) },
+            empty = { AccountsEmpty() },
             error = { AccountsError(onRetry = { viewModel.trySendAction(AccountsAction.RetryLoad) }) },
         ) { data, _ ->
             AccountsContent(
                 data = data,
                 onFilterChange = { viewModel.trySendAction(AccountsAction.FilterAccounts(it)) },
                 onAccountClick = { accountId -> onNavigateToAccountDetail(accountId) },
-                onReconfirmConsent = onNavigateToConsentReconfirm,
             )
         }
     }

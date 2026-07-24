@@ -159,10 +159,14 @@ class UserPreferencesRepositoryImpl(
     override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) =
         updatePreference { it.copy(enableScreenCapture = isScreenCaptureEnabled) }
 
-    override suspend fun clearUserData() {
-        setIsAuthenticated(false)
-        // TODO:: Uncomment this line when Unlocked Screen is Present
-        // setIsUnlocked(false)
+    override suspend fun clearUserData() = updatePreference {
+        it.copy(
+            activeUserId = UserData.DEFAULT.activeUserId,
+            selectedAccountId = UserData.DEFAULT.selectedAccountId,
+            passcode = UserData.DEFAULT.passcode,
+            isAuthenticated = false,
+            isUnlocked = UserData.DEFAULT.isUnlocked,
+        )
     }
 }
 

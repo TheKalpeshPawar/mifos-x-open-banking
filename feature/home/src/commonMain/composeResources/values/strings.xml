@@ -15,8 +15,7 @@
 
     <!-- Empty state -->
     <string name="feature_home_empty_title">No accounts connected</string>
-    <string name="feature_home_empty_body">Your Open Banking consent has no active accounts. Connect your bank to get started.</string>
-    <string name="feature_home_connect_bank">Connect your bank</string>
+    <string name="feature_home_empty_body">Your Open Banking consent has no active accounts. Manage your bank connection in Settings.</string>
 
     <!-- Hero balance card -->
     <string name="feature_home_available">Available %1$s</string>

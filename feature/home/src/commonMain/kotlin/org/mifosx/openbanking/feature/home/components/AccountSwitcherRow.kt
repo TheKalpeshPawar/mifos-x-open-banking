@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.home.HomeTestTags
 import org.mifosx.openbanking.feature.home.ui.AccountChipUi
 import template.core.base.designsystem.theme.KptTheme
@@ -49,7 +50,12 @@ internal fun AccountSwitcherRow(
             val foreground =
                 if (selected) KptTheme.colorScheme.onSecondaryContainer else KptTheme.colorScheme.onSurfaceVariant
             Text(
-                text = chip.nickname,
+                text = accountDisplayName(
+                    nickname = chip.nickname,
+                    accountSubType = chip.accountSubType,
+                    accountNumber = chip.accountNumber,
+                    rawIdentification = chip.rawIdentification,
+                ),
                 style = KptTheme.typography.labelLarge,
                 color = foreground,
                 modifier = Modifier

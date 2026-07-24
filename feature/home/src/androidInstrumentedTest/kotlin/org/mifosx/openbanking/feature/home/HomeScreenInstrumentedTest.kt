@@ -53,16 +53,6 @@ class HomeScreenInstrumentedTest {
     }
 
     @Test
-    fun emptyStateConnectBankDispatches() {
-        var connected = false
-        composeRule.setContent { HomeEmpty(onConnectBank = { connected = true }) }
-
-        composeRule.onNodeWithTag(HomeTestTags.CONNECT_BANK).performClick()
-
-        assertTrue(connected)
-    }
-
-    @Test
     fun errorStateRetryDispatches() {
         var retried = false
         composeRule.setContent { HomeError(onRetry = { retried = true }) }

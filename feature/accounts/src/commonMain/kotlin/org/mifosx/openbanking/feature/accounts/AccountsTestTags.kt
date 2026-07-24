@@ -20,11 +20,8 @@ internal object AccountsTestTags {
     const val FILTER_ROW = "accounts_filter_row"
     const val SKELETON = "accounts_skeleton"
     const val EMPTY = "accounts_empty"
-    const val MANAGE_CONSENTS = "accounts_manage_consents"
     const val ERROR = "accounts_error"
     const val ERROR_RETRY = "accounts_error_retry"
-    const val CONSENT_BANNER = "accounts_consent_banner"
-    const val CONSENT_RECONFIRM = "accounts_consent_reconfirm"
     const val BALANCE_OWED_BADGE = "accounts_balance_owed_badge"
 
     private const val ACCOUNT_CARD_PREFIX = "accounts_card_"

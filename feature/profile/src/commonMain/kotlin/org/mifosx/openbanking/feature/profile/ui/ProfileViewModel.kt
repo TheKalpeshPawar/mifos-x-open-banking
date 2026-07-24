@@ -13,10 +13,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.mifosx.openbanking.core.data.banking.ProfileRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import template.core.base.common.screen.ScreenState
@@ -43,6 +45,7 @@ class ProfileViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: ProfileRepository,
     private val consentSession: ConsentSession,
+    private val appLogout: AppLogout,
 ) : BaseViewModel<ProfileState, ProfileEvent, ProfileAction>(
     initialState = ProfileState(
         accountId = savedStateHandle.get<String>(ACCOUNT_ID_ARG).orEmpty(),
@@ -74,16 +77,14 @@ class ProfileViewModel(
     }
 
     /**
-     * Toggles the confirmation flag without touching the rendered profile.
+     * Raises or lowers the sign-out confirmation.
      *
-     * A no-op outside [ProfileUiState.Content]: there is nothing to sign out of from a skeleton or
-     * an error, and forcing a Content state to carry the flag would invent an identity the bank
-     * never sent.
+     * Screen-level, so it works from any `uiState`: an expired consent renders the error state, and
+     * sign-out has to be reachable there. The rendered profile, when there is one, stays untouched
+     * beneath the dialog.
      */
     private fun setConfirmingSignOut(confirming: Boolean) {
-        val current = state.uiState
-        if (current !is ProfileUiState.Content) return
-        updateState { copy(uiState = current.copy(isConfirmingSignOut = confirming)) }
+        updateState { copy(isConfirmingSignOut = confirming) }
     }
 
     /**
@@ -101,14 +102,17 @@ class ProfileViewModel(
     }
 
     /**
-     * Clears the tokens and consent, then lowers the dialog.
+     * Lowers the dialog and runs the full logout: revoke best-effort, forget the session, clear all
+     * local data.
      *
-     * The screen is not navigated away from here — the host observes the session and moves the user
-     * once it goes inactive, so a feature that never sees the route table stays that way.
+     * Delegated to [AppLogout] — the one logout path shared with consent-detail's "Revoke access" —
+     * so an expired or absent consent cannot block it. The screen is not navigated away from here:
+     * clearing the data drives the root navigator to onboarding on its own, so a feature that never
+     * sees the route table stays that way.
      */
     private fun signOut() {
-        consentSession.clear()
         setConfirmingSignOut(false)
+        viewModelScope.launch { appLogout.logOut() }
     }
 
     private fun ScreenState<PartyProfile>.toUiState(): ProfileUiState = when (this) {
@@ -139,15 +143,10 @@ class ProfileViewModel(
             arePermissionsExpanded = arePermissionsExpanded(),
             isExpiring = days <= EXPIRY_WARNING_DAYS,
             daysRemaining = days,
-            isConfirmingSignOut = isConfirmingSignOut(),
         )
     }
 
-    /** Preserves a raised dialog across a stream re-emission, so a refresh cannot dismiss it. */
-    private fun isConfirmingSignOut(): Boolean =
-        (state.uiState as? ProfileUiState.Content)?.isConfirmingSignOut == true
-
-    /** Preserves the expanded permissions list across a stream re-emission, for the same reason. */
+    /** Preserves the expanded permissions list across a stream re-emission, so a refresh cannot collapse it. */
     private fun arePermissionsExpanded(): Boolean =
         (state.uiState as? ProfileUiState.Content)?.arePermissionsExpanded == true
 

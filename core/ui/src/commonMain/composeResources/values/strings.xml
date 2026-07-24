@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="core_ui_account_type_current">Current account</string>
+    <string name="core_ui_account_type_savings">Savings</string>
+    <string name="core_ui_account_type_credit">Credit card</string>
+    <string name="core_ui_account_type_global_money">Global money</string>
+    <string name="core_ui_account_type_global_wallet">Global wallet</string>
+    <string name="core_ui_account_type_other">Account</string>
+</resources>

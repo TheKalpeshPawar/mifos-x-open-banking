@@ -44,8 +44,18 @@ import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-/** An account chip in the switcher: stable id plus the display nickname. */
-data class AccountChipUi(val id: String, val nickname: String)
+/**
+ * An account chip in the switcher: stable id plus the display nickname. [accountSubType],
+ * [accountNumber] and [rawIdentification] let the chip fall back to a "type ·· last 4" label via
+ * `accountDisplayName` when the bank supplied no nickname.
+ */
+data class AccountChipUi(
+    val id: String,
+    val nickname: String,
+    val accountSubType: String = "",
+    val accountNumber: String = "",
+    val rawIdentification: String = "",
+)
 
 /** A recent-transaction row, pre-formatted for display. */
 data class TransactionRowUi(
@@ -68,6 +78,10 @@ data class HomeData(
     val selectedAccountId: String,
     val accountTypeLabel: String,
     val accountNickname: String,
+    /** Selected account's raw fields, so the hero card can fall back to a "type ·· last 4" label. */
+    val accountSubType: String = "",
+    val accountNumber: String = "",
+    val rawIdentification: String = "",
     val balanceLabel: String,
     val availableAmountLabel: String,
     val accountNumberLabel: String,
@@ -177,10 +191,21 @@ class HomeViewModel(
             ?: HsbcProductType.Unknown
         val snapshot = computeSpendingSnapshot(transactions, currentYearMonth())
         return HomeData(
-            accounts = accounts.map { AccountChipUi(id = it.accountId, nickname = it.nickname) },
+            accounts = accounts.map {
+                AccountChipUi(
+                    id = it.accountId,
+                    nickname = it.nickname,
+                    accountSubType = it.accountSubType,
+                    accountNumber = it.accountNumber,
+                    rawIdentification = it.rawIdentification,
+                )
+            },
             selectedAccountId = selectedId,
             accountTypeLabel = selected?.accountSubType.orEmpty().uppercase(),
             accountNickname = selected?.nickname.orEmpty(),
+            accountSubType = selected?.accountSubType.orEmpty(),
+            accountNumber = selected?.accountNumber.orEmpty(),
+            rawIdentification = selected?.rawIdentification.orEmpty(),
             balanceLabel = formatMoney(balance.currentAmount, balance.currency),
             availableAmountLabel = formatMoney(balance.availableAmount, balance.currency),
             accountNumberLabel = selected?.let { "${formatSortCode(it.sortCode)}  ${it.accountNumber}" }.orEmpty(),

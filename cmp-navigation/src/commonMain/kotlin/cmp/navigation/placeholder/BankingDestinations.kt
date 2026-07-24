@@ -37,8 +37,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object SendMoneyConfirmRoute
 
-@Serializable data object BeneficiariesRoute
-
 @Serializable data object CardsRoute
 
 @Serializable data object CardDetailRoute
@@ -58,8 +56,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 @Serializable data object AtmLocatorRoute
 
 @Serializable data object ProductsRoute
-
-@Serializable data object ConsentManagerRoute
 
 // ─── Shared (non-tab) ────────────────────────────────────────────────────────
 @Serializable data object ChangePasswordRoute
@@ -87,7 +83,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
     composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
-    composableWithStayTransitions<BeneficiariesRoute> { PlaceholderScreen("Beneficiaries") }
     composableWithStayTransitions<CardsRoute> { PlaceholderScreen("Cards") }
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
@@ -98,7 +93,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<FxRatesRoute> { PlaceholderScreen("FX rates") }
     composableWithStayTransitions<AtmLocatorRoute> { PlaceholderScreen("ATM locator") }
     composableWithStayTransitions<ProductsRoute> { PlaceholderScreen("Products") }
-    composableWithStayTransitions<ConsentManagerRoute> { PlaceholderScreen("Consent manager") }
 
     composableWithStayTransitions<ChangePasswordRoute> { PlaceholderScreen("Change password") }
     composableWithStayTransitions<AboutRoute> { PlaceholderScreen("About") }

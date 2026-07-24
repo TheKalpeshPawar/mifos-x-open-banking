@@ -28,8 +28,12 @@ class FakeConsentSession(
     private var consentId: String? = "urn-hsbc-consent-1029",
 ) : ConsentSession {
 
-    /** How many times sign-out reached the session. */
+    /** How many times the credentials were dropped, whether by `clear` or by `forgetAll`. */
     var clearCount: Int = 0
+        private set
+
+    /** How many times sign-out reached the session, which is the `forgetAll` path. */
+    var forgetAllCount: Int = 0
         private set
 
     private var savedTokens: PsuTokenResponse? = null
@@ -66,5 +70,10 @@ class FakeConsentSession(
         consentId = null
         expiration = null
         active = false
+    }
+
+    override fun forgetAll() {
+        forgetAllCount++
+        clear()
     }
 }

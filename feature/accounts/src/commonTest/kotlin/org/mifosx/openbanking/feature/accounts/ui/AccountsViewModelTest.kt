@@ -15,30 +15,24 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.feature.accounts.FakeAccountsOverviewRepository
-import org.mifosx.openbanking.feature.accounts.FakeConsentSession
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.days
-import kotlin.time.ExperimentalTime
 
 class AccountsViewModelTest {
 
     private val repo = FakeAccountsOverviewRepository()
 
-    private fun createViewModel(consentSession: ConsentSession = FakeConsentSession()): AccountsViewModel {
+    private fun createViewModel(): AccountsViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        return AccountsViewModel(repo, consentSession)
+        return AccountsViewModel(repo)
     }
 
     private fun accountWith(
@@ -88,25 +82,6 @@ class AccountsViewModelTest {
 
         val state = vm.stateFlow.first { it.uiState is ScreenState.Error }
         assertIs<ScreenState.Error>(state.uiState)
-    }
-
-    @Test
-    @OptIn(ExperimentalTime::class)
-    fun `consent expiring within thirty days flags the banner`() = runTest {
-        val vm = createViewModel(FakeConsentSession(expiration = Clock.System.now() + 10.days))
-        repo.emissions.value = ScreenState.Content(sampleAccounts(), DataFreshness.FRESH)
-
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
-        assertTrue((content(state.uiState).data as AccountsData).isConsentExpiring)
-    }
-
-    @Test
-    fun `no stored consent expiry means the banner is hidden`() = runTest {
-        val vm = createViewModel(FakeConsentSession(expiration = null))
-        repo.emissions.value = ScreenState.Content(sampleAccounts(), DataFreshness.FRESH)
-
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
-        assertFalse((content(state.uiState).data as AccountsData).isConsentExpiring)
     }
 
     @Test

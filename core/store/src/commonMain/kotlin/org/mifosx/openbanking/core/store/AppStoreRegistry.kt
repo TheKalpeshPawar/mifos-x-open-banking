@@ -41,6 +41,8 @@ object AppStoreRegistry : StoreRegistry() {
     val BalanceLines = store("balanceLines")
     val Transactions = store("transactions")
     val TransactionDetails = store("transactionDetails")
+    val Beneficiaries = store("beneficiaries")
+    val ConsentDetail = store("consentDetail")
     val DirectDebits = store("directDebits")
     val ScheduledPayments = store("scheduledPayments")
     val StandingOrders = store("standingOrders")

@@ -30,8 +30,10 @@ import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.login.LoginRepository
 import org.mifosx.openbanking.core.data.login.impl.LoginRepositoryImpl
+import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.data.user.UserLogoutManager
+import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
 import org.mifosx.openbanking.core.data.user.impl.UserDataRepositoryImpl
 import org.mifosx.openbanking.core.data.user.impl.UserLogoutManagerImpl
 import org.mifosx.openbanking.core.database.AppDatabase
@@ -83,6 +85,15 @@ val DataModule = module {
     single { get<AppDatabase>().draftDao }
 
     single<UserLogoutManager> { UserLogoutManagerImpl(get(), get(), get()) }
+
+    single<AppLogout> {
+        AppLogoutImpl(
+            consentRevokeRepository = get(),
+            consentSession = get(),
+            userDataRepository = get(),
+            storeCacheManager = get(),
+        )
+    }
 
     // App-scoped  for cross-VM long-running coroutines.
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }

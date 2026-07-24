@@ -69,7 +69,6 @@ object ProfileFixtures {
         arePermissionsExpanded = false,
         isExpiring = false,
         daysRemaining = Int.MAX_VALUE,
-        isConfirmingSignOut = false,
     )
 
     /** The permissions list opened, for the suites that assert its rows. */
@@ -93,6 +92,16 @@ object ProfileFixtures {
 
     fun confirmingSignOutState(): ProfileState = ProfileState(
         accountId = ACCOUNT_ID,
-        uiState = content().copy(isConfirmingSignOut = true),
+        uiState = content(),
+        isConfirmingSignOut = true,
+    )
+
+    /** The error an expired consent produces, where sign-out must still be reachable. */
+    fun errorState(
+        kind: org.mifosx.openbanking.feature.profile.ui.ProfileErrorKind =
+            org.mifosx.openbanking.feature.profile.ui.ProfileErrorKind.TokenExpired,
+    ): ProfileState = ProfileState(
+        accountId = ACCOUNT_ID,
+        uiState = ProfileUiState.Error(kind),
     )
 }

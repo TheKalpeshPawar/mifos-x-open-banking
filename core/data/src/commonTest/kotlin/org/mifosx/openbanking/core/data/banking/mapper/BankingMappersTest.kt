@@ -141,7 +141,7 @@ class BankingMappersTest {
     }
 
     @Test
-    fun accountMapperUsesTopLevelIdentificationAndFallsBackNicknameToDescription() {
+    fun accountMapperUsesTopLevelIdentificationAndLeavesNicknameBlankWhenOnlyDescriptionIsPresent() {
         val response = AccountsResponse(
             data = AccountsData(
                 account = listOf(
@@ -158,7 +158,9 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("Current account", account.nickname)
+        // Description is free text, not an account name — the nickname is blank so the UI renders a
+        // type + last-4 label instead. (Description still feeds the subtype classification chain.)
+        assertEquals("", account.nickname)
         assertEquals("Current account", account.accountSubType)
         assertEquals("", account.currency)
         assertEquals("998877", account.sortCode)
@@ -166,14 +168,14 @@ class BankingMappersTest {
     }
 
     @Test
-    fun accountMapperDefaultsIdentificationAndNicknameToIdWhenAllAbsent() {
+    fun accountMapperLeavesNicknameBlankWhenNoBankNameIsPresent() {
         val response = AccountsResponse(
             data = AccountsData(account = listOf(Account(accountId = "only-id"))),
         )
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("only-id", account.nickname)
+        assertEquals("", account.nickname)
         assertEquals("", account.accountSubType)
         assertEquals("", account.currency)
         assertEquals("", account.sortCode)

@@ -25,19 +25,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.feature.accounts.generated.resources.Res
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_empty_body
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_empty_title
-import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_manage_consents
 import template.core.base.designsystem.theme.KptTheme
 
 private val EmptyIconSize = 64.dp
 
-/** Empty state: the consent authorised no accounts — prompts the PSU to manage consents. */
+/**
+ * Empty state: the consent authorised no accounts.
+ *
+ * Points the PSU to Settings rather than offering its own manage-consents button — staging or
+ * renewing a consent is a single flow reached only from Settings → Consents.
+ */
 @Composable
 internal fun AccountsEmpty(
-    onManageConsents: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -65,11 +67,6 @@ internal fun AccountsEmpty(
             style = KptTheme.typography.bodyMedium,
             color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-        )
-        MifosFilledPillButton(
-            label = stringResource(Res.string.feature_accounts_manage_consents),
-            onClick = onManageConsents,
-            testTag = AccountsTestTags.MANAGE_CONSENTS,
         )
     }
 }

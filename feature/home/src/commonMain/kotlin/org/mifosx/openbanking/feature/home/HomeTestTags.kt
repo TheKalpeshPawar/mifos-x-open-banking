@@ -20,7 +20,6 @@ internal object HomeTestTags {
     const val QUICK_ACTIONS = "home_quick_actions"
     const val RECENT_TRANSACTIONS = "home_recent_transactions"
     const val SPENDING_CARD = "home_spending_card"
-    const val CONNECT_BANK = "home_connect_bank"
     const val ERROR_RETRY = "home_error_retry"
 
     private const val ACCOUNT_CHIP_PREFIX = "home_account_chip_"

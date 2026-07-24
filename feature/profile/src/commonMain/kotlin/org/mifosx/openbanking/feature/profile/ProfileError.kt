@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.feature.profile.generated.resources.Res
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_button_retry
+import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_button_sign_out
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_error_accessibility
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_error_consent_missing_party
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_error_load_failed
@@ -47,17 +49,22 @@ private val ContentPadding = 24.dp
 private val LineGap = 16.dp
 
 /**
- * Error state: the error glyph, the failure title, the message for this specific failure, and a
- * Retry button.
+ * Error state: the error glyph, the failure title, the message for this specific failure, a Retry
+ * button, and always a Sign out escape.
  *
  * Retry appears only when retrying can actually help. A consent that never carried `ReadParty`, and
  * a bank with no identity record for the account, both fail identically on every attempt — so the
  * button is withheld there rather than inviting a loop that cannot succeed.
+ *
+ * Sign out is always offered. This is the screen a user reaches when their consent has expired — the
+ * profile could not load precisely because there is no valid consent — and logging out has to be
+ * possible from here, which it was not while sign-out lived only on the loaded content.
  */
 @Composable
 internal fun ProfileError(
     kind: ProfileErrorKind,
     onRetry: () -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(Res.string.feature_profile_error_accessibility)
@@ -97,6 +104,15 @@ internal fun ProfileError(
                 label = stringResource(Res.string.feature_profile_button_retry),
                 onClick = onRetry,
                 testTag = ProfileTestTags.RETRY_BUTTON,
+            )
+        }
+        TextButton(
+            onClick = onSignOut,
+            modifier = Modifier.testTag(ProfileTestTags.SIGN_OUT_BUTTON),
+        ) {
+            Text(
+                text = stringResource(Res.string.feature_profile_button_sign_out),
+                color = MaterialTheme.colorScheme.error,
             )
         }
     }

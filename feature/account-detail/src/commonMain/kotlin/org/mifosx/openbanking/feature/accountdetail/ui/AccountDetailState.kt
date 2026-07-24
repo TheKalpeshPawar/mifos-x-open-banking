@@ -59,7 +59,12 @@ sealed interface AccountDetailUiState {
     ) : AccountDetailUiState
 }
 
-/** Display-ready account header. Every field is a finished string; the view model does the work. */
+/**
+ * Display-ready account header. Every field is a finished string; the view model does the work.
+ *
+ * [accountNumber] is carried raw so the header and top bar can fall back to a "type ·· last 4" label
+ * via `accountDisplayName` when the bank supplied no [nickname].
+ */
 data class AccountHeaderUi(
     val nickname: String,
     val accountSubType: String,
@@ -67,6 +72,7 @@ data class AccountHeaderUi(
     val currency: String,
     val servicerIdentification: String,
     val lastUpdatedLabel: String,
+    val accountNumber: String = "",
 )
 
 /** One typed balance row, e.g. `InterimAvailable` / `2,847.63 GBP`. */

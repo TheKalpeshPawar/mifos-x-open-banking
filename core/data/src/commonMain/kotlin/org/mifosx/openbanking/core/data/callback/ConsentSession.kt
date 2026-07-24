@@ -10,6 +10,9 @@
 package org.mifosx.openbanking.core.data.callback
 
 import com.russhwolf.settings.Settings
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 import kotlin.time.ExperimentalTime
@@ -30,6 +33,16 @@ interface ConsentSession {
     /** True when a completed consent has left PSU tokens behind. */
     fun isActive(): Boolean
 
+    /**
+     * Reactive view of [isActive], for observers that must react the instant a session begins or
+     * ends. The navigator cannot poll — logout clears the tokens synchronously, so nothing on the
+     * `UserData` flow it watches necessarily changes — so it observes this instead.
+     *
+     * The default is a static snapshot, which is all a test fake needs; [SettingsConsentSession]
+     * overrides it with a flow that updates on [save]/[clear]/[forgetAll].
+     */
+    fun observeIsActive(): StateFlow<Boolean> = MutableStateFlow(isActive()).asStateFlow()
+
     fun tokens(): PsuTokenResponse?
 
     fun save(tokens: PsuTokenResponse)
@@ -44,7 +57,15 @@ interface ConsentSession {
     @OptIn(ExperimentalTime::class)
     fun consentExpiration(): Instant?
 
+    /**
+     * Drops the credentials — tokens, current consent id, expiry.
+     *
+     * This is the revoke and start-over path: the session must go inactive.
+     */
     fun clear()
+
+    /** An explicit sign-out that should leave nothing behind. */
+    fun forgetAll()
 }
 
 class SettingsConsentSession(
@@ -53,7 +74,11 @@ class SettingsConsentSession(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    private val activeState = MutableStateFlow(isActive())
+
     override fun isActive(): Boolean = tokens()?.accesstoken?.isNotBlank() == true
+
+    override fun observeIsActive(): StateFlow<Boolean> = activeState.asStateFlow()
 
     override fun tokens(): PsuTokenResponse? {
         val raw = secureSettings.getStringOrNull(KEY_TOKENS) ?: return null
@@ -62,6 +87,7 @@ class SettingsConsentSession(
 
     override fun save(tokens: PsuTokenResponse) {
         secureSettings.putString(KEY_TOKENS, json.encodeToString(PsuTokenResponse.serializer(), tokens))
+        activeState.value = isActive()
     }
 
     override fun saveConsentMeta(consentId: String, expirationDateTime: String) {
@@ -80,6 +106,11 @@ class SettingsConsentSession(
         secureSettings.remove(KEY_TOKENS)
         secureSettings.remove(KEY_CONSENT_ID)
         secureSettings.remove(KEY_CONSENT_EXPIRATION)
+        activeState.value = false
+    }
+
+    override fun forgetAll() {
+        clear()
     }
 
     private companion object {

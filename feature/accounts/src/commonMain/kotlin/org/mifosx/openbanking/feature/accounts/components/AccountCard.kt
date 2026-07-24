@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.accounts.AccountsTestTags
 import org.mifosx.openbanking.feature.accounts.generated.resources.Res
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_balance_owed
@@ -93,7 +94,12 @@ internal fun AccountCard(
                     color = KptTheme.colorScheme.secondary,
                 )
                 Text(
-                    text = row.nickname,
+                    text = accountDisplayName(
+                        nickname = row.nickname,
+                        accountSubType = row.accountSubType,
+                        accountNumber = row.accountNumber,
+                        rawIdentification = row.rawIdentification,
+                    ),
                     style = KptTheme.typography.titleMedium,
                     color = KptTheme.colorScheme.onSurface,
                 )

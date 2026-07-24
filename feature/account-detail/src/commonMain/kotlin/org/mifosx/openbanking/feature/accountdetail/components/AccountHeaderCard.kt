@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailTestTags
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_header_accessibility
@@ -68,7 +69,11 @@ internal fun AccountHeaderCard(header: AccountHeaderUi, modifier: Modifier = Mod
                 modifier = Modifier.testTag(AccountDetailTestTags.SUBTYPE_LABEL),
             )
             Text(
-                text = header.nickname,
+                text = accountDisplayName(
+                    nickname = header.nickname,
+                    accountSubType = header.accountSubType,
+                    accountNumber = header.accountNumber,
+                ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag(AccountDetailTestTags.NICKNAME),

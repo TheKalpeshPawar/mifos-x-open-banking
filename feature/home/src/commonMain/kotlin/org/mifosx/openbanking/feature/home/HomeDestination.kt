@@ -34,7 +34,6 @@ fun NavGraphBuilder.homeGraph(
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
     onNavigateToSpending: () -> Unit,
-    onConnectBank: () -> Unit,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
@@ -47,7 +46,6 @@ fun NavGraphBuilder.homeGraph(
                 onNavigateToConsents = onNavigateToConsents,
                 onNavigateToTransactionDetail = onNavigateToTransactionDetail,
                 onNavigateToSpending = onNavigateToSpending,
-                onConnectBank = onConnectBank,
             )
         }
     }

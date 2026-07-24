@@ -65,13 +65,15 @@ class AccountDetailMapperTest {
     }
 
     @Test
-    fun toAccountDetailFallsBackFromNicknameToNameToDescriptionToId() {
+    fun toAccountDetailNicknameIsTheBankNameOrBlankNeverTheDescriptionOrId() {
         fun nicknameOf(account: Account): String? = response(account).toAccountDetail()?.nickname
 
         assertEquals("Nick", nicknameOf(Account(accountId = "acc-1", nickname = "Nick", name = "Name")))
         assertEquals("Name", nicknameOf(Account(accountId = "acc-1", name = "Name", description = "Desc")))
-        assertEquals("Desc", nicknameOf(Account(accountId = "acc-1", description = "Desc")))
-        assertEquals("acc-1", nicknameOf(Account(accountId = "acc-1")))
+        // Description is free text (the HSBC sandbox returns "Description of the account") — never a
+        // name. With no Nickname/Name the nickname is blank and the UI renders a type + last-4 label.
+        assertEquals("", nicknameOf(Account(accountId = "acc-1", description = "Desc")))
+        assertEquals("", nicknameOf(Account(accountId = "acc-1")))
     }
 
     @Test

@@ -27,9 +27,12 @@
 :feature:home
 :feature:login
 :feature:profile
+:feature:scheduled-payments
 :feature:settings
 :feature:standing-orders
+:feature:statement-detail
 :feature:statements
+:feature:transaction-detail
 :feature:transactions
 androidx.activity:activity-compose:1.12.2
 androidx.activity:activity-ktx:1.12.2

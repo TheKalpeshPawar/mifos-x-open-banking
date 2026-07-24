@@ -16,6 +16,8 @@ import kotlinx.serialization.Serializable
 data class Beneficiary(
     @SerialName("AccountId")
     val accountId: String? = null,
+    @SerialName("BeneficiaryId")
+    val beneficiaryId: String? = null,
     @SerialName("Reference")
     val reference: String? = null,
     @SerialName("CreditorAccount")

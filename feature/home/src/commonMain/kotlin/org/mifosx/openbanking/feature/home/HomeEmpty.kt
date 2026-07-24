@@ -24,19 +24,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.feature.home.generated.resources.Res
-import org.mifosx.openbanking.feature.home.generated.resources.feature_home_connect_bank
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_empty_body
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_empty_title
 import template.core.base.designsystem.theme.KptTheme
 
 private val EmptyIconSize = 64.dp
 
-/** Empty state: no accounts on the consent — prompts the PSU to connect their bank. */
+/**
+ * Empty state: no accounts on the consent.
+ *
+ * Points the PSU to Settings rather than offering its own connect button. Staging a consent is a
+ * single flow reached only from Settings → Consents, so a second entry point here would be a
+ * competing way to do the one thing that must have one home.
+ */
 @Composable
 internal fun HomeEmpty(
-    onConnectBank: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -63,11 +66,6 @@ internal fun HomeEmpty(
             style = KptTheme.typography.bodyMedium,
             color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-        )
-        MifosFilledPillButton(
-            label = stringResource(Res.string.feature_home_connect_bank),
-            onClick = onConnectBank,
-            testTag = HomeTestTags.CONNECT_BANK,
         )
     }
 }

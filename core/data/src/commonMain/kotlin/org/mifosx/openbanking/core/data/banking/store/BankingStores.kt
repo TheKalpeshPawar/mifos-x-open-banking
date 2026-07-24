@@ -17,6 +17,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toAccountDetail
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccount
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccounts
+import org.mifosx.openbanking.core.data.banking.mapper.toBeneficiaryItems
 import org.mifosx.openbanking.core.data.banking.mapper.toDirectDebitsSummary
 import org.mifosx.openbanking.core.data.banking.mapper.toPartyProfile
 import org.mifosx.openbanking.core.data.banking.mapper.toScheduledPaymentItems
@@ -36,6 +37,7 @@ import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
@@ -185,6 +187,28 @@ object BankingStores {
             fetcher = Fetcher.of { accountId ->
                 when (val result = aisp.getBalances(accountId)) {
                     is NetworkResult.Success -> result.data.toAccountBalanceLines()
+                    is NetworkResult.Error -> throw result.error.toThrowable()
+                }
+            },
+        )
+
+    /**
+     * Every saved payee for one account, keyed by `AccountId`, in the order the bank returned them.
+     *
+     * In-memory for the same reason as [directDebitsStore]: payees are read-only reference data
+     * behind a consent that can be withdrawn at any moment, so a cached copy could outlive the
+     * user's permission to hold it. A miss costs one request, and the endpoint returns the full list
+     * unpaginated — the screen's search filters that list client-side rather than re-querying.
+     *
+     * Takes no capability registry: beneficiaries are offered on every HSBC product, so a refusal is
+     * not an unsupported-feature signal. A `403` here means the consent was revoked, which the screen
+     * surfaces as its own error with a re-authorise route, not as a hidden chip.
+     */
+    fun beneficiariesStore(aisp: Aisp): Store<String, List<BeneficiaryItem>> =
+        StoreFactory.createMemoryStore(
+            fetcher = Fetcher.of { accountId ->
+                when (val result = aisp.getBeneficiaries(accountId)) {
+                    is NetworkResult.Success -> result.data.toBeneficiaryItems(accountId)
                     is NetworkResult.Error -> throw result.error.toThrowable()
                 }
             },

@@ -15,13 +15,10 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
-import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineContent
 import template.core.base.ui.viewmodel.BaseViewModel
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 private const val GBP = "GBP"
 private const val SUBTYPE_CURRENT = "CurrentAccount"
@@ -29,7 +26,6 @@ private const val SUBTYPE_SAVINGS = "Savings"
 private const val SUBTYPE_CREDIT_CARD = "CreditCard"
 private const val SUBTYPE_GLOBAL_MONEY = "GlobalMoney"
 private const val SUBTYPE_GLOBAL_WALLET = "GlobalWallet"
-private const val CONSENT_EXPIRY_THRESHOLD_DAYS = 30
 private const val BALANCE_UNAVAILABLE = "—"
 
 /**
@@ -84,7 +80,12 @@ enum class AccountFilter(private val subtypes: Set<String>?) {
     fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes
 }
 
-/** A display-ready account row. All money and identifiers are pre-formatted; the card renders strings. */
+/**
+ * A display-ready account row. All money and identifiers are pre-formatted; the card renders strings.
+ *
+ * [accountSubType], [accountNumber] and [rawIdentification] are carried raw so the card can fall back
+ * to a "type ·· last 4" label via `accountDisplayName` when the bank supplied no [nickname].
+ */
 data class AccountRowUi(
     val id: String,
     val type: AccountUiType,
@@ -92,14 +93,15 @@ data class AccountRowUi(
     val identifier: String,
     val balanceLabel: String,
     val isBalanceOwed: Boolean,
+    val accountSubType: String = "",
+    val accountNumber: String = "",
+    val rawIdentification: String = "",
 )
 
-/** Display-ready accounts payload: filtered rows and the consent-expiry banner state. */
+/** Display-ready accounts payload: filtered rows and the active type filter. */
 data class AccountsData(
     val rows: List<AccountRowUi>,
     val activeFilter: AccountFilter,
-    val isConsentExpiring: Boolean,
-    val consentDaysRemaining: Int,
 )
 
 data class AccountsState(
@@ -117,14 +119,11 @@ sealed interface AccountsAction {
 /**
  * Drives the accounts overview. Combines the offline-first [AccountsOverviewRepository] stream with a
  * client-side filter into one [ScreenState], mapping [AccountWithBalance] rows into a display-ready
- * [AccountsData]: per-account identifier and balance are formatted here, and the consent-expiry
- * banner is derived from the stored consent expiry. Navigation is handled by the screen, so no
- * events are emitted.
+ * [AccountsData]: per-account identifier and balance are formatted here. Navigation is handled by the
+ * screen, so no events are emitted.
  */
-@OptIn(ExperimentalTime::class)
 class AccountsViewModel(
     private val accountsRepository: AccountsOverviewRepository,
-    private val consentSession: ConsentSession,
 ) : BaseViewModel<AccountsState, Nothing, AccountsAction>(initialState = AccountsState()) {
 
     private val filter = MutableStateFlow(AccountFilter.ALL)
@@ -144,20 +143,11 @@ class AccountsViewModel(
         }
     }
 
-    private fun buildData(accounts: List<AccountWithBalance>, active: AccountFilter): AccountsData {
-        val days = consentDaysRemaining()
-        return AccountsData(
+    private fun buildData(accounts: List<AccountWithBalance>, active: AccountFilter): AccountsData =
+        AccountsData(
             rows = accounts.filter { active.matches(it.account.accountSubType) }.map { it.toRowUi() },
             activeFilter = active,
-            isConsentExpiring = days < CONSENT_EXPIRY_THRESHOLD_DAYS,
-            consentDaysRemaining = days,
         )
-    }
-
-    private fun consentDaysRemaining(): Int =
-        consentSession.consentExpiration()
-            ?.let { (it - Clock.System.now()).inWholeDays.toInt() }
-            ?: Int.MAX_VALUE
 
     private fun AccountWithBalance.toRowUi(): AccountRowUi = AccountRowUi(
         id = account.accountId,
@@ -171,5 +161,8 @@ class AccountsViewModel(
         ),
         balanceLabel = balance?.let { formatBalance(it.availableAmount, it.currency) } ?: BALANCE_UNAVAILABLE,
         isBalanceOwed = account.accountSubType.canonicalSubtype() == SUBTYPE_CREDIT_CARD,
+        accountSubType = account.accountSubType,
+        accountNumber = account.accountNumber,
+        rawIdentification = account.rawIdentification,
     )
 }

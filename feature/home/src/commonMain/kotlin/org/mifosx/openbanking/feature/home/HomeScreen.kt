@@ -32,7 +32,6 @@ internal fun HomeScreen(
     onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
     onNavigateToSpending: () -> Unit,
-    onConnectBank: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -43,7 +42,7 @@ internal fun HomeScreen(
             state = state.uiState,
             onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) },
             loading = { HomeSkeleton() },
-            empty = { HomeEmpty(onConnectBank = onConnectBank) },
+            empty = { HomeEmpty() },
             error = { HomeError(onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) }) },
         ) { data, _ ->
             HomeContent(

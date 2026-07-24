@@ -76,9 +76,18 @@ import template.core.base.designsystem.theme.KptTheme
 import template.core.base.platform.LocalIntentManager
 import template.core.base.ui.effects.EventsEffect
 
+/**
+ * The HSBC consent screen — staging a consent and handing off to the browser.
+ *
+ * Serves two entry points. As the initial onboarding step there is nowhere in the app to go back to,
+ * so cancelling exits the app (the default, [onBack] null). Reused for renewal from an already-signed-in
+ * session, cancelling must return to where the user was, so the renewal host passes an [onBack] that
+ * pops the back stack.
+ */
 @Composable
 internal fun LoginScreen(
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -86,7 +95,7 @@ internal fun LoginScreen(
 
     EventsEffect(viewModel.eventFlow) { event ->
         when (event) {
-            LoginEvent.NavigateBack -> intentManager.exitApplication()
+            LoginEvent.NavigateBack -> onBack?.invoke() ?: intentManager.exitApplication()
         }
     }
 

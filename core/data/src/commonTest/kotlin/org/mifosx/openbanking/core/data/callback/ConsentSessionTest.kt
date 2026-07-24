@@ -82,6 +82,46 @@ class ConsentSessionTest {
         assertNull(session.tokens())
         assertNull(session.consentId())
         assertNull(session.consentExpiration())
-        assertTrue(settings.keys.isEmpty(), "clear must leave no credentials behind")
+    }
+
+    @Test
+    fun forgetAllWipesEverything() {
+        session.save(token)
+        session.saveConsentMeta("cn-1", "2026-07-01T00:00:00Z")
+
+        session.forgetAll()
+
+        assertNull(session.tokens())
+        assertNull(session.consentId())
+        assertNull(session.consentExpiration())
+        assertTrue(settings.keys.isEmpty(), "forgetAll must leave nothing behind")
+    }
+
+    @Test
+    fun observeIsActiveReflectsTheStartingState() {
+        assertFalse(session.observeIsActive().value)
+    }
+
+    @Test
+    fun observeIsActiveEmitsTrueOnSave() {
+        session.save(token)
+
+        assertTrue(session.observeIsActive().value)
+    }
+
+    @Test
+    fun observeIsActiveEmitsFalseOnClear() {
+        session.save(token)
+        session.clear()
+
+        assertFalse(session.observeIsActive().value)
+    }
+
+    @Test
+    fun observeIsActiveEmitsFalseOnForgetAll() {
+        session.save(token)
+        session.forgetAll()
+
+        assertFalse(session.observeIsActive().value)
     }
 }

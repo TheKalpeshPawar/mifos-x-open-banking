@@ -54,14 +54,10 @@ class AccountsScreenRobolectricTest {
     }
 
     @Test
-    fun emptyStateManageConsentsDispatches() {
-        var managed = false
-        composeRule.setContent { AccountsEmpty(onManageConsents = { managed = true }) }
+    fun emptyStateRenders() {
+        composeRule.setContent { AccountsEmpty() }
 
         composeRule.onNodeWithTag(AccountsTestTags.EMPTY).assertExists()
-        composeRule.onNodeWithTag(AccountsTestTags.MANAGE_CONSENTS).performClick()
-
-        assertTrue(managed)
     }
 
     @Test
@@ -94,36 +90,22 @@ class AccountsScreenRobolectricTest {
 
         assertEquals("acc-current", clickedId)
     }
-
-    @Test
-    fun consentBannerRendersAndReconfirmDispatches() {
-        var reconfirmed = false
-        composeRule.showContent(consentExpiring = true, onReconfirm = { reconfirmed = true })
-
-        composeRule.onNodeWithTag(AccountsTestTags.CONSENT_BANNER).assertExists()
-        composeRule.onNodeWithTag(AccountsTestTags.CONSENT_RECONFIRM).performClick()
-
-        assertTrue(reconfirmed)
-    }
 }
 
 private const val ROBOLECTRIC_SDK = 34
 
 private fun ComposeContentTestRule.showContent(
-    consentExpiring: Boolean = false,
     onFilterChange: (AccountFilter) -> Unit = {},
     onAccountClick: (String) -> Unit = {},
-    onReconfirm: () -> Unit = {},
 ) = setContent {
     AccountsContent(
-        data = sampleAccountsData(consentExpiring),
+        data = sampleAccountsData(),
         onFilterChange = onFilterChange,
         onAccountClick = onAccountClick,
-        onReconfirmConsent = onReconfirm,
     )
 }
 
-private fun sampleAccountsData(consentExpiring: Boolean): AccountsData = AccountsData(
+private fun sampleAccountsData(): AccountsData = AccountsData(
     rows = listOf(
         AccountRowUi(
             id = "acc-current",
@@ -143,6 +125,4 @@ private fun sampleAccountsData(consentExpiring: Boolean): AccountsData = Account
         ),
     ),
     activeFilter = AccountFilter.ALL,
-    isConsentExpiring = consentExpiring,
-    consentDaysRemaining = 14,
 )

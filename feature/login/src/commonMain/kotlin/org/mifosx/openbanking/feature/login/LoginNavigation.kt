@@ -28,6 +28,16 @@ data object IntroRoute
 @Serializable
 data object LoginRoute
 
+/**
+ * The consent screen reached from inside the authenticated app to renew or replace a consent.
+ *
+ * Distinct from [LoginRoute] (which sits behind onboarding in the root auth graph): this one is a
+ * standalone destination the authenticated host registers via [loginRenewScreen], so renewal lands
+ * straight on the consent screen without the intro, and cancelling pops back rather than exiting.
+ */
+@Serializable
+data object LoginRenewRoute
+
 fun NavController.navigateToAuthGraph(navOptions: NavOptions? = null) {
     navigate(route = AuthGraphRoute, navOptions = navOptions)
 }
@@ -42,5 +52,18 @@ fun NavGraphBuilder.authGraph(navController: NavController) {
         composableWithStayTransitions<LoginRoute> {
             LoginScreen()
         }
+    }
+}
+
+/**
+ * Registers the consent screen as a standalone renewal destination.
+ *
+ * Renders the same [LoginScreen] the onboarding flow uses, so it reuses the whole create-consent +
+ * browser-handoff engine unchanged; the only difference is [onBack], which pops back to the caller on
+ * cancel instead of exiting the app.
+ */
+fun NavGraphBuilder.loginRenewScreen(onBack: () -> Unit) {
+    composableWithStayTransitions<LoginRenewRoute> {
+        LoginScreen(onBack = onBack)
     }
 }

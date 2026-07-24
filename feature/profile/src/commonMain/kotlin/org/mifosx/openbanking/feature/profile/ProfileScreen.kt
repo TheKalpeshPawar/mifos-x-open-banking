@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
+import org.mifosx.openbanking.feature.profile.components.ProfileSignOutDialog
 import org.mifosx.openbanking.feature.profile.generated.resources.Res
 import org.mifosx.openbanking.feature.profile.generated.resources.feature_profile_screen_title
 import org.mifosx.openbanking.feature.profile.ui.ProfileAction
@@ -85,7 +86,17 @@ internal fun ProfileScreenContent(
         is ProfileUiState.Error -> ProfileError(
             kind = current.kind,
             onRetry = { onAction(ProfileAction.RetryLoad) },
+            onSignOut = { onAction(ProfileAction.RequestSignOut) },
             modifier = modifier,
+        )
+    }
+
+    // The confirmation is screen-level, so it renders over whatever state is showing — including the
+    // error state an expired consent produces, where sign-out is the only way forward.
+    if (state.isConfirmingSignOut) {
+        ProfileSignOutDialog(
+            onConfirm = { onAction(ProfileAction.ConfirmSignOut) },
+            onDismiss = { onAction(ProfileAction.DismissSignOut) },
         )
     }
 }
