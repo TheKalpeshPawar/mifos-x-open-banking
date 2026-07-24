@@ -45,11 +45,12 @@ private val balances = listOf(
     BalanceRowUi(type = "InterimBooked", amountLabel = "2,905.10 GBP"),
 )
 
-/** The two destinations HSBC gates on product type; everything else always renders. */
+/** Destinations HSBC gates on product type; everything else always renders. */
 private val GATED_CHIPS = setOf(
     AccountDetailChip.StandingOrders,
     AccountDetailChip.DirectDebits,
     AccountDetailChip.Statements,
+    AccountDetailChip.Beneficiaries,
 )
 
 private fun contentState(
