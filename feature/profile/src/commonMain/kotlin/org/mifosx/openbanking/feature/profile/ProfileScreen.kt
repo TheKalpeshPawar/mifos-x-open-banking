@@ -30,13 +30,14 @@ import org.mifosx.openbanking.feature.profile.ui.ProfileViewModel
 /**
  * The connected party's identity and the Open Banking consent behind it, pushed from the More tab.
  *
- * Back navigation is delegated upward through [onBack] and the consent destination through
- * [onNavigateToConsents]; the feature never sees the host route table.
+ * Back navigation is delegated upward through [onBack], the consent destination through
+ * [onNavigateToConsents], and sign-out through [onLoggedOut]; the feature never sees the host route table.
  */
 @Composable
 internal fun ProfileScreen(
     onBack: () -> Unit,
     onNavigateToConsents: () -> Unit,
+    onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -46,6 +47,7 @@ internal fun ProfileScreen(
         viewModel.eventFlow.collectLatest { event ->
             when (event) {
                 ProfileEvent.NavigateToConsents -> onNavigateToConsents()
+                ProfileEvent.LoggedOut -> onLoggedOut()
             }
         }
     }

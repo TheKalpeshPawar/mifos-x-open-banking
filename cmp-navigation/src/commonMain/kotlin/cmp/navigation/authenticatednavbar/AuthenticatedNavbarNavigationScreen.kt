@@ -79,6 +79,7 @@ import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
 internal fun AuthenticatedNavbarNavigationScreen(
+    onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberKptNavController(
         name = "AuthenticatedNavbarScreen",
@@ -104,6 +105,7 @@ internal fun AuthenticatedNavbarNavigationScreen(
     AuthenticatedNavbarNavigationScreenContent(
         navController = navController,
         snackbarHostState = snackbarHostState,
+        onLoggedOut = onLoggedOut,
         modifier = modifier,
     )
 }
@@ -111,6 +113,7 @@ internal fun AuthenticatedNavbarNavigationScreen(
 @Composable
 internal fun AuthenticatedNavbarNavigationScreenContent(
     navController: NavHostController,
+    onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -188,6 +191,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onBack = { navController.popBackStack() },
                 // Reconfirm re-runs the consent authorisation on the same login screen.
                 onReconfirm = { navController.navigate(LoginRenewRoute) },
+                // Revoke is a full logout; the root navigator takes the user to onboarding.
+                onLoggedOut = onLoggedOut,
             )
             loginRenewScreen(onBack = { navController.popBackStack() })
             statementDetailScreen(
@@ -213,6 +218,8 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             profileScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToConsents = { navController.navigate(ConsentListRoute) },
+                // Sign out is a full logout; the root navigator takes the user to onboarding.
+                onLoggedOut = onLoggedOut,
             )
             licencesScreen(onBack = { navController.popBackStack() })
             bankingPlaceholderDestinations()

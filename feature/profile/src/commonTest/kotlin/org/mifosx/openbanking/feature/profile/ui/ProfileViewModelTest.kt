@@ -11,7 +11,10 @@ package org.mifosx.openbanking.feature.profile.ui
 
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.data.util.RemoteException
@@ -202,15 +205,17 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun confirmSignOutLogsOutAndLowersTheDialog() {
+    fun confirmSignOutLogsOutLowersTheDialogAndSignalsLoggedOut() = runTest {
         val appLogout = FakeAppLogout()
         val vm = viewModel(FakeProfileRepository(content(ProfileFixtures.priya)), appLogout = appLogout)
         vm.trySendAction(ProfileAction.RequestSignOut)
 
         vm.trySendAction(ProfileAction.ConfirmSignOut)
+        advanceUntilIdle()
 
         assertEquals(1, appLogout.logOutCount)
         assertFalse(vm.stateFlow.value.isConfirmingSignOut)
+        assertIs<ProfileEvent.LoggedOut>(vm.eventFlow.first())
     }
 
     /**

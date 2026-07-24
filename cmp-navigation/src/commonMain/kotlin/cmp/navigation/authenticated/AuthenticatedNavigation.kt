@@ -28,12 +28,14 @@ internal fun NavController.navigateToAuthenticatedGraph(navOptions: NavOptions? 
 
 internal fun NavGraphBuilder.authenticatedGraph(
     @Suppress("UnusedParameter") navController: NavController,
+    onLoggedOut: () -> Unit,
 ) {
     navigation<AuthenticatedGraphRoute>(
         startDestination = AuthenticatedNavbarRoute,
     ) {
         // The navbar hosts a nested NavHost with the flavor-aware bottom-nav tabs +
         // all banking destinations (home/settings/notifications + Phase 2 placeholders).
-        authenticatedNavbarGraph()
+        // onLoggedOut bubbles a sign-out/revoke up to the root navigator, which owns the auth graph.
+        authenticatedNavbarGraph(onLoggedOut = onLoggedOut)
     }
 }

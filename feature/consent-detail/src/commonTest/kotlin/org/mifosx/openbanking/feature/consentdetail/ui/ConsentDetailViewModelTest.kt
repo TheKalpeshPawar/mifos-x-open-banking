@@ -12,6 +12,7 @@ package org.mifosx.openbanking.feature.consentdetail.ui
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -203,12 +204,13 @@ class ConsentDetailViewModelTest {
     }
 
     /**
-     * Confirming a revoke runs the full logout. The teardown and its best-effort revoke live in
+     * Confirming a revoke runs the full logout, then signals [ConsentDetailEvent.LoggedOut] so the
+     * host routes to onboarding. The teardown and its best-effort revoke live in
      * [org.mifosx.openbanking.core.data.user.AppLogout] (covered by its own test); here we pin that
-     * the confirm surface reaches it exactly once, after the gate.
+     * the confirm surface reaches it exactly once, after the gate, and raises the sign-out event.
      */
     @Test
-    fun confirmingRevokeRunsTheFullLogout() = runTest {
+    fun confirmingRevokeRunsTheFullLogoutAndSignalsLoggedOut() = runTest {
         val appLogout = FakeAppLogout()
         val vm = viewModel(repository = contentRepository(), appLogout = appLogout)
 
@@ -218,6 +220,7 @@ class ConsentDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, appLogout.logOutCount)
+        assertIs<ConsentDetailEvent.LoggedOut>(vm.eventFlow.first())
     }
 
     // endregion

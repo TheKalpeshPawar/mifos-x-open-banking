@@ -34,16 +34,16 @@ import kotlin.time.Instant
  * tap cannot start it twice.
  *
  * Confirming a revoke is a full logout: it withdraws the consent and clears all local data through
- * the shared [AppLogout], the same path as profile sign-out. The screen is not navigated away from
- * here — clearing the data drives the root navigator to onboarding on its own, so there is no
- * one-shot event to raise (`Event = Nothing`).
+ * the shared [AppLogout], the same path as profile sign-out. Once it completes,
+ * [ConsentDetailEvent.LoggedOut] asks the host to route to onboarding — an explicit navigation, so
+ * nothing has to observe the session going inactive.
  */
 @OptIn(ExperimentalTime::class)
 class ConsentDetailViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: ConsentDetailRepository,
     private val appLogout: AppLogout,
-) : BaseViewModel<ConsentDetailState, Nothing, ConsentDetailAction>(
+) : BaseViewModel<ConsentDetailState, ConsentDetailEvent, ConsentDetailAction>(
     initialState = ConsentDetailState(
         consentId = savedStateHandle.get<String>(CONSENT_ID_ARG).orEmpty(),
     ),
@@ -83,14 +83,17 @@ class ConsentDetailViewModel(
      *
      * Only reachable from the confirmation gate, so a stray dispatch from any other state is ignored
      * rather than silently logging the user out. The revoke is best-effort inside [AppLogout] — an
-     * already-expired or unreachable consent still tears down the session — and the root navigator
-     * takes the user to onboarding once the data is cleared, so nothing further is done here.
+     * already-expired or unreachable consent still tears down the session — and once it completes the
+     * screen raises [ConsentDetailEvent.LoggedOut] for the host to route to onboarding.
      */
     private fun executeRevoke() {
         val current = state.uiState as? ConsentDetailUiState.RevokeConfirm ?: return
         updateState { copy(uiState = ConsentDetailUiState.Revoking(current.consent)) }
 
-        viewModelScope.launch { appLogout.logOut() }
+        viewModelScope.launch {
+            appLogout.logOut()
+            sendEvent(ConsentDetailEvent.LoggedOut)
+        }
     }
 
     private fun ScreenState<ConsentSummary>.toUiState(): ConsentDetailUiState = when (this) {

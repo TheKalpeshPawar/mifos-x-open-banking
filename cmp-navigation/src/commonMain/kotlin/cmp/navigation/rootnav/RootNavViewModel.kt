@@ -11,7 +11,6 @@ package cmp.navigation.rootnav
 
 import androidx.lifecycle.viewModelScope
 import cmp.navigation.rootnav.RootNavAction.Internal.UserStateUpdateReceive
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -29,13 +28,11 @@ class RootNavViewModel(
 ) {
 
     init {
-        // Re-evaluate on either signal. `userData` carries the active user id; the consent-session
-        // flow is what makes logout land live — clearing the tokens does not necessarily change
-        // `userData`, so watching it alone left the app on the authenticated screen until a restart.
-        combine(
-            userDataRepository.userData,
-            consentSession.observeIsActive(),
-        ) { userData, _ -> userData }
+        // Resolves the launch route: the `userData` StateFlow emits its current value on collection,
+        // and `isActive()` (read live below) decides onboarding vs. authenticated. Sign-in and
+        // sign-out navigate explicitly — the consent callback to Home, logout to onboarding — so this
+        // does not need to react to the session changing mid-run.
+        userDataRepository.userData
             .map(::UserStateUpdateReceive)
             .onEach(::handleAction)
             .launchIn(viewModelScope)

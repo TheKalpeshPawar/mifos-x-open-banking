@@ -10,15 +10,18 @@
 package org.mifosx.openbanking.feature.consentdetail
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.consentdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.consentdetail.generated.resources.feature_consent_detail_screen_title
 import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailAction
+import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailEvent
 import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailState
 import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailUiState
 import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailViewModel
@@ -26,17 +29,26 @@ import org.mifosx.openbanking.feature.consentdetail.ui.ConsentDetailViewModel
 /**
  * One consent in full, pushed from a consent-list card.
  *
- * Revoking a consent is a full logout: it tears down the session and the root navigator moves the
- * user to onboarding on its own, so this screen raises no navigation of its own for that path.
+ * Revoking a consent is a full logout; once it completes the view model raises
+ * [ConsentDetailEvent.LoggedOut], which this screen delegates upward through [onLoggedOut].
  */
 @Composable
 internal fun ConsentDetailScreen(
     onBack: () -> Unit,
     onReconfirm: () -> Unit,
+    onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConsentDetailViewModel = koinViewModel(),
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                ConsentDetailEvent.LoggedOut -> onLoggedOut()
+            }
+        }
+    }
 
     KptScaffold(
         showNavigationIcon = state.uiState !is ConsentDetailUiState.Revoking,

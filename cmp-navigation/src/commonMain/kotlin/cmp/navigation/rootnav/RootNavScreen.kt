@@ -101,7 +101,10 @@ fun RootNavScreen(
             },
             onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
         )
-        authenticatedGraph(navController)
+        authenticatedGraph(
+            navController = navController,
+            onLoggedOut = { navController.navigateToAuthGraph(rootNavOptions()) },
+        )
 //        userUnlockDestination()
     }
 

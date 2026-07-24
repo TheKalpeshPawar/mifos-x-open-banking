@@ -148,6 +148,9 @@ sealed interface ProfileAction {
  */
 sealed interface ProfileEvent {
     data object NavigateToConsents : ProfileEvent
+
+    /** Sign-out finished: the session is cleared, so the host routes to onboarding. */
+    data object LoggedOut : ProfileEvent
 }
 
 /**

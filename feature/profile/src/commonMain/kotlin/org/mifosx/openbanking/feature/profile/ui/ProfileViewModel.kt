@@ -106,13 +106,16 @@ class ProfileViewModel(
      * local data.
      *
      * Delegated to [AppLogout] — the one logout path shared with consent-detail's "Revoke access" —
-     * so an expired or absent consent cannot block it. The screen is not navigated away from here:
-     * clearing the data drives the root navigator to onboarding on its own, so a feature that never
-     * sees the route table stays that way.
+     * so an expired or absent consent cannot block it. Once it completes, [ProfileEvent.LoggedOut]
+     * asks the host to route to onboarding: an explicit navigation, so nothing has to observe the
+     * session going inactive.
      */
     private fun signOut() {
         setConfirmingSignOut(false)
-        viewModelScope.launch { appLogout.logOut() }
+        viewModelScope.launch {
+            appLogout.logOut()
+            sendEvent(ProfileEvent.LoggedOut)
+        }
     }
 
     private fun ScreenState<PartyProfile>.toUiState(): ProfileUiState = when (this) {

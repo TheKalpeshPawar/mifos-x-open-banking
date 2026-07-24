@@ -100,6 +100,12 @@ sealed interface ConsentDetailAction {
     data object ExecuteRevoke : ConsentDetailAction
 }
 
+/** One-shot effects the screen turns into navigation. */
+sealed interface ConsentDetailEvent {
+    /** Revoke finished: the session is cleared, so the host routes to onboarding. */
+    data object LoggedOut : ConsentDetailEvent
+}
+
 /**
  * Classifies a load failure into one of the [ConsentDetailErrorKind]s.
  *

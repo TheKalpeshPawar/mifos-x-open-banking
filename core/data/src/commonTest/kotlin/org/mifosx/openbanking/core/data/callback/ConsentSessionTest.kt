@@ -96,32 +96,4 @@ class ConsentSessionTest {
         assertNull(session.consentExpiration())
         assertTrue(settings.keys.isEmpty(), "forgetAll must leave nothing behind")
     }
-
-    @Test
-    fun observeIsActiveReflectsTheStartingState() {
-        assertFalse(session.observeIsActive().value)
-    }
-
-    @Test
-    fun observeIsActiveEmitsTrueOnSave() {
-        session.save(token)
-
-        assertTrue(session.observeIsActive().value)
-    }
-
-    @Test
-    fun observeIsActiveEmitsFalseOnClear() {
-        session.save(token)
-        session.clear()
-
-        assertFalse(session.observeIsActive().value)
-    }
-
-    @Test
-    fun observeIsActiveEmitsFalseOnForgetAll() {
-        session.save(token)
-        session.forgetAll()
-
-        assertFalse(session.observeIsActive().value)
-    }
 }

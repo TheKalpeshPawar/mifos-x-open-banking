@@ -33,8 +33,13 @@ data class ProfileRoute(val accountId: String)
 fun NavGraphBuilder.profileScreen(
     onBack: () -> Unit,
     onNavigateToConsents: () -> Unit,
+    onLoggedOut: () -> Unit,
 ) {
     composableWithStayTransitions<ProfileRoute> {
-        ProfileScreen(onBack = onBack, onNavigateToConsents = onNavigateToConsents)
+        ProfileScreen(
+            onBack = onBack,
+            onNavigateToConsents = onNavigateToConsents,
+            onLoggedOut = onLoggedOut,
+        )
     }
 }

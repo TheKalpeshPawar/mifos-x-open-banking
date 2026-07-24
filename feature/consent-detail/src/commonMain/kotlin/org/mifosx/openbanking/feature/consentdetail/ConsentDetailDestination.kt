@@ -29,17 +29,19 @@ data class ConsentDetailRoute(val consentId: String)
 /**
  * Registers the consent-detail screen in the host graph.
  *
- * [onReconfirm] starts a fresh consent flow. Revocation needs no host lambda: it is a full logout,
- * and the root navigator moves the user to onboarding once the session is cleared.
+ * [onReconfirm] starts a fresh consent flow. [onLoggedOut] fires after a revoke — a full logout — for
+ * the host to route to onboarding.
  */
 fun NavGraphBuilder.consentDetailScreen(
     onBack: () -> Unit,
     onReconfirm: () -> Unit,
+    onLoggedOut: () -> Unit,
 ) {
     composableWithStayTransitions<ConsentDetailRoute> {
         ConsentDetailScreen(
             onBack = onBack,
             onReconfirm = onReconfirm,
+            onLoggedOut = onLoggedOut,
         )
     }
 }
