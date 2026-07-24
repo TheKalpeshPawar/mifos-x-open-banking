@@ -35,7 +35,7 @@ private fun Transaction.toTransactionDetail(fallbackAccountId: String): Transact
     amount = amount?.amount ?: ZERO_AMOUNT,
     currency = amount?.currency ?: "",
     isCredit = creditDebitIndicator.equals(CREDIT, ignoreCase = true),
-    merchantName = merchantDetails?.merchantName?.takeIf { it.isNotBlank() },
+    merchantName = merchantNameOrNull(),
     status = status ?: "",
     bookingDateTime = bookingDateTime ?: "",
     valueDateTime = valueDateTime ?: "",

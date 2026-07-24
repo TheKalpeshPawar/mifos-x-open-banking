@@ -13,6 +13,8 @@ import org.mifosx.openbanking.core.network.model.ais.accounts.Account
 import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
 import org.mifosx.openbanking.core.network.model.ais.balances.Balance
 import org.mifosx.openbanking.core.network.model.ais.balances.BalancesResponse
+import org.mifosx.openbanking.core.network.model.ais.transactions.CreditorAccount
+import org.mifosx.openbanking.core.network.model.ais.transactions.DebtorAccount
 import org.mifosx.openbanking.core.network.model.ais.transactions.MerchantDetails
 import org.mifosx.openbanking.core.network.model.ais.transactions.Transaction
 import org.mifosx.openbanking.core.network.model.ais.transactions.TransactionsResponse
@@ -351,6 +353,50 @@ class BankingMappersTest {
 
         assertEquals("acc-explicit", item.accountId)
         assertEquals("NARRATIVE", item.description)
+    }
+
+    @Test
+    fun transactionMapperTreatsTheSandboxPlaceholderMerchantAsAbsentAndUsesTheNarrative() {
+        // The HSBC sandbox stubs MerchantName with this constant on every booked transaction; without
+        // suppression every row would collapse to it instead of the real per-transaction narrative.
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "t1",
+                        transactionInformation = "SALARY ACME LTD",
+                        merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant"),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals("SALARY ACME LTD", response.toTransactionItems("acc-1").single().description)
+    }
+
+    @Test
+    fun transactionMapperFallsBackToTheCounterpartyNameWhenMerchantIsPlaceholderAndNarrativeBlank() {
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "out",
+                        merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant"),
+                        creditorAccount = CreditorAccount(name = "JANE DOE"),
+                    ),
+                    Transaction(
+                        transactionId = "in",
+                        merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant"),
+                        debtorAccount = DebtorAccount(name = "ACME LTD"),
+                    ),
+                ),
+            ),
+        )
+
+        val items = response.toTransactionItems("acc-1")
+
+        assertEquals("JANE DOE", items[0].description)
+        assertEquals("ACME LTD", items[1].description)
     }
 
     @Test

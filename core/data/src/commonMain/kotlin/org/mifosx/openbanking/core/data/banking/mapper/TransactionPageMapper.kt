@@ -32,9 +32,7 @@ fun TransactionsResponse.toTransactionsPage(accountId: String): TransactionsPage
 private fun Transaction.toTransactionListItem(fallbackAccountId: String): TransactionListItem = TransactionListItem(
     transactionId = transactionId ?: "",
     accountId = accountId ?: fallbackAccountId,
-    description = merchantDetails?.merchantName?.takeIf { it.isNotBlank() }
-        ?: transactionInformation
-        ?: "",
+    description = resolveTransactionTitle() ?: "",
     bookingDateTime = bookingDateTime ?: "",
     amount = amount?.amount ?: ZERO_AMOUNT,
     currency = amount?.currency ?: "",

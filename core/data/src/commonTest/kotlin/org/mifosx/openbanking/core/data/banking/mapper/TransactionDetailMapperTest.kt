@@ -94,6 +94,20 @@ class TransactionDetailMapperTest {
     }
 
     @Test
+    fun theSandboxPlaceholderMerchantNormalisesToNullSoTheScreenUsesTheNarrative() {
+        val detail = response(
+            Transaction(
+                transactionId = "TX-7",
+                transactionInformation = "SALARY ACME LTD",
+                merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant"),
+            ),
+        ).single()
+
+        assertNull(detail.merchantName)
+        assertEquals("SALARY ACME LTD", detail.transactionInformation)
+    }
+
+    @Test
     fun theCategoryIsDerivedFromTheMccThenTheProprietaryCode() {
         val dining = response(
             Transaction(

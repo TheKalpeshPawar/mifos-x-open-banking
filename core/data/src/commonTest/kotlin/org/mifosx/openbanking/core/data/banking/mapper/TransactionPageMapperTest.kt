@@ -141,6 +141,25 @@ class TransactionPageMapperTest {
     }
 
     @Test
+    fun `toTransactionsPage treats the sandbox placeholder merchant as absent and uses the narrative`() {
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "t1",
+                        transactionInformation = "DIRECT DEBIT BRITISH GAS",
+                        merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant"),
+                    ),
+                ),
+            ),
+        )
+
+        val row = response.toTransactionsPage("acc-1").items.single()
+
+        assertEquals("DIRECT DEBIT BRITISH GAS", row.description)
+    }
+
+    @Test
     fun `toTransactionsPage on an empty payload yields an empty page`() {
         val page = TransactionsResponse().toTransactionsPage("acc-1")
         assertTrue(page.items.isEmpty())

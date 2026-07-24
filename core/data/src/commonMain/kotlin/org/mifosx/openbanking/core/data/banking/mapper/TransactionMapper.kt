@@ -17,8 +17,9 @@ private const val CREDIT = "Credit"
 private const val ZERO_AMOUNT = "0"
 
 /**
- * Maps the OBIE `OBReadTransaction6` payload into UI-facing [TransactionItem]s for [accountId].
- * Prefers the merchant name for the row title, falling back to the OBIE transaction narrative.
+ * Maps the OBIE `OBReadTransaction6` payload into UI-facing [TransactionItem]s for [accountId]. The
+ * row title comes from [resolveTransactionTitle] — the real merchant name, then the OBIE narrative,
+ * then the counterparty account name (the sandbox's placeholder merchant is treated as absent).
  */
 fun TransactionsResponse.toTransactionItems(accountId: String): List<TransactionItem> =
     data?.transaction.orEmpty().map { it.toTransactionItem(accountId) }
@@ -26,9 +27,7 @@ fun TransactionsResponse.toTransactionItems(accountId: String): List<Transaction
 private fun Transaction.toTransactionItem(fallbackAccountId: String): TransactionItem = TransactionItem(
     transactionId = transactionId ?: "",
     accountId = accountId ?: fallbackAccountId,
-    description = merchantDetails?.merchantName?.takeIf { it.isNotBlank() }
-        ?: transactionInformation
-        ?: "",
+    description = resolveTransactionTitle() ?: "",
     bookingDateTime = bookingDateTime ?: "",
     amount = amount?.amount ?: ZERO_AMOUNT,
     currency = amount?.currency ?: "",
