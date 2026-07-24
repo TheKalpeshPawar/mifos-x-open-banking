@@ -189,6 +189,7 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.multiplatform.settings.test)
 
             // TestSigningKey generates a throwaway PS256 key per run, so no signing material is
             // committed. Declared explicitly rather than leaning on the test compilation's

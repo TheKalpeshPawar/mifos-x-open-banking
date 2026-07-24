@@ -12,19 +12,21 @@ package org.mifosx.openbanking.core.network
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.plugin
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
@@ -66,9 +68,37 @@ internal fun loadPsuTokens(settings: Settings): PsuTokenResponse? =
         runCatching { tokenJson.decodeFromString(PsuTokenResponse.serializer(), it) }.getOrNull()
     }
 
+/** Marks a request that has already refreshed-and-retried, so a persistent 401 cannot loop. */
+private val RETRIED_AFTER_REFRESH = AttributeKey<Boolean>("hsbc-retried-after-refresh")
+
+/**
+ * True for an HSBC AIS resource read — the requests the PSU bearer is attached to. The token endpoint
+ * (`client_assertion` auth) and `account-access-consents` (a per-call temporary token) are excluded.
+ */
+private fun isAisResourceRequest(request: HttpRequestBuilder, bankHost: String): Boolean {
+    val path = request.url.encodedPathSegments.joinToString("/")
+    return request.url.host == bankHost &&
+        "oauth2/token" !in path &&
+        "account-access-consents" !in path
+}
+
+/**
+ * Attaches the current PSU access token, read fresh from [settings] on every call so a token
+ * persisted mid-session is used immediately — no in-memory cache to go stale. A missing token leaves
+ * the request unauthenticated (the feature surfaces the resulting error); there is nothing to attach.
+ */
+private fun attachFreshPsuToken(settings: Settings, request: HttpRequestBuilder, bankHost: String) {
+    if (!isAisResourceRequest(request, bankHost)) return
+    val access = loadPsuTokens(settings)?.accesstoken
+    if (!access.isNullOrBlank()) {
+        request.headers[HttpHeaders.Authorization] = "Bearer $access"
+    }
+}
+
 /**
  * Exchanges a stored refresh token for a fresh PSU access token via the OAuth2 `refresh_token` grant
- * (FAPI `private_key_jwt` auth). Called by the client's [Auth] plugin when a request returns 401.
+ * (FAPI `private_key_jwt` auth). Called by the client's `HttpSend` interceptor when an AIS request
+ * returns 401.
  */
 @OptIn(ExperimentalUuidApi::class)
 internal suspend fun refreshAccessToken(
@@ -136,45 +166,8 @@ fun hsbcSandboxHttpClient(
     requireHsbcCredential("HSBC_KID", kid)
     requireHsbcCredential("HSBC_REDIRECT_URI", config.redirectUri)
 
-    return httpClient {
+    val client = httpClient {
         installMtls(identity)
-
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    val stored = loadPsuTokens(settings)
-                    val access = stored?.accesstoken
-                    if (access.isNullOrBlank()) {
-                        null
-                    } else {
-                        BearerTokens(access, stored.refreshtoken.orEmpty())
-                    }
-                }
-                refreshTokens {
-                    loadPsuTokens(settings)?.refreshtoken?.let { refreshToken ->
-                        val refreshed = refreshAccessToken(
-                            httpClient = client,
-                            tokenUrl = tokenUrl,
-                            clientId = clientId,
-                            kid = kid,
-                            signingKeyPem = signingKeyPem,
-                            redirectUri = config.redirectUri,
-                            refreshToken = refreshToken,
-                        )
-                        savePsuTokens(settings, refreshed)
-                        BearerTokens(refreshed.accesstoken.orEmpty(), refreshed.refreshtoken.orEmpty())
-                    }
-                }
-                // The PSU bearer is auto-sent to AIS reads only. The token endpoint (client_assertion
-                // auth) and account-access-consents (temporary token, set per call) are excluded.
-                sendWithoutRequest { request ->
-                    val path = request.url.encodedPathSegments.joinToString("/")
-                    request.url.host == config.bankHost &&
-                        "oauth2/token" !in path &&
-                        "account-access-consents" !in path
-                }
-            }
-        }
 
         install(ContentNegotiation) {
             json(
@@ -205,5 +198,57 @@ fun hsbcSandboxHttpClient(
             url(getBaseUrl(config))
             headers.append(HttpHeaders.Accept, "application/json")
         }
+    }
+
+    // Auth is applied here rather than via the Auth/bearer plugin on purpose: that plugin caches the
+    // token in memory for the client's lifetime and only reloads it on a 401. HSBC answers a
+    // missing/stale-token AIS read with a 403, which never triggers that reload, so a token persisted
+    // mid-session (the first login) is not picked up until a restart. Reading the token fresh from
+    // storage on every AIS request removes the cache — and the freshly-persisted PSU token is used
+    // immediately. A 401 (an expired-but-present token) still refreshes via the stored refresh token
+    // and retries once.
+    client.installFreshPsuBearer(settings, config.bankHost) { refreshToken ->
+        refreshAccessToken(
+            httpClient = client,
+            tokenUrl = tokenUrl,
+            clientId = clientId,
+            kid = kid,
+            signingKeyPem = signingKeyPem,
+            redirectUri = config.redirectUri,
+            refreshToken = refreshToken,
+        )
+    }
+
+    return client
+}
+
+/**
+ * Attaches the PSU bearer to AIS reads by reading storage fresh on every request (no in-memory
+ * cache to go stale), and on a 401 refreshes the access token via [refresh] and retries the request
+ * once. Extracted from [hsbcSandboxHttpClient] so the attach + refresh-once behaviour is testable
+ * against a `MockEngine` without the real mTLS client.
+ */
+internal fun HttpClient.installFreshPsuBearer(
+    settings: Settings,
+    bankHost: String,
+    refresh: suspend (refreshToken: String) -> PsuTokenResponse?,
+) {
+    plugin(HttpSend).intercept { request ->
+        attachFreshPsuToken(settings, request, bankHost)
+        val call = execute(request)
+        if (call.response.status != HttpStatusCode.Unauthorized ||
+            !isAisResourceRequest(request, bankHost) ||
+            request.attributes.getOrNull(RETRIED_AFTER_REFRESH) == true
+        ) {
+            return@intercept call
+        }
+        val refreshed = loadPsuTokens(settings)?.refreshtoken?.let { refreshToken ->
+            runCatching { refresh(refreshToken) }.getOrNull()
+        }
+        val newAccess = refreshed?.accesstoken?.takeIf { it.isNotBlank() } ?: return@intercept call
+        savePsuTokens(settings, refreshed)
+        request.attributes.put(RETRIED_AFTER_REFRESH, true)
+        request.headers[HttpHeaders.Authorization] = "Bearer $newAccess"
+        execute(request)
     }
 }
