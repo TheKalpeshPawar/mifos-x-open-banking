@@ -12,6 +12,7 @@ package org.mifosx.openbanking.core.ui.account
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.maskCardNumber
 import org.mifosx.openbanking.core.ui.generated.resources.Res
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_credit
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_current
@@ -22,15 +23,17 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_s
 
 private const val LAST_DIGITS = 4
 private const val TYPE_NUMBER_SEPARATOR = " ·· "
+private const val TYPE_CARD_SEPARATOR = " "
+private val CREDIT_CARD_SUBTYPES = setOf("creditcard", "credit", "card", "ccrd")
 
 /**
  * The name to show for an account.
  *
  * A bank-provided `Nickname`/`Name` is used as-is. HSBC's sandbox provides neither (its top-level
  * `Description` is free text and the nested `Account[].Name` is the account holder, not the account),
- * so when [nickname] is blank this falls back to a localized account-type label plus the last four
- * digits of the account number — e.g. "Current account ·· 3349". Shared so Home, Accounts and
- * Account-detail render the same label from the same localized strings.
+ * so when [nickname] is blank this falls back to a localized account-type label plus an identifier —
+ * e.g. "Current account ·· 3349". Shared so Home, Accounts and Account-detail render the same label
+ * from the same localized strings.
  *
  * @param accountNumber the flattened UK account number; [rawIdentification] (e.g. a card number or
  *   IBAN) is used for the last-four when the account number is absent, as it is for cards.
@@ -44,9 +47,39 @@ fun accountDisplayName(
 ): String {
     if (nickname.isNotBlank()) return nickname
     val typeLabel = stringResource(accountTypeLabelRes(accountSubType))
+    return accountFallbackLabel(typeLabel, accountSubType, accountNumber, rawIdentification)
+}
+
+/**
+ * Builds the "type + identifier" fallback shown when the bank supplied no nickname.
+ *
+ * A credit card flattens a full PAN rather than a UK account number, so the mid-PAN [accountNumber]
+ * slice a generic "type ·· last 4" would take is meaningless; for cards this shows the real masked last
+ * four via [maskCardNumber] instead — e.g. "Credit card •••• 7654", matching the Accounts list. Every
+ * other product keeps the "type ·· last 4" form — e.g. "Current account ·· 3349".
+ *
+ * Non-composable so it is unit-testable on the JVM without a Compose runtime.
+ */
+internal fun accountFallbackLabel(
+    typeLabel: String,
+    accountSubType: String,
+    accountNumber: String,
+    rawIdentification: String,
+): String {
+    if (isCreditCardSubType(accountSubType)) {
+        return if (rawIdentification.isNotBlank()) {
+            "$typeLabel$TYPE_CARD_SEPARATOR${maskCardNumber(rawIdentification)}"
+        } else {
+            typeLabel
+        }
+    }
     val lastDigits = accountNumber.ifBlank { rawIdentification }.takeLast(LAST_DIGITS)
     return if (lastDigits.isNotBlank()) "$typeLabel$TYPE_NUMBER_SEPARATOR$lastDigits" else typeLabel
 }
+
+/** True for the OBIE credit-card subtype tokens the label resolver treats as a credit card. */
+internal fun isCreditCardSubType(accountSubType: String): Boolean =
+    accountSubType.lowercase() in CREDIT_CARD_SUBTYPES
 
 /**
  * Maps an OBIE `AccountSubType` to its display label, accepting the enum case-insensitively and the
