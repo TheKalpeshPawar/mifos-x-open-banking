@@ -31,7 +31,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AtmLocatorRoute
-import cmp.navigation.placeholder.PartyRoute
 import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
@@ -45,6 +44,8 @@ import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailRoute
 import org.mifosx.openbanking.feature.accountdetail.accountDetailScreen
+import org.mifosx.openbanking.feature.accountholder.AccountHolderRoute
+import org.mifosx.openbanking.feature.accountholder.accountHolderScreen
 import org.mifosx.openbanking.feature.accounts.accountsGraph
 import org.mifosx.openbanking.feature.beneficiaries.BeneficiariesRoute
 import org.mifosx.openbanking.feature.beneficiaries.beneficiariesScreen
@@ -58,8 +59,6 @@ import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.login.LoginRenewRoute
 import org.mifosx.openbanking.feature.login.loginRenewScreen
-import org.mifosx.openbanking.feature.profile.ProfileRoute
-import org.mifosx.openbanking.feature.profile.profileScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
 import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
 import org.mifosx.openbanking.feature.settings.LicencesRoute
@@ -210,17 +209,11 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 },
             )
             settingsScreen(
-                onNavigateToProfile = { accountId -> navController.navigate(ProfileRoute(accountId)) },
                 onNavigateToConsents = { navController.navigate(ConsentListRoute) },
                 onNavigateToLicences = { navController.navigate(LicencesRoute) },
                 onOpenUrl = { url -> uriHandler.openUri(url) },
             )
-            profileScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
-                // Sign out is a full logout; the root navigator takes the user to onboarding.
-                onLoggedOut = onLoggedOut,
-            )
+            accountHolderScreen(onBack = { navController.popBackStack() })
             licencesScreen(onBack = { navController.popBackStack() })
             bankingPlaceholderDestinations()
         }
@@ -243,7 +236,7 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
         AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute(accountId))
         AccountDetailChip.AtmLocator -> navigate(AtmLocatorRoute)
         AccountDetailChip.Product -> navigate(ProductsRoute)
-        AccountDetailChip.Party -> navigate(PartyRoute)
+        AccountDetailChip.Party -> navigate(AccountHolderRoute(accountId))
     }
 }
 

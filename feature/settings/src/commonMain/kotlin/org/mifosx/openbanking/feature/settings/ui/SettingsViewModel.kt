@@ -14,14 +14,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
-import org.mifosx.openbanking.core.model.user.UserData
 import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
@@ -95,21 +94,15 @@ class SettingsViewModel(
     }
 
     /**
-     * The stored theme alongside the selected account, as one emission.
+     * The stored theme, as one emission.
      *
      * A read failure is caught here rather than at the collector so the error is scoped to this
      * subscription — [reads] can then replace it wholesale on retry.
      */
     private fun preferences(): Flow<StoredPreferences> =
-        combine<DarkThemeConfig, UserData, StoredPreferences>(
-            userDataRepository.observeDarkThemeConfig,
-            userDataRepository.userData,
-        ) { theme, user ->
-            StoredPreferences.Loaded(
-                themeConfig = theme,
-                selectedAccountId = user.selectedAccountId,
-            )
-        }.catch { throwable -> emit(StoredPreferences.Failed(classifySettingsError(throwable))) }
+        userDataRepository.observeDarkThemeConfig
+            .map<DarkThemeConfig, StoredPreferences> { theme -> StoredPreferences.Loaded(themeConfig = theme) }
+            .catch { throwable -> emit(StoredPreferences.Failed(classifySettingsError(throwable))) }
 
     private fun StoredPreferences.toUiState(): SettingsUiState = when (this) {
         is StoredPreferences.Loaded -> SettingsUiState.Content(
@@ -117,7 +110,6 @@ class SettingsViewModel(
             themeLabel = themeConfig.labelResource(),
             appVersionLabel = appVersion.label,
             isThemeMenuExpanded = isThemeMenuExpanded(),
-            selectedAccountId = selectedAccountId,
         )
 
         is StoredPreferences.Failed -> SettingsUiState.Error(kind)
@@ -137,7 +129,6 @@ private sealed interface StoredPreferences {
 
     data class Loaded(
         val themeConfig: DarkThemeConfig,
-        val selectedAccountId: String,
     ) : StoredPreferences
 
     data class Failed(val kind: SettingsErrorKind) : StoredPreferences

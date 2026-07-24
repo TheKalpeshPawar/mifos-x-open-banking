@@ -42,15 +42,12 @@ sealed interface SettingsUiState {
      * @property appVersionLabel Injected build identity, shown verbatim.
      * @property isThemeMenuExpanded Whether the theme dropdown is open. Held in state rather than
      *   in the composable so the picker's openness survives recomposition and is assertable.
-     * @property selectedAccountId Carried so the Profile row can hand it to the host's navigation
-     *   lambda; the settings screen itself never reads it.
      */
     data class Content(
         val themeConfig: DarkThemeConfig,
         val themeLabel: StringResource,
         val appVersionLabel: String,
         val isThemeMenuExpanded: Boolean = false,
-        val selectedAccountId: String = "",
     ) : SettingsUiState
 
     data object Empty : SettingsUiState

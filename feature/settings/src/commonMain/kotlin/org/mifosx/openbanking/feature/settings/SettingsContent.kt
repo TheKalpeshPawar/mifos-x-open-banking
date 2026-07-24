@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -39,8 +38,6 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_opens_externally_accessibility
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_opens_in_app_accessibility
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_privacy_title
-import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_profile_subtitle
-import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_profile_title
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_about
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_account
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_appearance
@@ -62,7 +59,6 @@ internal fun SettingsContent(
     onToggleThemeMenu: () -> Unit,
     onDismissThemeMenu: () -> Unit,
     onNavigateToConsents: () -> Unit,
-    onNavigateToProfile: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onNavigateToLicences: () -> Unit,
     modifier: Modifier = Modifier,
@@ -84,7 +80,6 @@ internal fun SettingsContent(
         )
         AccountSection(
             onNavigateToConsents = onNavigateToConsents,
-            onNavigateToProfile = onNavigateToProfile,
         )
         AboutSection(
             appVersionLabel = appVersionLabel,
@@ -121,7 +116,6 @@ private fun AppearanceSection(
 @Composable
 private fun AccountSection(
     onNavigateToConsents: () -> Unit,
-    onNavigateToProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val opensInApp = stringResource(Res.string.feature_settings_opens_in_app_accessibility)
@@ -140,18 +134,6 @@ private fun AccountSection(
             SettingsRowChevron(
                 description = opensInApp,
                 testTag = SettingsTestTags.chevron(SettingsTestTags.CONSENTS_ROW),
-            )
-        }
-        SettingsRow(
-            title = stringResource(Res.string.feature_settings_profile_title),
-            testTag = SettingsTestTags.PROFILE_ROW,
-            icon = Icons.Filled.AccountCircle,
-            subtitle = stringResource(Res.string.feature_settings_profile_subtitle),
-            onClick = onNavigateToProfile,
-        ) {
-            SettingsRowChevron(
-                description = opensInApp,
-                testTag = SettingsTestTags.chevron(SettingsTestTags.PROFILE_ROW),
             )
         }
     }

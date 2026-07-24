@@ -20,6 +20,7 @@ import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
 import org.mifosx.openbanking.core.store.di.appStoreModule
 import org.mifosx.openbanking.feature.accountdetail.di.AccountDetailModule
+import org.mifosx.openbanking.feature.accountholder.di.AccountHolderModule
 import org.mifosx.openbanking.feature.accounts.di.AccountsModule
 import org.mifosx.openbanking.feature.beneficiaries.di.BeneficiariesModule
 import org.mifosx.openbanking.feature.consentcallback.di.ConsentCallbackModule
@@ -28,7 +29,6 @@ import org.mifosx.openbanking.feature.consentlist.di.ConsentListModule
 import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
-import org.mifosx.openbanking.feature.profile.di.ProfileModule
 import org.mifosx.openbanking.feature.scheduledpayments.di.ScheduledPaymentsModule
 import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
@@ -75,7 +75,7 @@ object KoinModules {
             StatementDetailModule,
             StatementsModule,
             SettingsModule,
-            ProfileModule,
+            AccountHolderModule,
             LoginModule,
             ConsentCallbackModule,
         )

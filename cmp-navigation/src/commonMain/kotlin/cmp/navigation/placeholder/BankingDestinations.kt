@@ -45,8 +45,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable data object StandingOrderEditRoute
 
-@Serializable data object PartyRoute
-
 @Serializable data object DirectDebitDetailRoute
 
 @Serializable data object PfmDashboardRoute
@@ -87,7 +85,6 @@ fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
     composableWithStayTransitions<StandingOrderEditRoute> { PlaceholderScreen("Edit standing order") }
-    composableWithStayTransitions<PartyRoute> { PlaceholderScreen("Account holder") }
     composableWithStayTransitions<DirectDebitDetailRoute> { PlaceholderScreen("Direct debit detail") }
     composableWithStayTransitions<PfmDashboardRoute> { PlaceholderScreen("Insights") }
     composableWithStayTransitions<FxRatesRoute> { PlaceholderScreen("FX rates") }

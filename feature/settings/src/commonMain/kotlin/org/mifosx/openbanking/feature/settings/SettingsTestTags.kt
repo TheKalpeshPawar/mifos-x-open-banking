@@ -41,7 +41,6 @@ internal object SettingsTestTags {
     const val THEME_MENU = "settings:themeMenu"
 
     const val CONSENTS_ROW = "settings:row:consents"
-    const val PROFILE_ROW = "settings:row:profile"
 
     const val PRIVACY_ROW = "settings:row:privacy"
     const val LICENCES_ROW = "settings:row:licences"

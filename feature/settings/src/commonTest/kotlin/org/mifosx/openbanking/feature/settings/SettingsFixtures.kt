@@ -24,11 +24,10 @@ import org.mifosx.openbanking.feature.settings.ui.labelResource
  */
 object SettingsFixtures {
 
-    const val ACCOUNT_ID: String = "40051512345678"
     const val APP_VERSION: String = "0.1.0 (build 1)"
 
-    /** How many rows the screen offers in total: theme, two account rows, three about rows. */
-    const val EXPECTED_ROW_COUNT: Int = 6
+    /** How many rows the screen offers in total: theme, one account row, three about rows. */
+    const val EXPECTED_ROW_COUNT: Int = 5
 
     /** Appearance, Account, About & Legal — Security and Notifications are not offered. */
     const val EXPECTED_SECTION_COUNT: Int = 3
@@ -36,14 +35,12 @@ object SettingsFixtures {
     fun contentState(
         themeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
         isThemeMenuExpanded: Boolean = false,
-        selectedAccountId: String = ACCOUNT_ID,
     ): SettingsState = SettingsState(
         uiState = SettingsUiState.Content(
             themeConfig = themeConfig,
             themeLabel = themeConfig.labelResource(),
             appVersionLabel = APP_VERSION,
             isThemeMenuExpanded = isThemeMenuExpanded,
-            selectedAccountId = selectedAccountId,
         ),
     )
 

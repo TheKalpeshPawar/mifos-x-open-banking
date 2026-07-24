@@ -25,9 +25,8 @@ import org.mifosx.openbanking.feature.settings.ui.SettingsUiState
 import org.mifosx.openbanking.feature.settings.ui.labelResource
 import kotlin.test.assertEquals
 
-private const val ACCOUNT_ID = "40051512345678"
 private const val APP_VERSION = "0.1.0 (build 1)"
-private const val EXPECTED_ROW_COUNT = 6
+private const val EXPECTED_ROW_COUNT = 5
 private const val EXPECTED_SECTION_COUNT = 3
 
 /**
@@ -42,7 +41,6 @@ private fun contentState(
         themeLabel = themeConfig.labelResource(),
         appVersionLabel = APP_VERSION,
         isThemeMenuExpanded = isThemeMenuExpanded,
-        selectedAccountId = ACCOUNT_ID,
     ),
 )
 
@@ -121,10 +119,6 @@ class SettingsScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(
             SettingsTestTags.chevron(SettingsTestTags.CONSENTS_ROW),
-            useUnmergedTree = true,
-        ).assertExists()
-        composeRule.onNodeWithTag(
-            SettingsTestTags.chevron(SettingsTestTags.PROFILE_ROW),
             useUnmergedTree = true,
         ).assertExists()
         composeRule.onNodeWithTag(

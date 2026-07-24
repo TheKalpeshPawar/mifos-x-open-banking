@@ -218,12 +218,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun selectedAccountIdIsCarriedFromStoredUserData() {
-        val repository = FakeUserDataRepository(initialAccountId = SettingsFixtures.ACCOUNT_ID)
-        assertEquals(SettingsFixtures.ACCOUNT_ID, content(viewModel(repository)).selectedAccountId)
-    }
-
-    @Test
     fun theThemeLabelTracksTheStoredTheme() {
         val repository = FakeUserDataRepository(initialTheme = DarkThemeConfig.DARK)
         assertEquals(DarkThemeConfig.DARK.labelResource(), content(viewModel(repository)).themeLabel)

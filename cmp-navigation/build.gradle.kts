@@ -44,7 +44,7 @@ kotlin {
             implementation(projects.feature.statementDetail)
             implementation(projects.feature.statements)
             implementation(projects.feature.settings)
-            implementation(projects.feature.profile)
+            implementation(projects.feature.accountHolder)
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
 

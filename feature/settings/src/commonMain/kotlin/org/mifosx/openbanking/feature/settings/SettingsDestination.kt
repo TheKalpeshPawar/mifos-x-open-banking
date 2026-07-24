@@ -17,8 +17,7 @@ import template.core.base.ui.nav.composableWithStayTransitions
 
 /**
  * The settings route. A tab root reached from the bottom bar, and an object rather than a class
- * because it carries no argument — the account it offers Profile for is read from stored
- * preferences, not passed in.
+ * because it carries no argument.
  *
  * Flat, with no nested graph: settings has a single screen, and wrapping one destination in a
  * graph would add a back-stack entry that nothing navigates within.
@@ -29,19 +28,17 @@ data object SettingsRoute
 /**
  * Registers the settings screen in the host graph.
  *
- * Every outbound move is the host's: [onNavigateToProfile] receives the stored account id,
- * [onNavigateToConsents] and [onNavigateToLicences] take no argument, and [onOpenUrl] hands off the
- * privacy policy to a browser. The feature never sees the route table.
+ * Every outbound move is the host's: [onNavigateToConsents] and [onNavigateToLicences] take no
+ * argument, and [onOpenUrl] hands off the privacy policy to a browser. The feature never sees the
+ * route table.
  */
 fun NavGraphBuilder.settingsScreen(
-    onNavigateToProfile: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToLicences: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
     composableWithStayTransitions<SettingsRoute> {
         SettingsScreen(
-            onNavigateToProfile = onNavigateToProfile,
             onNavigateToConsents = onNavigateToConsents,
             onNavigateToLicences = onNavigateToLicences,
             onOpenUrl = onOpenUrl,

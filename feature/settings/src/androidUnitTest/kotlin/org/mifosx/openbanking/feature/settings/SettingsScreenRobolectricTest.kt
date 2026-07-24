@@ -109,17 +109,12 @@ class SettingsScreenRobolectricTest {
     }
 
     @Test
-    fun accountSectionRendersConsentsAndProfileEachWithAChevron() {
+    fun accountSectionRendersConsentsWithAChevron() {
         render(SettingsFixtures.contentState())
 
         composeRule.onNodeWithTag(SettingsTestTags.CONSENTS_ROW).assertExists()
-        composeRule.onNodeWithTag(SettingsTestTags.PROFILE_ROW).assertExists()
         composeRule.onNodeWithTag(
             SettingsTestTags.chevron(SettingsTestTags.CONSENTS_ROW),
-            useUnmergedTree = true,
-        ).assertExists()
-        composeRule.onNodeWithTag(
-            SettingsTestTags.chevron(SettingsTestTags.PROFILE_ROW),
             useUnmergedTree = true,
         ).assertExists()
     }

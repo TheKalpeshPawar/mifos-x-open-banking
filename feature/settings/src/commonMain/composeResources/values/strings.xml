@@ -30,8 +30,6 @@
 
     <string name="feature_settings_consents_title">Manage Consents</string>
     <string name="feature_settings_consents_subtitle">View, revoke or reconfirm Open Banking consents</string>
-    <string name="feature_settings_profile_title">Profile</string>
-    <string name="feature_settings_profile_subtitle">Connected identity and sign out</string>
 
     <string name="feature_settings_privacy_title">Privacy Policy</string>
     <string name="feature_settings_licences_title">Open-Source Licences</string>

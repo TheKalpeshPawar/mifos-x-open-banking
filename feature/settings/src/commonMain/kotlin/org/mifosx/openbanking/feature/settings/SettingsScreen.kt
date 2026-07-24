@@ -30,13 +30,11 @@ private const val PRIVACY_URL = "https://mifos.org/privacy-policy/"
  * The settings hub. A bottom-nav tab root, so it carries no navigation icon — there is nothing
  * behind it to go back to.
  *
- * Every outbound move is delegated: [onNavigateToProfile] receives the stored account id from
- * state, [onNavigateToConsents] and [onNavigateToLicences] take none, and the privacy policy opens
- * in a browser through [onOpenUrl].
+ * Every outbound move is delegated: [onNavigateToConsents] and [onNavigateToLicences] take none, and
+ * the privacy policy opens in a browser through [onOpenUrl].
  */
 @Composable
 internal fun SettingsScreen(
-    onNavigateToProfile: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToLicences: () -> Unit,
     onOpenUrl: (String) -> Unit,
@@ -53,7 +51,6 @@ internal fun SettingsScreen(
         SettingsScreenContent(
             state = state,
             onAction = viewModel::trySendAction,
-            onNavigateToProfile = onNavigateToProfile,
             onNavigateToConsents = onNavigateToConsents,
             onNavigateToLicences = onNavigateToLicences,
             onOpenUrl = onOpenUrl,
@@ -72,7 +69,6 @@ internal fun SettingsScreenContent(
     state: SettingsState,
     onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
-    onNavigateToProfile: (String) -> Unit = {},
     onNavigateToConsents: () -> Unit = {},
     onNavigateToLicences: () -> Unit = {},
     onOpenUrl: (String) -> Unit = {},
@@ -86,7 +82,6 @@ internal fun SettingsScreenContent(
             onToggleThemeMenu = { onAction(SettingsAction.ToggleThemeMenu) },
             onDismissThemeMenu = { onAction(SettingsAction.DismissThemeMenu) },
             onNavigateToConsents = onNavigateToConsents,
-            onNavigateToProfile = { onNavigateToProfile(current.selectedAccountId) },
             onOpenPrivacy = { onOpenUrl(PRIVACY_URL) },
             onNavigateToLicences = onNavigateToLicences,
             modifier = modifier,

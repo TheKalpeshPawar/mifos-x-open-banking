@@ -125,7 +125,7 @@ include(":feature:direct-debits")
 include(":feature:statements")
 include(":feature:standing-orders")
 include(":feature:settings")
-include(":feature:profile")
+include(":feature:account-holder")
 include(":feature:login")
 include(":feature:consent-callback")
 
