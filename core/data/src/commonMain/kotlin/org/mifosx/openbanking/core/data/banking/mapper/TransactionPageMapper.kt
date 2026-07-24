@@ -38,7 +38,7 @@ private fun Transaction.toTransactionListItem(fallbackAccountId: String): Transa
     currency = amount?.currency ?: "",
     isCredit = creditDebitIndicator.equals(CREDIT, ignoreCase = true),
     category = deriveCategory(
-        merchantCategoryCode = merchantDetails?.merchantCategoryCode,
+        merchantCategoryCode = categoryMerchantCode(),
         bankTransactionCode = bankTransactionCode?.code,
         proprietaryCode = proprietaryBankTransactionCode?.code,
     ),
@@ -106,8 +106,12 @@ private val CARD_CODES = setOf("CCRD", "DCRD", "POSD", "POSP", "SMRT")
 private val GROCERY_MCCS = setOf(5411, 5422, 5441, 5451, 5462, 5499)
 private val DINING_MCCS = setOf(5811, 5812, 5813, 5814)
 private val SUBSCRIPTION_MCCS = setOf(4816, 4899, 5815, 5816, 5817, 5818, 5968)
+
+// Genuine transport *category* codes only. Individual airline (3000-3299) and car-rental (3351-3500)
+// carrier codes are deliberately excluded: a single carrier is not a category, and sweeping them in is
+// what let the sandbox's constant stub MCC classify every transaction as transport.
 private val TRANSPORT_MCCS = setOf(
-    3000, 3299, 3351, 3441, 4111, 4121, 4131, 4511, 4582, 4722, 4784, 4789, 5541, 5542, 7512, 7523,
+    4111, 4121, 4131, 4511, 4582, 4722, 4784, 4789, 5541, 5542, 7512, 7523,
 )
 private val SHOPPING_MCCS = setOf(
     5200, 5211, 5300, 5310, 5311, 5331, 5399, 5611, 5621, 5651, 5655, 5661, 5691, 5699,

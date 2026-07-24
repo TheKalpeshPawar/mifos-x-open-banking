@@ -27,6 +27,17 @@ internal fun Transaction.merchantNameOrNull(): String? =
         ?.takeIf { it.isNotBlank() && !it.equals(SANDBOX_PLACEHOLDER_MERCHANT, ignoreCase = true) }
 
 /**
+ * The OBIE `MerchantDetails.MerchantCategoryCode`, unless the merchant is the sandbox stub (whose name
+ * is [SANDBOX_PLACEHOLDER_MERCHANT]) — in which case the MCC is equally synthetic and must not drive
+ * categorisation, or every transaction lands in whichever bucket that one constant code maps to.
+ */
+internal fun Transaction.categoryMerchantCode(): String? =
+    merchantDetails?.merchantCategoryCode
+        ?.takeUnless {
+            merchantDetails?.merchantName?.equals(SANDBOX_PLACEHOLDER_MERCHANT, ignoreCase = true) == true
+        }
+
+/**
  * The best available human title for a transaction, most specific first: the real merchant name, then
  * the OBIE narrative (`TransactionInformation`), then the counterparty account name (creditor for an
  * outgoing payment, debtor for an incoming one). Null only when the payload carries none of them.

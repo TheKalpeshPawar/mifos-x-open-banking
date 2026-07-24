@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.banking.mapper
 
 import org.mifosx.openbanking.core.model.banking.TransactionCategory
 import org.mifosx.openbanking.core.network.model.ais.transactions.Amount
+import org.mifosx.openbanking.core.network.model.ais.transactions.BankTransactionCode
 import org.mifosx.openbanking.core.network.model.ais.transactions.Links
 import org.mifosx.openbanking.core.network.model.ais.transactions.MerchantDetails
 import org.mifosx.openbanking.core.network.model.ais.transactions.Meta
@@ -138,6 +139,76 @@ class TransactionPageMapperTest {
         assertNull(page.nextLink)
         assertFalse(page.hasNextPage)
         assertNull(page.totalPages)
+    }
+
+    @Test
+    fun `the sandbox stub merchant category code no longer classifies every transaction as transport`() {
+        // The sandbox returns a constant MerchantCategoryCode inside the same stub MerchantDetails that
+        // carries the placeholder name; without suppression every row collapses to one category.
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "t1",
+                        merchantDetails = MerchantDetails(
+                            merchantName = "HSBC Sample merchant",
+                            merchantCategoryCode = "3000",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(TransactionCategory.OTHER, response.toTransactionsPage("acc-1").items.single().category)
+    }
+
+    @Test
+    fun `a stub merchant code falls through to the bank transaction code`() {
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "t1",
+                        merchantDetails = MerchantDetails(
+                            merchantName = "HSBC Sample merchant",
+                            merchantCategoryCode = "3000",
+                        ),
+                        bankTransactionCode = BankTransactionCode(code = "RCDT"),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(TransactionCategory.TRANSFER, response.toTransactionsPage("acc-1").items.single().category)
+    }
+
+    @Test
+    fun `a genuine merchant category code still classifies the transaction`() {
+        val response = TransactionsResponse(
+            data = TransactionsData(
+                transaction = listOf(
+                    Transaction(
+                        transactionId = "t1",
+                        merchantDetails = MerchantDetails(merchantName = "TESCO", merchantCategoryCode = "5411"),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(TransactionCategory.GROCERIES, response.toTransactionsPage("acc-1").items.single().category)
+    }
+
+    @Test
+    fun `categoryMerchantCode drops the stub merchant code and keeps a genuine one`() {
+        val stub = Transaction(
+            merchantDetails = MerchantDetails(merchantName = "HSBC Sample merchant", merchantCategoryCode = "3000"),
+        )
+        val real = Transaction(
+            merchantDetails = MerchantDetails(merchantName = "TESCO", merchantCategoryCode = "5411"),
+        )
+
+        assertNull(stub.categoryMerchantCode())
+        assertEquals("5411", real.categoryMerchantCode())
     }
 
     @Test

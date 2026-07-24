@@ -40,11 +40,11 @@ private fun Transaction.toTransactionDetail(fallbackAccountId: String): Transact
     bookingDateTime = bookingDateTime ?: "",
     valueDateTime = valueDateTime ?: "",
     category = deriveCategory(
-        merchantCategoryCode = merchantDetails?.merchantCategoryCode,
+        merchantCategoryCode = categoryMerchantCode(),
         bankTransactionCode = bankTransactionCode?.code,
         proprietaryCode = proprietaryBankTransactionCode?.code,
     ),
-    merchantCategoryCode = merchantDetails?.merchantCategoryCode?.takeIf { it.isNotBlank() },
+    merchantCategoryCode = categoryMerchantCode()?.takeIf { it.isNotBlank() },
     balanceAmount = balance?.amount?.amount ?: ZERO_AMOUNT,
     balanceCurrency = balance?.amount?.currency ?: "",
     balanceIsCredit = balance?.creditDebitIndicator.equals(CREDIT, ignoreCase = true),

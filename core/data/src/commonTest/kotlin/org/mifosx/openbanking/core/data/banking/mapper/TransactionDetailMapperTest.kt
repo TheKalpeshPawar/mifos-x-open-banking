@@ -108,6 +108,22 @@ class TransactionDetailMapperTest {
     }
 
     @Test
+    fun theSandboxStubMerchantCodeIsIgnoredForCategoryAndNotDisplayed() {
+        val detail = response(
+            Transaction(
+                transactionId = "TX-8",
+                merchantDetails = MerchantDetails(
+                    merchantName = "HSBC Sample merchant",
+                    merchantCategoryCode = "3000",
+                ),
+            ),
+        ).single()
+
+        assertEquals(TransactionCategory.OTHER, detail.category)
+        assertNull(detail.merchantCategoryCode)
+    }
+
+    @Test
     fun theCategoryIsDerivedFromTheMccThenTheProprietaryCode() {
         val dining = response(
             Transaction(
