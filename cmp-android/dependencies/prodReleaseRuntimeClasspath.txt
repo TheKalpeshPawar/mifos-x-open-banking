@@ -22,7 +22,10 @@
 :core:ui
 :feature:account-detail
 :feature:accounts
+:feature:beneficiaries
 :feature:consent-callback
+:feature:consent-detail
+:feature:consent-list
 :feature:direct-debits
 :feature:home
 :feature:login

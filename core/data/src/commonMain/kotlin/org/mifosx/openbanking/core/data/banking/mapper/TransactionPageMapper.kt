@@ -41,6 +41,7 @@ private fun Transaction.toTransactionListItem(fallbackAccountId: String): Transa
     isCredit = creditDebitIndicator.equals(CREDIT, ignoreCase = true),
     category = deriveCategory(
         merchantCategoryCode = merchantDetails?.merchantCategoryCode,
+        bankTransactionCode = bankTransactionCode?.code,
         proprietaryCode = proprietaryBankTransactionCode?.code,
     ),
     isPending = isPendingStatus(status),
@@ -51,17 +52,36 @@ internal fun isPendingStatus(status: String?): Boolean =
     status?.let { it.equals("PDNG", ignoreCase = true) || it.equals("Pending", ignoreCase = true) } ?: false
 
 /**
- * Infers a personal-finance [TransactionCategory] client-side from the ISO-18245 merchant category
- * code, falling back to a transfer hint on the proprietary bank-transaction code, then
- * [TransactionCategory.OTHER]. The debit/credit direction is deliberately NOT used: a credit can be a
- * refund of a categorised purchase, so treating credits as income would be wrong.
+ * Infers a personal-finance [TransactionCategory] client-side, most-specific signal first: the
+ * ISO-18245 merchant category code, then the ISO-20022 `BankTransactionCode` (which HSBC populates
+ * even when there is no merchant — e.g. `ICDT`/`RCDT` for transfers), then a transfer hint on the
+ * proprietary code, then [TransactionCategory.OTHER]. The debit/credit direction is deliberately NOT
+ * used: a credit can be a refund of a categorised purchase, so treating credits as income would be wrong.
  */
 internal fun deriveCategory(
     merchantCategoryCode: String?,
+    bankTransactionCode: String?,
     proprietaryCode: String?,
 ): TransactionCategory {
     val byMcc = merchantCategoryCode?.trim()?.toIntOrNull()?.let(::categoryForMcc)
-    return byMcc ?: proprietaryCode.transferHintOrOther()
+    return byMcc
+        ?: categoryForBankTransactionCode(bankTransactionCode)
+        ?: proprietaryCode.transferHintOrOther()
+}
+
+/**
+ * Maps an ISO-20022 `BankTransactionCode.Code` to a category. The domain codes HSBC returns for
+ * account-to-account movement — issued/received/domestic credit transfers and direct debits — are all
+ * money transfers; card and point-of-sale codes are spending.
+ */
+private fun categoryForBankTransactionCode(code: String?): TransactionCategory? {
+    val upper = code?.trim()?.uppercase()?.takeIf { it.isNotBlank() } ?: return null
+    return when {
+        upper in TRANSFER_CODES || upper.endsWith("CDT") || upper.endsWith("DBT") ->
+            TransactionCategory.TRANSFER
+        upper in CARD_CODES -> TransactionCategory.SHOPPING
+        else -> null
+    }
 }
 
 private fun String?.transferHintOrOther(): TransactionCategory {
@@ -79,11 +99,18 @@ private fun categoryForMcc(mcc: Int): TransactionCategory? = when (mcc) {
     else -> null
 }
 
+// ISO-20022 bank-transaction-code families. Transfer covers issued/received/domestic credit
+// transfers, direct debits and generic payments; card codes are point-of-sale / card payments.
+private val TRANSFER_CODES = setOf("ICDT", "RCDT", "DMCT", "PMNT", "IDDT", "RDDT", "DDBT", "RCVD", "ISSU")
+private val CARD_CODES = setOf("CCRD", "DCRD", "POSD", "POSP", "SMRT")
+
 // ISO-18245 merchant category codes grouped into personal-finance buckets.
 private val GROCERY_MCCS = setOf(5411, 5422, 5441, 5451, 5462, 5499)
 private val DINING_MCCS = setOf(5811, 5812, 5813, 5814)
 private val SUBSCRIPTION_MCCS = setOf(4816, 4899, 5815, 5816, 5817, 5818, 5968)
-private val TRANSPORT_MCCS = setOf(4111, 4121, 4131, 4784, 4789, 5541, 5542, 7523)
+private val TRANSPORT_MCCS = setOf(
+    3000, 3299, 3351, 3441, 4111, 4121, 4131, 4511, 4582, 4722, 4784, 4789, 5541, 5542, 7512, 7523,
+)
 private val SHOPPING_MCCS = setOf(
     5200, 5211, 5300, 5310, 5311, 5331, 5399, 5611, 5621, 5651, 5655, 5661, 5691, 5699,
     5732, 5733, 5734, 5735, 5912, 5942, 5943, 5945, 5947, 5999,

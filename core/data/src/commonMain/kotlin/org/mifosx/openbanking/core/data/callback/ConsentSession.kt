@@ -40,6 +40,10 @@ interface ConsentSession {
      *
      * The default is a static snapshot, which is all a test fake needs; [SettingsConsentSession]
      * overrides it with a flow that updates on [save]/[clear]/[forgetAll].
+     *
+     * Note that emitting `true` on [save] makes the navigator route to the authenticated graph the
+     * moment the tokens are persisted; the consent-callback flow therefore records the consent id
+     * BEFORE it persists the tokens, so that routing cannot cancel it mid-write.
      */
     fun observeIsActive(): StateFlow<Boolean> = MutableStateFlow(isActive()).asStateFlow()
 

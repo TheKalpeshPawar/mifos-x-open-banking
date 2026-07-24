@@ -210,79 +210,36 @@ class ConsentCallbackViewModelTest {
     }
 
     @Test
-    fun `an awaiting consent surfaces the Awaiting state`() = runTest {
+    fun `an awaiting poll still records the consent and completes sign-in`() = runTest {
+        // A successful token exchange already proves authorisation; the bank reporting
+        // AwaitingAuthorisation a beat later is a propagation lag, so it must not block — this is the
+        // fix for a fresh consent staying invisible until a second authorisation.
         repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatusResult(ConsentStatus.AwaitingAuthorisation, null), DataFreshness.FRESH),
+            ScreenState.Content(
+                ConsentStatusResult(ConsentStatus.AwaitingAuthorisation, "2026-07-01T00:00:00Z"),
+                DataFreshness.FRESH,
+            ),
         )
         val vm = createViewModel()
 
         vm.processCallback()
+        vm.stateFlow.first { it is ConsentCallbackUiState.Content }
 
-        assertIs<ConsentCallbackUiState.Awaiting>(vm.stateFlow.first { it is ConsentCallbackUiState.Awaiting })
+        assertEquals("cn-1", consentSession.consentId())
+        assertEquals("2026-07-01T00:00:00Z", secureSettings.getStringOrNull("hsbc_consent_expiration"))
     }
 
     @Test
-    fun `a rejected consent surfaces an Error naming the status`() = runTest {
-        repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatusResult(ConsentStatus.Rejected, null), DataFreshness.FRESH),
-        )
-        val vm = createViewModel()
-
-        vm.processCallback()
-
-        val state = vm.stateFlow.first { it is ConsentCallbackUiState.Error }
-        assertIs<ConsentCallbackUiState.Error>(state)
-        assertTrue(state.message.contains("Rejected"))
-    }
-
-    @Test
-    fun `a failed poll surfaces an Error`() = runTest {
+    fun `a failed poll still completes sign-in with an empty expiry`() = runTest {
+        // The tokens are already persisted (signed in), so failing to read the expiry must not block.
         repository.pollResults = mutableListOf(ScreenState.Error(FakeConsentCallbackRepository.NETWORK_ERROR))
         val vm = createViewModel()
 
         vm.processCallback()
+        vm.stateFlow.first { it is ConsentCallbackUiState.Content }
 
-        assertIs<ConsentCallbackUiState.Error>(vm.stateFlow.first { it is ConsentCallbackUiState.Error })
-    }
-
-    @Test
-    fun `an unauthenticated poll surfaces an Error`() = runTest {
-        repository.pollResults = mutableListOf(ScreenState.Unauthenticated)
-        val vm = createViewModel()
-
-        vm.processCallback()
-
-        val state = vm.stateFlow.first { it is ConsentCallbackUiState.Error }
-        assertIs<ConsentCallbackUiState.Error>(state)
-        assertTrue(state.message.contains("Authorisation failed"))
-    }
-
-    @Test
-    fun `an offline poll surfaces a reachability Error`() = runTest {
-        repository.pollResults = mutableListOf(ScreenState.NoNetwork(isCaptivePortal = false))
-        val vm = createViewModel()
-
-        vm.processCallback()
-
-        val state = vm.stateFlow.first { it is ConsentCallbackUiState.Error }
-        assertIs<ConsentCallbackUiState.Error>(state)
-        assertTrue(state.message.contains("Unable to reach HSBC"))
-    }
-
-    @Test
-    fun `PollConsentStatus re-polls the pending consent and can reach Content`() = runTest {
-        repository.pollResults = mutableListOf(
-            ScreenState.Content(ConsentStatusResult(ConsentStatus.AwaitingAuthorisation, null), DataFreshness.FRESH),
-            ScreenState.Content(ConsentStatusResult(ConsentStatus.Authorised, null), DataFreshness.FRESH),
-        )
-        val vm = createViewModel()
-        vm.processCallback()
-        vm.stateFlow.first { it is ConsentCallbackUiState.Awaiting }
-
-        vm.trySendAction(ConsentCallbackAction.PollConsentStatus)
-
-        assertIs<ConsentCallbackUiState.Content>(vm.stateFlow.first { it is ConsentCallbackUiState.Content })
-        assertEquals(listOf("cn-1", "cn-1"), repository.polledConsentIds)
+        assertEquals("cn-1", consentSession.consentId())
+        assertEquals("", secureSettings.getStringOrNull("hsbc_consent_expiration"))
     }
 
     @Test

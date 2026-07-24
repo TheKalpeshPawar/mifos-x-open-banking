@@ -41,6 +41,7 @@ private fun Transaction.toTransactionDetail(fallbackAccountId: String): Transact
     valueDateTime = valueDateTime ?: "",
     category = deriveCategory(
         merchantCategoryCode = merchantDetails?.merchantCategoryCode,
+        bankTransactionCode = bankTransactionCode?.code,
         proprietaryCode = proprietaryBankTransactionCode?.code,
     ),
     merchantCategoryCode = merchantDetails?.merchantCategoryCode?.takeIf { it.isNotBlank() },
