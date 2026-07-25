@@ -200,13 +200,6 @@ fun hsbcSandboxHttpClient(
         }
     }
 
-    // Auth is applied here rather than via the Auth/bearer plugin on purpose: that plugin caches the
-    // token in memory for the client's lifetime and only reloads it on a 401. HSBC answers a
-    // missing/stale-token AIS read with a 403, which never triggers that reload, so a token persisted
-    // mid-session (the first login) is not picked up until a restart. Reading the token fresh from
-    // storage on every AIS request removes the cache — and the freshly-persisted PSU token is used
-    // immediately. A 401 (an expired-but-present token) still refreshes via the stored refresh token
-    // and retries once.
     client.installFreshPsuBearer(settings, config.bankHost) { refreshToken ->
         refreshAccessToken(
             httpClient = client,
