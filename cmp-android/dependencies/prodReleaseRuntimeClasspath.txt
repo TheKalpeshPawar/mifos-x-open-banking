@@ -30,6 +30,7 @@
 :feature:direct-debits
 :feature:home
 :feature:login
+:feature:product
 :feature:scheduled-payments
 :feature:settings
 :feature:standing-orders
