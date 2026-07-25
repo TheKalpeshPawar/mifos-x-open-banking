@@ -17,9 +17,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.feature.home.components.AccountSelectorSheetContent
 import org.mifosx.openbanking.feature.home.ui.AccountChipUi
 import org.mifosx.openbanking.feature.home.ui.HomeData
-import org.mifosx.openbanking.feature.home.ui.SpendingRowUi
 import org.mifosx.openbanking.feature.home.ui.TransactionRowUi
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -35,14 +35,12 @@ class HomeScreenInstrumentedTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun contentStateRendersHeroQuickActionsTransactionsAndSpending() {
+    fun contentStateRendersHeroAndTransactions() {
         composeRule.showHomeContent()
 
         composeRule.onNodeWithTag(HomeTestTags.CONTENT).assertExists()
         composeRule.onNodeWithTag(HomeTestTags.HERO_CARD).assertExists()
-        composeRule.onNodeWithTag(HomeTestTags.QUICK_ACTIONS).assertExists()
         composeRule.onNodeWithTag(HomeTestTags.RECENT_TRANSACTIONS).assertExists()
-        composeRule.onNodeWithTag(HomeTestTags.SPENDING_CARD).assertExists()
     }
 
     @Test
@@ -63,34 +61,55 @@ class HomeScreenInstrumentedTest {
     }
 
     @Test
-    fun accountChipSelectionDispatchesAccountId() {
-        var selectedId: String? = null
-        composeRule.showHomeContent(onSelectAccount = { selectedId = it })
+    fun heroCardTapOpensTheAccountSelector() {
+        var opened = false
+        composeRule.showHomeContent(onOpenAccountSelector = { opened = true })
 
+        composeRule.onNodeWithTag(HomeTestTags.HERO_CARD).performClick()
+
+        assertTrue(opened)
+    }
+
+    @Test
+    fun accountSelectorRowSelectionDispatchesAccountId() {
+        var selectedId: String? = null
+        composeRule.setContent {
+            AccountSelectorSheetContent(
+                accounts = sampleAccounts(),
+                selectedAccountId = "acc-1",
+                onSelectAccount = { selectedId = it },
+            )
+        }
+
+        composeRule.onNodeWithTag(HomeTestTags.ACCOUNT_SELECTOR_SHEET).assertExists()
         composeRule.onNodeWithTag(HomeTestTags.accountChip("acc-2")).performClick()
 
         assertEquals("acc-2", selectedId)
     }
 }
 
-private fun ComposeContentTestRule.showHomeContent(onSelectAccount: (String) -> Unit = {}) = setContent {
+private fun ComposeContentTestRule.showHomeContent(
+    onSelectAccount: (String) -> Unit = {},
+    onOpenAccountSelector: () -> Unit = {},
+) = setContent {
     HomeContent(
         data = sampleHomeData(),
         onSelectAccount = onSelectAccount,
         onNavigateToTransactions = { _ -> },
-        onNavigateToAccountDetail = {},
-        onNavigateToStatements = {},
-        onNavigateToConsents = {},
         onNavigateToTransactionDetail = { _, _ -> },
-        onNavigateToSpending = {},
+        isAccountSelectorVisible = false,
+        onOpenAccountSelector = onOpenAccountSelector,
+        onDismissAccountSelector = {},
     )
 }
 
+private fun sampleAccounts(): List<AccountChipUi> = listOf(
+    AccountChipUi(id = "acc-1", nickname = "Everyday"),
+    AccountChipUi(id = "acc-2", nickname = "Savings"),
+)
+
 private fun sampleHomeData(): HomeData = HomeData(
-    accounts = listOf(
-        AccountChipUi(id = "acc-1", nickname = "Everyday"),
-        AccountChipUi(id = "acc-2", nickname = "Savings"),
-    ),
+    accounts = sampleAccounts(),
     selectedAccountId = "acc-1",
     accountTypeLabel = "CURRENT ACCOUNT",
     accountNickname = "Everyday",
@@ -106,6 +125,4 @@ private fun sampleHomeData(): HomeData = HomeData(
             isCredit = false,
         ),
     ),
-    spending = SpendingRowUi(totalLabel = "£1,204.00", topCategory = "Groceries"),
-    statementsAvailable = false,
 )

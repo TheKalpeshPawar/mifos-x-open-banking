@@ -27,7 +27,6 @@ import template.core.base.common.screen.ScreenState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class HomeViewModelTest {
 
@@ -69,21 +68,32 @@ class HomeViewModelTest {
         assertEquals("£2,900.00", data.balanceLabel)
         assertEquals("40-05-15  12345678", data.accountNumberLabel)
         assertEquals(5, data.recentTransactions.size)
-        assertEquals(false, data.statementsAvailable)
     }
 
     @Test
-    fun `statements is available when the selected account is a credit card`() = runTest {
+    fun `opening and dismissing the account selector toggles its visibility`() = runTest {
         val vm = createViewModel()
-        accountsRepo.emissions.value =
-            ScreenState.Content(listOf(account("acc-1", subType = "CreditCard")), DataFreshness.FRESH)
-        balancesRepo.emissions.value = ScreenState.Content(balance("acc-1"), DataFreshness.FRESH)
-        transactionsRepo.emissions.value = ScreenState.Content(emptyList(), DataFreshness.FRESH)
 
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
-        val data = (state.uiState as ScreenState.Content).data
+        vm.trySendAction(HomeAction.OpenAccountSelector)
+        advanceUntilIdle()
+        assertEquals(true, vm.stateFlow.value.isAccountSelectorVisible)
 
-        assertTrue(data.statementsAvailable)
+        vm.trySendAction(HomeAction.DismissAccountSelector)
+        advanceUntilIdle()
+        assertEquals(false, vm.stateFlow.value.isAccountSelectorVisible)
+    }
+
+    @Test
+    fun `selecting an account closes the selector and persists the choice`() = runTest {
+        val vm = createViewModel()
+        vm.trySendAction(HomeAction.OpenAccountSelector)
+        advanceUntilIdle()
+
+        vm.trySendAction(HomeAction.SelectAccount("acc-2"))
+        advanceUntilIdle()
+
+        assertEquals(false, vm.stateFlow.value.isAccountSelectorVisible)
+        assertEquals("acc-2", userDataRepo.userData.first().selectedAccountId)
     }
 
     @Test

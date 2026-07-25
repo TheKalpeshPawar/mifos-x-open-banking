@@ -19,28 +19,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
-import org.mifosx.openbanking.feature.home.components.AccountSwitcherRow
+import org.mifosx.openbanking.feature.home.components.AccountSelectorSheet
 import org.mifosx.openbanking.feature.home.components.HeroBalanceCard
-import org.mifosx.openbanking.feature.home.components.QuickActionsRow
 import org.mifosx.openbanking.feature.home.components.RecentTransactionsSection
-import org.mifosx.openbanking.feature.home.components.SpendingSnapshotCard
 import org.mifosx.openbanking.feature.home.ui.HomeData
 import template.core.base.designsystem.theme.KptTheme
 
 /**
- * Content state of the home dashboard: account switcher, hero balance card, quick actions, recent
- * transactions, and the optional spending summary.
+ * Content state of the home dashboard: hero balance card and recent transactions. Tapping the hero
+ * card opens the account selector sheet — the only way to switch account from here, now that the
+ * chip row is gone. Account detail is reached from the Accounts tab instead.
  */
 @Composable
 internal fun HomeContent(
     data: HomeData,
     onSelectAccount: (String) -> Unit,
     onNavigateToTransactions: (accountId: String) -> Unit,
-    onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToStatements: (accountId: String) -> Unit,
-    onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
-    onNavigateToSpending: () -> Unit,
+    isAccountSelectorVisible: Boolean,
+    onOpenAccountSelector: () -> Unit,
+    onDismissAccountSelector: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -51,11 +49,6 @@ internal fun HomeContent(
             .testTag(HomeTestTags.CONTENT),
         verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
-        AccountSwitcherRow(
-            accounts = data.accounts,
-            selectedAccountId = data.selectedAccountId,
-            onSelectAccount = onSelectAccount,
-        )
         HeroBalanceCard(
             accountTypeLabel = data.accountTypeLabel,
             nickname = accountDisplayName(
@@ -67,13 +60,7 @@ internal fun HomeContent(
             balanceLabel = data.balanceLabel,
             availableAmountLabel = data.availableAmountLabel,
             accountNumberLabel = data.accountNumberLabel,
-            onClick = { onNavigateToAccountDetail(data.selectedAccountId) },
-        )
-        QuickActionsRow(
-            onTransactions = { onNavigateToTransactions(data.selectedAccountId) },
-            onStatements = { onNavigateToStatements(data.selectedAccountId) },
-            onConsents = onNavigateToConsents,
-            statementsEnabled = data.statementsAvailable,
+            onClick = onOpenAccountSelector,
         )
         RecentTransactionsSection(
             transactions = data.recentTransactions,
@@ -82,8 +69,14 @@ internal fun HomeContent(
                 onNavigateToTransactionDetail(transactionId, data.selectedAccountId)
             },
         )
-        data.spending?.let { spending ->
-            SpendingSnapshotCard(spending = spending, onClick = onNavigateToSpending)
-        }
+    }
+
+    if (isAccountSelectorVisible) {
+        AccountSelectorSheet(
+            accounts = data.accounts,
+            selectedAccountId = data.selectedAccountId,
+            onSelectAccount = onSelectAccount,
+            onDismiss = onDismissAccountSelector,
+        )
     }
 }

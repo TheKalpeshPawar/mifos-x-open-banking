@@ -26,14 +26,9 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
     navigate(HomeDestination, navOptions)
 }
 
-@Suppress("LongParameterList")
 fun NavGraphBuilder.homeGraph(
     onNavigateToTransactions: (accountId: String) -> Unit,
-    onNavigateToAccountDetail: (accountId: String) -> Unit,
-    onNavigateToStatements: (accountId: String) -> Unit,
-    onNavigateToConsents: () -> Unit,
     onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
-    onNavigateToSpending: () -> Unit,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
@@ -41,11 +36,7 @@ fun NavGraphBuilder.homeGraph(
         composableWithStayTransitions<HomeRoute> {
             HomeScreen(
                 onNavigateToTransactions = onNavigateToTransactions,
-                onNavigateToAccountDetail = onNavigateToAccountDetail,
-                onNavigateToStatements = onNavigateToStatements,
-                onNavigateToConsents = onNavigateToConsents,
                 onNavigateToTransactionDetail = onNavigateToTransactionDetail,
-                onNavigateToSpending = onNavigateToSpending,
             )
         }
     }

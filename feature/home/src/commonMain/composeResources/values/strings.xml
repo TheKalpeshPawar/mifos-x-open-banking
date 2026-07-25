@@ -21,19 +21,11 @@
     <string name="feature_home_available">Available %1$s</string>
     <string name="feature_home_account_icon_desc">Account</string>
 
-    <!-- Quick actions -->
-    <string name="feature_home_action_pay">Pay</string>
-    <string name="feature_home_action_transactions">Transactions</string>
-    <string name="feature_home_action_statements">Statements</string>
-    <string name="feature_home_action_consents">Consents</string>
+    <!-- Account selector sheet -->
+    <string name="feature_home_select_account">Select account</string>
+    <string name="feature_home_selected_account_desc">Selected account</string>
 
     <!-- Recent transactions -->
     <string name="feature_home_recent_transactions">Recent transactions</string>
     <string name="feature_home_view_all">View all</string>
-
-    <!-- Spending snapshot -->
-    <string name="feature_home_spending_title">Spending this month</string>
-    <string name="feature_home_spending_total">Total spent</string>
-    <string name="feature_home_spending_top">Top: %1$s</string>
-    <string name="feature_home_spending_open_desc">Open spending insights</string>
 </resources>

@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
-import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.common.formatShortMonthDay
 import org.mifosx.openbanking.core.common.formatSignedMoney
@@ -29,20 +28,14 @@ import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
-import org.mifosx.openbanking.core.data.banking.computeSpendingSnapshot
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.TransactionItem
-import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
-import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
-import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineScreenStates
 import template.core.base.common.screen.dataOrNull
 import template.core.base.ui.viewmodel.BaseViewModel
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * An account chip in the switcher: stable id plus the display nickname. [accountSubType],
@@ -66,9 +59,6 @@ data class TransactionRowUi(
     val isCredit: Boolean,
 )
 
-/** The "spending this month" summary, pre-formatted for display. */
-data class SpendingRowUi(val totalLabel: String, val topCategory: String)
-
 /**
  * Display-ready home dashboard payload. All money, dates, and identifiers are already formatted —
  * the screen only renders these strings.
@@ -86,18 +76,26 @@ data class HomeData(
     val availableAmountLabel: String,
     val accountNumberLabel: String,
     val recentTransactions: List<TransactionRowUi>,
-    val spending: SpendingRowUi?,
-    /** Whether the Statements quick action is enabled — HSBC exposes statements on credit cards only. */
-    val statementsAvailable: Boolean,
 )
 
 data class HomeState(
     val uiState: ScreenState<HomeData> = ScreenState.Loading,
+    /**
+     * Whether the account selector sheet is open. Sheet visibility is presentation state rather than
+     * loaded data, so it sits here beside [uiState] instead of inside [HomeData].
+     */
+    val isAccountSelectorVisible: Boolean = false,
 )
 
 sealed interface HomeAction {
-    /** The PSU tapped an account chip — persist the choice and re-fetch its balance and transactions. */
+    /** The PSU picked an account in the selector sheet — persist the choice and close the sheet. */
     data class SelectAccount(val accountId: String) : HomeAction
+
+    /** The PSU tapped the hero balance card, which opens the account selector. */
+    data object OpenAccountSelector : HomeAction
+
+    /** The selector sheet was dismissed without a choice. */
+    data object DismissAccountSelector : HomeAction
 
     /** Retry the whole load after an error or offline state. */
     data object RetryLoad : HomeAction
@@ -110,7 +108,7 @@ sealed interface HomeAction {
  * transaction streams. Domain models are mapped to a display-ready [HomeData] here so the screen
  * stays free of formatting logic. Navigation is handled by the screen, so no events are emitted.
  */
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     private val accountsRepository: AccountsRepository,
     private val balancesRepository: BalancesRepository,
@@ -154,8 +152,14 @@ class HomeViewModel(
 
     override fun handleAction(action: HomeAction) {
         when (action) {
-            is HomeAction.SelectAccount ->
+            is HomeAction.SelectAccount -> {
+                updateState { copy(isAccountSelectorVisible = false) }
                 viewModelScope.launch { userDataRepository.setSelectedAccountId(action.accountId) }
+            }
+
+            HomeAction.OpenAccountSelector -> updateState { copy(isAccountSelectorVisible = true) }
+
+            HomeAction.DismissAccountSelector -> updateState { copy(isAccountSelectorVisible = false) }
 
             HomeAction.RetryLoad -> retry()
         }
@@ -186,10 +190,6 @@ class HomeViewModel(
     ): HomeData {
         val selectedId = balance.accountId
         val selected = accounts.firstOrNull { it.accountId == selectedId }
-        val productType = selected
-            ?.let { HsbcProductType.resolve(it.accountSubType, accountTypeCode = "", description = "") }
-            ?: HsbcProductType.Unknown
-        val snapshot = computeSpendingSnapshot(transactions, currentYearMonth())
         return HomeData(
             accounts = accounts.map {
                 AccountChipUi(
@@ -210,15 +210,6 @@ class HomeViewModel(
             availableAmountLabel = formatMoney(balance.availableAmount, balance.currency),
             accountNumberLabel = selected?.let { "${formatSortCode(it.sortCode)}  ${it.accountNumber}" }.orEmpty(),
             recentTransactions = transactions.take(RECENT_TRANSACTIONS_LIMIT).map { it.toRowUi() },
-            spending = if (snapshot.hasData) {
-                SpendingRowUi(
-                    totalLabel = formatMinorUnits(snapshot.totalMinorUnits, snapshot.currency),
-                    topCategory = snapshot.topCategory,
-                )
-            } else {
-                null
-            },
-            statementsAvailable = HsbcProductCapability.supports(AccountEndpoint.Statements, productType),
         )
     }
 
@@ -236,11 +227,8 @@ class HomeViewModel(
         transactionsStream.refresh()
     }
 
-    private fun currentYearMonth(): String = Clock.System.now().toString().take(YEAR_MONTH_LENGTH)
-
     private companion object {
         const val SUBSCRIPTION_TIMEOUT_MS = 5_000L
         const val RECENT_TRANSACTIONS_LIMIT = 5
-        const val YEAR_MONTH_LENGTH = 7
     }
 }

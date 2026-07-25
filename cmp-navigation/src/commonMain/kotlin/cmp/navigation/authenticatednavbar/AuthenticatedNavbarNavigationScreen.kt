@@ -31,7 +31,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AtmLocatorRoute
-import cmp.navigation.placeholder.PfmDashboardRoute
 import cmp.navigation.placeholder.ProductsRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
@@ -151,13 +150,9 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
         ) {
             homeGraph(
                 onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
-                onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
-                onNavigateToStatements = { accountId -> navController.navigate(StatementsRoute(accountId)) },
-                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
                 onNavigateToTransactionDetail = { transactionId, accountId ->
                     navController.navigate(TransactionDetailRoute(transactionId, accountId))
                 },
-                onNavigateToSpending = { navController.navigate(PfmDashboardRoute) },
             )
             accountsGraph(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },

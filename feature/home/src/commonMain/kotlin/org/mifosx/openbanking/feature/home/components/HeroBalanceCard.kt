@@ -38,7 +38,8 @@ private val BankIconSize = 24.dp
 
 /**
  * Primary account card: account type, nickname, current balance, available balance, and the sort
- * code / account number. All values arrive pre-formatted; tapping opens account detail via [onClick].
+ * code / account number. All values arrive pre-formatted; tapping opens the account selector sheet
+ * via [onClick].
  */
 @Composable
 internal fun HeroBalanceCard(
