@@ -37,6 +37,8 @@ kotlin {
             implementation(compose.components.resources)
             implementation(projects.coreBase.platform)
             implementation(projects.coreBase.ui)
+            // Needed by IosMtlsBridge (nativeMain) to set core/network's iOS mTLS credential provider.
+            implementation(projects.core.network)
 
             implementation(libs.coil.kt.compose)
         }
