@@ -21,6 +21,7 @@
 :core:store
 :core:ui
 :feature:account-detail
+:feature:account-holder
 :feature:accounts
 :feature:beneficiaries
 :feature:consent-callback
@@ -29,7 +30,6 @@
 :feature:direct-debits
 :feature:home
 :feature:login
-:feature:profile
 :feature:scheduled-payments
 :feature:settings
 :feature:standing-orders

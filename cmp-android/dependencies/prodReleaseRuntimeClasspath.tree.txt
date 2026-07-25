@@ -2981,7 +2981,7 @@
 |    |    |    +--- org.jetbrains.compose.components:components-resources:1.10.3 (*)
 |    |    |    +--- org.jetbrains.compose.components:components-ui-tooling-preview:1.10.3 (*)
 |    |    |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
-|    |    +--- project :feature:profile
+|    |    +--- project :feature:account-holder
 |    |    |    +--- io.insert-koin:koin-bom:4.1.1 (*)
 |    |    |    +--- io.insert-koin:koin-android:4.1.1 (*)
 |    |    |    +--- io.insert-koin:koin-androidx-compose:4.1.1 (*)
@@ -3110,6 +3110,7 @@
 |    |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
 |    +--- org.jetbrains.compose.components:components-resources:1.10.3 (*)
 |    +--- project :core-base:platform (*)
+|    +--- project :core:network (*)
 |    +--- io.coil-kt.coil3:coil-compose-core:3.3.0 (*)
 |    \--- org.jetbrains.kotlin:kotlin-parcelize-runtime:2.3.20 (*)
 +--- project :core:ui (*)
