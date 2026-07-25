@@ -32,7 +32,15 @@ import org.mifosx.openbanking.core.database.sample.entity.SampleEntity
  * Room 3 requires an `expect object` annotated via [@ConstructedBy][ConstructedBy] so that
  * the KSP compiler plugin can generate a platform-specific `actual object` containing the
  * `AppDatabase_Impl` instantiation logic.
+ *
+ * Room generates that `actual` during each platform's KSP task, which the metadata compilations
+ * (`commonMain`, and the intermediate `nativeMain`) never see — so they would report the expect as
+ * unimplemented. The suppression below is Room's documented answer to that, and it is the only
+ * correct one: hand-writing an `actual` instead makes Room's own processor resolve the
+ * `@ConstructedBy` target to a non-`expect` declaration and fail with "The @ConstructedBy definition
+ * must be an 'expect' declaration", which breaks every native KSP task.
  */
+@Suppress("NO_ACTUAL_FOR_EXPECT")
 expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
