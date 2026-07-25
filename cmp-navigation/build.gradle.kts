@@ -37,6 +37,7 @@ kotlin {
             implementation(projects.feature.transactionDetail)
             implementation(projects.feature.scheduledPayments)
             implementation(projects.feature.beneficiaries)
+            implementation(projects.feature.product)
             implementation(projects.feature.consentList)
             implementation(projects.feature.consentDetail)
             implementation(projects.feature.directDebits)

@@ -21,6 +21,7 @@ import org.mifosx.openbanking.core.data.banking.ConsentDetailRepository
 import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
 import org.mifosx.openbanking.core.data.banking.InMemoryAccountCapabilityRegistry
+import org.mifosx.openbanking.core.data.banking.ProductRepository
 import org.mifosx.openbanking.core.data.banking.ProfileRepository
 import org.mifosx.openbanking.core.data.banking.ScheduledPaymentsRepository
 import org.mifosx.openbanking.core.data.banking.StandingOrdersRepository
@@ -37,6 +38,7 @@ import org.mifosx.openbanking.core.data.banking.impl.BeneficiariesRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ConsentDetailRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ConsentRevokeRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.DirectDebitsRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.ProductRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ProfileRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ScheduledPaymentsRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrdersRepositoryImpl
@@ -213,6 +215,12 @@ val BankingModule: Module = module {
 
     single<StatementFileRepository> {
         StatementFileRepositoryImpl(aisp = get())
+    }
+
+    // One-shot, storeless: product terms declare cache_strategy: none, so there is no store to
+    // register for logout — every mount re-reads from the network.
+    single<ProductRepository> {
+        ProductRepositoryImpl(aisp = get())
     }
 
     single<StatementDetailRepository> {

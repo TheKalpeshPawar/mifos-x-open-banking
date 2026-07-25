@@ -29,6 +29,7 @@ import org.mifosx.openbanking.feature.consentlist.di.ConsentListModule
 import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.product.di.ProductModule
 import org.mifosx.openbanking.feature.scheduledpayments.di.ScheduledPaymentsModule
 import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
@@ -72,6 +73,7 @@ object KoinModules {
             DirectDebitsModule,
             ScheduledPaymentsModule,
             StandingOrdersModule,
+            ProductModule,
             StatementDetailModule,
             StatementsModule,
             SettingsModule,

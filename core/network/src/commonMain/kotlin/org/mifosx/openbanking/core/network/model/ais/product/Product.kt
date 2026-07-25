@@ -12,6 +12,13 @@ package org.mifosx.openbanking.core.network.model.ais.product
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * OBIE `OBProduct2`: the product associated with one account.
+ *
+ * The terms themselves hang off exactly one of [pca] or [bca], depending on the product type; both are
+ * null for account types OBIE publishes no product entry for (GlobalMoney, Savings, CreditCard), which
+ * is what drives the product screen's empty state.
+ */
 @Serializable
 data class Product(
     @SerialName("ProductName")
@@ -24,4 +31,8 @@ data class Product(
     val productType: String? = null,
     @SerialName("OtherProductType")
     val otherProductType: OtherProductType? = null,
+    @SerialName("PCA")
+    val pca: ProductBlock? = null,
+    @SerialName("BCA")
+    val bca: ProductBlock? = null,
 )

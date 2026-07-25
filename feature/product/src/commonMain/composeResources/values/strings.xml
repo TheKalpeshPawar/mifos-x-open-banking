@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <!-- Top app bar -->
+    <string name="feature_product_title">Product Terms</string>
+    <string name="feature_product_back_a11y">Navigate back to account details</string>
+
+    <!-- Loading -->
+    <string name="feature_product_loading_a11y">Loading product terms</string>
+
+    <!-- Header card -->
+    <string name="feature_product_header_card_a11y">Product identity and type</string>
+    <string name="feature_product_id_label">Product ID: %1$s</string>
+
+    <!-- Fees -->
+    <string name="feature_product_section_fees">Fees</string>
+    <string name="feature_product_monthly_max_charge_label">Monthly Maximum Charge</string>
+    <string name="feature_product_monthly_max_charge_a11y">Monthly maximum charge: %1$s</string>
+
+    <!-- Credit interest -->
+    <string name="feature_product_section_credit_interest">Credit Interest</string>
+    <string name="feature_product_credit_interest_list_a11y">Credit interest tier bands</string>
+    <string name="feature_product_tier_band_info">Up to %1$s · paid %2$s</string>
+    <string name="feature_product_tier_aer">%1$s% AER</string>
+    <string name="feature_product_credit_band_a11y">Credit interest up to %1$s: %2$s% AER, paid %3$s</string>
+
+    <!-- Overdraft -->
+    <string name="feature_product_section_overdraft">Overdraft</string>
+    <string name="feature_product_overdraft_list_a11y">Overdraft tier bands</string>
+    <string name="feature_product_overdraft_type_label">%1$s overdraft</string>
+    <string name="feature_product_overdraft_ear">%1$s% EAR</string>
+    <string name="feature_product_overdraft_band_a11y">%1$s overdraft: %2$s% EAR</string>
+
+    <!-- Features -->
+    <string name="feature_product_section_features">Features</string>
+    <string name="feature_product_features_list_a11y">Product features list</string>
+    <string name="feature_product_feature_a11y">Feature: %1$s</string>
+
+    <!-- Empty -->
+    <string name="feature_product_empty_title">No product information</string>
+    <string name="feature_product_empty_body">No product data is available for this account.</string>
+    <string name="feature_product_empty_a11y">No product information for this account</string>
+
+    <!-- Error -->
+    <string name="feature_product_error_title">Could not load product terms</string>
+    <string name="feature_product_error_a11y">Error loading product terms</string>
+    <string name="feature_product_retry_button">Retry</string>
+    <string name="feature_product_retry_a11y">Retry loading product terms</string>
+
+    <!-- Error messages, per api.yaml error_responses -->
+    <string name="feature_product_error_session_expired">Session expired. Please re-authenticate.</string>
+    <string name="feature_product_error_consent_denied">Consent does not include ReadProducts.</string>
+    <string name="feature_product_error_network">Could not reach the bank. Check your connection and try again.</string>
+</resources>

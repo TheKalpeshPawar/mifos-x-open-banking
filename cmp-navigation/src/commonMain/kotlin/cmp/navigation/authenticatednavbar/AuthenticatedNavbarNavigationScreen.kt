@@ -31,7 +31,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AtmLocatorRoute
-import cmp.navigation.placeholder.ProductsRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.ScaffoldNavigationData
@@ -58,6 +57,8 @@ import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.login.LoginRenewRoute
 import org.mifosx.openbanking.feature.login.loginRenewScreen
+import org.mifosx.openbanking.feature.product.ProductRoute
+import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
 import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
 import org.mifosx.openbanking.feature.settings.LicencesRoute
@@ -196,6 +197,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 },
             )
             directDebitsScreen(onBack = { navController.popBackStack() })
+            productScreen(onBack = { navController.popBackStack() })
             standingOrdersScreen(onBack = { navController.popBackStack() })
             statementsScreen(
                 onBack = { navController.popBackStack() },
@@ -230,7 +232,7 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
         AccountDetailChip.ScheduledPayments -> navigate(ScheduledPaymentsRoute(accountId))
         AccountDetailChip.Beneficiaries -> navigate(BeneficiariesRoute(accountId))
         AccountDetailChip.AtmLocator -> navigate(AtmLocatorRoute)
-        AccountDetailChip.Product -> navigate(ProductsRoute)
+        AccountDetailChip.Product -> navigate(ProductRoute(accountId))
         AccountDetailChip.Party -> navigate(AccountHolderRoute(accountId))
     }
 }

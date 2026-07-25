@@ -17,6 +17,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
+import org.mifosx.openbanking.core.network.model.ais.product.ProductResponse
 import org.mifosx.openbanking.core.network.model.ais.scheduledPayments.ScheduledPaymentsResponse
 import org.mifosx.openbanking.core.network.model.ais.standingOrders.StandingOrdersResponse
 import org.mifosx.openbanking.core.network.model.ais.statementDetails.StatementDetailsResponse
@@ -187,6 +188,31 @@ class AispTest {
 
         assertIs<NetworkResult.Success<ScheduledPaymentsResponse>>(result)
         assertTrue(request?.url?.encodedPath?.endsWith("accounts/acc-1/scheduled-payments") == true)
+    }
+
+    @Test
+    fun `getProduct GETs the product path and decodes the PCA terms`() = runTest {
+        var request: HttpRequestData? = null
+        val body = """
+            {"Data":{"Product":[{"AccountId":"acc-1","ProductId":"HSBC-ADVANCE-PCA-001",
+            "ProductType":"PCA","ProductName":"HSBC Advance Account",
+            "PCA":{"ProductDetails":{"MonthlyMaximumCharge":"0.00","Features":["No monthly fee"]},
+            "CreditInterest":{"TierBandSet":[{"TierBandMethod":"Tiered","TierBand":[
+            {"TierValueMinimum":"0.01","BandLimit":"1000","AER":"0.15","ApplicationFrequency":"Monthly"}]}]},
+            "Overdraft":{"OverdraftTierBandSet":[{"OverdraftTierBand":[
+            {"OverdraftType":"Arranged","EAR":"39.9"}]}]}}}]},"Meta":{"TotalPages":1}}
+        """.trimIndent()
+        val result = aisp(body, onRequest = { request = it }).getProduct("acc-1")
+
+        val success = assertIs<NetworkResult.Success<ProductResponse>>(result)
+        val product = success.data.data?.product?.single()
+        assertEquals("HSBC Advance Account", product?.productName)
+        assertEquals("0.15", product?.pca?.creditInterest?.tierBandSet?.single()?.tierBand?.single()?.aer)
+        assertEquals(
+            "39.9",
+            product?.pca?.overdraft?.overdraftTierBandSet?.single()?.overdraftTierBand?.single()?.ear,
+        )
+        assertTrue(request?.url?.encodedPath?.endsWith("accounts/acc-1/product") == true)
     }
 
     @Test
