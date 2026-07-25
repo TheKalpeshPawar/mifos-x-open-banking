@@ -79,7 +79,7 @@ fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(Car
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
-    composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Send money") }
+    composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Pay") }
     composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
     composableWithStayTransitions<CardsRoute> { PlaceholderScreen("Cards") }
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }

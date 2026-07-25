@@ -10,17 +10,17 @@
 package cmp.navigation.authenticatednavbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.ui.graphics.vector.ImageVector
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.accounts
 import cmp.navigation.generated.resources.home
 import cmp.navigation.generated.resources.more
-import cmp.navigation.generated.resources.transactions
-import cmp.navigation.placeholder.TransactionsRoute
+import cmp.navigation.generated.resources.pay
+import cmp.navigation.placeholder.SendMoneyRoute
 import cmp.navigation.utils.toObjectNavigationRoute
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -34,7 +34,7 @@ import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
  * Consumer bottom-nav tabs, resolved from `idea-layer/design-system/app-shell.yaml`:
- *  - Home · Accounts · Transactions · More
+ *  - Home · Accounts · Pay · More
  *
  * Non-home tabs point at Phase 2 placeholder routes; their real feature modules
  * land in Phases 4–6.
@@ -70,14 +70,19 @@ sealed class AuthenticatedNavBarTabItem(
         testTag = "AccountsTab",
     )
 
-    data object TransactionsTab : AuthenticatedNavBarTabItem(
-        selectedIcon = Icons.AutoMirrored.Filled.ReceiptLong,
-        icon = Icons.AutoMirrored.Filled.ReceiptLong,
-        labelRes = Res.string.transactions,
-        contentDescriptionRes = Res.string.transactions,
-        graphRoute = TransactionsRoute.toObjectNavigationRoute(),
-        startDestinationRoute = TransactionsRoute.toObjectNavigationRoute(),
-        testTag = "TransactionsTab",
+    /**
+     * Payment initiation. Still a placeholder — it points at [SendMoneyRoute], which
+     * `bankingPlaceholderDestinations()` registers inside the authenticated nav host. Kept flat
+     * (`graphRoute == startDestinationRoute`) so the bottom bar stays visible on it.
+     */
+    data object PayTab : AuthenticatedNavBarTabItem(
+        selectedIcon = Icons.Filled.Payments,
+        icon = Icons.Filled.Payments,
+        labelRes = Res.string.pay,
+        contentDescriptionRes = Res.string.pay,
+        graphRoute = SendMoneyRoute.toObjectNavigationRoute(),
+        startDestinationRoute = SendMoneyRoute.toObjectNavigationRoute(),
+        testTag = "PayTab",
     )
 
     data object MoreTab : AuthenticatedNavBarTabItem(
@@ -95,6 +100,6 @@ sealed class AuthenticatedNavBarTabItem(
 val consumerNavBarTabs: ImmutableList<AuthenticatedNavBarTabItem> = persistentListOf(
     AuthenticatedNavBarTabItem.HomeTab,
     AuthenticatedNavBarTabItem.AccountsTab,
-    AuthenticatedNavBarTabItem.TransactionsTab,
+    AuthenticatedNavBarTabItem.PayTab,
     AuthenticatedNavBarTabItem.MoreTab,
 )
