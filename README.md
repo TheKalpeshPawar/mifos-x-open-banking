@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/ab2f5bf9-5b88-4fee-90e9-741e3b3f7a26" alt="Project Logo" width="150" style="margin-right: 20px;" />
+<img src="https://github.com/user-attachments/assets/ab2f5bf9-5b88-4fee-90e9-741e3b3f7a26" alt="Mifos X Open Banking" width="150" style="margin-right: 20px;" />
 
-<h1>KMP Multi-Module Project Generator</h1>
+<h1>Mifos X Open Banking</h1>
 
-<p>🚀 The Ultimate Kotlin Multiplatform Project Generator with Production-Ready Setup</p>
+<p>A Kotlin Multiplatform + Compose Open Banking client for the HSBC UK Open Banking sandbox — built for Account Information (AIS) and Payment Initiation (PIS) — running on Android, iOS, desktop and web from one codebase.</p>
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-7f52ff?style=flat-square&logo=kotlin&logoColor=white)
 ![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin%20Multiplatform-4c8d3f?style=flat-square&logo=kotlin&logoColor=white)
@@ -16,194 +16,143 @@
 ![badge-js](http://img.shields.io/badge/platform-web-FDD835.svg?style=flat)
 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/openMF/kmp-project-template/blob/development/LICENSE)
-[![Pr Checks](https://github.com/openMF/kmp-project-template/actions/workflows/pr-check.yml/badge.svg)](https://github.com/openMF/kmp-project-template/actions/workflows/pr-check.yml)
+[![GitHub license](https://img.shields.io/github/license/openMF/mifos-x-open-banking?style=flat-square)](https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE)
+[![PR Checks](https://github.com/openMF/mifos-x-open-banking/actions/workflows/pr-check.yml/badge.svg)](https://github.com/openMF/mifos-x-open-banking/actions/workflows/pr-check.yml)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white)](https://join.slack.com/t/mifos/shared_invite/zt-2wvi9t82t-DuSBdqdQVOY9fsqsLjkKPA)
 
 </div>
 
-> \[!Note]
->
-> This branch is designed for partial customized projects. Running the `customizer.sh` script
-> doesn't rename any application module, instead it'll change all `core` and `feature` module
-> namespaces, packages, and other related configurations accordingly.
->
-> For full customization, please use the `full-customizable` branch instead.
+> ⚠️ **iOS is untested.** The iOS build is implemented but has not yet been verified on a Mac — treat iOS support as experimental.
 
-## 🌟 Key Features
+## 📖 About
 
-- **Cross-Platform Support**: Android, iOS, Desktop, and Web applications from a single codebase
-- **Multi-Module Architecture**: Clean, organized, and scalable project structure
-- **Advanced Source Set Hierarchy**: Sophisticated code sharing structure with logical platform
-  groupings
-- **Pre-configured CI/CD**: GitHub Actions workflows for building, testing, and deployment
-- **Code Quality Tools**: Static analysis and formatting tools pre-configured
-- **Sync Capabilities**: Tools to stay in sync with upstream template changes
-- **Secrets Management**: Secure handling of keystores and sensitive information
+Mifos X Open Banking is a standalone Open Banking fintech application built with Kotlin Multiplatform. It is a reference implementation that demonstrates how a third-party provider (TPP) can use Open Banking standards — PSD2 and UK Open Banking — to deliver both **Account Information Services (AIS)** and **Payment Initiation Services (PIS)** to users of Mifos/Fineract-powered institutions and beyond.
 
-## 🚀 Getting Started
+From a single codebase it runs on Android, iOS, desktop and web, and currently integrates with the **HSBC UK Open Banking sandbox** as its reference bank.
+
+## 📱 Using the app
+
+You supply your own HSBC sandbox credentials and certificates — the app ships with none. A checkout without them still builds; it only fails when it tries to reach the bank. Set it up as follows.
 
 ### Prerequisites
 
-- Bash 4.0+
-- Unix-like environment (macOS, Linux) or Git Bash on Windows
-- Android Studio/IntelliJ IDEA
-- Xcode (for iOS development)
-- Node.js (for web development)
+- JDK 17+
+- Android Studio / IntelliJ IDEA
+- `openssl` (to prepare the certificates)
+- An **HSBC Open Banking sandbox** TPP registration (see below)
+- Xcode (for the iOS target)
 
-### Quick Start
+### 1. Get HSBC sandbox credentials
 
-1. **Clone the Repository**
+Register as a TPP on HSBC's Open Banking DevHub / sandbox (via **Dynamic Client Registration**). From onboarding you obtain (or generate):
 
-```bash
-git clone https://github.com/openMF/kmp-project-template.git
-cd kmp-project-template
-```
+- a **client id** (`client_id`) and a signing **key id** (`kid`)
+- a **Software Statement (SSA)**
+- a **transport certificate** (`Transport.crt`, the QWAC used for mTLS) and a **signing certificate** (`Signing.crt`, the OBSEAL used to sign JWTs), plus the **private key** they were issued against
+- a registered **redirect URI**
 
-2. **Run the Customizer**
+**Authentication model:** the client authenticates at the token endpoint with **`private_key_jwt`** — a PS256-signed JWT assertion, signed by your signing key and referenced by `kid` — and every call to the bank runs over **mTLS**, presenting your transport certificate + key on the TLS handshake. In the sandbox one key-pair backs both certificates.
 
-```bash
-./customizer.sh org.example.myapp MyKMPProject
-```
+> See HSBC's Open Banking sandbox documentation for registration and the OBIE Read/Write v4.0 AIS APIs.
 
-3. **Build and Run**
+### 2. Generate the two certificate files
 
-```bash
-./gradlew build
-```
+The app loads exactly two files, with names fixed in `core/network/src/commonMain/kotlin/org/mifosx/openbanking/core/network/certs/CertPaths.kt`. Create them from the sandbox artifacts with `openssl`:
 
-## 🍎 iOS Deployment
-
-This template includes production-ready iOS deployment infrastructure with support for Firebase App
-Distribution, TestFlight, and App Store releases.
-
-### Prerequisites
-
-- **macOS** with Xcode installed
-- **Apple Developer Account** ($99/year)
-- **Match Repository** for code signing certificates
-- **App Store Connect API Key**
-
-### Quick Setup
-
-Run the comprehensive iOS setup wizard:
+**`signing_key.pem`** — the private key that pairs with `Signing.crt` (the key, *not* the certificate), in PKCS#8 PEM. It signs the `private_key_jwt` client assertion:
 
 ```bash
-bash scripts/setup_ios_complete.sh
+openssl pkcs8 -topk8 -nocrypt -in <signing-private-key>.key -out signing_key.pem
 ```
 
-The wizard will guide you through:
-
-- ✅ Team ID configuration
-- ✅ App Store Connect API key setup
-- ✅ Fastlane Match repository configuration
-- ✅ Certificate synchronization
-- ✅ TestFlight & App Store review contact information
-
-### Deployment Scripts
-
-Three deployment targets are available:
-
-| Target         | Purpose              | Script                              |
-|----------------|----------------------|-------------------------------------|
-| **Firebase**   | Internal testing, QA | `bash scripts/deploy_firebase.sh`   |
-| **TestFlight** | Beta testing         | `bash scripts/deploy_testflight.sh` |
-| **App Store**  | Production release   | `bash scripts/deploy_appstore.sh`   |
-
-**Example:**
+**`transport.p12`** — a PKCS#12 bundle of `Transport.crt` + its private key, presented on the mTLS handshake. The export password **must match `HSBC_TRANSPORT_P12_PASSWORD`** (step 4) and must be **non-empty** (Android's BouncyCastle rejects an empty PKCS#12 password):
 
 ```bash
-# Deploy to Firebase for internal testing
-bash scripts/deploy_firebase.sh
-
-# Deploy to TestFlight for beta testing
-bash scripts/deploy_testflight.sh
-
-# Deploy to App Store for production
-bash scripts/deploy_appstore.sh
+openssl pkcs12 -export -inkey <transport-private-key>.key -in Transport.crt -out transport.p12 -passout pass:<HSBC_TRANSPORT_P12_PASSWORD>
 ```
 
-### Configuration Architecture
+The same key backs both certificates in the sandbox, so `<signing-private-key>.key` and `<transport-private-key>.key` are the one key HSBC gave you.
 
-The project uses a **shared vs app-specific** configuration pattern:
+> `Signing.crt` and its public key are **not** placed in the app. Their only role is the public half you registered with HSBC, so the bank can verify the JWTs you sign. Only `signing_key.pem` and `transport.p12` go into the app.
 
-- **Shared Config (IOS_SHARED)**: Team ID, API keys, Match repo - same for all apps
-- **App-Specific Config (IOS)**: Bundle ID, Firebase app ID - changes per app
+### 3. Place the certificate files
 
-When you run `customizer.sh`, it updates only app-specific values while preserving shared
-infrastructure.
+Drop **both** files into the platform's `certs/` directory. These directories are git-ignored — the files are supplied locally per developer and never committed.
 
-### Optional: Push Notifications
+| Platform | Directory (both files) |
+|----------|------------------------|
+| Android  | `core/network/src/androidMain/assets/certs/` |
+| Desktop  | `core/network/src/desktopMain/resources/certs/` |
+| iOS      | `cmp-ios/iosApp/certs/` (add the folder as a bundle reference in the iOS target) |
+| Web (js / wasm) | not supported — a browser cannot present a client certificate, so the HSBC client is unavailable on web |
 
-If your app uses Firebase Cloud Messaging:
+### 4. Configure `local.properties`
 
-```bash
-bash scripts/setup_apn_key.sh
+Add the following to the root `local.properties`. A generator task (`:core:network:generateHsbcConfig`) reads them at build time:
+
+```properties
+HSBC_CLIENT_ID=your-client-id
+HSBC_KID=your-key-id
+HSBC_SOFTWARE_STATEMENT=your-software-statement-jwt
+HSBC_BANK_HOST=secure.sandbox.ob.hsbc.co.uk
+HSBC_AUTHORIZE_HOST=sandbox.ob.hsbc.co.uk
+HSBC_REDIRECT_URI=your-registered-redirect-uri
+HSBC_TRANSPORT_P12_PASSWORD=your-p12-password
 ```
 
-### GitHub Actions CI/CD
+- `HSBC_BANK_HOST` is the mTLS API host (token, consent, resources); `HSBC_AUTHORIZE_HOST` is the front-channel host the browser is sent to for PSU login.
+- `HSBC_REDIRECT_URI` must exactly match a redirect URI you registered with HSBC.
+- `HSBC_TRANSPORT_P12_PASSWORD` must match the password used to export `transport.p12`, and must be non-empty.
 
-The project uses a centralized configuration system for iOS deployment workflows.
+After changing any value, regenerate the config: `./gradlew :core:network:generateHsbcConfig`.
 
-**Configuration Files:**
+### 5. Handle the OAuth redirect (consent callback)
 
-- `fastlane-config/project_config.rb` - Application-specific configuration
-- `secrets/shared_keys.env` - Team-wide credentials and secrets
+After the customer authorises consent, HSBC redirects back to your **registered `redirect_uri`** — a single HTTPS page, the same for every platform. HSBC uses the OIDC hybrid flow, so the result comes back in the URL *fragment*, which only the browser can read. That page is therefore a small **relay** (`docs/consent-callback-page/`): its JavaScript reads the fragment and hands the result to the running app — through a **custom URL scheme** on Android/iOS, or a **localhost loopback** on desktop. The value registered with HSBC is always that HTTPS relay page; the per-platform scheme/port below only govern the relay's second hop back into the app.
 
-**Configuration Loading:**
+**If you fork this project, you must:**
 
-- Local deployments read from `secrets/shared_keys.env`
-- CI/CD workflows extract configuration from `project_config.rb` and GitHub Secrets
+1. **Host your own relay page** — deploy a copy of `docs/consent-callback-page/` (`index.html` + `bridge.js`) at an HTTPS URL you control (e.g. GitHub Pages), set `HSBC_REDIRECT_URI` in `local.properties` to it, and register the identical URL with HSBC.
+2. **Choose your own custom scheme** (the reference uses `org.mifosx.openbanking`) and set it — identically — in every file below.
 
-**Setup:**
+| Platform | File | What to set |
+|----------|------|-------------|
+| Relay page | `docs/consent-callback-page/bridge.js` | `SCHEME` (your scheme) and `LOOPBACK_PORT` (desktop, default `8765`) |
+| Android | `cmp-android/src/main/AndroidManifest.xml` | the `<data android:scheme="…">` entries in the redirect `<intent-filter>` |
+| Android | `cmp-android/src/main/kotlin/cmp/android/app/ConsentRedirectIntent.kt` | `CONSENT_REDIRECT_SCHEME` (must match the manifest) |
+| iOS | `cmp-ios/iosApp/Info.plist` | the `CFBundleURLSchemes` entry |
+| iOS / shared | `cmp-shared/src/nativeMain/kotlin/org/mifos/shared/ConsentRedirectBridge.kt` | `CONSENT_REDIRECT_SCHEME` (must match the plist) |
+| Desktop | `cmp-desktop/src/jvmMain/kotlin/ConsentRedirectListener.kt` | `CALLBACK_SCHEME`, and `PORT` (must match `bridge.js` `LOOPBACK_PORT`) |
 
-1. Configure GitHub Secrets as documented in the iOS Configuration Guide
-2. Update `project_config.rb` with application-specific values
-3. Execute workflows
+Android and iOS receive the custom scheme directly (the OS wakes the app and delivers the URL). **Desktop** has no scheme registration, so the relay `fetch`es a small loopback server the app runs at `http://127.0.0.1:8765/callback` — keep that port in sync between `ConsentRedirectListener` and `bridge.js`.
 
-Configuration is read from `fastlane-config/project_config.rb` for both local and CI deployments.
+### 6. Run it
 
-See [iOS Configuration Guide](docs/GITHUB_ACTIONS_IOS_MIGRATION.md) for detailed setup instructions.
+| Platform | Command                                                        |
+|----------|----------------------------------------------------------------|
+| Android  | `./gradlew :cmp-android:installDemoDebug`, then launch the app |
+| Desktop  | `./gradlew :cmp-desktop:run`                                   |
+| iOS      | open `cmp-ios/iosApp` in Xcode and run                         |
 
-### Documentation
 
-- [Complete iOS Setup Guide](docs/IOS_SETUP.md) - Detailed setup instructions
-- [iOS Deployment Guide](docs/IOS_DEPLOYMENT.md) - Deployment workflows and best practices
-- [GitHub Actions Configuration Guide](docs/GITHUB_ACTIONS_IOS_MIGRATION.md) - CI/CD setup and configuration
+> **iOS is experimental.** The mTLS integration is implemented but has not been built or verified on a Mac yet, so iOS is not confirmed to work against the sandbox.
+
+### Security
+
+Never commit or log the private key, `transport.p12`, the PKCS#12 passphrase, the Software Statement, or any access / refresh / id tokens. The `certs/` directories and all `*.pem` / `*.p12` files are git-ignored. `client_id` and `kid` are non-secret identifiers.
 
 ## 📁 Project Structure
 
 The project follows a modular architecture:
 
-- **Platform Modules**: `cmp-android`, `cmp-ios`, `cmp-desktop`, `cmp-web`, etc.
-- **Core Modules**: Common, reusable components shared across all features
-- **Feature Modules**: Self-contained feature implementations
-- **Build Logic**: Custom Gradle plugins and build configuration
-
-## 📚 Documentation
-
-Our project includes comprehensive documentation to help you get started and understand the
-architecture:
-
-- [ ] [Setup Guide](docs/SETUP.md) - Detailed instructions for setting up your development
-  environment
-- [ ] [Architecture Overview](docs/ARCHITECTURE.md) - Explanation of the project's structure and
-  design patterns
-- [ ] [Code Style Guide](docs/STYLE_GUIDE.md) - Coding conventions and best practices
-- [ ] [Source Set Hierarchy](docs/SOURCE_SET_HIERARCHY.md) - Guide to the Kotlin Multiplatform code
-  sharing structure
-- [ ] [Sync Script](docs/SYNC_SCRIPT.md) - Information about keeping in sync with upstream changes
-- [ ] [Secrets Manager](docs/SECRETS_MANAGER.md) - Documentation for the keystore and secrets
-  management system
-- [ ] [Fastlane Configuration](docs/FASTLANE_CONFIGURATION.md) - Guide to automating deployments
-  with fastlane
-
-> Documentation is continuously improving. Check back for updates or contribute to enhancing our
-> docs!
+- **Platform Modules**: `cmp-android`, `cmp-ios`, `cmp-desktop`, `cmp-web`, `cmp-navigation`
+- **Core Modules**: common, reusable components shared across all features (`core/*`, `core-base/*`)
+- **Feature Modules**: self-contained feature implementations (`feature/*`)
+- **Build Logic**: custom Gradle plugins and build configuration
 
 ## 🤝 Contributing
 
-We welcome contributions to improve the project template! Here's how you can help:
+We welcome contributions to Mifos X Open Banking! Here's how you can help:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
@@ -215,10 +164,9 @@ Please follow our [Contributing Guidelines](CONTRIBUTING.md) for detailed inform
 
 ## 📫 Support
 
-- Join
-  our [Slack channel](https://join.slack.com/t/mifos/shared_invite/zt-2wvi9t82t-DuSBdqdQVOY9fsqsLjkKPA)
-- Report issues on [GitHub](https://github.com/openMF/kmp-project-template/issues)
-- Track progress on [Jira](https://mifosforge.jira.com/jira/software/c/projects/KMPPT/boards/63)
+- Join the conversation in our [Slack channel](https://mifos.slack.com/archives/C05V139DVT9)
+- Report issues on [GitHub](https://github.com/openMF/mifos-x-open-banking/issues)
+- Track progress on [Jira](https://mifosforge.jira.com/jira/software/c/projects/MXOBA/boards/430)
 
 ## 📄 License
 
