@@ -23,6 +23,8 @@ import org.mifosx.openbanking.core.model.banking.TransactionCategory
 import org.mifosx.openbanking.feature.transactiondetail.FakeTransactionDetailRepository
 import org.mifosx.openbanking.feature.transactiondetail.TransactionDetailFixtures
 import org.mifosx.openbanking.feature.transactiondetail.TransactionDetailRoute
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -140,6 +142,26 @@ class TransactionDetailViewModelTest {
         assertEquals(TransactionCategory.GROCERIES, model.category)
         assertEquals("5411", model.merchantCategoryCode)
         assertEquals("£447.63", model.balanceAfterLabel)
+    }
+
+    /**
+     * Regression: HSBC sets the per-transaction `Balance.CreditDebitIndicator` to the transaction's
+     * own direction, not the balance's, so every debit on an account in credit arrives as `Debit`.
+     * Signing the running balance on it rendered an account holding £21,530.92 as `-£21,530.92`.
+     */
+    @Test
+    fun balanceAfterIsUnsignedEvenWhenTheBalanceIndicatorSaysDebit() {
+        val overdrawnLooking = TransactionDetailFixtures.debit().copy(
+            balanceAmount = "21530.92",
+            balanceIsCredit = false,
+        )
+        val repository = FakeTransactionDetailRepository(
+            ScreenState.Content(data = listOf(overdrawnLooking), freshness = DataFreshness.FRESH),
+        )
+
+        val model = content(viewModel(repository)).transaction
+
+        assertEquals("£21,530.92", model.balanceAfterLabel)
         assertEquals("TESCO STORES 3476 LONDON", model.referenceLabel)
         assertEquals("DR · HSBC", model.bankCodeLabel)
     }

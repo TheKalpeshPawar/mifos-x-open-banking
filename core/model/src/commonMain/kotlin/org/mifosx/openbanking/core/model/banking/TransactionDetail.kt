@@ -35,7 +35,12 @@ import kotlinx.serialization.Serializable
  *   transaction is not card-originated — the MCC row hides when this is null.
  * @property balanceAmount Raw decimal running-balance amount (OBIE `Balance.Amount.Amount`).
  * @property balanceCurrency ISO-4217 currency of [balanceAmount].
- * @property balanceIsCredit True when OBIE `Balance.CreditDebitIndicator` is `Credit`.
+ * @property balanceIsCredit True when OBIE `Balance.CreditDebitIndicator` is `Credit`. **Do not use
+ *   this to sign [balanceAmount] for display.** HSBC reports it per transaction as the *transaction's*
+ *   direction rather than the balance's, so a debit on an account in credit arrives as `Debit`: the
+ *   sandbox returns `Balance {Debit, ITBD, 21530.92}` for an account whose `/balances` reports
+ *   `{Credit, ITBD, 21530.92}` — the same figure and type, the opposite indicator. Signing on it
+ *   renders a healthy balance as overdrawn. Kept because it faithfully records the payload.
  * @property transactionInformation Free-text reference (OBIE `TransactionInformation`).
  * @property proprietaryCode HSBC proprietary transaction code (`ProprietaryBankTransactionCode.Code`).
  * @property proprietaryIssuer Issuer of [proprietaryCode] (`ProprietaryBankTransactionCode.Issuer`).

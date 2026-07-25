@@ -96,7 +96,7 @@ class TransactionDetailViewModel(
         valueDateLabel = formatTimestamp(valueDateTime),
         category = category,
         merchantCategoryCode = merchantCategoryCode,
-        balanceAfterLabel = balanceAmountLabel(balanceAmount, balanceCurrency, balanceIsCredit),
+        balanceAfterLabel = balanceAmountLabel(balanceAmount, balanceCurrency),
         referenceLabel = transactionInformation,
         bankCodeLabel = bankCode(proprietaryCode, proprietaryIssuer),
     )
@@ -121,11 +121,20 @@ private fun signedAmount(amount: String, currency: String, isCredit: Boolean): S
     return "$sign${formatMoney(amount, currency)}"
 }
 
-/** `£447.63` when the running balance is in credit, `-£12.40` when it is overdrawn. */
-private fun balanceAmountLabel(amount: String, currency: String, isCredit: Boolean): String {
-    val sign = if (isCredit) "" else "-"
-    return "$sign${formatMoney(amount, currency)}"
-}
+/**
+ * `£21,530.92` — the running balance as a magnitude, deliberately unsigned.
+ *
+ * The payload's `Balance.CreditDebitIndicator` cannot be used to sign this. HSBC sets it per
+ * transaction to the *transaction's* direction, not the balance's, so every debit on an account in
+ * credit arrives as `Debit`: the sandbox returns `Balance {Debit, ITBD, 21530.92}` while that same
+ * account's `/balances` reports `{Credit, ITBD, 21530.92}` — identical figure and type, opposite
+ * indicator. Signing on it rendered an account holding £21,530.92 as `-£21,530.92`.
+ *
+ * A truthful sign would need the account-level balance, which this screen does not load, so the
+ * magnitude is the most this data supports. Showing no sign is incomplete; showing the wrong one
+ * tells the PSU they are overdrawn when they are not.
+ */
+private fun balanceAmountLabel(amount: String, currency: String): String = formatMoney(amount, currency)
 
 /** `DR · HSBC`, or just the code when the issuer is absent. */
 private fun bankCode(code: String, issuer: String): String =
