@@ -100,6 +100,36 @@ class AccountsViewModelTest {
     }
 
     @Test
+    fun `there are four filters and none of them is Global`() {
+        assertEquals(
+            listOf(AccountFilter.ALL, AccountFilter.CURRENT, AccountFilter.SAVINGS, AccountFilter.CREDIT),
+            AccountFilter.entries,
+        )
+    }
+
+    /**
+     * The reason a Global Money account needs no filter of its own. HSBC UK Personal AIS v4.0 dropped
+     * AccountSubType from the accounts payload and has no wallet type code, so a Global Money wallet
+     * reports CACC exactly as an ordinary current account does, and the Current filter already covers it.
+     */
+    @Test
+    fun `an account reporting the CACC type code is matched by the Current filter`() = runTest {
+        val vm = createViewModel()
+        repo.emissions.value = ScreenState.Content(
+            listOf(accountWith("acc-global-money", "500.00", subType = "CACC")),
+            DataFreshness.FRESH,
+        )
+        vm.stateFlow.first { it.uiState is ScreenState.Content }
+
+        vm.trySendAction(AccountsAction.FilterAccounts(AccountFilter.CURRENT))
+        advanceUntilIdle()
+
+        val data = content(vm.stateFlow.value.uiState).data as AccountsData
+        assertEquals(1, data.rows.size)
+        assertEquals("acc-global-money", data.rows.first().id)
+    }
+
+    @Test
     fun `credit card row renders as balance owed`() = runTest {
         val vm = createViewModel()
         repo.emissions.value = ScreenState.Content(sampleAccounts(), DataFreshness.FRESH)

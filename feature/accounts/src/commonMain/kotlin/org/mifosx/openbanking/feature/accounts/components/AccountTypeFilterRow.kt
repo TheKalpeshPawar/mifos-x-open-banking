@@ -27,7 +27,6 @@ import org.mifosx.openbanking.feature.accounts.generated.resources.Res
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_filter_all
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_filter_credit
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_filter_current
-import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_filter_global
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_filter_savings
 import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
 import template.core.base.designsystem.theme.KptTheme
@@ -63,5 +62,4 @@ private fun AccountFilter.labelRes(): StringResource = when (this) {
     AccountFilter.CURRENT -> Res.string.feature_accounts_filter_current
     AccountFilter.SAVINGS -> Res.string.feature_accounts_filter_savings
     AccountFilter.CREDIT -> Res.string.feature_accounts_filter_credit
-    AccountFilter.GLOBAL -> Res.string.feature_accounts_filter_global
 }

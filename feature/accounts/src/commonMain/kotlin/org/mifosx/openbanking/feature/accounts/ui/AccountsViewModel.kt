@@ -68,13 +68,22 @@ enum class AccountUiType {
     }
 }
 
-/** The client-side account-type filter backing the chip row. */
+/**
+ * The client-side account-type filter backing the chip row.
+ *
+ * There is deliberately no Global filter. HSBC UK Personal AIS v4.0 dropped `AccountSubType` from
+ * `OBAccount6` entirely and its `AccountTypeCode` enum has no wallet code, so a Global Money account
+ * arrives as `CACC` — indistinguishable here from an ordinary current account, and already listed
+ * under [CURRENT]. A `GLOBAL` entry matching the `GlobalMoney`/`GlobalWallet` subtypes could never
+ * match anything and rendered a permanently empty list. The only runtime signal for Global Money is
+ * the free-text `Description`, which `HsbcProductType.resolve` reads and the account-detail screen
+ * now displays.
+ */
 enum class AccountFilter(private val subtypes: Set<String>?) {
     ALL(null),
     CURRENT(setOf(SUBTYPE_CURRENT)),
     SAVINGS(setOf(SUBTYPE_SAVINGS)),
     CREDIT(setOf(SUBTYPE_CREDIT_CARD)),
-    GLOBAL(setOf(SUBTYPE_GLOBAL_MONEY, SUBTYPE_GLOBAL_WALLET)),
     ;
 
     fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes

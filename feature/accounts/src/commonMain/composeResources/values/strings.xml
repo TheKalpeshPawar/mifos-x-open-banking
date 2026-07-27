@@ -15,7 +15,6 @@
     <string name="feature_accounts_filter_current">Current</string>
     <string name="feature_accounts_filter_savings">Savings</string>
     <string name="feature_accounts_filter_credit">Credit</string>
-    <string name="feature_accounts_filter_global">Global</string>
 
     <string name="feature_accounts_type_current">Current account</string>
     <string name="feature_accounts_type_savings">Savings</string>
