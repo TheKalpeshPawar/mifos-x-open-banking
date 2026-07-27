@@ -73,6 +73,13 @@ data class AccountHeaderUi(
     val servicerIdentification: String,
     val lastUpdatedLabel: String,
     val accountNumber: String = "",
+    /**
+     * OBIE `Description` verbatim, e.g. `GLOBAL MONEY ACCOUNT`. Often the only place the bank says what
+     * kind of product this is — `AccountTypeCode` reports `CACC` for a Global Money wallet just as it
+     * does for an ordinary current account. Blank when the payload carried none, in which case the
+     * description card is not drawn.
+     */
+    val description: String = "",
 )
 
 /** One typed balance row, e.g. `InterimAvailable` / `2,847.63 GBP`. */

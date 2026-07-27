@@ -22,6 +22,7 @@ internal object AccountDetailTestTags {
     const val LOADING_SKELETON = "accountDetail:loadingSkeleton"
 
     const val HEADER_CARD = "accountDetail:headerCard"
+    const val DESCRIPTION_CARD = "accountDetail:descriptionCard"
     const val SUBTYPE_LABEL = "accountDetail:subtypeLabel"
     const val NICKNAME = "accountDetail:nickname"
     const val IDENTIFICATION = "accountDetail:identification"

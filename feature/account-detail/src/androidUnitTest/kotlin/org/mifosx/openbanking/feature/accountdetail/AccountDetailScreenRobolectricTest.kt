@@ -152,6 +152,38 @@ class AccountDetailScreenRobolectricTest {
     }
 
     @Test
+    fun aDescriptionRendersItsOwnCard() {
+        render(
+            AccountDetailState(
+                accountId = ACCOUNT_ID,
+                uiState = AccountDetailUiState.Content(
+                    header = header.copy(description = "GLOBAL MONEY ACCOUNT"),
+                    balances = balances,
+                ),
+            ),
+        )
+
+        composeRule.onNodeWithTag(AccountDetailTestTags.DESCRIPTION_CARD).assertExists()
+    }
+
+    /** A blank description means the bank sent none — draw nothing rather than an empty card. */
+    @Test
+    fun aBlankDescriptionDrawsNoCard() {
+        render(
+            AccountDetailState(
+                accountId = ACCOUNT_ID,
+                uiState = AccountDetailUiState.Content(
+                    header = header.copy(description = "   "),
+                    balances = balances,
+                ),
+            ),
+        )
+
+        composeRule.onNodeWithTag(AccountDetailTestTags.HEADER_CARD).assertExists()
+        composeRule.onNodeWithTag(AccountDetailTestTags.DESCRIPTION_CARD).assertDoesNotExist()
+    }
+
+    @Test
     fun emptyStateKeepsTheHeaderAndChipsAndDropsTheBalanceList() {
         render(emptyState())
 

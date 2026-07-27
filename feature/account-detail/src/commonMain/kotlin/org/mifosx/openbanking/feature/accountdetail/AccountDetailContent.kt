@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.feature.accountdetail.components.AccountDescriptionCard
 import org.mifosx.openbanking.feature.accountdetail.components.AccountHeaderCard
 import org.mifosx.openbanking.feature.accountdetail.components.ExploreOptionsColumn
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
@@ -74,6 +75,11 @@ internal fun AccountDetailContent(
         verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
     ) {
         AccountHeaderCard(header = header)
+
+        // Omitted rather than drawn empty — several sandbox accounts carry no Description at all.
+        if (header.description.isNotBlank()) {
+            AccountDescriptionCard(description = header.description)
+        }
 
         SectionHeader(
             text = stringResource(Res.string.feature_account_detail_section_balances),

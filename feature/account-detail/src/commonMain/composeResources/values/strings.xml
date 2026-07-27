@@ -19,6 +19,7 @@
     <string name="feature_account_detail_last_updated">Last updated</string>
 
 
+    <string name="feature_account_detail_description_label">Account description</string>
     <string name="feature_account_detail_section_balances">Balances</string>
     <string name="feature_account_detail_section_balances_accessibility">Account balances section</string>
     <string name="feature_account_detail_balances_list_accessibility">Balance types list</string>

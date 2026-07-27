@@ -97,6 +97,7 @@ class AccountDetailViewModelTest {
         assertEquals("GBP", state.header.currency)
         assertEquals("MIDLGB2105V", state.header.servicerIdentification)
         assertEquals("28 Jun 2026, 18:30 UTC", state.header.lastUpdatedLabel)
+        assertEquals("Description of the account", state.header.description)
         assertEquals(2, state.balances.size)
         assertEquals("InterimAvailable", state.balances[0].type)
         assertEquals("2,847.63 GBP", state.balances[0].amountLabel)
