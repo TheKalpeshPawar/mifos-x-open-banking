@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_account_holder_screen_title">Account holder</string>
+    <string name="feature_account_holder_loading_accessibility">Loading account holder</string>
+    <string name="feature_account_holder_loading_caption">Loading account holder</string>
+
+    <string name="feature_account_holder_identity_card_accessibility">%1$s, %2$s</string>
+    <string name="feature_account_holder_avatar_accessibility">Account holder initials %1$s</string>
+
+    <string name="feature_account_holder_section_identity">Identity</string>
+
+    <string name="feature_account_holder_label_email">Email</string>
+    <string name="feature_account_holder_label_mobile">Mobile</string>
+    <string name="feature_account_holder_label_address">Address</string>
+    <string name="feature_account_holder_detail_accessibility">%1$s: %2$s</string>
+
+    <string name="feature_account_holder_empty_title">No account holder details</string>
+    <string name="feature_account_holder_empty_body">HSBC returned no identity record for this account.</string>
+    <string name="feature_account_holder_empty_accessibility">No account holder details available</string>
+
+    <string name="feature_account_holder_error_title">Could not load account holder</string>
+    <string name="feature_account_holder_error_accessibility">Error loading account holder</string>
+    <string name="feature_account_holder_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_account_holder_error_consent_missing_party">Consent does not include account holder access. The ReadParty permission was not granted when you authorised this app.</string>
+    <string name="feature_account_holder_error_profile_not_found">HSBC has no identity record for this account.</string>
+    <string name="feature_account_holder_error_load_failed">Could not reach HSBC. Check your connection and retry.</string>
+    <string name="feature_account_holder_button_retry">Retry</string>
+</resources>

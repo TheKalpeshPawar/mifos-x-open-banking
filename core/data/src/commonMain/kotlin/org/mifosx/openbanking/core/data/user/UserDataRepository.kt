@@ -5,13 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.data.user
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOf
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
@@ -28,8 +27,6 @@ interface UserDataRepository {
 
     val userData: StateFlow<UserData>
 
-    val authToken: String?
-
     val passcode: String
 
     val observeLanguage: Flow<LanguageConfig>
@@ -39,15 +36,6 @@ interface UserDataRepository {
     val observeDynamicColorPreference: Flow<Boolean>
 
     val observeScreenCapturePreference: Flow<Boolean>
-
-    val observePushNotificationsEnabled: Flow<Boolean>
-        get() = flowOf(true)
-
-    val observeTransactionAlertsEnabled: Flow<Boolean>
-        get() = flowOf(true)
-
-    val observeMarketingEnabled: Flow<Boolean>
-        get() = flowOf(false)
 
     suspend fun setLanguage(language: LanguageConfig)
 
@@ -65,17 +53,7 @@ interface UserDataRepository {
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
 
-    suspend fun setPushNotificationsEnabled(isEnabled: Boolean) = Unit
-
-    suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) = Unit
-
-    suspend fun setMarketingEnabled(isEnabled: Boolean) = Unit
-
-    suspend fun setShowOnboarding(showOnboarding: Boolean)
-
-    suspend fun setFirstTimeState(firstTimeState: Boolean)
-
-    suspend fun setPasscode(passcode: String)
+    suspend fun setSelectedAccountId(accountId: String)
 
     suspend fun clearUserData()
 }

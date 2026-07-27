@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.database.di
 
@@ -28,7 +28,8 @@ val DatabaseModule = module {
     includes(platformModule)
     single { get<AppDatabase>().sampleDao }
     single { get<AppDatabase>().bookkeeperDao }
-    single { get<AppDatabase>().obpCacheDao }
+    single { get<AppDatabase>().accountDao }
+    single { get<AppDatabase>().transactionDao }
 }
 
 /**

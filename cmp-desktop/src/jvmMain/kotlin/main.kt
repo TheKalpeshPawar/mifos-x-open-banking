@@ -16,8 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import org.mifosx.openbanking.SharedApp
-import org.mifosx.openbanking.utils.initKoin
+import cmp.shared.SharedApp
+import cmp.shared.utils.initKoin
 import java.util.Locale
 
 /**
@@ -35,8 +35,13 @@ import java.util.Locale
  * @see SharedApp
  */
 fun main() {
+    // Started outside `application {}` — that block is a composable scope, and the listener is
+    // process-scoped, not composition-scoped.
+    ConsentRedirectListener.start()
+
     application {
-        initKoin(appVersion = System.getProperty("jpackage.app-version").orEmpty())
+        // Initializes the Koin dependency injection framework.
+        initKoin()
 
         // Creates a window state to manage the window's state.
         val windowState = rememberWindowState()
@@ -48,7 +53,7 @@ fun main() {
         Window(
             onCloseRequest = ::exitApplication,
             state = windowState,
-            title = "Mifos X Open Banking",
+            title = "DesktopApp",
         ) {
             // Use key() to force complete recomposition when locale changes
             key(localeVersion) {

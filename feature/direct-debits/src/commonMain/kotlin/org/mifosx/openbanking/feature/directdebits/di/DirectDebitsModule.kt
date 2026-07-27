@@ -5,32 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.directdebits.di
 
-import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitDetailViewModel
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsViewModel
 
+/** Koin bindings for the direct-debits feature. Included by `cmp-navigation`'s feature module. */
 val DirectDebitsModule = module {
-    viewModel { params ->
-        DirectDebitsViewModel(
-            directDebitsRepository = get(),
-            accountsRepository = get(),
-            userPreferencesRepository = get(),
-            bankId = params.get(0),
-            accountId = params.get(1),
-        )
-    }
-    viewModel { params ->
-        DirectDebitDetailViewModel(
-            directDebitsRepository = get(),
-            accountsRepository = get(),
-            bankId = params.get(0),
-            accountId = params.get(1),
-            mandateId = params.get(2),
-        )
-    }
+    viewModelOf(::DirectDebitsViewModel)
 }

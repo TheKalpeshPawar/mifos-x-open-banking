@@ -5,377 +5,398 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.standingorders.ui
 
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.standingorders.StandingOrdersRepository
-import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
-import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.core.model.obp.AmountOfMoney
-import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CreateStandingOrderRequest
-import org.mifosx.openbanking.core.model.obp.StandingOrder
-import org.mifosx.openbanking.core.model.obp.StandingOrderDetail
-import org.mifosx.openbanking.core.model.obp.TransactionRequest
-import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
-import org.mifosx.openbanking.core.model.user.DarkThemeConfig
-import org.mifosx.openbanking.core.model.user.LanguageConfig
-import org.mifosx.openbanking.core.model.user.ThemeBrand
-import org.mifosx.openbanking.core.model.user.UserData
-import template.core.base.store.screen.ScreenDataStream
-import template.core.base.store.screen.ScreenState
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
+import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.banking.StandingOrderItem
+import org.mifosx.openbanking.core.model.banking.StandingOrdersSummary
+import org.mifosx.openbanking.feature.standingorders.FakeStandingOrdersRepository
+import org.mifosx.openbanking.feature.standingorders.StandingOrdersFixtures
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
+import template.core.base.network.NetworkError
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-private fun account(id: String = "ac.checking.001") = Account(
-    id = id,
-    bankId = "ac.bank.uk",
-    accountType = "checking",
-    balance = AmountOfMoney(currency = "EUR", amount = "1000.00"),
-)
-
-private fun order(name: String, status: String = StandingOrder.STATUS_ACTIVE) = StandingOrder(
-    id = "so-derived-${name.lowercase()}",
-    name = name,
-    amountValue = "45.00",
-    amountCurrency = "EUR",
-    frequency = "MONTHLY",
-    lastPaymentDate = "2026-06-01",
-    nextPaymentDate = "2026-07-01",
-    status = status,
-)
-
-private class FakeStandingOrdersRepository(
-    var orders: Result<List<StandingOrder>> = Result.success(emptyList()),
-) : StandingOrdersRepository {
-    var lastAccountId: String = ""
-    override suspend fun detail(
-        bankId: String,
-        accountId: String,
-        standingOrderId: String,
-    ): Result<StandingOrderDetail> = TODO("not used")
-    override suspend fun listRecurring(bankId: String, accountId: String): Result<List<StandingOrder>> {
-        lastAccountId = accountId
-        return orders
-    }
-    override suspend fun create(
-        bankId: String,
-        accountId: String,
-        name: String,
-        request: CreateStandingOrderRequest,
-    ): Result<StandingOrder> = TODO("not used")
-}
-
-private class FakeAccountsRepository(
-    var accounts: Result<List<Account>> = Result.success(listOf(account())),
-) : AccountsRepository {
-    override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>> = TODO()
-    override suspend fun listAccounts(): Result<List<Account>> = accounts
-    override suspend fun myAccounts(): Result<List<Account>> = accounts
-    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = TODO()
-}
-
-private class FakePaymentsRepository(
-    var beneficiaries: Result<List<Counterparty>> = Result.success(emptyList()),
-) : PaymentsRepository {
-    override fun beneficiariesStream(accountId: String, scope: CoroutineScope): ScreenDataStream<List<Counterparty>> =
-        TODO()
-    override suspend fun listBeneficiaries(bankId: String, accountId: String): Result<List<Counterparty>> =
-        beneficiaries
-    override suspend fun listTransactionRequests(
-        bankId: String,
-        accountId: String,
-    ): Result<List<TransactionRequestSummary>> = TODO()
-    override suspend fun sendSepaPayment(
-        bankId: String,
-        accountId: String,
-        iban: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = TODO()
-    override suspend fun sendToCounterparty(
-        bankId: String,
-        accountId: String,
-        counterpartyId: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = TODO()
-    override suspend fun fundsAvailable(
-        bankId: String,
-        accountId: String,
-        amount: String,
-        currency: String,
-    ): Result<Boolean> = TODO()
-    override suspend fun sendToSandboxTan(
-        bankId: String,
-        accountId: String,
-        toBankId: String,
-        toAccountId: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = TODO()
-    override suspend fun answerChallenge(
-        bankId: String,
-        accountId: String,
-        type: String,
-        requestId: String,
-        challengeId: String,
-        answer: String,
-    ): Result<TransactionRequest> = TODO()
-}
-
-private class FakeUserPreferencesRepository(
-    defaultAccountId: String = "",
-) : UserPreferencesRepository {
-    private val _userData = MutableStateFlow(UserData.DEFAULT.copy(defaultAccountId = defaultAccountId))
-    override val userData: StateFlow<UserData> = _userData
-    override val authToken: String? = null
-    override val passcode: String = ""
-    override val observeLanguage: Flow<LanguageConfig> get() = TODO()
-    override val observeDarkThemeConfig: Flow<DarkThemeConfig> get() = TODO()
-    override val observeDynamicColorPreference: Flow<Boolean> get() = TODO()
-    override val observeScreenCapturePreference: Flow<Boolean> get() = TODO()
-    override val observePushNotificationsEnabled: Flow<Boolean> get() = TODO()
-    override val observeTransactionAlertsEnabled: Flow<Boolean> get() = TODO()
-    override val observeMarketingEnabled: Flow<Boolean> get() = TODO()
-    override val observeDefaultAccountId: Flow<String> = _userData.map { it.defaultAccountId }
-    override suspend fun setLanguage(language: LanguageConfig) = TODO()
-    override suspend fun setThemeBrand(themeBrand: ThemeBrand) = TODO()
-    override suspend fun setDarkThemeConfig(darkThemeConfig: DarkThemeConfig) = TODO()
-    override suspend fun setDynamicColorPreference(useDynamicColor: Boolean) = TODO()
-    override suspend fun setIsAuthenticated(isAuthenticated: Boolean) = TODO()
-    override suspend fun setIsUnlocked(isUnlocked: Boolean) = TODO()
-    override suspend fun setIsPasscodeEnabled(isPasscodeEnabled: Boolean) = TODO()
-    override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) = TODO()
-    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) = TODO()
-    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) = TODO()
-    override suspend fun setMarketingEnabled(isEnabled: Boolean) = TODO()
-    override suspend fun setShowOnboarding(showOnboarding: Boolean) = TODO()
-    override suspend fun setFirstTimeState(firstTimeState: Boolean) = TODO()
-    override suspend fun setPasscode(passcode: String) = TODO()
-    override suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean) = TODO()
-    override suspend fun setAuthToken(token: String?) = TODO()
-    override suspend fun setDefaultAccountId(accountId: String) {
-        _userData.value = _userData.value.copy(defaultAccountId = accountId)
-    }
-    override suspend fun clearUserData() = TODO()
-}
-
+/**
+ * Covers [StandingOrdersViewModel]'s state mapping, display formatting and error classification.
+ *
+ * Test names are camelCase, not backticked: this source set also compiles for Kotlin/Native, whose
+ * frontend rejects the parentheses and commas a prose-style backticked name would carry.
+ */
 class StandingOrdersViewModelTest {
 
-    private val dispatcher = StandardTestDispatcher()
-
-    @BeforeTest
-    fun setUp() = Dispatchers.setMain(dispatcher)
-
-    @AfterTest
-    fun tearDown() = Dispatchers.resetMain()
-
-    private fun vm(
-        repo: FakeStandingOrdersRepository = FakeStandingOrdersRepository(),
-        accounts: FakeAccountsRepository = FakeAccountsRepository(),
-        payments: FakePaymentsRepository = FakePaymentsRepository(),
-        prefs: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
-    ) = StandingOrdersViewModel(
-        standingOrdersRepository = repo,
-        accountsRepository = accounts,
-        paymentsRepository = payments,
-        userPreferencesRepository = prefs,
-    )
-
-    @Test
-    fun load_prefersPersistedDefaultAccount() = runTest(dispatcher) {
-        val repo = FakeStandingOrdersRepository()
-        val model = vm(
-            repo = repo,
-            accounts = FakeAccountsRepository(
-                Result.success(
-                    listOf(account(), account("ac.business.001").copy(accountType = "business")),
-                ),
-            ),
-            prefs = FakeUserPreferencesRepository(defaultAccountId = "ac.business.001"),
+    private fun viewModel(
+        repository: FakeStandingOrdersRepository = FakeStandingOrdersRepository(),
+        accountId: String = StandingOrdersFixtures.ACCOUNT_ID,
+    ): StandingOrdersViewModel {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        return StandingOrdersViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
+            repository = repository,
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        assertEquals("ac.business.001", repo.lastAccountId)
+    }
+
+    private fun content(summary: StandingOrdersSummary): ScreenState<StandingOrdersSummary> =
+        ScreenState.Content(data = summary, freshness = DataFreshness.FRESH)
+
+    private fun remoteFailure(error: NetworkError): ScreenState<StandingOrdersSummary> =
+        ScreenState.Error(RemoteException(error))
+
+    private fun contentRows(
+        repository: FakeStandingOrdersRepository,
+    ): List<StandingOrderRowUi> =
+        assertIs<StandingOrdersUiState.Content>(viewModel(repository).stateFlow.value.uiState).orders
+
+    @Test
+    fun accountIdIsReadFromSavedStateHandleUnderTheRoutePropertyName() {
+        val vm = viewModel(accountId = "acc-77")
+        assertEquals("acc-77", vm.stateFlow.value.accountId)
     }
 
     @Test
-    fun load_success_emitsContentWithStats() = runTest(dispatcher) {
-        val model = vm(
-            repo = FakeStandingOrdersRepository(
-                orders = Result.success(
-                    listOf(
-                        order("Rent"),
-                        order("Netflix"),
-                        order("Gym", status = StandingOrder.STATUS_PAUSED),
-                    ),
-                ),
-            ),
+    fun missingAccountIdFallsBackToEmptyRatherThanCrashing() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val vm = StandingOrdersViewModel(
+            savedStateHandle = SavedStateHandle(),
+            repository = FakeStandingOrdersRepository(),
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        backgroundScope.launch { model.header.collect {} }
-        advanceUntilIdle()
-        val state = model.uiState.value
-        assertTrue(state is ScreenState.Content)
-        assertEquals(3, state.data.size)
-        val header = model.header.value
-        assertEquals(2, header.activeCount)
-        assertEquals(1, header.pausedCount)
-        assertEquals("€90.00", header.monthlyTotal)
+        assertEquals("", vm.stateFlow.value.accountId)
     }
 
     @Test
-    fun filter_pausedShowsOnlyPausedRows() = runTest(dispatcher) {
-        val model = vm(
-            repo = FakeStandingOrdersRepository(
-                orders = Result.success(
-                    listOf(
-                        order("Rent"),
-                        order("Gym", status = StandingOrder.STATUS_PAUSED),
-                        order("Old loan", status = StandingOrder.STATUS_CANCELLED),
-                    ),
-                ),
-            ),
+    fun accountIdArgConstantMatchesTheRoutePropertyName() {
+        assertEquals("accountId", StandingOrdersViewModel.ACCOUNT_ID_ARG)
+    }
+
+    @Test
+    fun initialStateIsLoading() {
+        val vm = viewModel()
+        assertIs<StandingOrdersUiState.Loading>(vm.stateFlow.value.uiState)
+    }
+
+    @Test
+    fun repositoryReceivesTheRouteAccountId() = runTest {
+        val repository = FakeStandingOrdersRepository()
+        viewModel(repository, accountId = "acc-9")
+        assertEquals("acc-9", repository.observedAccountId)
+    }
+
+    @Test
+    fun contentStateExposesFiveRowsAndTheFourToOneSummaryCounts() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val state = viewModel(repository).stateFlow.value.uiState
+
+        val rendered = assertIs<StandingOrdersUiState.Content>(state)
+        assertEquals(5, rendered.orders.size)
+        assertEquals(4, rendered.activeCount)
+        assertEquals(1, rendered.inactiveCount)
+    }
+
+    @Test
+    fun contentPreservesActiveFirstOrderFromTheMapper() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val rows = contentRows(repository)
+
+        assertEquals(
+            listOf("Jameson Lettings", "ISA Saver", "PureGym", "Marcus Savings", "Oxfam GB"),
+            rows.map { it.payeeName },
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        backgroundScope.launch { model.header.collect {} }
-        advanceUntilIdle()
-        model.onFilterChanged(StandingOrderFilter.Paused)
-        advanceUntilIdle()
-        val state = model.uiState.value as ScreenState.Content
-        assertEquals(listOf("Gym"), state.data.map { it.name })
-        val header = model.header.value
-        assertEquals(StandingOrderFilter.Paused, header.filter)
-        assertEquals(1, header.activeCount)
-        assertEquals(1, header.pausedCount)
+        assertFalse(rows.last().isActive)
     }
 
     @Test
-    fun onAccountSelected_reloadsOrdersForThatAccount() = runTest(dispatcher) {
-        val repo = FakeStandingOrdersRepository(orders = Result.success(listOf(order("Rent"))))
-        val model = vm(
-            repo = repo,
-            accounts = FakeAccountsRepository(
-                accounts = Result.success(listOf(account(), account(id = "ac.savings.001"))),
-            ),
+    fun amountsAreFormattedWithCurrencySymbolAndGroupingSeparator() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val first = contentRows(repository).first()
+
+        assertEquals("£1,200.00", first.amountLabel)
+        assertEquals("GBP", first.currencyLabel)
+    }
+
+    @Test
+    fun datesAreFormattedAsDayMonthYear() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val rows = contentRows(repository)
+
+        assertEquals("1 Jul 2026", rows.first().nextDateLabel)
+        assertEquals("15 Jul 2026", rows[PUREGYM_INDEX].nextDateLabel)
+    }
+
+    @Test
+    fun frequencyLabelReachesTheRowUnchangedFromTheMapper() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val rows = contentRows(repository)
+
+        assertEquals("Monthly on the 1st", rows.first().frequencyLabel)
+        assertEquals("Weekly every Friday", rows[MARCUS_INDEX].frequencyLabel)
+    }
+
+    @Test
+    fun orderWithAFinalPaymentCarriesTheFlagAndTheFormattedDate() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val marcus = contentRows(repository)[MARCUS_INDEX]
+
+        assertTrue(marcus.hasFinalPayment)
+        assertEquals("25 Dec 2026", marcus.finalDateLabel)
+    }
+
+    @Test
+    fun orderWithoutAFinalPaymentCarriesNoFlagAndABlankDate() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val first = contentRows(repository).first()
+
+        assertFalse(first.hasFinalPayment)
+        assertEquals("", first.finalDateLabel)
+    }
+
+    @Test
+    fun inactiveOrderKeepsItsStatusLabelAndIsMarkedInactive() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val inactive = contentRows(repository).last()
+
+        assertEquals("Inactive", inactive.statusLabel)
+        assertFalse(inactive.isActive)
+        assertEquals("£10.00", inactive.amountLabel)
+    }
+
+    @Test
+    fun cancelledOrderWithNoNextPaymentRendersABlankNextDateRatherThanAPlaceholder() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val inactive = contentRows(repository).last()
+
+        assertEquals("", inactive.nextDateLabel)
+        assertEquals("28 Dec 2025", inactive.finalDateLabel)
+    }
+
+    @Test
+    fun sortCodeAndReferenceReachTheRowVerbatim() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val first = contentRows(repository).first()
+
+        assertEquals("40-12-09 65872310", first.sortCodeLabel)
+        assertEquals("RENT-FLAT12", first.referenceLabel)
+        assertEquals("SO-001", first.standingOrderId)
+    }
+
+    @Test
+    fun orderWithNoAmountOrDatesRendersBlankLabelsRatherThanPlaceholders() {
+        val bare = StandingOrderItem(
+            standingOrderId = "",
+            payeeName = "Unknown Payee",
+            statusCode = "",
+            isActive = false,
+            nextPaymentAmount = "",
+            currency = "",
+            frequencyLabel = "",
+            nextPaymentDateTime = "",
+            finalPaymentDateTime = "",
+            hasFinalPayment = false,
+            creditorIdentification = "",
+            reference = "",
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        backgroundScope.launch { model.header.collect {} }
-        advanceUntilIdle()
-        assertEquals("ac.checking.001", repo.lastAccountId)
-
-        model.onAccountSelected("ac.savings.001")
-        advanceUntilIdle()
-
-        assertEquals("ac.savings.001", repo.lastAccountId)
-        val header = model.header.value
-        assertEquals("ac.savings.001", header.selectedAccountId)
-        assertEquals(2, header.accounts.size)
-    }
-
-    @Test
-    fun header_totalIsPlainSumOfActiveAmounts() = runTest(dispatcher) {
-        val model = vm(
-            repo = FakeStandingOrdersRepository(
-                orders = Result.success(
-                    listOf(
-                        order("Rent").copy(amountValue = "450.00"),
-                        order("Savings").copy(amountValue = "200.00"),
-                        order("Coffee club").copy(amountValue = "2.00", frequency = "WEEKLY"),
-                        order("Gym", status = StandingOrder.STATUS_PAUSED).copy(amountValue = "12.50"),
-                    ),
-                ),
-            ),
+        val repository = FakeStandingOrdersRepository(
+            content(StandingOrdersSummary(items = listOf(bare), activeCount = 0, inactiveCount = 1)),
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        backgroundScope.launch { model.header.collect {} }
-        advanceUntilIdle()
-        assertEquals("€652.00", model.header.value.monthlyTotal)
+        val row = contentRows(repository).single()
+
+        assertEquals("", row.amountLabel)
+        assertEquals("", row.nextDateLabel)
+        assertEquals("", row.sortCodeLabel)
+        assertEquals("Unknown Payee", row.payeeName)
     }
 
     @Test
-    fun header_zerosStatsWhenLoadFails() = runTest(dispatcher) {
-        val model = vm(
-            repo = FakeStandingOrdersRepository(orders = Result.failure(RuntimeException("boom"))),
+    fun contentCarryingNoOrdersRendersTheEmptyState() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.emptySummary()))
+        assertIs<StandingOrdersUiState.Empty>(viewModel(repository).stateFlow.value.uiState)
+    }
+
+    @Test
+    fun emptyStreamStateRendersTheEmptyState() {
+        val repository = FakeStandingOrdersRepository(ScreenState.Empty)
+        assertIs<StandingOrdersUiState.Empty>(viewModel(repository).stateFlow.value.uiState)
+    }
+
+    @Test
+    fun unauthorizedMapsToTokenExpired() {
+        val repository = FakeStandingOrdersRepository(remoteFailure(NetworkError.Client.Unauthorized()))
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.TokenExpired, error.kind)
+    }
+
+    @Test
+    fun forbiddenMapsToConsentRevoked() {
+        val repository = FakeStandingOrdersRepository(remoteFailure(NetworkError.Client.Forbidden()))
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.ConsentRevoked, error.kind)
+    }
+
+    /**
+     * A U000 refusal is not a failure — the product simply has no standing orders. Routing it to an
+     * error kind would offer a Retry that can never succeed.
+     */
+    @Test
+    fun aU000BadRequestRendersUnsupportedRatherThanAnError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = U000_BODY)),
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        backgroundScope.launch { model.header.collect {} }
-        advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Error)
-        val header = model.header.value
-        assertEquals(1, header.accounts.size)
-        assertEquals(0, header.activeCount)
-        assertEquals(0, header.pausedCount)
-        assertEquals("€0.00", header.monthlyTotal)
+
+        assertIs<StandingOrdersUiState.Unsupported>(viewModel(repository).stateFlow.value.uiState)
     }
 
+    /** The bank's own wording is shown, not copy authored here. */
     @Test
-    fun load_noOrders_emitsEmpty() = runTest(dispatcher) {
-        val model = vm()
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Empty)
-    }
-
-    @Test
-    fun onCreateClicked_noPayees_gatesWithDialog() = runTest(dispatcher) {
-        val model = vm(payments = FakePaymentsRepository(beneficiaries = Result.success(emptyList())))
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-        assertTrue(model.createGate.value is CreateGate.NoPayees)
-        model.onCreateGateConsumed()
-        assertTrue(model.createGate.value is CreateGate.Idle)
-    }
-
-    @Test
-    fun onCreateClicked_withPayees_signalsReadyWithAccount() = runTest(dispatcher) {
-        val model = vm(
-            payments = FakePaymentsRepository(
-                beneficiaries = Result.success(
-                    listOf(Counterparty(counterpartyId = "cp-1", name = "Payee", isBeneficiary = true)),
-                ),
-            ),
+    fun theUnsupportedStateCarriesTheBanksOwnMessage() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = U000_BODY)),
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        model.onCreateClicked()
-        advanceUntilIdle()
-        val gate = model.createGate.value
-        assertTrue(gate is CreateGate.Ready)
-        assertEquals("ac.checking.001", gate.accountId)
+        val state = assertIs<StandingOrdersUiState.Unsupported>(
+            viewModel(repository).stateFlow.value.uiState,
+        )
+
+        assertEquals("This action is not allowed on the account type in the request", state.message)
+    }
+
+    /** A 400 for any other reason stays an error, so its Retry survives. */
+    @Test
+    fun aBadRequestWithoutU000StaysAnError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Client.BadRequest(body = """{"Code":"400"}""")),
+        )
+
+        assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
     }
 
     @Test
-    fun load_failure_emitsError() = runTest(dispatcher) {
-        val model = vm(
-            repo = FakeStandingOrdersRepository(orders = Result.failure(RuntimeException("boom"))),
+    fun rateLimitedMapsToRateLimited() {
+        val repository = FakeStandingOrdersRepository(remoteFailure(NetworkError.Client.RateLimited()))
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.RateLimited, error.kind)
+    }
+
+    @Test
+    fun transportNetworkFailureMapsToNetworkError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Network(IllegalStateException("offline"))),
         )
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Error)
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.NetworkError, error.kind)
+    }
+
+    @Test
+    fun uncategorisedFailureFallsBackToServerError() {
+        val repository = FakeStandingOrdersRepository(ScreenState.Error(IllegalStateException("boom")))
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.ServerError, error.kind)
+    }
+
+    @Test
+    fun serverFailureMapsToServerError() {
+        val repository = FakeStandingOrdersRepository(
+            remoteFailure(NetworkError.Server(statusCode = SERVER_ERROR_STATUS)),
+        )
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.ServerError, error.kind)
+    }
+
+    @Test
+    fun noNetworkStreamStateMapsToNetworkError() {
+        val repository = FakeStandingOrdersRepository(ScreenState.NoNetwork())
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.NetworkError, error.kind)
+    }
+
+    @Test
+    fun unauthenticatedStreamStateMapsToTokenExpired() {
+        val repository = FakeStandingOrdersRepository(ScreenState.Unauthenticated)
+        val error = assertIs<StandingOrdersUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+
+        assertEquals(StandingOrdersErrorKind.TokenExpired, error.kind)
+    }
+
+    @Test
+    fun retryActionRefreshesTheRepository() {
+        val repository = FakeStandingOrdersRepository(remoteFailure(NetworkError.Client.Unauthorized()))
+        val vm = viewModel(repository)
+
+        vm.trySendAction(StandingOrdersAction.RetryLoad)
+
+        assertEquals(1, repository.refreshCount)
+    }
+
+    /**
+     * Pull-to-refresh dispatches the same action the Retry button does, so a second dispatch from
+     * content — where the gesture lives — must reach the repository just as the first did.
+     */
+    @Test
+    fun retryActionFromContentRefreshesAgainSoPullToRefreshRepeats() {
+        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
+        val vm = viewModel(repository)
+
+        vm.trySendAction(StandingOrdersAction.RetryLoad)
+        vm.trySendAction(StandingOrdersAction.RetryLoad)
+
+        assertEquals(2, repository.refreshCount)
+    }
+
+    @Test
+    fun streamTransitionsFromLoadingToContentAsTheFetchLands() {
+        val repository = FakeStandingOrdersRepository()
+        val vm = viewModel(repository)
+        assertIs<StandingOrdersUiState.Loading>(vm.stateFlow.value.uiState)
+
+        repository.emit(content(StandingOrdersFixtures.summary()))
+
+        assertIs<StandingOrdersUiState.Content>(vm.stateFlow.value.uiState)
+    }
+
+    @Test
+    fun standingOrderDateFormatterTrimsLeadingZeroesFromTheDay() {
+        assertEquals("4 Jul 2026", formatStandingOrderDate("2026-07-04T00:00:00Z"))
+        assertEquals("1 Jan 2026", formatStandingOrderDate("2026-01-01T00:00:00Z"))
+    }
+
+    @Test
+    fun standingOrderDateFormatterHandlesDateOnlyInput() {
+        assertEquals("25 Dec 2026", formatStandingOrderDate("2026-12-25"))
+    }
+
+    @Test
+    fun standingOrderDateFormatterReturnsUnparseableInputUnchanged() {
+        assertEquals("not-a-date", formatStandingOrderDate("not-a-date"))
+        assertEquals("2026-13-01", formatStandingOrderDate("2026-13-01"))
+        assertEquals("", formatStandingOrderDate(""))
+    }
+
+    private companion object {
+        const val SERVER_ERROR_STATUS = 500
+        const val PUREGYM_INDEX = 2
+        const val MARCUS_INDEX = 3
+
+        /** Captured from the HSBC sandbox verbatim. */
+        const val U000_BODY = """
+            {"Code":"400","Id":"842f0682-ba4a-4f17-9107-a5ce8b98fdbd","Message":"Bad Request",
+             "Errors":[{"ErrorCode":"U000",
+                        "Message":"This action is not allowed on the account type in the request"}]}
+        """
     }
 }

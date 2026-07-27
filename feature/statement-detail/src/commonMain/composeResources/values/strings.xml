@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_statement_detail_screen_title">Statement</string>
+    <string name="feature_statement_detail_navigate_back">Navigate back to statements list</string>
+    <string name="feature_statement_detail_loading">Loading statement</string>
+
+    <string name="feature_statement_detail_header_card_a11y">Statement details</string>
+    <string name="feature_statement_detail_created">Created %1$s</string>
+
+    <string name="feature_statement_detail_section_balances">Balances</string>
+    <string name="feature_statement_detail_balances_list_a11y">Statement balances</string>
+    <string name="feature_statement_detail_section_fees">Fees</string>
+    <string name="feature_statement_detail_fees_list_a11y">Statement fees</string>
+    <string name="feature_statement_detail_section_interest">Interest</string>
+    <string name="feature_statement_detail_interest_list_a11y">Statement interest</string>
+    <string name="feature_statement_detail_section_transactions">Transactions</string>
+    <string name="feature_statement_detail_transactions_list_a11y">Transactions in this statement period</string>
+    <string name="feature_statement_detail_line_a11y">%1$s: %2$s</string>
+    <string name="feature_statement_detail_transaction_row_a11y">%1$s, %2$s, on %3$s</string>
+
+    <string name="feature_statement_detail_empty_txns_title">No transactions</string>
+    <string name="feature_statement_detail_empty_txns_body">There were no transactions in this statement period. The balances above still apply.</string>
+    <string name="feature_statement_detail_empty_txns_a11y">No transactions in this statement period</string>
+
+    <string name="feature_statement_detail_action_download_pdf">Download PDF</string>
+    <string name="feature_statement_detail_download_pdf_a11y">Download statement as PDF</string>
+    <string name="feature_statement_detail_downloading">Downloading statement PDF</string>
+    <string name="feature_statement_detail_download_success">Statement PDF saved</string>
+    <string name="feature_statement_detail_download_error">Couldn\'t download the statement. Try again.</string>
+
+    <string name="feature_statement_detail_error_title">Could not load statement</string>
+    <string name="feature_statement_detail_error_a11y">Could not load statement</string>
+    <string name="feature_statement_detail_error_statement_not_found">This statement could not be found.</string>
+    <string name="feature_statement_detail_error_consent_missing">Account access consent does not cover statements. Re-authorise in Consents.</string>
+    <string name="feature_statement_detail_error_session_expired">Session expired. Please re-authenticate.</string>
+    <string name="feature_statement_detail_error_file_not_found">The statement file is not available yet.</string>
+    <string name="feature_statement_detail_error_network">No network connection. Check your connection and retry.</string>
+
+    <string name="feature_statement_detail_action_retry">Retry</string>
+    <string name="feature_statement_detail_retry_a11y">Retry loading statement</string>
+</resources>

@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
@@ -37,6 +37,8 @@ kotlin {
             implementation(compose.components.resources)
             implementation(projects.coreBase.platform)
             implementation(projects.coreBase.ui)
+            // Needed by IosMtlsBridge (nativeMain) to set core/network's iOS mTLS credential provider.
+            implementation(projects.core.network)
 
             implementation(libs.coil.kt.compose)
         }
@@ -54,10 +56,6 @@ kotlin {
         version = project.version.toString().substringBefore("-").substringBefore("+")
         ios.deploymentTarget = "16.0"
         podfile = project.file("../cmp-ios/Podfile")
-
-        pod("MapLibre") {
-            version = "6.25.1"
-        }
 
         framework {
             baseName = "ComposeApp"

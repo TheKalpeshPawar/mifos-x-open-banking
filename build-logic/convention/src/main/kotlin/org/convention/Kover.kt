@@ -17,15 +17,15 @@ internal inline fun Project.koverGradle(crossinline configure: KoverProjectExten
     }
 
 /**
- * Root-level kover report configuration — single source of truth for the
- * filter / verify rules that gate the aggregated coverage report.
+ * Report filters — single source of truth for what coverage ignores.
  *
- * Applied by KoverConventionPlugin when it runs on the root project. Lives
- * here (not inline in the plugin class) for parity with the detekt / spotless
- * convention plugins, which delegate their configuration to helpers in this
- * package.
+ * Applied by KoverConventionPlugin to **every** project, root and leaf. This matters
+ * because CI's per-module coverage floor reads each module's own `koverXmlReport`, not
+ * the root aggregate: configuring the filters only on root left every leaf module's
+ * extension unconfigured, so DI classes, generated code and @Composable functions were
+ * counted against the gating numbers and every module's coverage read low.
  */
-internal fun Project.configureKoverRootReports() = koverGradle {
+internal fun Project.configureKoverFilters() = koverGradle {
     reports {
         filters {
             excludes {
@@ -49,6 +49,18 @@ internal fun Project.configureKoverRootReports() = koverGradle {
                 )
             }
         }
+    }
+}
+
+/**
+ * Root-level verify rule for the aggregated coverage report.
+ *
+ * Root-only by design: applying this per module would fail every module that currently
+ * sits below the threshold. Per-module floors are enforced separately in CI from
+ * `.kover-floor.yml`.
+ */
+internal fun Project.configureKoverVerify() = koverGradle {
+    reports {
         verify {
             // Phase 1 floor — single global threshold while coverage grows.
             // Per-module thresholds added as test-coverage PRs raise individual modules.

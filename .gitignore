@@ -22,6 +22,7 @@ gen/
 out/
 build/
 build-cache/
+
 .externalNativeBuild
 .cxx
 iosApp/Podfile.lock
@@ -110,4 +111,37 @@ vendor/
 # Security — NEVER commit encryption keys or secure storage
 *.key
 *.pem
+*.p12
+
+# HSBC sandbox certificate material — supplied locally per developer, never committed.
+#
+# The iOS directory itself has to exist in a fresh clone: iosApp's Copy Bundle Resources holds a
+# folder reference to certs/, and Xcode fails the build outright when that path is missing — unlike
+# the Gradle resource directories below, which are simply absent and ignored. So the directory is
+# tracked through its README and everything else inside it stays ignored.
+core/network/src/androidMain/assets/certs/
+core/network/src/desktopMain/resources/certs/
+cmp-ios/iosApp/certs/*
+!cmp-ios/iosApp/certs/README.md
+
+# No exceptions to the rules above. Tests generate their own key material at runtime
+# (TestSigningKey, generateTestPkcs12), so nothing needs to be committed to make CI pass.
+
 .mifos-secure/
+
+# Generated knowledge-graph output
+graphify-out/
+
+# JVM heap dumps. -XX:+HeapDumpOnOutOfMemoryError writes these next to the build on
+# any OOM, and they are multi-GB snapshots of process memory -- so they are both repo
+# bloat and a credential leak, since the dumped heap can contain live access tokens.
+*.hprof
+
+# Local SQLDelight/SQLite databases, written beside the desktop app at runtime (plus
+# SQLite's WAL sidecars). They hold the signed-in PSU's cached accounts, balances and
+# transactions, so committing one publishes real customer data and makes every
+# developer's working tree dirty on first launch. The schema is generated from the
+# .sq sources; the database file itself is disposable.
+*.db
+*.db-shm
+*.db-wal

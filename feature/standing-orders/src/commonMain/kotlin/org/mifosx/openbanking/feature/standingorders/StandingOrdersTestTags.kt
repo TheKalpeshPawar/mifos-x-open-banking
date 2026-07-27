@@ -5,24 +5,60 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.standingorders
 
-/** Test tags for the Standing Orders screen. */
-object StandingOrdersTestTags {
-    const val TITLE_COUNT_ROW = "title_count_row"
-    const val ACCOUNT_SELECTOR = "standing_orders_account_selector"
-    const val ACTIVE_COUNT_CHIP = "active_count_chip"
-    const val ORDER_CARD = "standing_order_card"
-    const val CREATE_FAB = "create_standing_order_fab"
-    const val CREATE_SOURCE_ACCOUNT = "create_standing_order_source_account"
-    const val CREATE_PAYEE = "create_standing_order_payee"
-    const val CREATE_AMOUNT = "create_standing_order_amount"
-    const val CREATE_START_DATE = "create_standing_order_start_date"
-    const val CREATE_END_DATE = "create_standing_order_end_date"
-    const val CREATE_SUBMIT = "create_standing_order_submit"
-    const val NO_PAYEES_DIALOG = "standing_orders_no_payees_dialog"
-    const val EMPTY_STATE = "standing_orders_empty"
-    const val ERROR_STATE = "standing_orders_error"
+/**
+ * Stable `testTag` values for the standing-orders screen, shared by the Robolectric and instrumented
+ * suites so both drive the same nodes.
+ *
+ * Append-only: a tag that an existing test references must not be renamed or removed without a
+ * matching `uitest-tag-retire` note, or the suites silently stop asserting what they claim to.
+ */
+internal object StandingOrdersTestTags {
+
+    const val LOADING_SKELETON = "standingOrders:loadingSkeleton"
+    const val SKELETON_SUMMARY = "standingOrders:skeletonSummary"
+
+    /** The scrolling order list itself — the node the suites scroll to reach later cards. */
+    const val CONTENT = "standingOrders:content"
+    const val SUMMARY_ROW = "standingOrders:summaryRow"
+
+    const val EMPTY_STATE = "standingOrders:emptyState"
+    const val EMPTY_TITLE = "standingOrders:emptyTitle"
+    const val EMPTY_BODY = "standingOrders:emptyBody"
+
+    const val UNSUPPORTED_STATE = "standingOrders:unsupportedState"
+    const val UNSUPPORTED_TITLE = "standingOrders:unsupportedTitle"
+    const val UNSUPPORTED_BODY = "standingOrders:unsupportedBody"
+
+    const val ERROR_STATE = "standingOrders:errorState"
+    const val ERROR_TITLE = "standingOrders:errorTitle"
+    const val ERROR_BODY = "standingOrders:errorBody"
+    const val RETRY_BUTTON = "standingOrders:retryButton"
+
+    /** Tag for one order card, keyed by its OBIE `StandingOrderId`. */
+    fun card(orderId: String): String = "standingOrders:card:$orderId"
+
+    /** Tag for one order's status badge, keyed by its `StandingOrderId`. */
+    fun statusBadge(orderId: String): String = "standingOrders:statusBadge:$orderId"
+
+    /** Tag for one order's next-payment amount, keyed by its `StandingOrderId`. */
+    fun amount(orderId: String): String = "standingOrders:amount:$orderId"
+
+    /** Tag for one order's decoded frequency line, keyed by its `StandingOrderId`. */
+    fun frequency(orderId: String): String = "standingOrders:frequency:$orderId"
+
+    /** Tag for one order's next-payment-date line, keyed by its `StandingOrderId`. */
+    fun nextDate(orderId: String): String = "standingOrders:nextDate:$orderId"
+
+    /** Tag for one order's final-payment-date line, present only when the order ends. */
+    fun finalDate(orderId: String): String = "standingOrders:finalDate:$orderId"
+
+    /** Tag for one order's sort-code / account-number line, keyed by its `StandingOrderId`. */
+    fun sortCode(orderId: String): String = "standingOrders:sortCode:$orderId"
+
+    /** Tag for one order's payment-reference line, keyed by its `StandingOrderId`. */
+    fun reference(orderId: String): String = "standingOrders:reference:$orderId"
 }

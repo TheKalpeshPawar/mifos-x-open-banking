@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.database
 
@@ -48,9 +48,9 @@ class AppDatabaseTest {
 
     @Test
     fun databaseVersionIsCurrent() {
-        // Bumped to 5 in the v4→v5 schema migration. Update this constant when
+        // Bumped to 3 when AccountEntity gained rawIdentification. Update this constant when
         // bumping AppDatabase.VERSION so this guardrail stays meaningful.
-        assertEquals(5, AppDatabase.VERSION)
+        assertEquals(3, AppDatabase.VERSION)
     }
 
     @Test

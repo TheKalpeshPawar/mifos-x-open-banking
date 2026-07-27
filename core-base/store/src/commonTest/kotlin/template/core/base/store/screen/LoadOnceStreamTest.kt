@@ -9,6 +9,8 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkChangeEvent
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkMonitor

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_consent_list_screen_title">Connected Banks</string>
+    <string name="feature_consent_list_back_a11y">Navigate back</string>
+    <string name="feature_consent_list_loading_a11y">Loading connected banks</string>
+
+    <string name="feature_consent_list_section_active">Active</string>
+    <string name="feature_consent_list_section_history">History</string>
+    <string name="feature_consent_list_list_a11y">Connected banks list</string>
+
+    <string name="feature_consent_list_reconfirm_banner_title">Reconfirmation required</string>
+    <string name="feature_consent_list_reconfirm_banner_body">Your consent expires soon. Reconfirm to keep access to your account data.</string>
+    <string name="feature_consent_list_reconfirm_chip">Reconfirm soon</string>
+
+    <string name="feature_consent_list_card_a11y">Tap to view consent details</string>
+    <string name="feature_consent_list_status_a11y">Consent status: %1$s</string>
+    <string name="feature_consent_list_permissions">%1$d data types shared</string>
+    <string name="feature_consent_list_expires_in">Expires in %1$d days</string>
+    <string name="feature_consent_list_expired_on">Expired on %1$s</string>
+    <string name="feature_consent_list_connected_on">Connected %1$s</string>
+
+    <string name="feature_consent_list_status_authorised">Authorised</string>
+    <string name="feature_consent_list_status_expired">Expired</string>
+    <string name="feature_consent_list_status_revoked">Revoked</string>
+    <string name="feature_consent_list_status_rejected">Rejected</string>
+    <string name="feature_consent_list_status_awaiting">Awaiting authorisation</string>
+    <string name="feature_consent_list_status_consumed">Consumed</string>
+
+    <string name="feature_consent_list_empty_title">No active connections</string>
+    <string name="feature_consent_list_empty_body">You have not connected any bank account yet. Tap below to connect HSBC.</string>
+    <string name="feature_consent_list_empty_a11y">No active bank connections</string>
+    <string name="feature_consent_list_connect">Connect HSBC</string>
+    <string name="feature_consent_list_connect_a11y">Connect your HSBC bank account</string>
+
+    <string name="feature_consent_list_error_title">Could not load connections</string>
+    <string name="feature_consent_list_error_a11y">Error loading connected banks</string>
+    <string name="feature_consent_list_error_network">Something went wrong while fetching your connected banks. Please check your connection and try again.</string>
+    <string name="feature_consent_list_error_server">Something went wrong on the HSBC side. Please try again.</string>
+    <string name="feature_consent_list_retry">Retry</string>
+    <string name="feature_consent_list_retry_a11y">Retry loading connections</string>
+
+    <string name="feature_consent_list_auth_error_title">Session expired</string>
+    <string name="feature_consent_list_auth_error_body">Your session has expired. Sign in again to reload your connected banks.</string>
+    <string name="feature_consent_list_auth_error_a11y">Session expired, sign in to reload</string>
+    <string name="feature_consent_list_reauth">Sign in again</string>
+    <string name="feature_consent_list_reauth_a11y">Sign in again to reload connected banks</string>
+</resources>

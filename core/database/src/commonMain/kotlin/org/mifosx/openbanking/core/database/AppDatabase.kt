@@ -5,17 +5,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.database
 
-import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
-import org.mifosx.openbanking.core.database.cache.ObpCacheDao
-import org.mifosx.openbanking.core.database.cache.ObpCacheEntity
+import org.mifosx.openbanking.core.database.banking.dao.AccountDao
+import org.mifosx.openbanking.core.database.banking.dao.TransactionDao
+import org.mifosx.openbanking.core.database.banking.entity.AccountEntity
+import org.mifosx.openbanking.core.database.banking.entity.TransactionEntity
 import org.mifosx.openbanking.core.database.infra.dao.BookkeeperDao
 import org.mifosx.openbanking.core.database.infra.dao.DraftDao
 import org.mifosx.openbanking.core.database.infra.dao.FetchedAtDao
@@ -31,7 +32,15 @@ import org.mifosx.openbanking.core.database.sample.entity.SampleEntity
  * Room 3 requires an `expect object` annotated via [@ConstructedBy][ConstructedBy] so that
  * the KSP compiler plugin can generate a platform-specific `actual object` containing the
  * `AppDatabase_Impl` instantiation logic.
+ *
+ * Room generates that `actual` during each platform's KSP task, which the metadata compilations
+ * (`commonMain`, and the intermediate `nativeMain`) never see — so they would report the expect as
+ * unimplemented. The suppression below is Room's documented answer to that, and it is the only
+ * correct one: hand-writing an `actual` instead makes Room's own processor resolve the
+ * `@ConstructedBy` target to a non-`expect` declaration and fail with "The @ConstructedBy definition
+ * must be an 'expect' declaration", which breaks every native KSP task.
  */
+@Suppress("NO_ACTUAL_FOR_EXPECT")
 expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
@@ -57,13 +66,11 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
         BookkeeperEntity::class,
         FetchedAtEntity::class,
         DraftEntity::class,
-        ObpCacheEntity::class,
+        AccountEntity::class,
+        TransactionEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
-    autoMigrations = [
-        AutoMigration(from = 1, to = 2),
-    ],
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -72,10 +79,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val bookkeeperDao: BookkeeperDao
     abstract val fetchedAtDao: FetchedAtDao
     abstract val draftDao: DraftDao
-    abstract val obpCacheDao: ObpCacheDao
+    abstract val accountDao: AccountDao
+    abstract val transactionDao: TransactionDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val DATABASE_NAME = "mifos_database.db"
     }
 }

@@ -10,8 +10,6 @@ target 'iosApp' do
   pod 'FirebaseCore'
   pod 'FirebaseAnalytics'
   pod 'FirebaseCrashlytics'
-
-  pod 'MapLibre', '6.25.1'
 end
 
 post_install do |installer|

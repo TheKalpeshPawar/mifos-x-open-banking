@@ -5,13 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package cmp.android.app
 
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import cmp.shared.utils.initKoin
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -25,7 +26,6 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mifosx.openbanking.core.data.user.UserDataRepository
-import org.mifosx.openbanking.utils.initKoin
 import template.core.base.ui.util.getDefaultImageLoader
 
 /**
@@ -42,7 +42,7 @@ class AndroidApp : Application(), SingletonImageLoader.Factory, KoinComponent {
 
     override fun onCreate() {
         super.onCreate()
-        initKoin(appVersion = versionData) {
+        initKoin {
             androidContext(this@AndroidApp)
             androidLogger()
         }

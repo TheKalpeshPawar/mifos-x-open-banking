@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.submit.DraftResumeState
 import template.core.base.store.submit.MutationUiState
 import template.core.base.store.submit.SubmitState

@@ -1,0 +1,53 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+package org.mifosx.openbanking.core.network.model.ais.statementTransactions
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class PostalAddress(
+    @SerialName("AddressType")
+    val addressType: String? = null,
+    @SerialName("Department")
+    val department: String? = null,
+    @SerialName("SubDepartment")
+    val subDepartment: String? = null,
+    @SerialName("StreetName")
+    val streetName: String? = null,
+    @SerialName("BuildingNumber")
+    val buildingNumber: String? = null,
+    @SerialName("PostCode")
+    val postCode: String? = null,
+    @SerialName("TownName")
+    val townName: String? = null,
+    @SerialName("CountrySubDivision")
+    val countrySubDivision: String? = null,
+    @SerialName("Country")
+    val country: String? = null,
+    @SerialName("AddressLine")
+    val addressLine: List<String>? = null,
+    @SerialName("BuildingName")
+    val buildingName: String? = null,
+    @SerialName("CareOf")
+    val careOf: String? = null,
+    @SerialName("DistrictName")
+    val districtName: String? = null,
+    @SerialName("Floor")
+    val floor: String? = null,
+    @SerialName("PostBox")
+    val postBox: String? = null,
+    @SerialName("Room")
+    val room: String? = null,
+    @SerialName("TownLocationName")
+    val townLocationName: String? = null,
+    @SerialName("UnitNumber")
+    val unitNumber: String? = null,
+)

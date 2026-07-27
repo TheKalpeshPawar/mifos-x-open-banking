@@ -12,10 +12,10 @@ package template.core.base.store.paging
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
 import template.core.base.store.infra.FakeFetchedAtRepository
 import template.core.base.store.infra.DecisionEngine
-import template.core.base.store.screen.DataFreshness
+import template.core.base.common.screen.DataFreshness
 import template.core.base.store.screen.DataOrigin
 import template.core.base.store.screen.StoreData
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkType
 import kotlin.test.Test

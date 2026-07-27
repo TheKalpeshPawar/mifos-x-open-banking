@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.data.user.impl
 
@@ -24,9 +24,6 @@ class UserDataRepositoryImpl(
     override val userData: StateFlow<UserData>
         get() = preferencesRepository.userData
 
-    override val authToken: String?
-        get() = preferencesRepository.authToken
-
     override val passcode: String
         get() = preferencesRepository.passcode
 
@@ -41,15 +38,6 @@ class UserDataRepositoryImpl(
 
     override val observeScreenCapturePreference: Flow<Boolean>
         get() = preferencesRepository.observeScreenCapturePreference
-
-    override val observePushNotificationsEnabled: Flow<Boolean>
-        get() = preferencesRepository.observePushNotificationsEnabled
-
-    override val observeTransactionAlertsEnabled: Flow<Boolean>
-        get() = preferencesRepository.observeTransactionAlertsEnabled
-
-    override val observeMarketingEnabled: Flow<Boolean>
-        get() = preferencesRepository.observeMarketingEnabled
 
     override suspend fun setLanguage(language: LanguageConfig) = preferencesRepository.setLanguage(language)
 
@@ -72,22 +60,8 @@ class UserDataRepositoryImpl(
     override suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean) =
         preferencesRepository.setIsBiometricsEnabled(isBiometricsEnabled)
 
-    override suspend fun setPushNotificationsEnabled(isEnabled: Boolean) =
-        preferencesRepository.setPushNotificationsEnabled(isEnabled)
-
-    override suspend fun setTransactionAlertsEnabled(isEnabled: Boolean) =
-        preferencesRepository.setTransactionAlertsEnabled(isEnabled)
-
-    override suspend fun setMarketingEnabled(isEnabled: Boolean) =
-        preferencesRepository.setMarketingEnabled(isEnabled)
-
-    override suspend fun setShowOnboarding(showOnboarding: Boolean) =
-        preferencesRepository.setShowOnboarding(showOnboarding)
-
-    override suspend fun setFirstTimeState(firstTimeState: Boolean) =
-        preferencesRepository.setFirstTimeState(firstTimeState)
-
-    override suspend fun setPasscode(passcode: String) = preferencesRepository.setPasscode(passcode)
+    override suspend fun setSelectedAccountId(accountId: String) =
+        preferencesRepository.setSelectedAccountId(accountId)
 
     override suspend fun clearUserData() = preferencesRepository.clearUserData()
 }

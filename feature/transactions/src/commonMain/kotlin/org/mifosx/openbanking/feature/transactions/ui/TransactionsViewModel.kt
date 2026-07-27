@@ -5,318 +5,270 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.transactions.ui
 
-import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
-import kotlinx.datetime.todayIn
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
-import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
-import org.mifosx.openbanking.core.data.transactions.counterpartyDisplayName
-import org.mifosx.openbanking.core.model.obp.Transaction
-import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
-import kotlin.time.Clock
+import org.mifosx.openbanking.core.common.formatMinorUnits
+import org.mifosx.openbanking.core.common.formatSignedMoney
+import org.mifosx.openbanking.core.common.sumMinorUnits
+import org.mifosx.openbanking.core.data.banking.TransactionsRepository
+import org.mifosx.openbanking.core.model.banking.TransactionCategory
+import org.mifosx.openbanking.core.model.banking.TransactionListItem
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
+import template.core.base.ui.viewmodel.BaseViewModel
 
-enum class TransactionTypeFilter { ALL, DEBIT, CREDIT, PENDING }
+private const val GBP = "GBP"
+private const val ISO_DATE_LENGTH = 10
 
-enum class DateRangePreset(val label: String, val days: Int?) {
-    LAST_7_DAYS("7 days", 7),
-    LAST_30_DAYS("30 days", 30),
-    LAST_60_DAYS("60 days", 60),
-    LAST_90_DAYS("90 days", 90),
-    CUSTOM("Custom", null),
+/** Client-side money-direction filter backing the chip row (no API round-trip). */
+enum class TransactionFilter { ALL, MONEY_IN, MONEY_OUT }
+
+/** The recoverable error classes surfaced by the transactions endpoint, resolved from the HTTP status. */
+enum class TransactionsErrorKind(val recoverable: Boolean) {
+    SESSION_EXPIRED(recoverable = true),
+    CONSENT_WITHDRAWN(recoverable = false),
+    RATE_LIMITED(recoverable = true),
+    NETWORK(recoverable = true),
 }
 
-/** Active date window. [start]/[end] are resolved bounds (null = unbounded). */
-@Immutable
-data class DateRangeFilter(
-    val preset: DateRangePreset = DateRangePreset.LAST_30_DAYS,
-    val start: LocalDate? = null,
-    val end: LocalDate? = null,
-) {
-    val label: String
-        get() = if (preset == DateRangePreset.CUSTOM && start != null && end != null) {
-            "$start – $end"
-        } else {
-            preset.label
-        }
-}
-
-/** An initiated-but-unbooked payment (above the SCA threshold, awaiting confirmation). */
-@Immutable
-data class PendingPayment(
-    val id: String,
+/** A display-ready transaction row. Amount is pre-formatted with its sign. */
+data class TransactionRowUi(
+    val key: String,
+    val transactionId: String,
     val description: String,
-    val amount: String,
-    val currency: String,
-    val date: LocalDate?,
+    val amountLabel: String,
+    val isCredit: Boolean,
+    val category: TransactionCategory,
+    val isPending: Boolean,
 )
 
-/** Booked transactions for one calendar day (groups render newest-day first). */
-@Immutable
-data class TransactionDayGroup(
-    val date: LocalDate,
-    val transactions: List<Transaction>,
+/** A date-grouped run of rows, e.g. header `SUN 28 JUN 2026`. */
+data class TransactionGroup(
+    val dateLabel: String,
+    val rows: List<TransactionRowUi>,
 )
 
-/** Month-to-date totals over booked transactions only (pending payments excluded). */
-@Immutable
-data class MonthlySummary(
-    val spent: String,
-    val received: String,
-    val currency: String,
+/** Content payload: the date-grouped rows plus the period money-in / money-out totals. */
+data class TransactionsData(
+    val groups: List<TransactionGroup>,
+    val moneyInLabel: String,
+    val moneyOutLabel: String,
 )
+
+/** The rendered data region — the surrounding filter chips + search live on [TransactionsState]. */
+sealed interface TransactionsUiState {
+    data object Loading : TransactionsUiState
+    data class Content(val data: TransactionsData) : TransactionsUiState
+    data object Empty : TransactionsUiState
+    data class Error(val kind: TransactionsErrorKind) : TransactionsUiState
+}
+
+data class TransactionsState(
+    val accountId: String = "",
+    val uiState: TransactionsUiState = TransactionsUiState.Loading,
+    val activeFilter: TransactionFilter = TransactionFilter.ALL,
+    val query: String = "",
+    val dateFrom: LocalDate? = null,
+    val dateTo: LocalDate? = null,
+    val showDateRangePicker: Boolean = false,
+    val hasNextPage: Boolean = false,
+    val isPaginating: Boolean = false,
+)
+
+sealed interface TransactionsAction {
+    data object LoadTransactions : TransactionsAction
+    data object RetryLoad : TransactionsAction
+    data object LoadMore : TransactionsAction
+    data class FilterTransactions(val filter: TransactionFilter) : TransactionsAction
+    data class SearchTransactions(val query: String) : TransactionsAction
+    data object OpenDateRangePicker : TransactionsAction
+    data class SetDateRange(val from: LocalDate, val to: LocalDate) : TransactionsAction
+    data object DismissDateRangePicker : TransactionsAction
+    data object ClearFilters : TransactionsAction
+}
 
 /**
- * Transaction History ViewModel for one account. Booked rows come from the v6 transactions
- * endpoint (attributes inline for TXN_TYPE badges); pending rows are transaction-requests that
- * are INITIATED with no booked transaction (SCA challenge not yet answered). The sandbox caps
- * the window at the 50 newest transactions and ignores paging/date params, so filtering,
- * search, the date range, and pagination ([PAGE_SIZE] rows per page) all run client-side.
+ * Drives the account-scoped transactions screen. Pages the OBIE transaction history transparently by
+ * following the `Links.Next` cursor (accumulating rows in memory), then derives the rendered state
+ * from that accumulated list: client-side money-direction filter, case-insensitive search, date-range
+ * filter, `BookingDateTime` grouping, and the period money-in / money-out totals. Navigation is handled
+ * by the screen, so no events are emitted.
  */
 class TransactionsViewModel(
-    private val transactionsRepository: TransactionsRepository,
-    private val paymentsRepository: PaymentsRepository,
-    private val accountsRepository: AccountsRepository,
-    private val counterpartyNameResolver: CounterpartyNameResolver,
-    private val bankId: String,
-    private val accountId: String,
-    private val todayProvider: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
-) : ViewModel() {
+    savedStateHandle: SavedStateHandle,
+    private val repository: TransactionsRepository,
+) : BaseViewModel<TransactionsState, Nothing, TransactionsAction>(
+    initialState = TransactionsState(
+        accountId = savedStateHandle.get<String>(ACCOUNT_ID_ARG).orEmpty(),
+    ),
+) {
 
-    private val rawState = MutableStateFlow<RawState>(RawState.Loading)
-    private val filters = MutableStateFlow(FilterState())
+    private val accountId: String = state.accountId
 
-    val uiState: StateFlow<ScreenState<TransactionsContent>> =
-        combine(rawState, filters) { raw, f -> project(raw, f) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = ScreenState.Loading,
-            )
+    /** All rows fetched so far across pages, in server order (newest first). */
+    private var accumulated: List<TransactionListItem> = emptyList()
+    private var nextLink: String? = null
 
     init {
         load()
     }
 
-    fun onRetry() = load()
-
-    fun onQueryChanged(query: String) = filters.update { it.copy(query = query, page = 1) }
-
-    fun onFilterChanged(filter: TransactionTypeFilter) = filters.update { it.copy(filter = filter, page = 1) }
-
-    fun onRangePresetSelected(preset: DateRangePreset) {
-        if (preset == DateRangePreset.CUSTOM) return
-        val today = todayProvider()
-        val start = preset.days?.let { today.minus(DatePeriod(days = it)) }
-        filters.update { it.copy(range = DateRangeFilter(preset, start, null), page = 1) }
+    override fun handleAction(action: TransactionsAction) {
+        when (action) {
+            TransactionsAction.LoadTransactions, TransactionsAction.RetryLoad -> load()
+            TransactionsAction.LoadMore -> loadMore()
+            is TransactionsAction.FilterTransactions -> {
+                updateState { copy(activeFilter = action.filter) }
+                recompute()
+            }
+            is TransactionsAction.SearchTransactions -> {
+                updateState { copy(query = action.query) }
+                recompute()
+            }
+            TransactionsAction.OpenDateRangePicker -> updateState { copy(showDateRangePicker = true) }
+            TransactionsAction.DismissDateRangePicker -> updateState { copy(showDateRangePicker = false) }
+            is TransactionsAction.SetDateRange -> {
+                updateState { copy(dateFrom = action.from, dateTo = action.to, showDateRangePicker = false) }
+                recompute()
+            }
+            TransactionsAction.ClearFilters -> {
+                updateState {
+                    copy(activeFilter = TransactionFilter.ALL, query = "", dateFrom = null, dateTo = null)
+                }
+                recompute()
+            }
+        }
     }
-
-    fun onCustomRangeSelected(start: LocalDate, end: LocalDate) = filters.update {
-        it.copy(range = DateRangeFilter(DateRangePreset.CUSTOM, start, end), page = 1)
-    }
-
-    fun onLoadMore() = filters.update { it.copy(page = it.page + 1) }
 
     private fun load() {
-        rawState.value = RawState.Loading
+        updateState { copy(uiState = TransactionsUiState.Loading, isPaginating = false) }
         viewModelScope.launch {
-            val transactions = transactionsRepository
-                .listTransactionsWithAttributes(bankId, accountId)
-                .getOrElse {
-                    rawState.value = RawState.Failed(it)
-                    return@launch
+            when (val result = repository.firstPage(accountId)) {
+                is NetworkResult.Success -> {
+                    accumulated = result.data.items
+                    nextLink = result.data.nextLink
+                    updateState { copy(hasNextPage = result.data.hasNextPage) }
+                    recompute()
                 }
-            val requests = paymentsRepository.listTransactionRequests(bankId, accountId)
-                .getOrElse { emptyList() }
-            val currency = accountsRepository.accountDetail(bankId, accountId)
-                .getOrNull()?.balance?.currency?.takeIf { it.isNotBlank() }
-                ?: transactions.firstOrNull()?.details?.value?.currency.orEmpty().ifBlank { "EUR" }
-            val counterpartyNames = runCatching {
-                counterpartyNameResolver.resolve(bankId, accountId, transactions)
-            }.getOrDefault(emptyMap())
-            val placeholder = runCatching { counterpartyNameResolver.placeholderHolder() }.getOrDefault("")
-            rawState.value = RawState.Loaded(
-                transactions = transactions,
-                pendingRequests = requests.filter { it.isPending },
-                currency = currency,
-                counterpartyNames = counterpartyNames,
-                counterpartyPlaceholder = placeholder,
-            )
+
+                is NetworkResult.Error ->
+                    updateState { copy(uiState = TransactionsUiState.Error(result.error.toErrorKind())) }
+            }
         }
     }
 
-    private fun project(raw: RawState, f: FilterState): ScreenState<TransactionsContent> = when (raw) {
-        is RawState.Loading -> ScreenState.Loading
-        is RawState.Failed -> ScreenState.Error(raw.error)
-        is RawState.Loaded -> projectLoaded(raw, f)
+    private fun loadMore() {
+        val cursor = nextLink
+        if (cursor == null || state.isPaginating) return
+        updateState { copy(isPaginating = true) }
+        viewModelScope.launch {
+            when (val result = repository.nextPage(cursor)) {
+                is NetworkResult.Success -> {
+                    accumulated = accumulated + result.data.items
+                    nextLink = result.data.nextLink
+                    updateState { copy(isPaginating = false, hasNextPage = result.data.hasNextPage) }
+                    recompute()
+                }
+
+                // A failed load-more keeps the already-shown rows; the button re-appears for another try.
+                is NetworkResult.Error -> updateState { copy(isPaginating = false) }
+            }
+        }
     }
 
-    private fun projectLoaded(raw: RawState.Loaded, f: FilterState): ScreenState<TransactionsContent> {
-        val pending = visiblePending(raw, f)
-        val booked = visibleBooked(raw, f)
-        if (pending.isEmpty() && booked.isEmpty()) return ScreenState.Empty
-
-        val visible = booked.take(f.page * PAGE_SIZE)
-        val groups = visible
-            .groupBy { it.completedDate ?: todayProvider() }
+    /** Rebuilds the visible state from [accumulated] and the current filters — synchronous, no fetch. */
+    private fun recompute() {
+        val current = state
+        val filtered = accumulated
+            .asSequence()
+            .filter { current.activeFilter.matches(it.isCredit) }
+            .filter { it.matchesQuery(current.query) }
+            .filter { it.matchesDateRange(current.dateFrom, current.dateTo) }
             .toList()
-            .sortedByDescending { it.first }
-            .map { (date, txns) -> TransactionDayGroup(date, txns) }
-        return ScreenState.Content(
-            data = TransactionsContent(
-                pending = pending,
-                groups = groups,
-                summary = summarize(raw),
-                filter = f.filter,
-                range = f.range,
-                query = f.query,
-                hasMore = booked.size > visible.size,
-                counterpartyNames = raw.counterpartyNames,
-                counterpartyPlaceholder = raw.counterpartyPlaceholder,
-            ),
-            freshness = DataFreshness.FRESH,
+
+        val uiState = if (filtered.isEmpty()) {
+            TransactionsUiState.Empty
+        } else {
+            TransactionsUiState.Content(buildData(filtered))
+        }
+        updateState { copy(uiState = uiState) }
+    }
+
+    private fun buildData(rows: List<TransactionListItem>): TransactionsData {
+        val currency = rows.firstOrNull { it.currency.isNotBlank() }?.currency ?: GBP
+        val moneyIn = sumMinorUnits(rows.filter { it.isCredit }.map { it.amount })
+        val moneyOut = sumMinorUnits(rows.filterNot { it.isCredit }.map { it.amount })
+
+        var index = 0
+        val groups = rows
+            .groupBy { it.datePrefix() }
+            .entries
+            .sortedByDescending { it.key }
+            .map { (prefix, groupRows) ->
+                TransactionGroup(
+                    dateLabel = dateLabel(prefix),
+                    rows = groupRows.map { it.toRowUi(index++) },
+                )
+            }
+
+        return TransactionsData(
+            groups = groups,
+            moneyInLabel = "+" + formatMinorUnits(moneyIn, currency),
+            moneyOutLabel = "-" + formatMinorUnits(moneyOut, currency),
         )
     }
 
-    private fun visiblePending(raw: RawState.Loaded, f: FilterState): List<PendingPayment> {
-        if (f.filter == TransactionTypeFilter.DEBIT || f.filter == TransactionTypeFilter.CREDIT) {
-            return emptyList()
-        }
-        return raw.pendingRequests
-            .map { it.toPendingPayment() }
-            .filter { p -> inRange(p.date, f.range) && matches(p.description, p.amount, f.query) }
-            .sortedByDescending { it.date }
-    }
-
-    private fun visibleBooked(raw: RawState.Loaded, f: FilterState): List<Transaction> {
-        if (f.filter == TransactionTypeFilter.PENDING) return emptyList()
-        return raw.transactions
-            .filter { t ->
-                val amount = t.details.value.amount.toDoubleOrNull() ?: 0.0
-                when (f.filter) {
-                    TransactionTypeFilter.DEBIT -> amount < 0
-                    TransactionTypeFilter.CREDIT -> amount > 0
-                    else -> true
-                }
-            }
-            .filter { t -> inRange(t.completedDate, f.range) }
-            .filter { t ->
-                val counterparty = counterpartyDisplayName(t, raw.counterpartyNames, raw.counterpartyPlaceholder)
-                matches("${t.details.description} $counterparty", t.details.value.amount, f.query)
-            }
-            .sortedByDescending { it.details.completed }
-    }
-
-    /** Month-to-date totals over ALL booked transactions (unaffected by filters/search). */
-    private fun summarize(raw: RawState.Loaded): MonthlySummary {
-        val today = todayProvider()
-        var spent = 0.0
-        var received = 0.0
-        raw.transactions.forEach { t ->
-            val date = t.completedDate ?: return@forEach
-            if (date.year != today.year || date.month != today.month) return@forEach
-            val amount = t.details.value.amount.toDoubleOrNull() ?: return@forEach
-            if (amount < 0) spent += -amount else received += amount
-        }
-        return MonthlySummary(
-            spent = formatAmount(spent),
-            received = formatAmount(received),
-            currency = raw.currency,
-        )
-    }
-
-    private fun inRange(date: LocalDate?, range: DateRangeFilter): Boolean = when {
-        date == null -> true
-        range.start != null && date < range.start -> false
-        range.end != null && date > range.end -> false
-        else -> true
-    }
-
-    private fun matches(text: String, amount: String, query: String): Boolean {
-        val q = query.trim()
-        if (q.isEmpty()) return true
-        return text.contains(q, ignoreCase = true) || amount.trimStart('-', '+').contains(q)
-    }
-
-    private fun TransactionRequestSummary.toPendingPayment() = PendingPayment(
-        id = id,
-        description = details.description.ifBlank { "Payment" },
-        amount = details.value.amount,
-        currency = details.value.currency,
-        date = parseIsoDate(startDate),
+    private fun TransactionListItem.toRowUi(index: Int): TransactionRowUi = TransactionRowUi(
+        key = transactionId.ifBlank { "txn-$index" },
+        transactionId = transactionId,
+        description = description,
+        amountLabel = formatSignedMoney(amount, currency, isCredit),
+        isCredit = isCredit,
+        category = category,
+        isPending = isPending,
     )
-
-    private data class FilterState(
-        val filter: TransactionTypeFilter = TransactionTypeFilter.ALL,
-        val range: DateRangeFilter = DateRangeFilter(),
-        val query: String = "",
-        val page: Int = 1,
-    )
-
-    private sealed interface RawState {
-        data object Loading : RawState
-        data class Failed(val error: Throwable) : RawState
-        data class Loaded(
-            val transactions: List<Transaction>,
-            val pendingRequests: List<TransactionRequestSummary>,
-            val currency: String,
-            val counterpartyNames: Map<String, String> = emptyMap(),
-            val counterpartyPlaceholder: String = "",
-        ) : RawState
-    }
-
-    init {
-        onRangePresetSelected(DateRangePreset.LAST_30_DAYS)
-    }
 
     companion object {
-        const val PAGE_SIZE = 10
+        const val ACCOUNT_ID_ARG = "accountId"
     }
 }
 
-/** Loaded content for the Transaction History screen. */
-@Immutable
-data class TransactionsContent(
-    val pending: List<PendingPayment>,
-    val groups: List<TransactionDayGroup>,
-    val summary: MonthlySummary,
-    val filter: TransactionTypeFilter,
-    val range: DateRangeFilter,
-    val query: String,
-    val hasMore: Boolean,
-    val counterpartyNames: Map<String, String> = emptyMap(),
-    val counterpartyPlaceholder: String = "",
-)
+private fun TransactionFilter.matches(isCredit: Boolean): Boolean = when (this) {
+    TransactionFilter.ALL -> true
+    TransactionFilter.MONEY_IN -> isCredit
+    TransactionFilter.MONEY_OUT -> !isCredit
+}
 
-/** The transaction's booked date (completed timestamp), or null when unparseable. */
-internal val Transaction.completedDate: LocalDate?
-    get() = parseIsoDate(details.completed)
+private fun TransactionListItem.matchesQuery(query: String): Boolean =
+    query.isBlank() || description.contains(query.trim(), ignoreCase = true)
 
-internal fun parseIsoDate(iso: String): LocalDate? =
-    runCatching { LocalDate.parse(iso.take(10)) }.getOrNull()
+private fun TransactionListItem.matchesDateRange(from: LocalDate?, to: LocalDate?): Boolean {
+    if (from == null || to == null) return true
+    val day = datePrefix()
+    // ISO `yyyy-MM-dd` prefixes compare chronologically as plain strings.
+    return day.isNotEmpty() && day >= from.toString() && day <= to.toString()
+}
 
-private fun formatAmount(value: Double): String {
-    val cents = kotlin.math.round(value * 100).toLong()
-    val whole = cents / 100
-    val frac = (cents % 100).toString().padStart(2, '0')
-    return "$whole.$frac"
+/** The `yyyy-MM-dd` prefix of the OBIE `BookingDateTime`, or empty when absent. */
+private fun TransactionListItem.datePrefix(): String = bookingDateTime.take(ISO_DATE_LENGTH)
+
+/** Formats an ISO date prefix as `SUN 28 JUN 2026`, falling back to the raw prefix when unparseable. */
+private fun dateLabel(isoDatePrefix: String): String {
+    val date = runCatching { LocalDate.parse(isoDatePrefix) }.getOrNull() ?: return isoDatePrefix
+    val dow = date.dayOfWeek.name.take(3).uppercase()
+    val month = date.month.name.take(3).uppercase()
+    return "$dow ${date.day} $month ${date.year}"
+}
+
+private fun NetworkError.toErrorKind(): TransactionsErrorKind = when (this) {
+    is NetworkError.Client.Unauthorized -> TransactionsErrorKind.SESSION_EXPIRED
+    is NetworkError.Client.Forbidden -> TransactionsErrorKind.CONSENT_WITHDRAWN
+    is NetworkError.Client.RateLimited -> TransactionsErrorKind.RATE_LIMITED
+    else -> TransactionsErrorKind.NETWORK
 }

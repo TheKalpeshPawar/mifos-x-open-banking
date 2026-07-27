@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 plugins {
     alias(libs.plugins.kmp.library.convention)
@@ -38,17 +38,29 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             api(libs.cmp.network.monitor)
+
+            // `api`, not `implementation`: SettingsPendingAuthStore takes a Settings in its
+            // constructor, so the type is part of this module's public surface.
+            api(libs.multiplatform.settings)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.ktor.client.mock)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.multiplatform.settings.test)
+
+            // TestSigningKey generates a throwaway PS256 key per run. Both are needed here: this
+            // module reaches :core:network via `implementation`, so neither the crypto API nor a
+            // provider is on its compile classpath.
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider.optimal)
         }
 
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.tracing.ktx)
             implementation(libs.koin.android)
-        }
-
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

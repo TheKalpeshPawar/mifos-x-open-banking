@@ -45,4 +45,6 @@ class IntentManagerImpl : IntentManager {
     override fun startApplicationDetailsSettingsActivity() {
         // TODO("Not yet implemented")
     }
+
+    override fun exitApplication() = Unit
 }

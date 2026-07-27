@@ -5,207 +5,165 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.login.ui
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
-import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
-import org.mifosx.openbanking.core.data.user.UserDataRepository
-import org.mifosx.openbanking.core.model.obp.ObpException
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import org.mifosx.openbanking.core.data.callback.PendingAuthStore
+import org.mifosx.openbanking.core.data.login.LoginRepository
+import org.mifosx.openbanking.core.model.hsbcPermission.OBPermission
+import org.mifosx.openbanking.feature.login.browser.BrowserLaunchException
+import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
+import template.core.base.ui.viewmodel.BackgroundEvent
 import template.core.base.ui.viewmodel.BaseViewModel
+import kotlin.time.Clock
 
-/**
- * Login ViewModel. Owns dual OBP authentication:
- *
- * - **DirectLogin** — submits username/password through [ObpAuthRepository.login].
- * - **OAuth/OIDC** — authorization_code + PKCE (S256). [onOAuthLoginClicked] asks the repository to
- *   discover the provider + register a public client and return the authorize URL, which the screen
- *   opens in a browser ([LoginEvent.LaunchOidcAuth]). The redirect comes back through
- *   [OidcCallbackBus] (filled by the platform deep-link handler); this ViewModel collects it and runs
- *   [ObpAuthRepository.completeOidc] for the token exchange.
- *
- * On success the session token is held by the repository's `ObpTokenProvider` and the user is
- * marked authenticated in [UserDataRepository]; `RootNavViewModel` observes that and flips the
- * root graph to the authenticated destination — login never navigates to home imperatively.
- */
+sealed interface LoginUiState {
+    data object Loading : LoginUiState
+    data class Content(
+        val permissions: List<OBPermission>,
+        val expiryLabel: String,
+    ) : LoginUiState
+
+    data object Authorising : LoginUiState
+    data class Error(val message: String) : LoginUiState
+    data object Empty : LoginUiState
+}
+
+sealed interface LoginEvent {
+    data object NavigateBack : LoginEvent, BackgroundEvent
+}
+
+sealed interface LoginAction {
+    data object LoadPermissionsConfig : LoginAction
+    data object StartOAuth : LoginAction
+    data object Cancel : LoginAction
+    data object Retry : LoginAction
+}
+
 class LoginViewModel(
-    private val authRepository: ObpAuthRepository,
-    private val userDataRepository: UserDataRepository,
-    private val oidcCallbackBus: OidcCallbackBus,
-) : BaseViewModel<LoginState, LoginEvent, LoginAction>(initialState = LoginState()) {
-
+    private val loginRepository: LoginRepository,
+    private val browserLauncher: BrowserLauncher,
+    private val pendingAuthStore: PendingAuthStore,
+) : BaseViewModel<LoginUiState, LoginEvent, LoginAction>(
+    initialState = LoginUiState.Loading,
+) {
     init {
-        viewModelScope.launch {
-            oidcCallbackBus.callbacks.collect { callback ->
-                sendAction(LoginAction.OAuthCallback(callback.code, callback.state))
-            }
-        }
+        trySendAction(LoginAction.LoadPermissionsConfig)
     }
 
     override fun handleAction(action: LoginAction) {
         when (action) {
-            is LoginAction.UsernameChanged ->
-                updateState { copy(username = action.value, errorMessage = null) }
-
-            is LoginAction.PasswordChanged ->
-                updateState { copy(password = action.value, errorMessage = null) }
-
-            LoginAction.RememberMeToggled ->
-                updateState { copy(rememberMe = !rememberMe) }
-
-            LoginAction.PasswordVisibilityToggled ->
-                updateState { copy(isPasswordVisible = !isPasswordVisible) }
-
-            LoginAction.DirectLoginClicked -> onDirectLoginClicked()
-
-            LoginAction.OAuthLoginClicked -> onOAuthLoginClicked()
-
-            is LoginAction.OAuthCallback -> onOAuthCallback(action.code, action.state)
-
-            LoginAction.ForgotPasswordClicked ->
-                sendEvent(LoginEvent.NavigateToForgotPassword)
-
-            is LoginAction.Internal.DirectLoginResultReceive ->
-                onAuthResult(action.result, AuthMethod.DIRECT_LOGIN)
-
-            is LoginAction.Internal.OAuthResultReceive ->
-                onAuthResult(action.result, AuthMethod.OAUTH_OIDC)
+            LoginAction.LoadPermissionsConfig -> handleLoadConfig()
+            LoginAction.StartOAuth -> handleStartOAuth()
+            LoginAction.Cancel -> handleCancel()
+            LoginAction.Retry -> handleRetry()
         }
     }
 
-    private fun onDirectLoginClicked() {
-        val current = state
-        if (!current.isFormValid || current.isLoading) return
+    private fun handleLoadConfig() {
+        updateState { LoginUiState.Loading }
+        val permissions = loginRepository.getPermissions()
+        if (permissions.isEmpty()) {
+            updateState { LoginUiState.Empty }
+            return
+        }
         updateState {
-            copy(isLoading = true, errorMessage = null, authMethod = AuthMethod.DIRECT_LOGIN)
-        }
-        viewModelScope.launch {
-            val result = authRepository.login(current.username.trim(), current.password)
-            sendAction(LoginAction.Internal.DirectLoginResultReceive(result))
-        }
-    }
-
-    private fun onOAuthLoginClicked() {
-        if (state.isLoading || state.oauthPhase != OAuthPhase.NONE) return
-        updateState {
-            copy(authMethod = AuthMethod.OAUTH_OIDC, oauthPhase = OAuthPhase.REDIRECTING, errorMessage = null)
-        }
-        viewModelScope.launch {
-            authRepository.prepareOidcAuthorization().fold(
-                onSuccess = { authUrl -> sendEvent(LoginEvent.LaunchOidcAuth(authUrl)) },
-                onFailure = { error ->
-                    updateState {
-                        copy(
-                            oauthPhase = OAuthPhase.NONE,
-                            authMethod = AuthMethod.NONE,
-                            errorMessage = error.toLoginErrorMessage(AuthMethod.OAUTH_OIDC),
-                        )
-                    }
-                },
+            LoginUiState.Content(
+                permissions = permissions,
+                expiryLabel = buildExpiryLabel(),
             )
         }
     }
 
-    private fun onOAuthCallback(code: String, returnedState: String) {
-        if (state.oauthPhase != OAuthPhase.REDIRECTING) return
-        updateState { copy(oauthPhase = OAuthPhase.EXCHANGING) }
+    /**
+     * Refuses up front on platforms with no redirect receiver: the PSU would otherwise authorise
+     * successfully at HSBC and the callback would never arrive, leaving a live consent stranded.
+     *
+     * On success the `state`/`nonce`/`consentId` are persisted BEFORE handing off to the browser.
+     * The PSU leaves the app entirely and the process may be killed while backgrounded, so the
+     * redirect can arrive on a cold start — these are the values it is authenticated against.
+     *
+     * Any pending auth left by a previous, abandoned attempt (the PSU cancelled at HSBC and killed
+     * the app, so no redirect ever ran [PendingAuthStore.consume]) is purged first — a fresh attempt
+     * must never inherit an orphaned entry. This is safe: a legitimate cold-start redirect is handled
+     * through [PendingAuthStore.consume] in the callback layer, never through here.
+     */
+    private fun handleStartOAuth() {
+        if (state !is LoginUiState.Content) return
+
+        if (!browserLauncher.isSupported) {
+            updateState { LoginUiState.Error(UNSUPPORTED_PLATFORM_MESSAGE) }
+            return
+        }
+
+        pendingAuthStore.clear()
+        updateState { LoginUiState.Loading }
         viewModelScope.launch {
-            val result = authRepository.completeOidc(code, returnedState)
-            sendAction(LoginAction.Internal.OAuthResultReceive(result))
+            when (val result = loginRepository.createConsentAndBuildAuthorizationUrl()) {
+                is NetworkResult.Success -> {
+                    pendingAuthStore.save(
+                        state = result.data.state,
+                        nonce = result.data.nonce,
+                        consentId = result.data.consentId,
+                    )
+                    // Authorising means "the PSU is away at HSBC" and is only cleared by the
+                    // redirect coming back. Entering it when no browser actually opened would
+                    // strand them there forever, so the transition is gated on the launch.
+                    try {
+                        browserLauncher.launch(result.data.authorizationUrl)
+                        updateState { LoginUiState.Authorising }
+                    } catch (e: BrowserLaunchException) {
+                        pendingAuthStore.clear()
+                        updateState { LoginUiState.Error(BROWSER_LAUNCH_FAILED_MESSAGE) }
+                    }
+                }
+                is NetworkResult.Error -> {
+                    updateState { LoginUiState.Error(mapErrorToMessage(result.error)) }
+                }
+            }
         }
     }
 
-    private fun onAuthResult(result: Result<Unit>, method: AuthMethod) {
-        result.fold(
-            onSuccess = {
-                viewModelScope.launch {
-                    userDataRepository.setIsAuthenticated(true)
-                    userDataRepository.setIsUnlocked(true)
-                }
-            },
-            onFailure = { error ->
-                updateState {
-                    copy(
-                        isLoading = false,
-                        oauthPhase = OAuthPhase.NONE,
-                        authMethod = AuthMethod.NONE,
-                        errorMessage = error.toLoginErrorMessage(method),
-                    )
-                }
-            },
-        )
-    }
-}
-
-/**
- * Maps an [ObpException.reason] (or unknown failure) to the user-facing message defined in the
- * login feature SPEC. OAuth token-exchange failures use the OAuth-specific copy.
- */
-private fun Throwable.toLoginErrorMessage(method: AuthMethod): String =
-    when ((this as? ObpException)?.reason) {
-        "UNAUTHORIZED", "BAD_REQUEST" ->
-            if (method == AuthMethod.OAUTH_OIDC) {
-                "Authentication failed. Please try signing in again."
-            } else {
-                "Invalid username or password. Please check your credentials and try again."
-            }
-
-        "REQUEST_TIMEOUT", "TOO_MANY_REQUESTS", "UNKNOWN" ->
-            "Could not connect to banking services. Please try again."
-
-        else ->
-            "Something went wrong on our end. Please try again in a moment."
+    private fun handleCancel() {
+        sendEvent(LoginEvent.NavigateBack)
     }
 
-/** Immutable UI state for the Login screen. Field set mirrors the login SPEC State Model. */
-@Immutable
-data class LoginState(
-    val username: String = "",
-    val password: String = "",
-    val rememberMe: Boolean = false,
-    val isPasswordVisible: Boolean = false,
-    val errorMessage: String? = null,
-    val isLoading: Boolean = false,
-    val authMethod: AuthMethod = AuthMethod.NONE,
-    val oauthPhase: OAuthPhase = OAuthPhase.NONE,
-) {
-    /** DirectLogin is enabled only when both credential fields are non-blank. */
-    val isFormValid: Boolean get() = username.isNotBlank() && password.isNotBlank()
-}
+    private fun handleRetry() {
+        trySendAction(LoginAction.LoadPermissionsConfig)
+    }
 
-/** Which authentication path is in flight. */
-enum class AuthMethod { NONE, DIRECT_LOGIN, OAUTH_OIDC }
+    private fun buildExpiryLabel(): String {
+        val expiryDate = Clock.System.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+            .plus(90, DateTimeUnit.DAY)
+        val month = expiryDate.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+        return "Expires ${expiryDate.day} $month ${expiryDate.year}"
+    }
 
-/** OAuth full-screen takeover phase. */
-enum class OAuthPhase { NONE, REDIRECTING, EXCHANGING }
+    companion object {
+        const val UNSUPPORTED_PLATFORM_MESSAGE =
+            "Connecting to HSBC isn't supported on this platform. Please use the Android, iOS or desktop app."
 
-/** One-shot navigation/side-effect events emitted by [LoginViewModel]. */
-sealed interface LoginEvent {
-    /** Navigate to the forgot-password destination within the auth graph. */
-    data object NavigateToForgotPassword : LoginEvent
+        const val BROWSER_LAUNCH_FAILED_MESSAGE =
+            "Couldn't open your browser to continue with HSBC. Please check that a " +
+                "default browser is set, then try again."
 
-    /** Open the system browser at the OBP OIDC authorize URL (platform handles the launch). */
-    data class LaunchOidcAuth(val authUrl: String) : LoginEvent
-}
-
-/** Actions accepted by [LoginViewModel]. */
-sealed interface LoginAction {
-    data class UsernameChanged(val value: String) : LoginAction
-    data class PasswordChanged(val value: String) : LoginAction
-    data object RememberMeToggled : LoginAction
-    data object PasswordVisibilityToggled : LoginAction
-    data object DirectLoginClicked : LoginAction
-    data object OAuthLoginClicked : LoginAction
-    data class OAuthCallback(val code: String, val state: String) : LoginAction
-    data object ForgotPasswordClicked : LoginAction
-
-    /** Internal actions posted from async work back onto the synchronous action stream. */
-    sealed interface Internal : LoginAction {
-        data class DirectLoginResultReceive(val result: Result<Unit>) : Internal
-        data class OAuthResultReceive(val result: Result<Unit>) : Internal
+        fun mapErrorToMessage(error: NetworkError): String = when (error) {
+            is NetworkError.Client.Unauthorized -> "Authorisation failed. The app may need to re-register with HSBC."
+            is NetworkError.Client.BadRequest -> "HSBC rejected the consent request. Please try again."
+            is NetworkError.Server -> "HSBC is temporarily unavailable. Try again in a moment."
+            is NetworkError.Network -> "Unable to reach HSBC. Check your connection and try again."
+            else -> "Could not connect to HSBC. Please try again."
+        }
     }
 }

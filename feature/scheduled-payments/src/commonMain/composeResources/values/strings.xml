@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_scheduled_payments_screen_title">Scheduled Payments</string>
+    <string name="feature_scheduled_payments_back_a11y">Navigate back to account detail</string>
+    <string name="feature_scheduled_payments_loading_a11y">Loading scheduled payments</string>
+
+    <string name="feature_scheduled_payments_list_a11y">Scheduled payments list</string>
+    <string name="feature_scheduled_payments_card_a11y">Scheduled payment of %1$s to %2$s</string>
+    <string name="feature_scheduled_payments_due_prefix">Due:</string>
+    <string name="feature_scheduled_payments_account_prefix">To:</string>
+    <string name="feature_scheduled_payments_ref_prefix">Ref:</string>
+
+    <string name="feature_scheduled_payments_type_execution">Execution date</string>
+    <string name="feature_scheduled_payments_type_arrival">Arrival date</string>
+    <string name="feature_scheduled_payments_type_unknown">Scheduled</string>
+    <string name="feature_scheduled_payments_type_execution_a11y">Execution date. Money leaves your account on the scheduled date.</string>
+    <string name="feature_scheduled_payments_type_arrival_a11y">Arrival date. Funds arrive at the beneficiary on the scheduled date.</string>
+    <string name="feature_scheduled_payments_type_unknown_a11y">Scheduled payment date.</string>
+
+    <string name="feature_scheduled_payments_empty_title">No scheduled payments</string>
+    <string name="feature_scheduled_payments_empty_body">No future-dated payments are pending for this account.</string>
+    <string name="feature_scheduled_payments_empty_a11y">No scheduled payments found</string>
+
+    <string name="feature_scheduled_payments_error_title">Could not load scheduled payments</string>
+    <string name="feature_scheduled_payments_error_a11y">Error loading scheduled payments</string>
+    <string name="feature_scheduled_payments_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_scheduled_payments_error_consent_revoked">Access to scheduled payments has been withdrawn.</string>
+    <string name="feature_scheduled_payments_error_rate_limited">Too many requests. Please wait a moment and try again.</string>
+    <string name="feature_scheduled_payments_error_network">No network connection. Please check your connection and retry.</string>
+    <string name="feature_scheduled_payments_retry">Retry</string>
+    <string name="feature_scheduled_payments_retry_a11y">Retry loading scheduled payments</string>
+</resources>

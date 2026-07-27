@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.submit.MutationUiState
 import template.core.base.store.submit.SubmitState
 import template.core.base.store.submit.submitHandler

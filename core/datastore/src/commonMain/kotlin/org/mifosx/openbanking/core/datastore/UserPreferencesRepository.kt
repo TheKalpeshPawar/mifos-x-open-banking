@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.datastore
 
@@ -27,8 +27,6 @@ interface UserPreferencesRepository {
 
     val userData: StateFlow<UserData>
 
-    val authToken: String?
-
     val passcode: String
 
     val observeLanguage: Flow<LanguageConfig>
@@ -38,15 +36,6 @@ interface UserPreferencesRepository {
     val observeDynamicColorPreference: Flow<Boolean>
 
     val observeScreenCapturePreference: Flow<Boolean>
-
-    val observePushNotificationsEnabled: Flow<Boolean>
-
-    val observeTransactionAlertsEnabled: Flow<Boolean>
-
-    val observeMarketingEnabled: Flow<Boolean>
-
-    /** The user's default account id (set from the Home hero card); "" when unset. */
-    val observeDefaultAccountId: Flow<String>
 
     suspend fun setLanguage(language: LanguageConfig)
 
@@ -64,25 +53,11 @@ interface UserPreferencesRepository {
 
     suspend fun setIsBiometricsEnabled(isBiometricsEnabled: Boolean)
 
-    suspend fun setPushNotificationsEnabled(isEnabled: Boolean)
-
-    suspend fun setTransactionAlertsEnabled(isEnabled: Boolean)
-
-    suspend fun setMarketingEnabled(isEnabled: Boolean)
-
-    suspend fun setShowOnboarding(showOnboarding: Boolean)
-
-    suspend fun setFirstTimeState(firstTimeState: Boolean)
-
     suspend fun setPasscode(passcode: String)
 
+    suspend fun setSelectedAccountId(accountId: String)
+
     suspend fun setScreenCapturePreference(isScreenCaptureEnabled: Boolean)
-
-    /** Persists the default account chosen on the Home hero card. */
-    suspend fun setDefaultAccountId(accountId: String)
-
-    /** Persists (or clears, when null) the OBP DirectLogin session token in secure storage. */
-    suspend fun setAuthToken(token: String?)
 
     suspend fun clearUserData()
 }

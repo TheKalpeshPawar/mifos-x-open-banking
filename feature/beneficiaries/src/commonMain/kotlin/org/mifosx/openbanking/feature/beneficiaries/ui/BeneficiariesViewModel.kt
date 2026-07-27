@@ -5,326 +5,143 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.beneficiaries.ui
 
-import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.daysUntil
-import kotlinx.datetime.todayIn
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.banks.BanksRepository
-import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
-import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
-import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.Transaction
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-
-/** Sort order for the full beneficiaries list. */
-enum class SortOrder { AlphaAscending, AlphaDescending }
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import org.mifosx.openbanking.core.data.banking.BeneficiariesRepository
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.emptyIfContent
+import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * Beneficiaries ViewModel. Resolves the user's primary account, then joins three OBP
- * sources into a single screen model:
- *  - counterparties (the beneficiary list) via [PaymentsRepository]
- *  - bank display names via [BanksRepository] (OBP-scheme routing only; else the code)
- *  - last-payment amount/date + recency via [TransactionsRepository], joined on the
- *    transaction description matching the counterparty name.
+ * Drives the beneficiaries list: one row per saved payee for the account, with a client-side search.
  *
- * Search + sort are applied client-side over the loaded rows, so neither re-hits the
- * network. `Empty` means the account has no beneficiaries at all; a search that matches
- * nothing stays `Content` (search bar operable) with an empty `all` list.
+ * Navigation is not modelled as an action — the screen owns back and the consent route through its
+ * lambdas, matching scheduled-payments — so this stays a pure state machine over the payee stream,
+ * with no one-shot events (`Event = Nothing`).
+ *
+ * Search never touches the network. The unfiltered list is held on the state so a query can be
+ * re-applied or cleared without a re-fetch, and a query that matches nothing stays in `Content` with
+ * an empty filtered list rather than falling into `Empty` — which would wrongly claim the account
+ * has no payees at all.
  */
 class BeneficiariesViewModel(
-    private val paymentsRepository: PaymentsRepository,
-    private val banksRepository: BanksRepository,
-    private val transactionsRepository: TransactionsRepository,
-    private val accountsRepository: AccountsRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
-) : ViewModel() {
+    savedStateHandle: SavedStateHandle,
+    private val repository: BeneficiariesRepository,
+) : BaseViewModel<BeneficiariesState, Nothing, BeneficiariesAction>(
+    initialState = BeneficiariesState(
+        accountId = savedStateHandle.get<String>(ACCOUNT_ID_ARG).orEmpty(),
+    ),
+) {
 
-    private val rawState = MutableStateFlow<RawState>(RawState.Loading)
-    private val queryFlow = MutableStateFlow("")
-    private val sortFlow = MutableStateFlow(SortOrder.AlphaAscending)
-
-    val searchQuery: StateFlow<String> = queryFlow.asStateFlow()
-    val sortOrder: StateFlow<SortOrder> = sortFlow.asStateFlow()
-
-    private var accounts: List<Account> = emptyList()
-    private var selectedAccountId: String = ""
-
-    val uiState: StateFlow<ScreenState<BeneficiariesContent>> =
-        combine(rawState, queryFlow, sortFlow) { raw, query, sort ->
-            when (raw) {
-                is RawState.Loading -> ScreenState.Loading
-                is RawState.Failed -> ScreenState.Error(raw.error)
-                is RawState.Loaded ->
-                    if (accounts.isEmpty()) ScreenState.Empty else projectContent(raw.rows, query, sort)
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ScreenState.Loading,
-        )
+    /** The stream this screen renders, scoped to this view model. */
+    private val stream = repository.beneficiariesStream(state.accountId, viewModelScope)
 
     init {
-        load()
+        stream.state
+            .emptyIfContent { beneficiaries -> beneficiaries.isEmpty() }
+            .onEach { screenState -> updateState { copy(uiState = screenState.toUiState(query())) } }
+            .launchIn(viewModelScope)
     }
 
-    fun onSearchQueryChanged(query: String) = queryFlow.update { query }
-
-    fun onSortChanged(order: SortOrder) = sortFlow.update { order }
-
-    fun toggleSort() = sortFlow.update {
-        if (it == SortOrder.AlphaAscending) SortOrder.AlphaDescending else SortOrder.AlphaAscending
-    }
-
-    fun onRetry() = load()
-
-    fun onRefresh() = load()
-
-    /** Switch the active account: reload that account's beneficiaries (they are per-account). */
-    fun onAccountSelected(accountId: String) {
-        if (accountId == selectedAccountId) return
-        val account = accounts.firstOrNull { it.accountIdOrId == accountId } ?: return
-        selectedAccountId = accountId
-        rawState.value = RawState.Loading
-        viewModelScope.launch { loadForAccount(account) }
-    }
-
-    private fun load() {
-        rawState.value = RawState.Loading
-        viewModelScope.launch {
-            accounts = accountsRepository.myAccounts().getOrElse {
-                rawState.value = RawState.Failed(it)
-                return@launch
-            }
-            val defaultId = userPreferencesRepository.userData.value.defaultAccountId
-            val target = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
-                ?: accounts.firstOrNull { it.accountIdOrId == defaultId }
-                ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
-                ?: accounts.firstOrNull()
-            if (target == null) {
-                selectedAccountId = ""
-                rawState.value = RawState.Loaded(emptyList())
-                return@launch
-            }
-            selectedAccountId = target.accountIdOrId
-            loadForAccount(target)
+    override fun handleAction(action: BeneficiariesAction) {
+        when (action) {
+            BeneficiariesAction.RetryLoad -> stream.refresh()
+            is BeneficiariesAction.Search -> applySearch(action.query)
         }
     }
 
-    private suspend fun loadForAccount(account: Account) {
-        val accountId = account.accountIdOrId
-        val beneficiaries = paymentsRepository.listBeneficiaries(account.bankId, accountId).getOrElse {
-            rawState.value = RawState.Failed(it)
-            return
-        }.filter { it.isBeneficiary }
-        val transactions = transactionsRepository
-            .listTransactions(account.bankId, accountId, limit = null)
-            .getOrElse { emptyList() }
+    /**
+     * The live query, so a stream re-emission (a refresh landing, say) re-applies the filter the
+     * user still has typed instead of silently resetting the list under them.
+     */
+    private fun query(): String = (state.uiState as? BeneficiariesUiState.Content)?.query.orEmpty()
 
-        rawState.value = RawState.Loaded(buildRows(beneficiaries, transactions))
+    private fun applySearch(query: String) {
+        val current = state.uiState as? BeneficiariesUiState.Content ?: return
+        updateState {
+            copy(uiState = current.copy(query = query, filtered = current.all.matching(query)))
+        }
     }
 
-    private suspend fun buildRows(
-        beneficiaries: List<Counterparty>,
-        transactions: List<Transaction>,
-    ): List<BeneficiaryRow> {
-        val latestByName = latestTransactionByPayeeName(transactions)
-        return beneficiaries.map { cp ->
-            val bankName = if (cp.otherBankRoutingScheme.equals("OBP", ignoreCase = true)) {
-                banksRepository.bankName(cp.otherBankRoutingAddress)
-            } else {
-                cp.otherBankRoutingAddress
+    private fun ScreenState<List<BeneficiaryItem>>.toUiState(query: String): BeneficiariesUiState =
+        when (this) {
+            is ScreenState.Content -> {
+                val rows = data.map { it.toRowUi() }
+                BeneficiariesUiState.Content(all = rows, filtered = rows.matching(query), query = query)
             }
-            val txn = latestByName[cp.name.lowercase()]
-            BeneficiaryRow(
-                id = cp.counterpartyId,
-                name = cp.name,
-                bankName = bankName,
-                accountIdentifier = maskIdentifier(cp.otherAccountRoutingAddress),
-                lastPayment = txn?.let {
-                    LastPayment(
-                        amount = formatMoney(it.details.value.amount, it.details.value.currency),
-                        date = formatDate(it.details.posted),
-                        relativeDate = formatRelative(it.details.posted),
-                        recencyKey = it.details.posted,
-                    )
-                },
-            )
+
+            is ScreenState.Error -> BeneficiariesUiState.Error(classifyBeneficiariesError(error))
+            is ScreenState.NoNetwork -> BeneficiariesUiState.Error(BeneficiariesErrorKind.NetworkError)
+            ScreenState.Unauthenticated -> BeneficiariesUiState.Error(BeneficiariesErrorKind.TokenExpired)
+            ScreenState.Empty -> BeneficiariesUiState.Empty
+            ScreenState.Loading -> BeneficiariesUiState.Loading
         }
-    }
 
-    private fun projectContent(
-        rows: List<BeneficiaryRow>,
-        query: String,
-        sort: SortOrder,
-    ): ScreenState<BeneficiariesContent> {
-        val q = query.trim()
-        val filtered = if (q.isEmpty()) rows else rows.filter { it.matches(q) }
-        val sorted = when (sort) {
-            SortOrder.AlphaAscending -> filtered.sortedBy { it.name.lowercase() }
-            SortOrder.AlphaDescending -> filtered.sortedByDescending { it.name.lowercase() }
-        }
-        val recentlyUsed = filtered
-            .filter { it.lastPayment != null }
-            .sortedByDescending { it.lastPayment?.recencyKey.orEmpty() }
-            .take(RECENT_LIMIT)
-        return ScreenState.Content(
-            data = BeneficiariesContent(
-                accounts = accounts,
-                selectedAccountId = selectedAccountId,
-                recentlyUsed = recentlyUsed,
-                all = sorted,
-                query = query,
-                sortOrder = sort,
-                totalCount = rows.size,
-            ),
-            freshness = DataFreshness.FRESH,
-        )
-    }
-
-    private fun latestTransactionByPayeeName(transactions: List<Transaction>): Map<String, Transaction> {
-        val map = mutableMapOf<String, Transaction>()
-        for (txn in transactions) {
-            val key = txn.details.description.lowercase()
-            if (key.isBlank()) continue
-            val existing = map[key]
-            if (existing == null || txn.details.posted > existing.details.posted) {
-                map[key] = txn
-            }
-        }
-        return map
-    }
-
-    private sealed interface RawState {
-        data object Loading : RawState
-        data class Failed(val error: Throwable) : RawState
-        data class Loaded(val rows: List<BeneficiaryRow>) : RawState
-    }
-
-    private companion object {
-        const val RECENT_LIMIT = 3
-    }
-}
-
-/** A presentation row for one beneficiary, with bank name + last-payment metadata resolved. */
-@Immutable
-data class BeneficiaryRow(
-    val id: String,
-    val name: String,
-    val bankName: String,
-    val accountIdentifier: String,
-    val lastPayment: LastPayment?,
-) {
-    val initials: String
-        get() = name.split(' ', '\t')
-            .filter { it.isNotBlank() }
-            .take(2)
-            .map { it.first().uppercaseChar() }
-            .joinToString("")
-            .ifBlank { "?" }
-
-    fun matches(query: String): Boolean =
-        name.contains(query, ignoreCase = true) ||
-            accountIdentifier.contains(query, ignoreCase = true) ||
-            bankName.contains(query, ignoreCase = true)
-}
-
-/** Last-payment summary derived from transactions. */
-@Immutable
-data class LastPayment(
-    val amount: String,
-    val date: String,
-    val relativeDate: String,
-    val recencyKey: String,
-)
-
-/** Loaded content for the Beneficiaries screen. */
-@Immutable
-data class BeneficiariesContent(
-    val accounts: List<Account>,
-    val selectedAccountId: String,
-    val recentlyUsed: List<BeneficiaryRow>,
-    val all: List<BeneficiaryRow>,
-    val query: String,
-    val sortOrder: SortOrder,
-    val totalCount: Int,
-) {
-    val selectedAccount: Account?
-        get() = accounts.firstOrNull { it.accountIdOrId == selectedAccountId }
-}
-
-/** Masks a long account identifier/IBAN: "GB29NWBK60161331926819" -> "GB29 ··· 6819". */
-internal fun maskIdentifier(identifier: String): String {
-    val clean = identifier.trim()
-    if (clean.length <= 8) return clean
-    return "${clean.take(4)} ··· ${clean.takeLast(4)}"
-}
-
-/** Formats an OBP money value ("-5.40", "EUR") to a display string ("€5.40"); abs value. */
-internal fun formatMoney(amount: String, currency: String): String {
-    val value = amount.toDoubleOrNull() ?: return "$currency $amount".trim()
-    val abs = if (value < 0) -value else value
-    val cents = kotlin.math.round(abs * 100).toLong()
-    val whole = cents / 100
-    val frac = (cents % 100).toString().padStart(2, '0')
-    val symbol = when (currency.uppercase()) {
-        "GBP" -> "£"
-        "EUR" -> "€"
-        "USD" -> "$"
-        else -> if (currency.isBlank()) "" else "$currency "
-    }
-    return "$symbol$whole.$frac"
-}
-
-/** Relative date for recent rows ("today" / "yesterday" / "N days ago" / "N weeks ago"); else absolute. */
-@OptIn(ExperimentalTime::class)
-internal fun formatRelative(iso: String): String {
-    val date = runCatching { LocalDate.parse(iso.substringBefore('T')) }.getOrNull()
-        ?: return formatDate(iso)
-    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-    val days = date.daysUntil(today)
-    return when {
-        days <= 0 -> "today"
-        days == 1 -> "yesterday"
-        days < 7 -> "$days days ago"
-        days < 14 -> "1 week ago"
-        days < 30 -> "${days / 7} weeks ago"
-        else -> formatDate(iso)
-    }
-}
-
-/** Formats an ISO-8601 timestamp ("2026-06-01T15:16:10Z") to "1 Jun 2026"; blank-safe. */
-internal fun formatDate(iso: String): String {
-    val datePart = iso.substringBefore('T').trim()
-    val parts = datePart.split('-')
-    val months = listOf(
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    private fun BeneficiaryItem.toRowUi(): BeneficiaryRowUi = BeneficiaryRowUi(
+        beneficiaryId = beneficiaryId,
+        name = creditorName,
+        initials = initialsOf(creditorName),
+        scheme = scheme,
+        identification = formatIdentification(identification, scheme),
+        reference = reference,
     )
-    val formatted = parts.takeIf { it.size == 3 }?.let { p ->
-        val day = p[2].toIntOrNull()
-        val name = p[1].toIntOrNull()?.let { months.getOrNull(it - 1) }
-        if (day != null && name != null) "$day $name ${p[0]}" else null
+
+    companion object {
+        /** Must match the [BeneficiariesRoute] property name — type-safe nav uses it as the key. */
+        const val ACCOUNT_ID_ARG: String = "accountId"
     }
-    return formatted ?: datePart
 }
+
+private const val MAX_INITIALS = 2
+private const val IBAN_GROUP_SIZE = 4
+
+/**
+ * Filters payees by creditor name or payment reference, case-insensitively.
+ *
+ * Only those two fields are searched — matching on the account identifier would let a stray digit
+ * surface an unrelated payee. A blank query matches everything, which is what makes clearing the
+ * field restore the whole list.
+ */
+internal fun List<BeneficiaryRowUi>.matching(query: String): List<BeneficiaryRowUi> {
+    val trimmed = query.trim()
+    if (trimmed.isEmpty()) return this
+    return filter {
+        it.name.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
+    }
+}
+
+/**
+ * Derives up to two uppercase initials from a creditor name.
+ *
+ * Takes the first letter of the first two whitespace-separated words that start with a letter, so
+ * `Priya Rajan N26 GmbH` yields `PR` rather than picking up the `N26`. A single-word name yields one
+ * letter; a name with none yields an empty string, and the avatar renders blank rather than showing
+ * punctuation.
+ */
+internal fun initialsOf(name: String): String = name
+    .split(' ', '\t', '\n')
+    .mapNotNull { word -> word.firstOrNull { it.isLetter() } }
+    .take(MAX_INITIALS)
+    .joinToString(separator = "") { it.uppercase() }
+
+/**
+ * Groups an IBAN into four-character blocks for display, leaving every other scheme untouched.
+ *
+ * Sort codes and card numbers already arrive with their own separators from the bank; re-spacing
+ * them would fight the format the user recognises. An IBAN arrives unspaced and is unreadable that
+ * way, so it is the only scheme that gets grouped.
+ */
+internal fun formatIdentification(identification: String, scheme: BeneficiaryScheme): String =
+    if (scheme == BeneficiaryScheme.Iban) {
+        identification.filterNot { it.isWhitespace() }.chunked(IBAN_GROUP_SIZE).joinToString(separator = " ")
+    } else {
+        identification
+    }

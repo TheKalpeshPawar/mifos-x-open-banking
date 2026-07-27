@@ -5,16 +5,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.login.di
 
+import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import org.mifosx.openbanking.feature.login.ui.ForgotPasswordViewModel
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
 
+expect val loginPlatformModule: Module
+
 val LoginModule = module {
+    includes(loginPlatformModule)
     viewModelOf(::LoginViewModel)
-    viewModelOf(::ForgotPasswordViewModel)
 }

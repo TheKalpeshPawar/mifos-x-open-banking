@@ -9,8 +9,10 @@
  */
 package template.core.base.store.submit
 
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.dataOrNull
+
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -91,3 +91,10 @@ jobs:
       build_ios: true # <-- Change to 'false' if you don't want to build iOS
       use_cocoapods: true
       shared_module: ':cmp-shared'
+      # The actionhub default is Xcode 16.4, which the macos-latest image no longer ships
+      # (it carries 26.x only), so setup-xcode fails outright. Pinning 26.0 got further but
+      # selected 26.0.1, whose iOS platform is a separately-downloaded component that the
+      # image does not preinstall — xcodebuild then failed with "iOS 26.0 is not installed".
+      # latest-stable selects the image's newest stable Xcode, which is the one its
+      # preinstalled iOS platform belongs to.
+      xcode-version: 'latest-stable'

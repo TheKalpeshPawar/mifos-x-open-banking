@@ -12,8 +12,8 @@ package template.core.base.store.infra
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus
 import template.core.base.store.error.ErrorCategory
 import template.core.base.store.error.categorize
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.screen.StoreData
 
 /**

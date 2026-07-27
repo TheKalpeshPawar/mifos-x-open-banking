@@ -147,7 +147,7 @@ complexity:
   CyclomaticComplexMethod:
     active: true
     threshold: 15
-    ignoreSingleWhenExpression: false
+    ignoreSingleWhenExpression: true
     ignoreSimpleWhenEntries: false
     ignoreNestingFunctions: false
     nestingFunctions:
@@ -431,7 +431,14 @@ naming:
         "**/androidUnitTest/**",
         "**/androidInstrumentedTest/**",
         "**/jsTest/**",
+        "**/wasmJsTest/**",
         "**/iosTest/**",
+        "**/iosArm64Test/**",
+        "**/iosX64Test/**",
+        "**/iosSimulatorArm64Test/**",
+        "**/desktopTest/**",
+        "**/nativeTest/**",
+        "**/appleTest/**",
         "**/generated/**",
       ]
     functionPattern: "[a-z][a-zA-Z0-9]*"

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_account_detail_screen_title">Account Detail</string>
+    <string name="feature_account_detail_loading_label">Loading account detail</string>
+    <string name="feature_account_detail_navigate_back">Navigate back to accounts list</string>
+
+    <string name="feature_account_detail_header_accessibility">Account details</string>
+    <string name="feature_account_detail_subtype_accessibility">Account type</string>
+    <string name="feature_account_detail_identification_accessibility">Account number</string>
+    <string name="feature_account_detail_last_updated">Last updated</string>
+
+
+    <string name="feature_account_detail_description_label">Account description</string>
+    <string name="feature_account_detail_section_balances">Balances</string>
+    <string name="feature_account_detail_section_balances_accessibility">Account balances section</string>
+    <string name="feature_account_detail_balances_list_accessibility">Balance types list</string>
+    <string name="feature_account_detail_balances_empty_title">No balances available</string>
+    <string name="feature_account_detail_balances_empty_body">Balance information is not available for this account.</string>
+    <string name="feature_account_detail_balances_empty_accessibility">No balance information available</string>
+
+    <string name="feature_account_detail_section_explore">Explore</string>
+    <string name="feature_account_detail_section_explore_accessibility">Account navigation options</string>
+    <string name="feature_account_detail_chip_row_accessibility">Navigate to account sub-screens</string>
+
+    <string name="feature_account_detail_error_title">Could not load account</string>
+    <string name="feature_account_detail_error_accessibility">Error loading account</string>
+    <string name="feature_account_detail_error_token_expired">Session expired. Please log in again.</string>
+    <string name="feature_account_detail_error_consent_withdrawn">Access to this account has been withdrawn.</string>
+    <string name="feature_account_detail_error_not_found">Account not found in your authorised account set.</string>
+    <string name="feature_account_detail_error_network">No network connection. Please check your connection and retry.</string>
+    <string name="feature_account_detail_error_unexpected">Something went wrong. Please try again.</string>
+    <string name="feature_account_detail_retry">Retry</string>
+    <string name="feature_account_detail_retry_accessibility">Retry loading account detail</string>
+
+    <string name="feature_account_detail_chip_transactions">Transactions</string>
+    <string name="feature_account_detail_chip_transactions_accessibility">View transactions for this account</string>
+    <string name="feature_account_detail_chip_statements">Statements</string>
+    <string name="feature_account_detail_chip_statements_accessibility">View statements for this account</string>
+    <string name="feature_account_detail_chip_standing_orders">Standing Orders</string>
+    <string name="feature_account_detail_chip_standing_orders_accessibility">View standing orders for this account</string>
+    <string name="feature_account_detail_chip_direct_debits">Direct Debits</string>
+    <string name="feature_account_detail_chip_direct_debits_accessibility">View direct debits for this account</string>
+    <string name="feature_account_detail_chip_scheduled">Scheduled</string>
+    <string name="feature_account_detail_chip_scheduled_accessibility">View scheduled payments for this account</string>
+    <string name="feature_account_detail_chip_beneficiaries">Beneficiaries</string>
+    <string name="feature_account_detail_chip_beneficiaries_accessibility">View beneficiaries for this account</string>
+    <string name="feature_account_detail_chip_atm">Nearby ATMs</string>
+    <string name="feature_account_detail_chip_atm_accessibility">Find nearby ATMs and branches for this account</string>
+    <string name="feature_account_detail_chip_product">Product</string>
+    <string name="feature_account_detail_chip_product_accessibility">View product terms and features for this account</string>
+    <string name="feature_account_detail_chip_party">Account Holder</string>
+    <string name="feature_account_detail_chip_party_accessibility">View account holder party details for this account</string>
+</resources>

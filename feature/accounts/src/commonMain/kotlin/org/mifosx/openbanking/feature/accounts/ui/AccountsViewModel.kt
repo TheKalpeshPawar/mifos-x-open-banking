@@ -5,83 +5,173 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.accounts.ui
 
-import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.model.obp.Account
-import template.core.base.store.screen.ScreenState
-import template.core.base.store.screen.combineContent
-import template.core.base.store.screen.emptyIfContent
+import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
+import org.mifosx.openbanking.core.common.formatMoney
+import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.combineContent
+import template.core.base.ui.viewmodel.BaseViewModel
+
+private const val GBP = "GBP"
+private const val SUBTYPE_CURRENT = "CurrentAccount"
+private const val SUBTYPE_SAVINGS = "Savings"
+private const val SUBTYPE_CREDIT_CARD = "CreditCard"
+private const val SUBTYPE_GLOBAL_MONEY = "GlobalMoney"
+private const val SUBTYPE_GLOBAL_WALLET = "GlobalWallet"
+private const val BALANCE_UNAVAILABLE = "—"
 
 /**
- * My Accounts ViewModel. Reads the offline-first [AccountsRepository.accountsStream]
- * (Store5 cache-then-network, auto-refresh on reconnect) and fuses it with a client-side
- * search query — filtering re-derives [AccountsContent] without a new network call.
- *
- * Exposes a single [ScreenState] so the screen renders loading / content / empty / error /
- * no-network / unauthenticated uniformly. `Empty` means the user has no accounts at all; a
- * search that matches nothing stays `Content` (search bar operable) with an empty list.
+ * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE `AccountSubType`
+ * enum case-insensitively and the common ISO-20022 cash-account codes (`CACC`, `SVGS`, `CCRD`) so the
+ * screen classifies correctly whether the bank populates `AccountSubType` or only `AccountTypeCode`.
  */
-class AccountsViewModel(
-    accountsRepository: AccountsRepository,
-) : ViewModel() {
-
-    private val stream = accountsRepository.accountsStream(viewModelScope)
-
-    private val queryFlow = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = queryFlow.asStateFlow()
-
-    val uiState: StateFlow<ScreenState<AccountsContent>> = stream.state
-        .combineContent(queryFlow) { accounts, query, _ ->
-            val matches = accounts.filter { it.matchesQuery(query) }
-            AccountsContent(
-                filteredAccounts = matches,
-                query = query,
-                accountCount = accounts.size,
-            )
-        }
-        .emptyIfContent { it.accountCount == 0 }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ScreenState.Loading,
-        )
-
-    fun onSearchQueryChanged(query: String) = queryFlow.update { query }
-
-    fun onRetry() = stream.retry()
-
-    fun onRefresh() = stream.refresh()
+private fun String.canonicalSubtype(): String = when (lowercase()) {
+    "currentaccount", "current", "cacc" -> SUBTYPE_CURRENT
+    "savings", "svgs" -> SUBTYPE_SAVINGS
+    "creditcard", "credit", "card", "ccrd" -> SUBTYPE_CREDIT_CARD
+    "globalmoney" -> SUBTYPE_GLOBAL_MONEY
+    "globalwallet" -> SUBTYPE_GLOBAL_WALLET
+    else -> this
 }
 
-/** Loaded content for the My Accounts screen, including the client-side search result. */
-@Immutable
-data class AccountsContent(
-    val filteredAccounts: List<Account>,
-    val query: String,
-    val accountCount: Int,
-)
+/** Formats a balance: the currency symbol for GBP, the ISO code form (e.g. `USD 250.00`) otherwise. */
+private fun formatBalance(amount: String, currency: String): String =
+    if (currency == GBP) formatMoney(amount, currency) else "$currency ${formatMoney(amount, "")}"
+
+/** The account category, resolved from the OBIE `AccountSubType`; drives the row icon and label. */
+enum class AccountUiType {
+    CURRENT,
+    SAVINGS,
+    CREDIT,
+    GLOBAL_MONEY,
+    GLOBAL_WALLET,
+    OTHER,
+    ;
+
+    companion object {
+        fun fromSubtype(subType: String): AccountUiType = when (subType.canonicalSubtype()) {
+            SUBTYPE_CURRENT -> CURRENT
+            SUBTYPE_SAVINGS -> SAVINGS
+            SUBTYPE_CREDIT_CARD -> CREDIT
+            SUBTYPE_GLOBAL_MONEY -> GLOBAL_MONEY
+            SUBTYPE_GLOBAL_WALLET -> GLOBAL_WALLET
+            else -> OTHER
+        }
+    }
+}
 
 /**
- * Client-side free-text match. A blank query matches everything; otherwise the trimmed
- * query is matched case-insensitively against the account name/label, number, IBAN, the
- * resolved display identifier, and the account id. OBP `account_type` is a free-form
- * string (no fixed checking/savings/business enum), so search beats a category filter.
+ * The client-side account-type filter backing the chip row.
+ *
+ * There is deliberately no Global filter. HSBC UK Personal AIS v4.0 dropped `AccountSubType` from
+ * `OBAccount6` entirely and its `AccountTypeCode` enum has no wallet code, so a Global Money account
+ * arrives as `CACC` — indistinguishable here from an ordinary current account, and already listed
+ * under [CURRENT]. A `GLOBAL` entry matching the `GlobalMoney`/`GlobalWallet` subtypes could never
+ * match anything and rendered a permanently empty list. The only runtime signal for Global Money is
+ * the free-text `Description`, which `HsbcProductType.resolve` reads and the account-detail screen
+ * now displays.
  */
-fun Account.matchesQuery(query: String): Boolean {
-    val q = query.trim()
-    if (q.isEmpty()) return true
-    return listOf(label, number, iban, displayIdentifier, accountIdOrId)
-        .any { it.contains(q, ignoreCase = true) }
+enum class AccountFilter(private val subtypes: Set<String>?) {
+    ALL(null),
+    CURRENT(setOf(SUBTYPE_CURRENT)),
+    SAVINGS(setOf(SUBTYPE_SAVINGS)),
+    CREDIT(setOf(SUBTYPE_CREDIT_CARD)),
+    ;
+
+    fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes
+}
+
+/**
+ * A display-ready account row. All money and identifiers are pre-formatted; the card renders strings.
+ *
+ * [accountSubType], [accountNumber] and [rawIdentification] are carried raw so the card can fall back
+ * to a "type ·· last 4" label via `accountDisplayName` when the bank supplied no [nickname].
+ */
+data class AccountRowUi(
+    val id: String,
+    val type: AccountUiType,
+    val nickname: String,
+    val identifier: String,
+    val balanceLabel: String,
+    val isBalanceOwed: Boolean,
+    val accountSubType: String = "",
+    val accountNumber: String = "",
+    val rawIdentification: String = "",
+)
+
+/** Display-ready accounts payload: filtered rows and the active type filter. */
+data class AccountsData(
+    val rows: List<AccountRowUi>,
+    val activeFilter: AccountFilter,
+)
+
+data class AccountsState(
+    val uiState: ScreenState<AccountsData> = ScreenState.Loading,
+)
+
+sealed interface AccountsAction {
+    /** Client-side chip filter by account type — no API round-trip. */
+    data class FilterAccounts(val filter: AccountFilter) : AccountsAction
+
+    /** Re-fetch accounts and re-resolve every balance from the network. */
+    data object RetryLoad : AccountsAction
+}
+
+/**
+ * Drives the accounts overview. Combines the offline-first [AccountsOverviewRepository] stream with a
+ * client-side filter into one [ScreenState], mapping [AccountWithBalance] rows into a display-ready
+ * [AccountsData]: per-account identifier and balance are formatted here. Navigation is handled by the
+ * screen, so no events are emitted.
+ */
+class AccountsViewModel(
+    private val accountsRepository: AccountsOverviewRepository,
+) : BaseViewModel<AccountsState, Nothing, AccountsAction>(initialState = AccountsState()) {
+
+    private val filter = MutableStateFlow(AccountFilter.ALL)
+
+    init {
+        viewModelScope.launch {
+            accountsRepository.overviewState(viewModelScope)
+                .combineContent(filter) { accounts, active, _ -> buildData(accounts, active) }
+                .collect { screenState -> updateState { copy(uiState = screenState) } }
+        }
+    }
+
+    override fun handleAction(action: AccountsAction) {
+        when (action) {
+            is AccountsAction.FilterAccounts -> filter.value = action.filter
+            AccountsAction.RetryLoad -> accountsRepository.refresh()
+        }
+    }
+
+    private fun buildData(accounts: List<AccountWithBalance>, active: AccountFilter): AccountsData =
+        AccountsData(
+            rows = accounts.filter { active.matches(it.account.accountSubType) }.map { it.toRowUi() },
+            activeFilter = active,
+        )
+
+    private fun AccountWithBalance.toRowUi(): AccountRowUi = AccountRowUi(
+        id = account.accountId,
+        type = AccountUiType.fromSubtype(account.accountSubType),
+        nickname = account.nickname,
+        identifier = formatAccountIdentifier(
+            subType = account.accountSubType,
+            rawIdentification = account.rawIdentification,
+            sortCode = account.sortCode,
+            accountNumber = account.accountNumber,
+        ),
+        balanceLabel = balance?.let { formatBalance(it.availableAmount, it.currency) } ?: BALANCE_UNAVAILABLE,
+        isBalanceOwed = account.accountSubType.canonicalSubtype() == SUBTYPE_CREDIT_CARD,
+        accountSubType = account.accountSubType,
+        accountNumber = account.accountNumber,
+        rawIdentification = account.rawIdentification,
+    )
 }

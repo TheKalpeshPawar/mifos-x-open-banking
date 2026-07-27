@@ -5,193 +5,131 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.settings.ui
 
-import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import org.mifosx.openbanking.core.data.auth.AuthRecoveryRepository
-import org.mifosx.openbanking.core.data.auth.ObpAuthRepository
-import org.mifosx.openbanking.core.data.profile.ProfileRepository
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
-import org.mifosx.openbanking.core.model.user.LanguageConfig
-import org.mifosx.openbanking.core.model.user.UserData
-import org.mifosx.openbanking.feature.settings.isBiometricAvailableOnDevice
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * Settings ViewModel — surfaces the profile header + user-configurable preferences (Appearance,
- * Security, About) as a single [ScreenState], styled to the rendered design preview
- * (`idea-layer/screens/settings/preview`).
+ * Drives the settings hub: the theme preference and the rows that hand navigation back to the host.
  *
- * Preference state is the single source of truth in [UserDataRepository.userData]; the UI state is
- * derived reactively, so toggles persist via the repository and the new value flows straight back
- * into [uiState]. The profile header (name/email/initials) is loaded once from
- * [ProfileRepository.current] and merged in. Screen navigation (Profile, Change Password, …) is
- * driven by the screen via NavController callbacks.
+ * Reads and writes go through [UserDataRepository] rather than the preference store beneath it —
+ * a feature module depends on `core/data`, never on `core/datastore`.
  *
- * @param biometricAvailable coarse platform-capability flag gating the Biometric Login toggle.
- * @param appVersion build version string shown in the footer.
+ * The screen opens on [SettingsUiState.Content] carrying declared defaults, so nothing is written
+ * at construction: the first write this view model makes is the one the user asked for by picking
+ * a theme.
  */
 class SettingsViewModel(
     private val userDataRepository: UserDataRepository,
-    private val profileRepository: ProfileRepository,
-    private val authRecoveryRepository: AuthRecoveryRepository,
-    private val obpAuthRepository: ObpAuthRepository,
-    private val biometricAvailable: Boolean = isBiometricAvailableOnDevice(),
-    private val appVersion: String = "v1.0.0",
-) : ViewModel() {
+    private val appVersion: SettingsAppVersion,
+) : BaseViewModel<SettingsState, Nothing, SettingsAction>(
+    initialState = SettingsState(
+        uiState = SettingsUiState.Content(
+            themeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
+            themeLabel = DarkThemeConfig.FOLLOW_SYSTEM.labelResource(),
+            appVersionLabel = appVersion.label,
+        ),
+    ),
+) {
 
-    private val profileFlow = MutableStateFlow(ProfileHeader())
-
-    private val _uiState = MutableStateFlow<ScreenState<SettingsUiState>>(ScreenState.Loading)
-    val uiState: StateFlow<ScreenState<SettingsUiState>> = _uiState.asStateFlow()
-
-    private var resetUsername: String = ""
-    private var resetEmail: String = ""
-
-    private val resetMessageState = MutableStateFlow<String?>(null)
-    val resetMessage: StateFlow<String?> = resetMessageState.asStateFlow()
+    /**
+     * Bumped by [SettingsAction.RetryLoad] to re-subscribe. A failed read terminates its flow, so
+     * retry has to build a new one rather than nudge the old one.
+     */
+    private val reads = MutableStateFlow(0)
 
     init {
-        viewModelScope.launch {
-            combine(userDataRepository.userData, profileFlow) { data, profile ->
-                ScreenState.Content(
-                    data.toUiState(biometricAvailable, appVersion, profile),
-                    DataFreshness.FRESH,
-                )
-            }.collect { _uiState.value = it }
-        }
-        loadProfile()
+        @OptIn(ExperimentalCoroutinesApi::class)
+        reads
+            .flatMapLatest { preferences() }
+            .onEach { preference -> updateState { copy(uiState = preference.toUiState()) } }
+            .launchIn(viewModelScope)
     }
 
-    private fun loadProfile() {
-        viewModelScope.launch {
-            profileRepository.current()
-                .onSuccess { profile ->
-                    val name = profile.username.ifBlank { profile.email.substringBefore('@') }
-                        .ifBlank { "Mifos User" }
-                    resetUsername = profile.username
-                    resetEmail = profile.email
-                    profileFlow.value = ProfileHeader(
-                        name = name,
-                        email = profile.email,
-                        initials = initialsOf(name),
-                    )
-                }
-                .onFailure {
-                    profileFlow.value = ProfileHeader(name = "Mifos User", email = "", initials = "M")
-                }
+    override fun handleAction(action: SettingsAction) {
+        when (action) {
+            is SettingsAction.SelectTheme -> selectTheme(action.config)
+            SettingsAction.ToggleThemeMenu -> setThemeMenuExpanded(!isThemeMenuExpanded())
+            SettingsAction.DismissThemeMenu -> setThemeMenuExpanded(false)
+            SettingsAction.RetryLoad -> reads.value += 1
         }
     }
 
-    /** Persists the chosen theme mode; the new value flows back into [uiState] reactively. */
-    fun onThemeConfigSelected(config: DarkThemeConfig) {
+    /**
+     * Writes unconditionally, including when the picked theme is the one already stored.
+     *
+     * Guarding on equality would make the write depend on this view model's own idea of the
+     * current value; a picker that re-asserts what the user chose is cheap, and one that silently
+     * does nothing after a state drift is a defect with no symptom.
+     */
+    private fun selectTheme(config: DarkThemeConfig) {
+        setThemeMenuExpanded(false)
         viewModelScope.launch { userDataRepository.setDarkThemeConfig(config) }
     }
 
-    fun onLanguageSelected(language: String) {
-        val config = LanguageConfig.entries.firstOrNull { it.localeName == language }
-            ?: LanguageConfig.DEFAULT
-        viewModelScope.launch { userDataRepository.setLanguage(config) }
-    }
+    private fun isThemeMenuExpanded(): Boolean =
+        (state.uiState as? SettingsUiState.Content)?.isThemeMenuExpanded == true
 
-    fun onBiometricToggled() {
-        val enabled = userDataRepository.userData.value.isBiometricsEnabled
-        viewModelScope.launch { userDataRepository.setIsBiometricsEnabled(!enabled) }
-    }
-
-    /**
-     * Signs the user out and wipes the local session: clears the held OBP token (DirectLogin or the
-     * OIDC `Bearer` access token) from the token provider, then resets all persisted user data to
-     * defaults. `RootNavViewModel` observes [UserDataRepository.userData] and routes back to auth.
-     */
-    fun onSignOut() {
-        obpAuthRepository.logout()
-        viewModelScope.launch { userDataRepository.clearUserData() }
-    }
-
-    /**
-     * Requests a password-reset email for the signed-in user. OBP completes the reset via the emailed
-     * link, so this only kicks off the email; the result is surfaced through [resetMessage].
-     */
-    fun onResetPassword() {
-        val username = resetUsername
-        val email = resetEmail
-        if (username.isBlank() || email.isBlank()) {
-            resetMessageState.value = "We couldn't read your profile. Please try again."
-            return
-        }
-        viewModelScope.launch {
-            authRecoveryRepository.initiateReset(username, email)
-                .onSuccess {
-                    resetMessageState.value =
-                        "If your account is valid, a password reset link has been emailed to $email."
-                }
-                .onFailure {
-                    resetMessageState.value = "Couldn't start a password reset. Please try again."
-                }
+    private fun setThemeMenuExpanded(expanded: Boolean) = updateState {
+        val current = uiState
+        if (current is SettingsUiState.Content) {
+            copy(uiState = current.copy(isThemeMenuExpanded = expanded))
+        } else {
+            this
         }
     }
 
-    fun onResetMessageConsumed() {
-        resetMessageState.value = null
+    /**
+     * The stored theme, as one emission.
+     *
+     * A read failure is caught here rather than at the collector so the error is scoped to this
+     * subscription — [reads] can then replace it wholesale on retry.
+     */
+    private fun preferences(): Flow<StoredPreferences> =
+        userDataRepository.observeDarkThemeConfig
+            .map<DarkThemeConfig, StoredPreferences> { theme -> StoredPreferences.Loaded(themeConfig = theme) }
+            .catch { throwable -> emit(StoredPreferences.Failed(classifySettingsError(throwable))) }
+
+    private fun StoredPreferences.toUiState(): SettingsUiState = when (this) {
+        is StoredPreferences.Loaded -> SettingsUiState.Content(
+            themeConfig = themeConfig,
+            themeLabel = themeConfig.labelResource(),
+            appVersionLabel = appVersion.label,
+            isThemeMenuExpanded = isThemeMenuExpanded(),
+        )
+
+        is StoredPreferences.Failed -> SettingsUiState.Error(kind)
     }
 }
 
-/** Profile header summary shown at the top of Settings. */
-@Immutable
-data class ProfileHeader(
-    val name: String = "",
-    val email: String = "",
-    val initials: String = "",
-)
+/**
+ * The build identity shown on the App Version row.
+ *
+ * A wrapper rather than a bare `String` so Koin can bind it unambiguously, and so tests can state
+ * the version they expect instead of asserting against whatever the build stamped.
+ */
+data class SettingsAppVersion(val label: String)
 
-/** Immutable settings screen state. */
-@Immutable
-data class SettingsUiState(
-    val profileName: String = "",
-    val profileEmail: String = "",
-    val profileInitials: String = "",
-    val themeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-    val selectedLanguage: String = "en",
-    val isBiometricLoginEnabled: Boolean = false,
-    val isBiometricAvailableOnDevice: Boolean = false,
-    val appVersion: String = "v1.0.0",
-    val isLoading: Boolean = false,
-)
+/** One resolved read of the preference store, or the failure that ended it. */
+private sealed interface StoredPreferences {
 
-internal fun UserData.toUiState(
-    biometricAvailable: Boolean,
-    appVersion: String,
-    profile: ProfileHeader,
-): SettingsUiState = SettingsUiState(
-    profileName = profile.name,
-    profileEmail = profile.email,
-    profileInitials = profile.initials,
-    themeConfig = darkThemeConfig,
-    selectedLanguage = appLanguage.localeName ?: "en",
-    isBiometricLoginEnabled = isBiometricsEnabled,
-    isBiometricAvailableOnDevice = biometricAvailable,
-    appVersion = appVersion,
-    isLoading = false,
-)
+    data class Loaded(
+        val themeConfig: DarkThemeConfig,
+    ) : StoredPreferences
 
-/** Up to two uppercase initials from a display name; "M" fallback when no name is available. */
-internal fun initialsOf(name: String): String =
-    name.trim()
-        .split(Regex("\\s+"))
-        .filter { it.isNotBlank() }
-        .take(2)
-        .map { it.first().uppercaseChar() }
-        .joinToString("")
-        .ifBlank { "M" }
+    data class Failed(val kind: SettingsErrorKind) : StoredPreferences
+}

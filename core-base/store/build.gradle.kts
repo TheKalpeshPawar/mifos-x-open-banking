@@ -23,7 +23,7 @@ kotlin {
             api(libs.cmp.network.monitor)
             api(libs.koin.core)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(project(":core-base:common"))
+            api(project(":core-base:common"))
         }
 
         commonTest.dependencies {

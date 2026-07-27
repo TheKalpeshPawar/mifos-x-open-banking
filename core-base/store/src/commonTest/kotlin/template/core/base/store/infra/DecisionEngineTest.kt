@@ -10,8 +10,8 @@
 package template.core.base.store.infra
 
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.screen.DataOrigin
 import template.core.base.store.screen.StoreData
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus

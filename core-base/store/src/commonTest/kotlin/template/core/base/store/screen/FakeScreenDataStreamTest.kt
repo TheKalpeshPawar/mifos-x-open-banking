@@ -9,6 +9,9 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList

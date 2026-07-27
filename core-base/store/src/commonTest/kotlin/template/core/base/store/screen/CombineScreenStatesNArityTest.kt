@@ -9,6 +9,10 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.combineScreenStates
+
 import app.cash.turbine.test
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -50,7 +54,7 @@ class CombineScreenStatesNArityTest {
     }
 
     @Test
-    fun `3-source any UPDATING (no STALE) produces UPDATING`() = runTest {
+    fun `3-source any UPDATING without STALE produces UPDATING`() = runTest {
         combineScreenStates(
             content(1, DataFreshness.FRESH),
             content(2, DataFreshness.UPDATING),

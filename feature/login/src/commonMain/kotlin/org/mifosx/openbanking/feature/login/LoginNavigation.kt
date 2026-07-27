@@ -5,62 +5,65 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 @file:Suppress("MatchingDeclarationName")
 
 package org.mifosx.openbanking.feature.login
 
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
-import template.core.base.ui.nav.composableWithPushTransitions
+import org.mifosx.openbanking.feature.login.onboarding.IntroScreen
 import template.core.base.ui.nav.composableWithStayTransitions
 
-/** Root route of the unauthenticated graph (splash → [AuthGraphRoute] → authenticated). */
 @Serializable
 data object AuthGraphRoute
 
 @Serializable
-data object LoginRoute
+data object IntroRoute
 
 @Serializable
-data object ForgotPasswordRoute
+data object LoginRoute
+
+/**
+ * The consent screen reached from inside the authenticated app to renew or replace a consent.
+ *
+ * Distinct from [LoginRoute] (which sits behind onboarding in the root auth graph): this one is a
+ * standalone destination the authenticated host registers via [loginRenewScreen], so renewal lands
+ * straight on the consent screen without the intro, and cancelling pops back rather than exiting.
+ */
+@Serializable
+data object LoginRenewRoute
 
 fun NavController.navigateToAuthGraph(navOptions: NavOptions? = null) {
     navigate(route = AuthGraphRoute, navOptions = navOptions)
 }
 
-fun NavController.navigateToForgotPassword(navOptions: NavOptions? = null) {
-    navigate(route = ForgotPasswordRoute, navOptions = navOptions)
+fun NavGraphBuilder.authGraph(navController: NavController) {
+    navigation<AuthGraphRoute>(
+        startDestination = IntroRoute,
+    ) {
+        composableWithStayTransitions<IntroRoute> {
+            IntroScreen(onContinue = { navController.navigate(LoginRoute) })
+        }
+        composableWithStayTransitions<LoginRoute> {
+            LoginScreen()
+        }
+    }
 }
 
 /**
- * Unauthenticated graph: login + forgot-password.
+ * Registers the consent screen as a standalone renewal destination.
  *
- * Login success is **not** navigated here — `LoginViewModel` marks the session authenticated and
- * `RootNavViewModel` flips the root graph to the authenticated destination reactively. This graph
- * only owns intra-auth navigation (forgot-password) and launching the OBP OIDC browser flow via
- * the platform [androidx.compose.ui.platform.UriHandler].
+ * Renders the same [LoginScreen] the onboarding flow uses, so it reuses the whole create-consent +
+ * browser-handoff engine unchanged; the only difference is [onBack], which pops back to the caller on
+ * cancel instead of exiting the app.
  */
-fun NavGraphBuilder.authGraph(navController: NavController) {
-    navigation<AuthGraphRoute>(
-        startDestination = LoginRoute,
-    ) {
-        composableWithStayTransitions<LoginRoute> {
-            val uriHandler = LocalUriHandler.current
-            LoginScreen(
-                onNavigateToForgotPassword = { navController.navigateToForgotPassword() },
-                onLaunchOidcAuth = { authUrl -> uriHandler.openUri(authUrl) },
-            )
-        }
-        composableWithPushTransitions<ForgotPasswordRoute> {
-            ForgotPasswordScreen(
-                onBackClick = { navController.popBackStack() },
-            )
-        }
+fun NavGraphBuilder.loginRenewScreen(onBack: () -> Unit) {
+    composableWithStayTransitions<LoginRenewRoute> {
+        LoginScreen(onBack = onBack)
     }
 }

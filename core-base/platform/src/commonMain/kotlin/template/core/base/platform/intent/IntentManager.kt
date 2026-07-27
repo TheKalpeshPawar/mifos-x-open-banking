@@ -78,4 +78,10 @@ interface IntentManager {
      * Typically used to direct users to app permissions, notifications, or other system settings.
      */
     fun startApplicationDetailsSettingsActivity()
+
+    /**
+     * Closes the application. On Android this finishes the hosting activity; platforms without a
+     * meaningful "exit" gesture may treat it as a no-op.
+     */
+    fun exitApplication()
 }

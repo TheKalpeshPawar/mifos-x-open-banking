@@ -5,199 +5,125 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.directdebits.ui
 
-import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.number
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.directdebits.DirectDebitsRepository
-import org.mifosx.openbanking.core.datastore.UserPreferencesRepository
-import org.mifosx.openbanking.core.model.obp.DirectDebitMandate
-import template.core.base.store.screen.DataFreshness
-import template.core.base.store.screen.ScreenState
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import org.mifosx.openbanking.core.common.formatMoney
+import org.mifosx.openbanking.core.data.banking.DirectDebitsRepository
+import org.mifosx.openbanking.core.data.util.isUnsupportedForProduct
+import org.mifosx.openbanking.core.data.util.obieMessage
+import org.mifosx.openbanking.core.model.banking.DirectDebitItem
+import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.emptyIfContent
+import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * Direct Debits ViewModel. Mandates are DERIVED from transaction history (OBP exposes no
- * read endpoint — only POST create exists), so rows come from `TXN_TYPE=DD` collection
- * series. The account comes from route arguments when provided; otherwise the user's
- * persisted default account wins, then the checking-type account, then the first.
- * Cancelling records the cancellation locally (there is no server cancel endpoint) and
- * reprojects the list in place — the mandate flips to Cancelled and the active count drops.
+ * Drives the direct-debits list: the mandate cards and the two summary chips.
+ *
+ * Navigation is not modelled as an action — the screen owns back through its `onBack` lambda,
+ * matching account-detail — so this stays a pure state machine over the mandate stream.
+ *
+ * All display formatting happens here. The composables receive finished strings, which keeps
+ * currency and date rendering testable on the JVM without a Compose runtime.
  */
 class DirectDebitsViewModel(
-    private val directDebitsRepository: DirectDebitsRepository,
-    private val accountsRepository: AccountsRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val bankId: String = "",
-    private val accountId: String = "",
-) : ViewModel() {
+    savedStateHandle: SavedStateHandle,
+    private val repository: DirectDebitsRepository,
+) : BaseViewModel<DirectDebitsState, Nothing, DirectDebitsAction>(
+    initialState = DirectDebitsState(
+        accountId = savedStateHandle.get<String>(ACCOUNT_ID_ARG).orEmpty(),
+    ),
+) {
 
-    private val rawState = MutableStateFlow<RawState>(RawState.Loading)
-    private val cancelTarget = MutableStateFlow<DirectDebitMandate?>(null)
-
-    val uiState: StateFlow<ScreenState<DirectDebitsContent>> =
-        combine(rawState, cancelTarget) { raw, dialog -> project(raw, dialog) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = ScreenState.Loading,
-            )
+    /** The stream this screen renders, scoped to this view model. */
+    private val stream = repository.directDebitsStream(state.accountId, viewModelScope)
 
     init {
-        load()
+        stream.state
+            .emptyIfContent { summary -> summary.isEmpty }
+            .onEach { screenState -> updateState { copy(uiState = screenState.toUiState()) } }
+            .launchIn(viewModelScope)
     }
 
-    fun onRetry() = load()
-
-    /** Opens the confirm dialog; cancelled mandates have nothing left to cancel. */
-    fun onCancelRequested(mandateId: String) {
-        val loaded = rawState.value as? RawState.Loaded ?: return
-        cancelTarget.value = loaded.mandates.firstOrNull { it.id == mandateId && it.isActive }
-    }
-
-    fun onCancelDismissed() {
-        cancelTarget.value = null
-    }
-
-    fun onCancelConfirmed() {
-        val mandate = cancelTarget.value ?: return
-        val loaded = rawState.value as? RawState.Loaded ?: return
-        viewModelScope.launch {
-            directDebitsRepository.cancel(loaded.accountId, mandate.id)
-            cancelTarget.value = null
-            directDebitsRepository.listMandates(loaded.bankId, loaded.accountId)
-                .onSuccess { rawState.value = loaded.copy(mandates = it) }
+    override fun handleAction(action: DirectDebitsAction) {
+        when (action) {
+            DirectDebitsAction.RetryLoad -> stream.refresh()
         }
     }
 
-    private fun load() {
-        rawState.value = RawState.Loading
-        viewModelScope.launch {
-            val target = resolveAccount().getOrElse {
-                rawState.value = RawState.Failed(it)
-                return@launch
-            }
-            if (target == null) {
-                rawState.value = RawState.Loaded("", "", emptyList())
-                return@launch
-            }
-            directDebitsRepository.listMandates(target.first, target.second)
-                .onSuccess { rawState.value = RawState.Loaded(target.first, target.second, it) }
-                .onFailure { rawState.value = RawState.Failed(it) }
+    private fun ScreenState<DirectDebitsSummary>.toUiState(): DirectDebitsUiState = when (this) {
+        is ScreenState.Content -> data.toUiState()
+        // Checked before classification: a U000 refusal is a statement about the product, not a
+        // failure, so it must not be routed to a retryable error kind.
+        is ScreenState.Error -> if (error.isUnsupportedForProduct()) {
+            DirectDebitsUiState.Unsupported(error.obieMessage().orEmpty())
+        } else {
+            DirectDebitsUiState.Error(classifyDirectDebitsError(error))
         }
+        is ScreenState.NoNetwork -> DirectDebitsUiState.Error(DirectDebitsErrorKind.NetworkError)
+        ScreenState.Unauthenticated -> DirectDebitsUiState.Error(DirectDebitsErrorKind.TokenExpired)
+        ScreenState.Empty -> DirectDebitsUiState.Empty
+        ScreenState.Loading -> DirectDebitsUiState.Loading
     }
 
-    /** (bankId, accountId) to load — route args win; null when the user has no accounts. */
-    private suspend fun resolveAccount(): Result<Pair<String, String>?> {
-        if (bankId.isNotBlank() && accountId.isNotBlank()) return Result.success(bankId to accountId)
-        return accountsRepository.myAccounts().map { accounts ->
-            val defaultId = userPreferencesRepository.userData.value.defaultAccountId
-            val target = accounts.firstOrNull { it.accountIdOrId == defaultId }
-                ?: accounts.firstOrNull { it.typeOrProduct.contains("checking", ignoreCase = true) }
-                ?: accounts.firstOrNull()
-            target?.let { it.bankId to it.accountIdOrId }
-        }
-    }
-
-    private fun project(raw: RawState, dialog: DirectDebitMandate?): ScreenState<DirectDebitsContent> =
-        when (raw) {
-            is RawState.Loading -> ScreenState.Loading
-            is RawState.Failed -> ScreenState.Error(raw.error)
-            is RawState.Loaded -> if (raw.mandates.isEmpty()) {
-                ScreenState.Empty
-            } else {
-                ScreenState.Content(
-                    data = DirectDebitsContent(
-                        mandates = raw.mandates.map { it.toRow() },
-                        activeCount = raw.mandates.count { it.isActive },
-                        cancelDialogFor = dialog?.toRow(),
-                    ),
-                    freshness = DataFreshness.FRESH,
-                )
-            }
-        }
-
-    private sealed interface RawState {
-        data object Loading : RawState
-        data class Failed(val error: Throwable) : RawState
-        data class Loaded(
-            val bankId: String,
-            val accountId: String,
-            val mandates: List<DirectDebitMandate>,
-        ) : RawState
-    }
-}
-
-/** Loaded content for the Direct Debits screen. */
-@Immutable
-data class DirectDebitsContent(
-    val mandates: List<DirectDebitRow>,
-    val activeCount: Int,
-    val cancelDialogFor: DirectDebitRow?,
-)
-
-/** One display-ready mandate row. */
-@Immutable
-data class DirectDebitRow(
-    val id: String,
-    val merchantName: String,
-    val amountLabel: String,
-    val nextCollectionLabel: String,
-    val referenceLabel: String,
-    val statusLabel: String,
-    val isActive: Boolean,
-    val mandateReference: String,
-)
-
-internal fun DirectDebitMandate.toRow() = DirectDebitRow(
-    id = id,
-    merchantName = merchantName,
-    amountLabel = "${ddSymbol(amountCurrency)}$amountValue / ${ddFrequencyLabel(frequency)}",
-    nextCollectionLabel = if (isActive && nextCollectionDate.isNotBlank()) {
-        "Next: ${ddFormatDate(nextCollectionDate)}"
+    /**
+     * A payload whose mandate list came back empty renders the empty state even though the stream
+     * reported Content — the bank answering "no mandates" is a real answer, not missing data.
+     */
+    private fun DirectDebitsSummary.toUiState(): DirectDebitsUiState = if (isEmpty) {
+        DirectDebitsUiState.Empty
     } else {
-        ""
-    },
-    referenceLabel = if (mandateReference.isBlank()) "" else "Ref: $mandateReference",
-    statusLabel = if (isActive) "Active" else "Cancelled",
-    isActive = isActive,
-    mandateReference = mandateReference,
-)
+        DirectDebitsUiState.Content(
+            mandates = items.map { it.toRowUi() },
+            activeCount = activeCount,
+            inactiveCount = inactiveCount,
+        )
+    }
 
-internal fun ddSymbol(currency: String): String = when (currency.uppercase()) {
-    "GBP" -> "£"
-    "EUR" -> "€"
-    "USD" -> "$"
-    else -> if (currency.isBlank()) "" else "$currency "
+    private fun DirectDebitItem.toRowUi(): DirectDebitRowUi = DirectDebitRowUi(
+        mandateId = mandateId,
+        name = name,
+        statusLabel = statusCode,
+        isActive = isActive,
+        amountLabel = previousPaymentAmount
+            .takeIf { it.isNotBlank() }
+            ?.let { formatMoney(it, currency) }
+            .orEmpty(),
+        lastCollectedLabel = formatMandateDate(previousPaymentDateTime),
+    )
+
+    companion object {
+        /** Must match the [DirectDebitsRoute] property name — type-safe nav uses it as the key. */
+        const val ACCOUNT_ID_ARG: String = "accountId"
+    }
 }
 
-internal fun ddFrequencyLabel(frequency: String): String = when (frequency.uppercase()) {
-    "DAILY" -> "day"
-    "WEEKLY" -> "week"
-    "BI-WEEKLY" -> "2 weeks"
-    "YEARLY" -> "year"
-    else -> "month"
+/**
+ * Formats an ISO-8601 instant as `15 Jun 2026`, the form the mandate cards show.
+ *
+ * Anything unparseable is returned unchanged rather than blanked: a value the bank did send is
+ * more useful on screen in an odd format than silently dropped. A genuinely absent date stays
+ * blank, and the card omits that line entirely.
+ */
+internal fun formatMandateDate(isoDateTime: String): String {
+    val segments = isoDateTime.substringBefore('T').split('-')
+    val year = segments.getOrNull(0)?.takeIf { segments.size == DATE_SEGMENTS }
+    val month = MONTH_ABBREVIATIONS.getOrNull(segments.getOrNull(1)?.toIntOrNull()?.minus(1) ?: -1)
+    val day = segments.getOrNull(2)?.trimStart('0')?.takeIf { it.isNotEmpty() }
+    return if (year == null || month == null || day == null) {
+        isoDateTime
+    } else {
+        "$day $month $year"
+    }
 }
 
-/** "2026-06-03" → "3 Jun 2026" (unparseable input passes through). */
-internal fun ddFormatDate(iso: String): String {
-    val date = runCatching { LocalDate.parse(iso) }.getOrNull() ?: return iso
-    val month = DD_MONTHS[date.month.number - 1]
-    return "${date.day} $month ${date.year}"
-}
-
-private val DD_MONTHS = listOf(
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+private const val DATE_SEGMENTS = 3
+private val MONTH_ABBREVIATIONS = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 )

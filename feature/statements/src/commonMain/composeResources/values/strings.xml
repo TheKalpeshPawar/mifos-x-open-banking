@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_statements_screen_title">Statements</string>
+    <string name="feature_statements_navigate_back">Navigate back to accounts list</string>
+    <string name="feature_statements_loading_accessibility">Loading statement list</string>
+
+    <string name="feature_statements_list_accessibility">Statements for your account</string>
+    <string name="feature_statements_row_accessibility">Statement %1$s, %2$s</string>
+    <string name="feature_statements_closing_balance_label">Closing balance:</string>
+    <string name="feature_statements_date_range">%1$s – %2$s</string>
+    <string name="feature_statements_download_accessibility">Download %s statement</string>
+    <string name="feature_statements_download_in_progress_accessibility">Downloading statement</string>
+
+    <string name="feature_statements_empty_title">No statements yet</string>
+    <string name="feature_statements_empty_body">Your statement history will appear here once statements are available for this account.</string>
+    <string name="feature_statements_empty_accessibility">No statements yet</string>
+
+    <string name="feature_statements_error_title">Could not load statements</string>
+    <string name="feature_statements_error_accessibility">Could not load statements</string>
+    <string name="feature_statements_error_token_expired">Session expired. Please re-authenticate.</string>
+    <string name="feature_statements_error_consent_scope">Account access consent does not cover statements. Re-authorise in Consents.</string>
+    <string name="feature_statements_error_rate_limited">Too many requests. Please wait a moment and try again.</string>
+    <string name="feature_statements_error_server">HSBC server error. Please try again.</string>
+    <string name="feature_statements_error_network">No network connection. Check your connection and retry.</string>
+    <string name="feature_statements_retry">Retry</string>
+    <string name="feature_statements_retry_accessibility">Retry loading statements</string>
+
+    <string name="feature_statements_download_unavailable">This statement isn\'t available to download.</string>
+    <string name="feature_statements_download_error">Couldn\'t download the statement. Try again.</string>
+</resources>

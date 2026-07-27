@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <!-- Error state -->
+    <string name="feature_home_error_title">Could not load your account</string>
+    <string name="feature_home_error_retry">Retry</string>
+
+    <!-- Empty state -->
+    <string name="feature_home_empty_title">No accounts connected</string>
+    <string name="feature_home_empty_body">Your Open Banking consent has no active accounts. Manage your bank connection in Settings.</string>
+
+    <!-- Hero balance card -->
+    <string name="feature_home_available">Available %1$s</string>
+    <string name="feature_home_account_icon_desc">Account</string>
+
+    <!-- Account selector sheet -->
+    <string name="feature_home_select_account">Select account</string>
+    <string name="feature_home_selected_account_desc">Selected account</string>
+
+    <!-- Recent transactions -->
+    <string name="feature_home_recent_transactions">Recent transactions</string>
+    <string name="feature_home_view_all">View all</string>
+</resources>

@@ -18,6 +18,24 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<!--
+	    Receives HSBC's consent redirect. HSBC redirects to the registered HTTPS callback page, which
+	    relays the response to this custom scheme; that keeps HSBC's signed redirect_uri unchanged.
+	    Must stay in lock-step with CONSENT_REDIRECT_SCHEME in ConsentRedirectBridge.kt.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>org.mifosx.openbanking.consent-callback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>org.mifosx.openbanking</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -29,7 +47,7 @@
 	<key>NSContactsUsageDescription</key>
 	<string>This app does not access your contacts. This message is required for compliance only.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Allow access to your location to show ATMs near you.</string>
+	<string>This app does not access your location. This message is required for compliance only.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Allow access to add photos to your library so you can save artworks directly to your device and view them offline.</string>
 	<key>UIApplicationSceneManifest</key>

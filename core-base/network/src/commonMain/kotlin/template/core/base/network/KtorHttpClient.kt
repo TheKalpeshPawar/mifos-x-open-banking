@@ -27,8 +27,6 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import template.core.base.security.CertificatePinConfig
 import co.touchlab.kermit.Logger.Companion as KermitLogger
@@ -87,95 +85,95 @@ fun setupDefaultHttpClient(
         isLenient = true
         ignoreUnknownKeys = true
         explicitNulls = false
-        coerceInputValues = true
     },
     basicCredentialsProvider: (() -> BasicAuthCredentials)? = null,
     digestCredentialsProvider: (() -> DigestAuthCredentials)? = null,
-    bearerTokensProvider: (() -> BearerTokens)? = null,
-    bearerRefreshProvider: (() -> BearerTokens)? = null,
+    bearerTokensProvider: (() -> BearerTokens?)? = null,
+    bearerRefreshProvider: (suspend (HttpClient) -> BearerTokens?)? = null,
     certificatePinConfig: CertificatePinConfig = CertificatePinConfig.default(),
-): HttpClientConfig<*>.() -> Unit = {
-    val refreshMutex = Mutex()
+): HttpClient {
+    return httpClient {
+        when {
+            bearerTokensProvider != null -> {
+                install(Auth) {
+                    bearer {
+                        loadTokens { bearerTokensProvider() }
 
-    when {
-        bearerTokensProvider != null -> {
-            install(Auth) {
-                bearer {
-                    loadTokens { bearerTokensProvider() }
-                    if (bearerRefreshProvider != null) {
-                        refreshTokens {
-                            refreshMutex.withLock {
+                        if (bearerRefreshProvider != null) {
+                            refreshTokens {
+
                                 val currentTokens = bearerTokensProvider()
-                                if (currentTokens != oldTokens) {
+                                if (currentTokens != this.oldTokens) {
                                     currentTokens
                                 } else {
-                                    bearerRefreshProvider()
+                                    bearerRefreshProvider(this.client)
                                 }
                             }
                         }
+
+                        sendWithoutRequest { request ->
+                            request.url.host in authRequiredUrl
+                        }
                     }
-                    sendWithoutRequest { request ->
-                        request.url.host in authRequiredUrl
+                }
+            }
+
+            basicCredentialsProvider != null -> {
+                install(Auth) {
+                    basic {
+                        credentials {
+                            basicCredentialsProvider()
+                        }
+                        sendWithoutRequest { request ->
+                            request.url.host in authRequiredUrl
+                        }
+                    }
+                }
+            }
+
+            digestCredentialsProvider != null -> {
+                install(Auth) {
+                    digest {
+                        credentials {
+                            digestCredentialsProvider()
+                        }
                     }
                 }
             }
         }
 
-        basicCredentialsProvider != null -> {
-            install(Auth) {
-                basic {
-                    credentials {
-                        basicCredentialsProvider()
-                    }
-                    sendWithoutRequest { request ->
-                        request.url.host in authRequiredUrl
-                    }
+        defaultRequest {
+            url(baseUrl)
+            defaultHeaders.forEach { (key, value) ->
+                headers.append(key, value)
+            }
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = requestTimeout
+            socketTimeoutMillis = socketTimeout
+        }
+
+        install(Logging) {
+            logger = httpLogger
+            level = httpLogLevel
+            filter { request ->
+                loggableHosts.any { host ->
+                    request.url.host.contains(host)
+                }
+            }
+            sanitizeHeader { header ->
+                header in sensitiveHeaders
+            }
+            logger = object : Logger {
+                override fun log(message: String) {
+                    KermitLogger.d(tag = "KtorClient", messageString = message)
                 }
             }
         }
 
-        digestCredentialsProvider != null -> {
-            install(Auth) {
-                digest {
-                    credentials {
-                        digestCredentialsProvider()
-                    }
-                }
-            }
+        install(ContentNegotiation) {
+            json(jsonConfig)
         }
-    }
-
-    defaultRequest {
-        url(baseUrl)
-        defaultHeaders.forEach { (key, value) ->
-            headers.append(key, value)
-        }
-    }
-
-    install(HttpTimeout) {
-        requestTimeoutMillis = requestTimeout
-        socketTimeoutMillis = socketTimeout
-    }
-
-    install(Logging) {
-        logger = httpLogger
-        level = httpLogLevel
-        filter { request ->
-            loggableHosts.any { host ->
-                request.url.host.contains(host)
-            }
-        }
-        sanitizeHeader { header ->
-            header in sensitiveHeaders
-        }
-        logger = object : Logger {
-            override fun log(message: String) {
-                KermitLogger.d(tag = "KtorClient", messageString = message)
-            }
-        }
-    }
-
-    install(ContentNegotiation) {
-        json(jsonConfig)
     }
 }

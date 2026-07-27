@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package cmp.android.app
 
@@ -21,11 +21,11 @@ import androidx.compose.runtime.getValue
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cmp.shared.SharedApp
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import org.koin.android.ext.android.inject
-import org.mifosx.openbanking.SharedApp
-import org.mifosx.openbanking.core.data.auth.OidcCallbackBus
+import org.mifosx.openbanking.core.data.callback.ConsentRedirectBus
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.user.UserDataRepository
 import template.core.base.analytics.AnalyticsHelper
@@ -51,8 +51,6 @@ class MainActivity : AppCompatActivity() {
 
     private val networkMonitor: NetworkMonitor by inject()
 
-    private val oidcCallbackBus: OidcCallbackBus by inject()
-
     private val analyticsHelper: AnalyticsHelper by inject()
     private val lifecycleTracker by lazy { analyticsHelper.lifecycleTracker() }
 
@@ -63,7 +61,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerImpl(this)
 
-        handleOidcRedirect(intent)
+        publishConsentRedirect(intent)
 
         val darkThemeConfigFlow = userPreferencesRepository.observeDarkThemeConfig
 
@@ -120,6 +118,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * The redirect's other entry point, and the usual one.
+     *
+     * With `launchMode="singleTask"` the OS delivers the callback here whenever this Activity is
+     * still alive — which is the normal case, since the PSU only backgrounded us to authorise in the
+     * browser. [onCreate] covers only the opposite case, where Android killed the app while it was
+     * backgrounded and the redirect cold-starts it. Both are required; either alone drops half the
+     * journeys.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        publishConsentRedirect(intent)
+    }
+
+    /**
+     * Forwards HSBC's consent redirect, and only that. Runs on every launch, so
+     * [consumeConsentRedirectUrl] filters out everything that is not our callback.
+     */
+    private fun publishConsentRedirect(intent: Intent?) {
+        intent?.consumeConsentRedirectUrl()?.let(ConsentRedirectBus::publish)
+    }
+
     override fun onResume() {
         super.onResume()
         appUpdateManager.checkForResumeUpdateState()
@@ -129,28 +150,6 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         lifecycleTracker.markAppLaunchStart()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleOidcRedirect(intent)
-    }
-
-    /**
-     * Forwards an OIDC OAuth redirect (`org.mifosx.openbanking://oauth/callback?code=…&state=…`) into
-     * [oidcCallbackBus] so the login flow can validate state and exchange the code for tokens.
-     */
-    private fun handleOidcRedirect(intent: Intent) {
-        val data = intent.data
-        if (data == null) return
-        if (data.scheme == "org.mifosx.openbanking" && data.host == "oauth") {
-            val code = data.getQueryParameter("code")
-            val state = data.getQueryParameter("state")
-            if (code != null && state != null) {
-                oidcCallbackBus.emit(code, state)
-            }
-        }
     }
 
     private fun handleRecreate() {

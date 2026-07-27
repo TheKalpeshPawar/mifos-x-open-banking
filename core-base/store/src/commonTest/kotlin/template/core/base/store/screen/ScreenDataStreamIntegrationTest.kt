@@ -9,6 +9,9 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+
 import app.cash.turbine.test
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus

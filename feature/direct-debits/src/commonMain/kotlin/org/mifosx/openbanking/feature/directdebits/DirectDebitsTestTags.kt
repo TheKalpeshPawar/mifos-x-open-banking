@@ -5,19 +5,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.directdebits
 
-/** Stable test tags for the Direct Debits screen (ids mirror the idea-layer spec). */
-object DirectDebitsTestTags {
-    const val TITLE = "direct_debits_title"
-    const val ACTIVE_COUNT_CHIP = "active_count_chip"
-    const val CANCEL_DIALOG = "cancel_confirm_dialog"
-    const val CANCEL_CONFIRM_CTA = "cancel_confirm_cta"
-    const val CANCEL_DISMISS_CTA = "cancel_dismiss_cta"
+/**
+ * Stable `testTag` values for the direct-debits screen, shared by the Robolectric and instrumented
+ * suites so both drive the same nodes.
+ *
+ * Append-only: a tag that an existing test references must not be renamed or removed without a
+ * matching `uitest-tag-retire` note, or the suites silently stop asserting what they claim to.
+ */
+internal object DirectDebitsTestTags {
 
-    fun mandateCard(id: String) = "direct_debit_$id"
+    const val LOADING_SKELETON = "directDebits:loadingSkeleton"
+    const val SKELETON_CHIP_ROW = "directDebits:skeletonChipRow"
 
-    fun cancelButton(id: String) = "cancel_direct_debit_$id"
+    /** The scrolling mandate list itself — the node the suites scroll to reach later cards. */
+    const val CONTENT = "directDebits:content"
+    const val SUMMARY_CHIPS = "directDebits:summaryChips"
+    const val ACTIVE_CHIP = "directDebits:activeChip"
+    const val INACTIVE_CHIP = "directDebits:inactiveChip"
+
+    const val EMPTY_STATE = "directDebits:emptyState"
+    const val EMPTY_TITLE = "directDebits:emptyTitle"
+    const val EMPTY_BODY = "directDebits:emptyBody"
+
+    const val UNSUPPORTED_STATE = "directDebits:unsupportedState"
+    const val UNSUPPORTED_TITLE = "directDebits:unsupportedTitle"
+    const val UNSUPPORTED_BODY = "directDebits:unsupportedBody"
+
+    const val ERROR_STATE = "directDebits:errorState"
+    const val ERROR_TITLE = "directDebits:errorTitle"
+    const val ERROR_BODY = "directDebits:errorBody"
+    const val RETRY_BUTTON = "directDebits:retryButton"
+
+    /** Tag for one mandate card, keyed by its OBIE `MandateIdentification`. */
+    fun card(mandateId: String): String = "directDebits:card:$mandateId"
+
+    /** Tag for one mandate's status badge, keyed by its `MandateIdentification`. */
+    fun statusBadge(mandateId: String): String = "directDebits:statusBadge:$mandateId"
+
+    /** Tag for one mandate's previous-payment amount, keyed by its `MandateIdentification`. */
+    fun amount(mandateId: String): String = "directDebits:amount:$mandateId"
+
+    /** Tag for one mandate's last-collected line, keyed by its `MandateIdentification`. */
+    fun lastCollected(mandateId: String): String = "directDebits:lastCollected:$mandateId"
+
+    /** Tag for one mandate's reference line, keyed by its `MandateIdentification`. */
+    fun mandateReference(mandateId: String): String = "directDebits:mandateReference:$mandateId"
 }

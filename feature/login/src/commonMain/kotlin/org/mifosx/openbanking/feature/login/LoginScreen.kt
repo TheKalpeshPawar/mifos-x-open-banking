@@ -5,452 +5,322 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.login
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.ManageSearch
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.mifosx.openbanking.core.designsystem.icon.AppIcons
-import org.mifosx.openbanking.core.ui.card.HeroGradientCard
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
+import org.mifosx.openbanking.feature.login.components.PermissionList
+import org.mifosx.openbanking.feature.login.generated.resources.Res
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_authorising_hint
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_cancel
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_connecting
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_consent_validity
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_continue_hsbc
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_empty_body
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_empty_title
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_error_title
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_explainer_body
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_explainer_headline
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_go_back
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_ob_badge
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_opening_hsbc
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_permissions_header
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_retry
+import org.mifosx.openbanking.feature.login.generated.resources.feature_login_security_notice
+import org.mifosx.openbanking.feature.login.generated.resources.hsbc_logo
 import org.mifosx.openbanking.feature.login.ui.LoginAction
 import org.mifosx.openbanking.feature.login.ui.LoginEvent
-import org.mifosx.openbanking.feature.login.ui.LoginState
+import org.mifosx.openbanking.feature.login.ui.LoginUiState
 import org.mifosx.openbanking.feature.login.ui.LoginViewModel
-import org.mifosx.openbanking.feature.login.ui.OAuthPhase
+import template.core.base.designsystem.theme.KptTheme
+import template.core.base.platform.LocalIntentManager
+import template.core.base.ui.effects.EventsEffect
 
 /**
- * Stateful Login container. Binds [LoginViewModel] state + one-shot events to the stateless
- * [LoginContent]. Login success is reactive (the root nav observes the authenticated session),
- * so this composable only forwards the forgot-password navigation + OAuth browser launch.
+ * The HSBC consent screen — staging a consent and handing off to the browser.
+ *
+ * Serves two entry points. As the initial onboarding step there is nowhere in the app to go back to,
+ * so cancelling exits the app (the default, [onBack] null). Reused for renewal from an already-signed-in
+ * session, cancelling must return to where the user was, so the renewal host passes an [onBack] that
+ * pops the back stack.
  */
 @Composable
 internal fun LoginScreen(
-    onNavigateToForgotPassword: () -> Unit,
-    onLaunchOidcAuth: (authUrl: String) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val intentManager = LocalIntentManager.current
 
-    LaunchedEffect(Unit) {
-        viewModel.eventFlow.collect { event ->
-            when (event) {
-                LoginEvent.NavigateToForgotPassword -> onNavigateToForgotPassword()
-                is LoginEvent.LaunchOidcAuth -> onLaunchOidcAuth(event.authUrl)
-            }
+    EventsEffect(viewModel.eventFlow) { event ->
+        when (event) {
+            LoginEvent.NavigateBack -> onBack?.invoke() ?: intentManager.exitApplication()
         }
     }
 
-    LoginContent(
-        state = state,
-        onAction = viewModel::trySendAction,
-        modifier = modifier,
-    )
+    when (val current = state) {
+        is LoginUiState.Loading -> LoadingState(modifier)
+        is LoginUiState.Content -> ContentState(current, viewModel::trySendAction, modifier)
+        is LoginUiState.Authorising -> AuthorisingState(modifier)
+        is LoginUiState.Error -> ErrorState(current, viewModel::trySendAction, modifier)
+        is LoginUiState.Empty -> EmptyState(viewModel::trySendAction, modifier)
+    }
 }
 
 @Composable
-private fun LoginContent(
-    state: LoginState,
-    onAction: (LoginAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
-        when (state.oauthPhase) {
-            OAuthPhase.REDIRECTING -> OAuthTakeover(
-                title = "Redirecting to Open Bank Project",
-                message = "Opening your browser for secure OAuth authentication…",
+internal fun LoadingState(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.LOADING_PROGRESS))
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                stringResource(Res.string.feature_login_connecting),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
-
-            OAuthPhase.EXCHANGING -> OAuthTakeover(
-                title = "Completing Sign In",
-                message = "Exchanging authorization code for your session token…",
-            )
-
-            OAuthPhase.NONE -> LoginForm(state = state, onAction = onAction)
         }
     }
 }
 
 @Composable
-private fun LoginForm(
-    state: LoginState,
+internal fun ContentState(
+    state: LoginUiState.Content,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(KptTheme.spacing.md),
     ) {
-        LoginHero()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-28).dp)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.EXPLAINER_CARD),
+            shape = RoundedCornerShape(KptTheme.spacing.sm),
+            colors = CardDefaults.cardColors(
+                containerColor = KptTheme.colorScheme.surfaceContainerLow,
+            ),
         ) {
-            LoginCard(state = state, onAction = onAction)
-            LoginAlternativeAuth(state = state, onAction = onAction)
-            Text(
-                text = "Powered by Mifos",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp, bottom = 40.dp),
-            )
-        }
-    }
-}
-
-/** Green gradient hero with the Mifos X badge + welcome copy. Reuses the shared [HeroGradientCard]. */
-@Composable
-private fun LoginHero(modifier: Modifier = Modifier) {
-    HeroGradientCard(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 72.dp, bottom = 56.dp, start = 24.dp, end = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.18f),
-            ) {
-                Text(
-                    text = "Mifos X",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 16.dp),
-                )
-            }
-            Text(
-                text = "Welcome back",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = "Sign in to your sandbox account",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LocalContentColor.current.copy(alpha = 0.85f),
-            )
-        }
-    }
-}
-
-/** The white "Direct Login" card: username + password + Sign In. */
-@Composable
-private fun LoginCard(
-    state: LoginState,
-    onAction: (LoginAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = "Direct Login",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            val fieldColors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary,
-            )
-            OutlinedTextField(
-                value = state.username,
-                onValueChange = { onAction(LoginAction.UsernameChanged(it)) },
-                label = { Text("Username") },
-                placeholder = { Text("Enter your username") },
-                singleLine = true,
-                enabled = !state.isLoading,
-                isError = state.errorMessage != null,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    imeAction = ImeAction.Next,
-                ),
-                colors = fieldColors,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = { onAction(LoginAction.PasswordChanged(it)) },
-                label = { Text("Password") },
-                singleLine = true,
-                enabled = !state.isLoading,
-                isError = state.errorMessage != null,
-                visualTransformation = if (state.isPasswordVisible) {
-                    VisualTransformation.None
-                } else {
-                    PasswordVisualTransformation()
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                trailingIcon = {
-                    IconButton(onClick = { onAction(LoginAction.PasswordVisibilityToggled) }) {
-                        Icon(
-                            imageVector = if (state.isPasswordVisible) {
-                                AppIcons.VisibilityOff
-                            } else {
-                                AppIcons.Visibility
-                            },
-                            contentDescription = if (state.isPasswordVisible) {
-                                "Hide password"
-                            } else {
-                                "Show password"
-                            },
-                        )
-                    }
-                },
-                colors = fieldColors,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = state.rememberMe,
-                    onCheckedChange = { onAction(LoginAction.RememberMeToggled) },
-                    enabled = !state.isLoading,
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-                )
-                Text(
-                    text = "Keep me signed in",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            if (state.errorMessage != null) {
-                ErrorBanner(message = state.errorMessage)
-            }
-            Button(
-                onClick = { onAction(LoginAction.DirectLoginClicked) },
-                enabled = state.isFormValid && !state.isLoading,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(20.dp),
+            Column(modifier = Modifier.padding(KptTheme.spacing.md)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(Res.drawable.hsbc_logo),
+                        contentDescription = "HSBC",
+                        modifier = Modifier.height(20.dp),
                     )
-                } else {
-                    Text("Login", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.width(KptTheme.spacing.sm))
+                    Text(
+                        "HSBC",
+                        style = KptTheme.typography.titleMedium,
+                        color = KptTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.VerifiedUser, null, Modifier.size(16.dp), tint = KptTheme.colorScheme.primary)
+                    Text(
+                        " ${stringResource(Res.string.feature_login_ob_badge)}",
+                        style = KptTheme.typography.labelSmall,
+                        color = KptTheme.colorScheme.primary,
+                    )
+                }
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Text(
+                    stringResource(Res.string.feature_login_explainer_headline),
+                    style = KptTheme.typography.titleMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Text(
+                    stringResource(Res.string.feature_login_explainer_body),
+                    style = KptTheme.typography.bodySmall,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                HorizontalDivider()
+                Spacer(Modifier.height(KptTheme.spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        " ${stringResource(Res.string.feature_login_security_notice)}",
+                        style = KptTheme.typography.labelSmall,
+                        color = KptTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
+
+        Spacer(Modifier.height(KptTheme.spacing.md))
+
+        Text(
+            stringResource(Res.string.feature_login_permissions_header),
+            style = KptTheme.typography.titleSmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm),
+        )
+        PermissionList(state.permissions)
+
+        Spacer(Modifier.height(KptTheme.spacing.sm))
+        Text(
+            stringResource(Res.string.feature_login_consent_validity),
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            state.expiryLabel,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
+        )
+
+        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(KptTheme.spacing.md))
+
+        MifosFilledPillButton(
+            stringResource(Res.string.feature_login_continue_hsbc),
+            onClick = { onAction(LoginAction.StartOAuth) },
+            icon = Icons.Outlined.OpenInNew,
+            testTag = LoginTestTags.CONTINUE_HSBC,
+        )
+        Spacer(Modifier.height(KptTheme.spacing.sm))
+        TextButton(
+            onClick = { onAction(LoginAction.Cancel) },
+            modifier = Modifier.fillMaxWidth().testTag(LoginTestTags.CANCEL),
+        ) {
+            Text(
+                stringResource(Res.string.feature_login_cancel),
+                style = KptTheme.typography.labelLarge,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
 @Composable
-private fun LoginAlternativeAuth(
-    state: LoginState,
+internal fun AuthorisingState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.AUTHORISING), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(modifier = Modifier.size(48.dp).testTag(LoginTestTags.AUTHORISING_SPINNER))
+            Spacer(Modifier.height(24.dp))
+            Text(
+                stringResource(Res.string.feature_login_opening_hsbc),
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
+            Text(
+                stringResource(Res.string.feature_login_authorising_hint),
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 260.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ErrorState(
+    state: LoginUiState.Error,
     onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.height(24.dp))
-        OrDivider()
-        Spacer(Modifier.height(24.dp))
-
-        OutlinedButton(
-            onClick = { onAction(LoginAction.OAuthLoginClicked) },
-            enabled = !state.isLoading,
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                imageVector = AppIcons.SendRightTilted,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.size(8.dp))
-            Text("Sign in with OBP Account", style = MaterialTheme.typography.labelLarge)
-        }
-        Text(
-            text = "Redirects to Open Bank Project for secure authentication",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-
-        Spacer(Modifier.height(16.dp))
-        TextButton(
-            onClick = { onAction(LoginAction.ForgotPasswordClicked) },
-            modifier = Modifier.heightIn(min = 44.dp),
-        ) {
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.ERROR), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
+            Icon(Icons.Outlined.Lock, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.error)
+            Spacer(Modifier.height(KptTheme.spacing.lg))
             Text(
-                text = "Forgot Password?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                stringResource(Res.string.feature_login_error_title),
+                style = KptTheme.typography.headlineSmall,
+                color = KptTheme.colorScheme.onSurface,
             )
-        }
-    }
-}
-
-@Composable
-private fun ErrorBanner(message: String, modifier: Modifier = Modifier) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = AppIcons.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(20.dp),
-            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
             Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(start = 8.dp),
+                state.message,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 300.dp),
+            )
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            MifosFilledPillButton(
+                stringResource(Res.string.feature_login_retry),
+                onClick = { onAction(LoginAction.Retry) },
+                testTag = LoginTestTags.ERROR_RETRY,
             )
         }
     }
 }
 
 @Composable
-private fun OrDivider(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-        Text(
-            text = "OR",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-    }
-}
-
-@Composable
-private fun OAuthTakeover(
-    title: String,
-    message: String,
+internal fun EmptyState(
+    onAction: (LoginAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            imageVector = AppIcons.Bank,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(80.dp)
-                .padding(bottom = 24.dp),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-        )
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(32.dp),
-        )
+    Box(modifier = modifier.fillMaxSize().testTag(LoginTestTags.EMPTY), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(KptTheme.spacing.lg)) {
+            Icon(Icons.Outlined.ManageSearch, null, Modifier.size(64.dp), tint = KptTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            Text(
+                stringResource(Res.string.feature_login_empty_title),
+                style = KptTheme.typography.headlineSmall,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(KptTheme.spacing.sm))
+            Text(
+                stringResource(Res.string.feature_login_empty_body),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 300.dp),
+            )
+            Spacer(Modifier.height(KptTheme.spacing.lg))
+            MifosFilledPillButton(
+                stringResource(Res.string.feature_login_go_back),
+                onClick = { onAction(LoginAction.Cancel) },
+                testTag = LoginTestTags.EMPTY_GO_BACK,
+            )
+        }
     }
 }

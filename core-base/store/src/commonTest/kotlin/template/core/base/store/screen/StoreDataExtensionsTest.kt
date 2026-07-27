@@ -9,6 +9,10 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.combineScreenStates
+
 import app.cash.turbine.test
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest

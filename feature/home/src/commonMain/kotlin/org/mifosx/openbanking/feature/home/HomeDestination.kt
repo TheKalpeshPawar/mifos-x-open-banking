@@ -1,11 +1,11 @@
 /*
- * Copyright 2025 Mifos Initiative
+ * Copyright 2026 Mifos Initiative
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.home
 
@@ -27,28 +27,16 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.homeGraph(
-    onAccounts: () -> Unit,
-    onStandingOrders: () -> Unit,
-    onFindAtm: () -> Unit,
-    onInsights: () -> Unit,
-    onBusinessInsights: () -> Unit,
-    onFxRates: () -> Unit,
-    onProducts: () -> Unit,
-    showFindAtm: Boolean = true,
+    onNavigateToTransactions: (accountId: String) -> Unit,
+    onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
     ) {
         composableWithStayTransitions<HomeRoute> {
             HomeScreen(
-                onAccounts = onAccounts,
-                onStandingOrders = onStandingOrders,
-                onFindAtm = onFindAtm,
-                onInsights = onInsights,
-                onBusinessInsights = onBusinessInsights,
-                onFxRates = onFxRates,
-                onProducts = onProducts,
-                showFindAtm = showFindAtm,
+                onNavigateToTransactions = onNavigateToTransactions,
+                onNavigateToTransactionDetail = onNavigateToTransactionDetail,
             )
         }
     }

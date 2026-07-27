@@ -10,49 +10,97 @@
 package template.core.base.network
 
 /**
- * Represents standardized error types for remote or network operations.
+ * Standardized error types for remote or network operations.
  *
- * This enum is typically used with the [NetworkResult.Error] variant to describe what kind of failure occurred.
+ * Unlike the previous enum, every variant carries the detail needed to diagnose and surface the
+ * failure: the HTTP [statusCode] (null for transport/parse failures), the raw response [body]
+ * (which for OBIE/OAuth holds the real error code — callers branch on it when a status is not
+ * enough), and the underlying [cause] (for transport/serialization failures). Used with
+ * [NetworkResult.Error].
+ *
+ * The 4xx family is grouped under [Client] so callers can branch coarse (`is Client`) or fine
+ * (`is Client.Unauthorized`). 5xx stays flat as [Server] (it almost always means "retry"), and the
+ * non-HTTP failures ([Serialization], [Network], [Unknown]) sit at the top level.
  */
-enum class NetworkError {
+sealed interface NetworkError {
+
+    /** The HTTP status code that produced this error, or `null` for transport/parse failures. */
+    val statusCode: Int?
+
+    /** The raw response body captured at the point of failure, if any. */
+    val body: String?
+
+    /** The underlying throwable for transport/serialization failures, if any. */
+    val cause: Throwable?
 
     /**
-     * The request was malformed or missing required parameters (HTTP 400).
+     * HTTP 4xx — the request was rejected by the server. A response WAS received, so [body] is
+     * available and [cause] is always null.
      */
-    BAD_REQUEST,
+    sealed interface Client : NetworkError {
+        override val cause: Throwable? get() = null
 
-    /**
-     * The requested resource could not be found (HTTP 404).
-     */
-    NOT_FOUND,
+        /** Authentication failed / token expired (HTTP 401). */
+        data class Unauthorized(override val body: String? = null) : Client {
+            override val statusCode: Int get() = 401
+        }
 
-    /**
-     * Authentication failed due to invalid or missing credentials (HTTP 401).
-     */
-    UNAUTHORIZED,
+        /** Authenticated but not permitted — e.g. consent revoked (HTTP 403). */
+        data class Forbidden(override val body: String? = null) : Client {
+            override val statusCode: Int get() = 403
+        }
 
-    /**
-     * The request timed out, usually due to a slow or unresponsive network (HTTP 408 or socket timeout).
-     */
-    REQUEST_TIMEOUT,
+        /** Too many requests in a given window (HTTP 429). */
+        data class RateLimited(override val body: String? = null) : Client {
+            override val statusCode: Int get() = 429
+        }
 
-    /**
-     * The client has sent too many requests in a given amount of time (HTTP 429).
-     */
-    TOO_MANY_REQUESTS,
+        /** The request was malformed or missing required parameters (HTTP 400). */
+        data class BadRequest(override val body: String? = null) : Client {
+            override val statusCode: Int get() = 400
+        }
 
-    /**
-     * A server-side error occurred (HTTP 5xx).
-     */
-    SERVER,
+        /** The requested resource could not be found (HTTP 404). */
+        data class NotFound(override val body: String? = null) : Client {
+            override val statusCode: Int get() = 404
+        }
 
-    /**
-     * The response could not be deserialized, likely due to mismatched or invalid data formats.
-     */
-    SERIALIZATION,
+        /** Any other 4xx not called out above. */
+        data class Other(
+            override val statusCode: Int?,
+            override val body: String? = null,
+        ) : Client
+    }
 
-    /**
-     * An unknown or unexpected error occurred, used as a fallback when the specific cause is not identifiable.
-     */
-    UNKNOWN,
+    /** HTTP 5xx — the server failed to fulfil a valid request. */
+    data class Server(
+        override val statusCode: Int?,
+        override val body: String? = null,
+    ) : NetworkError {
+        override val cause: Throwable? get() = null
+    }
+
+    /** A 2xx response was received but its body could not be decoded into the expected type. */
+    data class Serialization(
+        override val cause: Throwable,
+    ) : NetworkError {
+        override val statusCode: Int? get() = null
+        override val body: String? get() = null
+    }
+
+    /** No response — a transport-level failure (connectivity, DNS, TLS/mTLS handshake, timeout). */
+    data class Network(
+        override val cause: Throwable,
+    ) : NetworkError {
+        override val statusCode: Int? get() = null
+        override val body: String? get() = null
+    }
+
+    /** A non-HTTP surprise — an unexpected throwable that is not clearly transport-level. */
+    data class Unknown(
+        override val cause: Throwable? = null,
+    ) : NetworkError {
+        override val statusCode: Int? get() = null
+        override val body: String? get() = null
+    }
 }

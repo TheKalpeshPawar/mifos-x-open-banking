@@ -5,31 +5,66 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.settings
 
+import org.mifosx.openbanking.core.model.user.DarkThemeConfig
+
 /**
- * Stable UI test tags for the Settings screen. Values mirror the component ids in
- * `idea-layer/screens/settings/ui.yaml` so design ↔ test traceability is one-to-one.
+ * Stable `testTag` values for the settings screen, shared by the desktop, Robolectric and
+ * instrumented suites so all three drive the same nodes.
+ *
+ * Append-only: a tag that an existing test references must not be renamed or removed without a
+ * matching `uitest-tag-retire` note, or the suites silently stop asserting what they claim to.
+ *
+ * [SECTION] and [ROW] are carried by every section and every row in addition to that node's own
+ * specific tag. Counting them is how the suites pin the screen's shape — a section or row added
+ * back that this screen deliberately does not offer fails on the count rather than needing a tag
+ * of its own for something that should not exist.
  */
-object SettingsTestTags {
-    const val ROOT = "settings_root"
-    const val PROFILE_HEADER = "settings_profile_header"
+internal object SettingsTestTags {
 
-    const val THEME_MODE_SYSTEM = "settings_theme_mode_system"
-    const val THEME_MODE_LIGHT = "settings_theme_mode_light"
-    const val THEME_MODE_DARK = "settings_theme_mode_dark"
-    const val LANGUAGE_SELECT = "settings_language_select"
+    const val CONTENT = "settings:content"
 
-    const val BIOMETRIC_TOGGLE = "settings_biometric_toggle"
-    const val CHANGE_PASSWORD_ROW = "settings_change_password_row"
+    const val SECTION = "settings:section"
+    const val SECTION_TITLE = "settings:sectionTitle"
+    const val SECTION_APPEARANCE = "settings:section:appearance"
+    const val SECTION_ACCOUNT = "settings:section:account"
+    const val SECTION_ABOUT = "settings:section:about"
 
-    const val ABOUT_LINK = "settings_about_link"
-    const val TERMS_LINK = "settings_terms_link"
-    const val PRIVACY_LINK = "settings_privacy_link"
-    const val LICENSES_LINK = "settings_licenses_link"
-    const val APP_VERSION_VALUE = "settings_app_version_value"
+    const val ROW = "settings:row"
 
-    const val SIGN_OUT = "settings_sign_out"
+    const val THEME_ROW = "settings:row:theme"
+    const val THEME_VALUE = "settings:themeValue"
+    const val THEME_DROPDOWN = "settings:themeDropdown"
+    const val THEME_MENU = "settings:themeMenu"
+
+    const val CONSENTS_ROW = "settings:row:consents"
+
+    const val PRIVACY_ROW = "settings:row:privacy"
+    const val LICENCES_ROW = "settings:row:licences"
+    const val APP_VERSION_ROW = "settings:row:appVersion"
+    const val APP_VERSION_VALUE = "settings:appVersionValue"
+
+    const val LICENCES_SCREEN = "settings:licences:screen"
+    const val LICENCES_LIST = "settings:licences:list"
+
+    const val EMPTY_STATE = "settings:emptyState"
+    const val EMPTY_TITLE = "settings:emptyTitle"
+    const val EMPTY_BODY = "settings:emptyBody"
+
+    const val ERROR_STATE = "settings:errorState"
+    const val ERROR_TITLE = "settings:errorTitle"
+    const val ERROR_BODY = "settings:errorBody"
+    const val RETRY_BUTTON = "settings:retryButton"
+
+    /** Tag for one theme option inside the picker, keyed by the config it selects. */
+    fun themeOption(config: DarkThemeConfig): String = "settings:themeOption:${config.name}"
+
+    /** Tag for a row's chevron, marking it as opening a destination inside the app. */
+    fun chevron(rowTag: String): String = "$rowTag:chevron"
+
+    /** Tag for a row's external-link glyph, marking it as leaving the app. */
+    fun externalLink(rowTag: String): String = "$rowTag:externalLink"
 }

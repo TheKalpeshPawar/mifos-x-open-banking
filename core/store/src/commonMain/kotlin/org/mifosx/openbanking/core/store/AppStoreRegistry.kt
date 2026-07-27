@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.store
 
@@ -35,36 +35,19 @@ import template.core.base.store.infra.StoreRegistry
  * qualifier-name collisions across feature modules.
  */
 object AppStoreRegistry : StoreRegistry() {
-    /** Authenticated user's account list (Store5, keyed by Unit). */
     val Accounts = store("accounts")
-
-    /** Per-account transactions (Store5, keyed by accountId). */
+    val AccountDetail = store("accountDetail")
+    val Balances = store("balances")
+    val BalanceLines = store("balanceLines")
     val Transactions = store("transactions")
-
-    /** Per-account cards (Store5, keyed by accountId). */
-    val Cards = store("cards")
-
-    /** Current user's full card list across all accounts (Store5, keyed by Unit). */
-    val UserCards = store("user-cards")
-
-    /** Per-account counterparties / payees (Store5, keyed by accountId). */
-    val Counterparties = store("counterparties")
-
-    /** Bank customers, field-officer surface (Store5, keyed by Unit). */
-    val Customers = store("customers")
-
-    /** Account-application review queue (Store5, keyed by Unit). */
-    val AccountApplications = store("account-applications")
-
-    /** Per-customer message thread (Store5, keyed by customerId). */
-    val CustomerMessages = store("customer-messages")
-
-    /** Per-customer KYC documents (Store5, keyed by customerId). */
-    val KycDocuments = store("kyc-documents")
-
-    /** Bank products (Store5, keyed by Unit). */
-    val Products = store("products")
-
-    /** Bank ATM locations (Store5, keyed by Unit). */
-    val Atms = store("atms")
+    val TransactionDetails = store("transactionDetails")
+    val Beneficiaries = store("beneficiaries")
+    val ConsentDetail = store("consentDetail")
+    val DirectDebits = store("directDebits")
+    val ScheduledPayments = store("scheduledPayments")
+    val StandingOrders = store("standingOrders")
+    val Party = store("party")
+    val Statements = store("statements")
+    val StatementDetail = store("statementDetail")
+    val StatementTransactions = store("statementTransactions")
 }

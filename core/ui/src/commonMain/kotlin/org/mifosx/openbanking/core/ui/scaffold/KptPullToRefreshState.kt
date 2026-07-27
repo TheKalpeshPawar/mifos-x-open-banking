@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.ui.scaffold
 
@@ -13,10 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.paging.PagingScreenStream
-import template.core.base.store.screen.DataFreshness
 import template.core.base.store.screen.ScreenDataStream
-import template.core.base.store.screen.ScreenState
 
 /**
  * Data class representing the pull-to-refresh state and behavior.

@@ -1,36 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Copyright 2022 Mifos Initiative
+    Copyright 2026 Mifos Initiative
 
     This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
     If a copy of the MPL was not distributed with this file,
     You can obtain one at https://mozilla.org/MPL/2.0/.
 
-    See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
 -->
 <resources>
-    <string name="feature_settings_top_app_bar_action_icon_description">Settings</string>
-    <string name="feature_settings_top_app_bar_navigation_icon_description">Search</string>
-    <string name="feature_settings_title">Settings</string>
-    <string name="feature_settings_loading">Loading…</string>
-    <string name="feature_settings_privacy_policy">Privacy policy</string>
-    <string name="feature_settings_licenses">Licenses</string>
-    <string name="feature_settings_brand_guidelines">Brand Guidelines</string>
-    <string name="feature_settings_feedback">Feedback</string>
-    <string name="feature_settings_theme">Theme</string>
-    <string name="feature_settings_brand_default">Default</string>
-    <string name="feature_settings_brand_android">Android</string>
-    <string name="feature_settings_dark_mode_preference">Dark mode preference</string>
-    <string name="feature_settings_dark_mode_config_system_default">System default</string>
-    <string name="feature_settings_dark_mode_config_light">Light</string>
-    <string name="feature_settings_dark_mode_config_dark">Dark</string>
-    <string name="feature_settings_dynamic_color_preference">Use Dynamic Color</string>
-    <string name="feature_settings_dynamic_color_yes">Yes</string>
-    <string name="feature_settings_dynamic_color_no">No</string>
-    <string name="feature_settings_dismiss_dialog_button_text">OK</string>
-    <string name="feature_settings_change_theme_text">Change Theme</string>
-    <string name="feature_settings_change_theme_placeholder_text">Change Theme</string>
-    <string name="feature_settings_change_language_text">Change Language</string>
-    <string name="feature_settings_change_language_placeholder_text">Change Language</string>
-    <string name="feature_settings_language_preference">Language</string>
+    <string name="feature_settings_screen_title">Settings</string>
+    <string name="feature_settings_content_accessibility">Settings list</string>
+
+    <string name="feature_settings_section_appearance">Appearance</string>
+    <string name="feature_settings_section_account">Account</string>
+    <string name="feature_settings_section_about">About &amp; Legal</string>
+
+    <string name="feature_settings_theme_title">Theme</string>
+    <!--
+      The three options are the DarkThemeConfig entries. "System" rather than the enum's own
+      "Follow System" constant name: the enum's configName is a persistence value, and the
+      preview shows the shorter word.
+    -->
+    <string name="feature_settings_theme_follow_system">System</string>
+    <string name="feature_settings_theme_light">Light</string>
+    <string name="feature_settings_theme_dark">Dark</string>
+    <string name="feature_settings_theme_select_accessibility">Select theme, currently %s</string>
+    <string name="feature_settings_theme_option_accessibility">Use %s theme</string>
+
+    <string name="feature_settings_consents_title">Manage Consents</string>
+    <string name="feature_settings_consents_subtitle">View, revoke or reconfirm Open Banking consents</string>
+
+    <string name="feature_settings_privacy_title">Privacy Policy</string>
+    <string name="feature_settings_licences_title">Open-Source Licences</string>
+    <string name="feature_settings_licences_screen_title">Open-Source Licences</string>
+    <string name="feature_settings_licences_intro">mifos-x-open-banking is open-source software, licensed under the Mozilla Public License 2.0.</string>
+    <string name="feature_settings_app_version_title">App Version</string>
+
+    <string name="feature_settings_opens_in_app_accessibility">Opens in the app</string>
+    <string name="feature_settings_opens_externally_accessibility">Opens in your browser</string>
+
+    <string name="feature_settings_empty_title">No preferences saved</string>
+    <string name="feature_settings_empty_body">Your settings will appear here. Customise theme, security, and notification preferences.</string>
+    <string name="feature_settings_empty_accessibility">No preferences saved yet</string>
+
+    <string name="feature_settings_error_title">Could not load settings</string>
+    <string name="feature_settings_error_accessibility">Error loading settings</string>
+    <string name="feature_settings_error_preferences_unavailable">There was a problem loading your preferences. Default settings are shown below.</string>
+    <string name="feature_settings_error_unknown">Something went wrong loading your settings. Please try again.</string>
+    <string name="feature_settings_retry">Retry</string>
+    <string name="feature_settings_retry_accessibility">Retry loading settings</string>
 </resources>

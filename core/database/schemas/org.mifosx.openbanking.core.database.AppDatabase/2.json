@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "46c582fd50c620fd1259be1ac8f39c00",
+    "identityHash": "bbde18e40b45b5aded79caa7a13e527d",
     "entities": [
       {
         "tableName": "samples",
@@ -130,18 +130,42 @@
         }
       },
       {
-        "tableName": "obp_cache",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`storeKey` TEXT NOT NULL, `payload` TEXT NOT NULL, PRIMARY KEY(`storeKey`))",
+        "tableName": "accounts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `nickname` TEXT NOT NULL, `accountSubType` TEXT NOT NULL, `currency` TEXT NOT NULL, `sortCode` TEXT NOT NULL, `accountNumber` TEXT NOT NULL, PRIMARY KEY(`accountId`))",
         "fields": [
           {
-            "fieldPath": "storeKey",
-            "columnName": "storeKey",
+            "fieldPath": "accountId",
+            "columnName": "accountId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "payload",
-            "columnName": "payload",
+            "fieldPath": "nickname",
+            "columnName": "nickname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountSubType",
+            "columnName": "accountSubType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortCode",
+            "columnName": "sortCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountNumber",
+            "columnName": "accountNumber",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -149,14 +173,85 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "storeKey"
+            "accountId"
           ]
         }
+      },
+      {
+        "tableName": "transactions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transactionId` TEXT NOT NULL, `accountId` TEXT NOT NULL, `description` TEXT NOT NULL, `bookingDateTime` TEXT NOT NULL, `amount` TEXT NOT NULL, `currency` TEXT NOT NULL, `isCredit` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transactionId",
+            "columnName": "transactionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookingDateTime",
+            "columnName": "bookingDateTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCredit",
+            "columnName": "isCredit",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_transactions_accountId",
+            "unique": false,
+            "columnNames": [
+              "accountId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `${TABLE_NAME}` (`accountId`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46c582fd50c620fd1259be1ac8f39c00')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bbde18e40b45b5aded79caa7a13e527d')"
     ]
   }
 }

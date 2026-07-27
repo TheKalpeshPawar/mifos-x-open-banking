@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 import com.android.build.api.instrumentation.InstrumentationScope
 import org.convention.AppBuildType
@@ -138,8 +138,16 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.compose.ui.test)
 
+    // ConsentRedirectIntentTest — the redirect handling itself, on the JVM. Robolectric is here
+    // only for Uri.parse; the logic needs no Activity, no Koin graph and no device.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlin.test)
+
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
+
+    // ConsentRedirectManifestTest — asserts the OS actually routes the consent redirect to us.
+    androidTestImplementation(libs.kotlin.test)
 
     testImplementation(libs.koin.test.junit4)
 }

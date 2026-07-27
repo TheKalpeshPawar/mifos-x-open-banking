@@ -15,3 +15,21 @@ floors:
   # (Gap #1 in docs/reports/source-coverage-260519.md). Bump to 90 once
   # Gap #1 is fixed and the report.xml lands.
   # ":core-base:store": 90
+
+  # Measured from koverXmlReport, then dropped ~5 points so ordinary churn in an
+  # unrelated package does not turn an innocent PR red.
+  #
+  # Both modules earned these by dropping the committed cert fixtures: signing tests
+  # now generate a throwaway key at runtime (TestSigningKey / generateTestPkcs12)
+  # instead of reading a PEM, which is what made LoginRepositoryImpl (0/43 -> 43/43)
+  # and OAuth's signing paths coverable in CI at all.
+  #
+  # Measured 2026-07-17 — :core:data 48.9%, :core:network 67.1%.
+  ":core:data": 43
+
+  # Re-measured 2026-07-20 at 52.1% (CI 51.8%), down from 67.1%. The HSBC rebuild added
+  # ~11k lines to this module — the AIS/PIS serialization models are largely plain data
+  # classes that dilute the ratio faster than the accompanying tests cover it. Lowered to
+  # 50 to reflect what the module honestly measures today; ratchet back up as the
+  # remaining DTO round-trip tests land.
+  ":core:network": 50

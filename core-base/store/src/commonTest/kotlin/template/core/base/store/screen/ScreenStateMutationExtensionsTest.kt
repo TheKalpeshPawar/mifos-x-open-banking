@@ -9,6 +9,9 @@
  */
 package template.core.base.store.screen
 
+import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.DataFreshness
+
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import template.core.base.store.submit.SubmitHandler

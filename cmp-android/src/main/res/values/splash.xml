@@ -6,7 +6,7 @@
     If a copy of the MPL was not distributed with this file,
     You can obtain one at https://mozilla.org/MPL/2.0/.
 
-    See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
 -->
 <resources>
 
@@ -17,7 +17,7 @@
         <item name="windowSplashScreenAnimationDuration">10</item>
     </style>
 
-    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:textCursorDrawable">@null</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>

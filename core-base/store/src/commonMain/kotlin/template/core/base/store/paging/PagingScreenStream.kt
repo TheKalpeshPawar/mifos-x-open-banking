@@ -26,7 +26,7 @@ import template.core.base.store.screen.FetchPolicy
 import template.core.base.store.infra.DecisionEngine
 import template.core.base.store.infra.FetchedAtRepository
 import template.core.base.store.screen.DataOrigin
-import template.core.base.store.screen.ScreenState
+import template.core.base.common.screen.ScreenState
 import template.core.base.store.screen.StoreData
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime

@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.ui.input
 
@@ -37,7 +37,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.mifosx.openbanking.core.designsystem.icon.AppIcons
-import org.mifosx.openbanking.core.designsystem.theme.MifosTheme
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 
 @Suppress("LongMethod", "CyclomaticComplexMethod", "MagicNumber")
 @Composable
@@ -182,7 +182,7 @@ private val weakColor = Color(0xFF8B6609)
 @Preview
 @Composable
 private fun PasswordStrengthIndicatorPreview_minCharMet() {
-    MifosTheme {
+    MifosXOpenBankingTheme {
         PasswordStrengthIndicator(
             state = PasswordStrengthState.WEAK_3,
             currentCharacterCount = 12,
@@ -194,7 +194,7 @@ private fun PasswordStrengthIndicatorPreview_minCharMet() {
 @Preview
 @Composable
 private fun PasswordStrengthIndicatorPreview_minCharNotMet() {
-    MifosTheme {
+    MifosXOpenBankingTheme {
         PasswordStrengthIndicator(
             state = PasswordStrengthState.WEAK_3,
             currentCharacterCount = 11,
@@ -206,7 +206,7 @@ private fun PasswordStrengthIndicatorPreview_minCharNotMet() {
 @Preview
 @Composable
 private fun PasswordStrengthIndicatorPreview_noMinChar() {
-    MifosTheme {
+    MifosXOpenBankingTheme {
         PasswordStrengthIndicator(
             state = PasswordStrengthState.WEAK_3,
             currentCharacterCount = 12,

@@ -5,466 +5,334 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.feature.transactions.ui
 
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import org.mifosx.openbanking.core.data.accounts.AccountsRepository
-import org.mifosx.openbanking.core.data.payments.PaymentsRepository
-import org.mifosx.openbanking.core.data.transactions.CounterpartyNameResolver
-import org.mifosx.openbanking.core.data.transactions.TransactionsRepository
-import org.mifosx.openbanking.core.model.obp.Account
-import org.mifosx.openbanking.core.model.obp.AmountOfMoney
-import org.mifosx.openbanking.core.model.obp.Counterparty
-import org.mifosx.openbanking.core.model.obp.CounterpartyHolder
-import org.mifosx.openbanking.core.model.obp.Transaction
-import org.mifosx.openbanking.core.model.obp.TransactionAttribute
-import org.mifosx.openbanking.core.model.obp.TransactionCounterparty
-import org.mifosx.openbanking.core.model.obp.TransactionDetails
-import org.mifosx.openbanking.core.model.obp.TransactionRequest
-import org.mifosx.openbanking.core.model.obp.TransactionRequestDetails
-import org.mifosx.openbanking.core.model.obp.TransactionRequestSummary
-import template.core.base.store.screen.ScreenDataStream
-import template.core.base.store.screen.ScreenState
+import org.mifosx.openbanking.core.model.banking.TransactionCategory
+import org.mifosx.openbanking.core.model.banking.TransactionListItem
+import org.mifosx.openbanking.core.model.banking.TransactionsPage
+import org.mifosx.openbanking.feature.transactions.FakeTransactionsRepository
+import template.core.base.network.NetworkError
+import template.core.base.network.NetworkResult
 import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
-private val TODAY = LocalDate(2026, 6, 6)
-
-private fun txn(
-    id: String,
-    amount: String,
-    date: String,
-    description: String = "Txn $id",
-    holder: String = "Acme Ltd",
-    typeCode: String? = "POS",
-    otherId: String = "",
-) = Transaction(
-    id = id,
-    otherAccount = TransactionCounterparty(id = otherId, holder = CounterpartyHolder(name = holder)),
-    details = TransactionDetails(
-        description = description,
-        completed = "${date}T00:00:00Z",
-        value = AmountOfMoney(currency = "EUR", amount = amount),
-    ),
-    transactionAttributes = typeCode?.let { listOf(TransactionAttribute("TXN_TYPE", "STRING", it)) }.orEmpty(),
-)
-
-private fun pendingRequest(
-    id: String,
-    amount: String = "1500.00",
-    description: String = "Sofa deposit",
-    date: String = "2026-06-06",
-    status: String = "INITIATED",
-    transactionIds: List<String> = listOf(""),
-) = TransactionRequestSummary(
-    id = id,
-    type = "SANDBOX_TAN",
-    status = status,
-    details = TransactionRequestDetails(
-        value = AmountOfMoney(currency = "EUR", amount = amount),
-        description = description,
-    ),
-    transactionIds = transactionIds,
-    startDate = "${date}T00:00:00Z",
-)
-
-private class TxnFakeTransactionsRepository(
-    var result: Result<List<Transaction>> = Result.success(emptyList()),
-) : TransactionsRepository {
-    override fun transactionsStream(
-        bankId: String,
-        accountId: String,
-        scope: CoroutineScope,
-    ): ScreenDataStream<List<Transaction>> = TODO()
-    override suspend fun listTransactions(
-        bankId: String,
-        accountId: String,
-        limit: Int?,
-    ): Result<List<Transaction>> = result
-    override suspend fun listTransactionsWithAttributes(
-        bankId: String,
-        accountId: String,
-        limit: Int?,
-    ): Result<List<Transaction>> = result
-    override suspend fun getTransaction(
-        bankId: String,
-        accountId: String,
-        transactionId: String,
-    ): Result<Transaction> = TODO()
-}
-
-private class TxnFakePaymentsRepository(
-    var requests: Result<List<TransactionRequestSummary>> = Result.success(emptyList()),
-) : PaymentsRepository {
-    override fun beneficiariesStream(
-        accountId: String,
-        scope: CoroutineScope,
-    ): ScreenDataStream<List<Counterparty>> = TODO()
-    override suspend fun listBeneficiaries(bankId: String, accountId: String): Result<List<Counterparty>> =
-        Result.success(emptyList())
-    override suspend fun listTransactionRequests(
-        bankId: String,
-        accountId: String,
-    ): Result<List<TransactionRequestSummary>> = requests
-    override suspend fun sendSepaPayment(
-        bankId: String,
-        accountId: String,
-        iban: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = TODO()
-    override suspend fun sendToCounterparty(
-        bankId: String,
-        accountId: String,
-        counterpartyId: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = TODO()
-    override suspend fun fundsAvailable(
-        bankId: String,
-        accountId: String,
-        amount: String,
-        currency: String,
-    ): Result<Boolean> = Result.success(true)
-    override suspend fun sendToSandboxTan(
-        bankId: String,
-        accountId: String,
-        toBankId: String,
-        toAccountId: String,
-        amount: String,
-        currency: String,
-        reference: String,
-    ): Result<TransactionRequest> = Result.success(TransactionRequest())
-    override suspend fun answerChallenge(
-        bankId: String,
-        accountId: String,
-        type: String,
-        requestId: String,
-        challengeId: String,
-        answer: String,
-    ): Result<TransactionRequest> = Result.success(TransactionRequest())
-}
-
-private class TxnFakeAccountsRepository(
-    var account: Result<Account> = Result.success(
-        Account(id = "ac.checking.001", bankId = "ac.bank.uk", balance = AmountOfMoney("EUR", "1000")),
-    ),
-) : AccountsRepository {
-    override fun accountsStream(scope: CoroutineScope): ScreenDataStream<List<Account>> = TODO()
-    override suspend fun listAccounts(): Result<List<Account>> = TODO()
-    override suspend fun myAccounts(): Result<List<Account>> = TODO()
-    override suspend fun accountDetail(bankId: String, accountId: String): Result<Account> = account
-}
-
-private class TxnFakeCounterpartyNameResolver(
-    private val names: Map<String, String> = emptyMap(),
-    private val placeholder: String = "afternooncoffee",
-) : CounterpartyNameResolver {
-    override suspend fun resolve(
-        bankId: String,
-        accountId: String,
-        transactions: List<Transaction>,
-    ): Map<String, String> = names
-
-    override suspend fun placeholderHolder(): String = placeholder
-}
 
 class TransactionsViewModelTest {
 
-    private val dispatcher = StandardTestDispatcher()
+    private val repo = FakeTransactionsRepository()
 
-    @BeforeTest
-    fun setUp() = Dispatchers.setMain(dispatcher)
-
-    @AfterTest
-    fun tearDown() = Dispatchers.resetMain()
-
-    private fun vm(
-        transactions: List<Transaction> = emptyList(),
-        requests: List<TransactionRequestSummary> = emptyList(),
-        transactionsResult: Result<List<Transaction>>? = null,
-        counterpartyNames: Map<String, String> = emptyMap(),
-    ) = TransactionsViewModel(
-        transactionsRepository = TxnFakeTransactionsRepository(
-            transactionsResult ?: Result.success(transactions),
-        ),
-        paymentsRepository = TxnFakePaymentsRepository(Result.success(requests)),
-        accountsRepository = TxnFakeAccountsRepository(),
-        counterpartyNameResolver = TxnFakeCounterpartyNameResolver(counterpartyNames),
-        bankId = "ac.bank.uk",
-        accountId = "ac.checking.001",
-        todayProvider = { TODAY },
+    private fun item(
+        id: String,
+        description: String,
+        bookingDateTime: String,
+        amount: String,
+        isCredit: Boolean,
+        category: TransactionCategory = TransactionCategory.OTHER,
+        pending: Boolean = false,
+    ) = TransactionListItem(
+        transactionId = id,
+        accountId = "acc-1",
+        description = description,
+        bookingDateTime = bookingDateTime,
+        amount = amount,
+        currency = "GBP",
+        isCredit = isCredit,
+        category = category,
+        isPending = pending,
     )
 
-    private suspend fun kotlinx.coroutines.test.TestScope.content(
-        model: TransactionsViewModel,
-    ): TransactionsContent {
-        backgroundScope.launch { model.uiState.collect {} }
-        advanceUntilIdle()
-        val s = model.uiState.value
-        assertTrue(s is ScreenState.Content, "expected Content, was $s")
-        return s.data
+    private val spotify = item(
+        "t1",
+        "SPOTIFY AB",
+        "2026-06-28T20:00:00Z",
+        "11.99",
+        false,
+        TransactionCategory.SUBSCRIPTIONS,
+        pending = true,
+    )
+    private val costa = item("t2", "COSTA COFFEE", "2026-06-28T09:00:00Z", "3.65", false, TransactionCategory.DINING)
+    private val salary = item("t3", "SALARY ACME LTD", "2026-06-27T06:00:00Z", "2400.00", true)
+    private val tesco = item(
+        "t4",
+        "TESCO STORES",
+        "2026-06-27T18:00:00Z",
+        "42.17",
+        false,
+        TransactionCategory.GROCERIES,
+    )
+
+    private fun page(items: List<TransactionListItem>, next: String? = null) =
+        TransactionsPage(items, nextLink = next, totalPages = null)
+
+    private val fullPage = page(listOf(spotify, costa, salary, tesco))
+
+    private fun viewModel(accountId: String = "acc-1"): TransactionsViewModel {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        return TransactionsViewModel(SavedStateHandle(mapOf("accountId" to accountId)), repo)
+    }
+
+    private fun TransactionsState.content(): TransactionsData =
+        assertIs<TransactionsUiState.Content>(uiState).data
+
+    private fun TransactionsData.rowCount(): Int = groups.sumOf { it.rows.size }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
-    fun load_groupsTransactionsByDateDescending() = runTest(dispatcher) {
-        val c = content(
-            vm(
-                transactions = listOf(
-                    txn("t1", "-42.50", "2026-06-04"),
-                    txn("t2", "3200.00", "2026-06-05"),
-                    txn("t3", "-12.00", "2026-06-04"),
-                ),
-            ),
-        )
-        assertEquals(listOf(LocalDate(2026, 6, 5), LocalDate(2026, 6, 4)), c.groups.map { it.date })
-        assertEquals(2, c.groups[1].transactions.size)
+    fun firstPageSuccessRendersDateGroupedContentWithTotals() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+
+        val state = vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+        val data = state.content()
+
+        assertEquals(2, data.groups.size)
+        assertEquals("SUN 28 JUN 2026", data.groups[0].dateLabel)
+        assertEquals(2, data.groups[0].rows.size)
+        assertEquals("SAT 27 JUN 2026", data.groups[1].dateLabel)
+        assertEquals(2, data.groups[1].rows.size)
+        assertEquals("+£2,400.00", data.moneyInLabel)
+        assertEquals("-£57.81", data.moneyOutLabel)
+        assertFalse(state.hasNextPage)
+
+        val spotifyRow = data.groups[0].rows.first { it.transactionId == "t1" }
+        assertTrue(spotifyRow.isPending)
+        assertEquals("- £11.99", spotifyRow.amountLabel)
+        val salaryRow = data.groups[1].rows.first { it.transactionId == "t3" }
+        assertTrue(salaryRow.isCredit)
+        assertEquals("+ £2,400.00", salaryRow.amountLabel)
     }
 
     @Test
-    fun summary_currentMonthOnly_excludesPending() = runTest(dispatcher) {
-        val c = content(
-            vm(
-                transactions = listOf(
-                    txn("t1", "-100.00", "2026-06-02"),
-                    txn("t2", "-50.00", "2026-05-28"),
-                    txn("t3", "3200.00", "2026-06-01"),
-                ),
-                requests = listOf(pendingRequest("p1", amount = "1500.00")),
-            ),
-        )
-        assertEquals("100.00", c.summary.spent)
-        assertEquals("3200.00", c.summary.received)
-        assertEquals("EUR", c.summary.currency)
+    fun firstPageWithNoTransactionsRendersEmpty() = runTest {
+        repo.firstPageResult = NetworkResult.Success(page(emptyList()))
+        val vm = viewModel()
+
+        val state = vm.stateFlow.first { it.uiState !is TransactionsUiState.Loading }
+        assertIs<TransactionsUiState.Empty>(state.uiState)
     }
 
     @Test
-    fun pending_onlyInitiatedWithoutBookedTransactions() = runTest(dispatcher) {
-        val c = content(
-            vm(
-                requests = listOf(
-                    pendingRequest("p1"),
-                    pendingRequest("p2", status = "COMPLETED", transactionIds = listOf("tx-9")),
-                    pendingRequest("p3", status = "INITIATED", transactionIds = listOf("tx-8")),
-                ),
-            ),
-        )
-        assertEquals(listOf("p1"), c.pending.map { it.id })
+    fun rateLimitedFirstPageRendersRecoverableError() = runTest {
+        repo.firstPageResult = NetworkResult.Error(NetworkError.Client.RateLimited())
+        val vm = viewModel()
+
+        val state = vm.stateFlow.first { it.uiState is TransactionsUiState.Error }
+        val error = assertIs<TransactionsUiState.Error>(state.uiState)
+        assertEquals(TransactionsErrorKind.RATE_LIMITED, error.kind)
+        assertTrue(error.kind.recoverable)
     }
 
     @Test
-    fun filter_debit_showsOnlyNegativeAmounts() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn("t1", "-42.50", "2026-06-04"),
-                txn("t2", "3200.00", "2026-06-05"),
-            ),
-            requests = listOf(pendingRequest("p1")),
-        )
-        val before = content(model)
-        assertEquals(1, before.pending.size)
-        model.onFilterChanged(TransactionTypeFilter.DEBIT)
-        advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("t1"), c.groups.flatMap { it.transactions }.map { it.txId })
-        assertTrue(c.pending.isEmpty())
+    fun forbiddenMapsToNonRecoverableConsentWithdrawn() = runTest {
+        repo.firstPageResult = NetworkResult.Error(NetworkError.Client.Forbidden())
+        val state = viewModel().stateFlow.first { it.uiState is TransactionsUiState.Error }
+        val error = assertIs<TransactionsUiState.Error>(state.uiState)
+        assertEquals(TransactionsErrorKind.CONSENT_WITHDRAWN, error.kind)
+        assertFalse(error.kind.recoverable)
     }
 
     @Test
-    fun filter_pending_showsOnlyPendingSection() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(txn("t1", "-42.50", "2026-06-04")),
-            requests = listOf(pendingRequest("p1")),
-        )
-        content(model)
-        model.onFilterChanged(TransactionTypeFilter.PENDING)
-        advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertTrue(c.groups.isEmpty())
-        assertEquals(listOf("p1"), c.pending.map { it.id })
+    fun unauthorizedMapsToSessionExpired() = runTest {
+        repo.firstPageResult = NetworkResult.Error(NetworkError.Client.Unauthorized())
+        val state = viewModel().stateFlow.first { it.uiState is TransactionsUiState.Error }
+        assertEquals(TransactionsErrorKind.SESSION_EXPIRED, assertIs<TransactionsUiState.Error>(state.uiState).kind)
     }
 
     @Test
-    fun search_matchesDescriptionHolderAndAmount() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn("t1", "-42.50", "2026-06-04", description = "Grocery run", holder = "Tesco"),
-                txn("t2", "-94.20", "2026-06-03", description = "Energy bill", holder = "EDF"),
-            ),
-        )
-        content(model)
-        model.onQueryChanged("tesco")
-        advanceUntilIdle()
-        var c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("t1"), c.groups.flatMap { it.transactions }.map { it.txId })
-
-        model.onQueryChanged("94.20")
-        advanceUntilIdle()
-        c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("t2"), c.groups.flatMap { it.transactions }.map { it.txId })
+    fun otherNetworkErrorsMapToNetworkKind() = runTest {
+        repo.firstPageResult = NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline")))
+        val state = viewModel().stateFlow.first { it.uiState is TransactionsUiState.Error }
+        assertEquals(TransactionsErrorKind.NETWORK, assertIs<TransactionsUiState.Error>(state.uiState).kind)
     }
 
     @Test
-    fun search_matchesResolvedCounterpartyButNeverThePlaceholder() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn(
-                    "t1",
-                    "-200.00",
-                    "2026-06-04",
-                    description = "Monthly transfer",
-                    holder = "afternooncoffee",
-                    otherId = "obf-alice",
-                ),
-                txn(
-                    "t2",
-                    "-9.99",
-                    "2026-06-03",
-                    description = "Subscription",
-                    holder = "afternooncoffee",
-                    otherId = "obf-ext",
-                ),
-            ),
-            counterpartyNames = mapOf("obf-alice" to "Alice Johnson"),
-        )
-        content(model)
-        model.onQueryChanged("alice")
-        advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("t1"), c.groups.flatMap { it.transactions }.map { it.txId })
+    fun filterMoneyInShowsOnlyCredits() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
 
-        model.onQueryChanged("afternooncoffee")
+        vm.trySendAction(TransactionsAction.FilterTransactions(TransactionFilter.MONEY_IN))
         advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Empty)
+
+        val state = vm.stateFlow.value
+        assertEquals(TransactionFilter.MONEY_IN, state.activeFilter)
+        val data = state.content()
+        assertEquals(1, data.rowCount())
+        assertEquals("+£2,400.00", data.moneyInLabel)
+        assertEquals("-£0.00", data.moneyOutLabel)
     }
 
     @Test
-    fun pagination_tenPerPage_loadMoreAppends() = runTest(dispatcher) {
-        val many = (1..25).map { i ->
-            txn("t$i", "-1.00", "2026-06-0${(i % 5) + 1}")
-        }
-        val model = vm(transactions = many)
-        var c = content(model)
-        assertEquals(10, c.groups.sumOf { it.transactions.size })
-        assertTrue(c.hasMore)
+    fun filterMoneyOutShowsOnlyDebits() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
 
-        model.onLoadMore()
+        vm.trySendAction(TransactionsAction.FilterTransactions(TransactionFilter.MONEY_OUT))
         advanceUntilIdle()
-        c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(20, c.groups.sumOf { it.transactions.size })
-        assertTrue(c.hasMore)
 
-        model.onLoadMore()
-        advanceUntilIdle()
-        c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(25, c.groups.sumOf { it.transactions.size })
-        assertFalse(c.hasMore)
+        val data = vm.stateFlow.value.content()
+        assertEquals(3, data.rowCount())
+        assertEquals("+£0.00", data.moneyInLabel)
+        assertEquals("-£57.81", data.moneyOutLabel)
     }
 
     @Test
-    fun filterChange_resetsPagination() = runTest(dispatcher) {
-        val many = (1..25).map { i -> txn("t$i", "-1.00", "2026-06-01") }
-        val model = vm(transactions = many)
-        content(model)
-        model.onLoadMore()
+    fun searchNarrowsRowsByDescriptionCaseInsensitively() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        vm.trySendAction(TransactionsAction.SearchTransactions("tesco"))
         advanceUntilIdle()
-        model.onFilterChanged(TransactionTypeFilter.DEBIT)
-        advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(10, c.groups.sumOf { it.transactions.size })
+
+        val state = vm.stateFlow.value
+        assertEquals("tesco", state.query)
+        val data = state.content()
+        assertEquals(1, data.rowCount())
+        assertEquals("TESCO STORES", data.groups.first().rows.first().description)
     }
 
     @Test
-    fun dateRange_presetLast7DaysExcludesOlder() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn("recent", "-5.00", "2026-06-03"),
-                txn("old", "-5.00", "2026-05-20"),
-            ),
-        )
-        content(model)
-        model.onRangePresetSelected(DateRangePreset.LAST_7_DAYS)
+    fun searchWithNoMatchesRendersEmpty() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        vm.trySendAction(TransactionsAction.SearchTransactions("no-such-merchant"))
         advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("recent"), c.groups.flatMap { it.transactions }.map { it.txId })
+
+        assertIs<TransactionsUiState.Empty>(vm.stateFlow.value.uiState)
     }
 
     @Test
-    fun dateRange_presetLast60DaysIncludesBeyond30() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn("within60", "-5.00", "2026-04-20"),
-                txn("outside60", "-5.00", "2026-03-25"),
-            ),
-        )
-        backgroundScope.launch { model.uiState.collect {} }
+    fun clearFiltersRestoresEveryRow() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+        vm.trySendAction(TransactionsAction.FilterTransactions(TransactionFilter.MONEY_IN))
+        vm.trySendAction(TransactionsAction.SearchTransactions("salary"))
         advanceUntilIdle()
-        model.onRangePresetSelected(DateRangePreset.LAST_60_DAYS)
+
+        vm.trySendAction(TransactionsAction.ClearFilters)
         advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("within60"), c.groups.flatMap { it.transactions }.map { it.txId })
+
+        val state = vm.stateFlow.value
+        assertEquals(TransactionFilter.ALL, state.activeFilter)
+        assertEquals("", state.query)
+        assertEquals(4, state.content().rowCount())
     }
 
     @Test
-    fun dateRange_customBoundsApplied() = runTest(dispatcher) {
-        val model = vm(
-            transactions = listOf(
-                txn("inRange", "-5.00", "2026-05-20"),
-                txn("after", "-5.00", "2026-06-02"),
-                txn("before", "-5.00", "2026-05-01"),
-            ),
-        )
-        content(model)
-        model.onCustomRangeSelected(LocalDate(2026, 5, 10), LocalDate(2026, 5, 31))
+    fun setDateRangeFiltersByBookingDate() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        val day = LocalDate.parse("2026-06-27")
+        vm.trySendAction(TransactionsAction.SetDateRange(day, day))
         advanceUntilIdle()
-        val c = (model.uiState.value as ScreenState.Content).data
-        assertEquals(listOf("inRange"), c.groups.flatMap { it.transactions }.map { it.txId })
-        assertEquals(DateRangePreset.CUSTOM, c.range.preset)
+
+        val state = vm.stateFlow.value
+        assertFalse(state.showDateRangePicker)
+        val data = state.content()
+        assertEquals(1, data.groups.size)
+        assertEquals("SAT 27 JUN 2026", data.groups.first().dateLabel)
+        assertEquals(2, data.rowCount())
     }
 
     @Test
-    fun defaultRange_last30Days_filtersOutOlderPending() = runTest(dispatcher) {
-        val c = content(
-            vm(
-                requests = listOf(
-                    pendingRequest("fresh", date = "2026-06-06"),
-                    pendingRequest("stale", date = "2026-05-01"),
-                ),
-            ),
-        )
-        assertEquals(listOf("fresh"), c.pending.map { it.id })
+    fun openAndDismissDateRangePickerTogglesFlag() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        vm.trySendAction(TransactionsAction.OpenDateRangePicker)
+        advanceUntilIdle()
+        assertTrue(vm.stateFlow.value.showDateRangePicker)
+
+        vm.trySendAction(TransactionsAction.DismissDateRangePicker)
+        advanceUntilIdle()
+        assertFalse(vm.stateFlow.value.showDateRangePicker)
     }
 
     @Test
-    fun error_surfacesErrorState() = runTest(dispatcher) {
-        val model = vm(transactionsResult = Result.failure(IllegalStateException("boom")))
-        backgroundScope.launch { model.uiState.collect {} }
+    fun loadMoreAppendsNextPageAndFollowsCursor() = runTest {
+        repo.firstPageResult = NetworkResult.Success(page(listOf(salary, tesco), next = "cursor-1"))
+        repo.nextPageResults.add(NetworkResult.Success(page(listOf(spotify, costa))))
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+        assertTrue(vm.stateFlow.value.hasNextPage)
+
+        vm.trySendAction(TransactionsAction.LoadMore)
         advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Error)
+
+        assertEquals(1, repo.nextPageCount)
+        assertEquals("cursor-1", repo.lastNextLink)
+        val state = vm.stateFlow.value
+        assertFalse(state.isPaginating)
+        assertFalse(state.hasNextPage)
+        assertEquals(4, state.content().rowCount())
+        assertEquals(2, state.content().groups.size)
     }
 
     @Test
-    fun noMatches_isEmptyState() = runTest(dispatcher) {
-        val model = vm(transactions = listOf(txn("t1", "-1.00", "2026-06-01")))
-        content(model)
-        model.onQueryChanged("zzz-no-match")
+    fun loadMoreWithoutACursorIsANoOp() = runTest {
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        vm.trySendAction(TransactionsAction.LoadMore)
         advanceUntilIdle()
-        assertTrue(model.uiState.value is ScreenState.Empty)
+
+        assertEquals(0, repo.nextPageCount)
+    }
+
+    @Test
+    fun loadMoreErrorKeepsContentAndClearsPaginating() = runTest {
+        repo.firstPageResult = NetworkResult.Success(page(listOf(salary, tesco), next = "cursor-1"))
+        repo.nextPageResults.add(NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline"))))
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+
+        vm.trySendAction(TransactionsAction.LoadMore)
+        advanceUntilIdle()
+
+        val state = vm.stateFlow.value
+        assertEquals(1, repo.nextPageCount)
+        assertFalse(state.isPaginating)
+        assertEquals(2, state.content().rowCount())
+    }
+
+    @Test
+    fun retryReloadsAfterAnError() = runTest {
+        repo.firstPageResult = NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline")))
+        val vm = viewModel()
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Error }
+
+        repo.firstPageResult = NetworkResult.Success(fullPage)
+        vm.trySendAction(TransactionsAction.RetryLoad)
+        advanceUntilIdle()
+
+        vm.stateFlow.first { it.uiState is TransactionsUiState.Content }
+        assertEquals(2, repo.firstPageCount)
     }
 }

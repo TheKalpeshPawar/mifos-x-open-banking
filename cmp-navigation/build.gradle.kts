@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 
 plugins {
@@ -21,9 +21,9 @@ kotlin {
             implementation(projects.core.data)
             implementation(projects.core.database)
             implementation(projects.core.model)
-            implementation(projects.core.network)
             implementation(projects.core.common)
             implementation(projects.core.datastore)
+            implementation(projects.core.network)
 
             implementation(projects.core.datastore)
             implementation(projects.coreBase.common)
@@ -31,22 +31,23 @@ kotlin {
             implementation(projects.coreBase.security)
 
             implementation(projects.feature.home)
-            implementation(projects.feature.profile)
-            implementation(projects.feature.settings)
-            implementation(projects.feature.login)
             implementation(projects.feature.accounts)
-            implementation(projects.feature.cards)
-            implementation(projects.feature.beneficiaries)
-            implementation(projects.feature.standingOrders)
+            implementation(projects.feature.accountDetail)
             implementation(projects.feature.transactions)
-            implementation(projects.feature.sendMoney)
-            implementation(projects.feature.pfm)
-            implementation(projects.feature.businessInsights)
-            implementation(projects.feature.fxRates)
+            implementation(projects.feature.transactionDetail)
+            implementation(projects.feature.scheduledPayments)
+            implementation(projects.feature.beneficiaries)
+            implementation(projects.feature.product)
+            implementation(projects.feature.consentList)
+            implementation(projects.feature.consentDetail)
             implementation(projects.feature.directDebits)
-            implementation(projects.feature.products)
-            implementation(projects.feature.legal)
-            implementation(projects.feature.atmLocator)
+            implementation(projects.feature.standingOrders)
+            implementation(projects.feature.statementDetail)
+            implementation(projects.feature.statements)
+            implementation(projects.feature.settings)
+            implementation(projects.feature.accountHolder)
+            implementation(projects.feature.login)
+            implementation(projects.feature.consentCallback)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)
@@ -58,6 +59,15 @@ kotlin {
             implementation(libs.window.size)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+        }
+
+        // FileKit provides the platform save/share primitives for the app-layer
+        // StatementFileHandler. Its file-saver + write APIs are non-web only, so the
+        // real implementation lives in nonJsCommonMain (Android, desktop, iOS); the
+        // web targets fall back to the no-op actual in jsCommonMain.
+        nonJsCommonMain.dependencies {
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialog.compose)
         }
     }
 }

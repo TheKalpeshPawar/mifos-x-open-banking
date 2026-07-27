@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * See See https://github.com/openMF/kmp-project-template/blob/main/LICENSE
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
 package org.mifosx.openbanking.core.ui.bottombar
 
@@ -19,12 +19,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.mifosx.openbanking.core.ui.NavigationItem
@@ -38,8 +38,8 @@ fun KptNavigationRail(
     windowInsets: WindowInsets = NavigationRailDefaults.windowInsets,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        color = Color.White,
+        contentColor = Color.Unspecified,
         modifier = modifier,
     ) {
         Column(
@@ -59,7 +59,6 @@ fun KptNavigationRail(
             navigationItems.forEach { navigationItem ->
                 KptNavigationRailItem(
                     contentDescriptionRes = navigationItem.contentDescriptionRes,
-                    labelRes = navigationItem.labelRes,
                     selectedIconRes = navigationItem.selectedIcon,
                     unselectedIconRes = navigationItem.icon,
                     isSelected = navigationItem == selectedItem,
