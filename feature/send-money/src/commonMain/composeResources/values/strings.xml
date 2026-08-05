@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_send_money_screen_title">Send money</string>
+    <string name="feature_send_money_loading_a11y">Loading your accounts and payees</string>
+
+    <string name="feature_send_money_step_indicator">Step %1$d of %2$d</string>
+    <string name="feature_send_money_step_indicator_a11y">Step %1$d of %2$d: %3$s</string>
+    <string name="feature_send_money_step_recipient">Recipient</string>
+    <string name="feature_send_money_step_amount">Amount</string>
+    <string name="feature_send_money_step_review">Review</string>
+
+    <string name="feature_send_money_debtor_heading">Choose the account to pay from</string>
+    <string name="feature_send_money_creditor_heading">Choose who to pay</string>
+    <string name="feature_send_money_selected_a11y">Selected</string>
+    <string name="feature_send_money_no_saved_payees_title">No saved payees</string>
+    <string name="feature_send_money_no_saved_payees_body">You can still pay someone by entering their account details.</string>
+
+    <string name="feature_send_money_manual_entry">Enter account details instead</string>
+    <string name="feature_send_money_manual_entry_a11y">Enter a sort code and account number for someone who is not a saved payee</string>
+    <string name="feature_send_money_manual_name">Name on the account</string>
+    <string name="feature_send_money_manual_sort_code">Sort code</string>
+    <string name="feature_send_money_manual_sort_code_error">Enter a 6-digit sort code</string>
+    <string name="feature_send_money_manual_account_number">Account number</string>
+    <string name="feature_send_money_manual_account_number_error">Enter an 8-digit account number</string>
+    <string name="feature_send_money_manual_confirm">Use these details</string>
+
+    <string name="feature_send_money_amount_heading">How much are you sending?</string>
+    <string name="feature_send_money_amount_label">Amount in pence</string>
+    <string name="feature_send_money_amount_error_not_a_number">Enter an amount in whole pence</string>
+    <string name="feature_send_money_amount_error_not_positive">Enter an amount greater than zero</string>
+    <string name="feature_send_money_amount_error_exceeds_balance">That is more than the balance available on this account</string>
+    <string name="feature_send_money_reference_label">Reference (optional)</string>
+    <string name="feature_send_money_reference_helper">Max 35 characters</string>
+    <string name="feature_send_money_review_button">Review payment</string>
+
+    <string name="feature_send_money_review_heading">Check this before you send it</string>
+    <string name="feature_send_money_review_from">From</string>
+    <string name="feature_send_money_review_to">To</string>
+    <string name="feature_send_money_review_amount">Amount</string>
+    <string name="feature_send_money_review_reference">Reference</string>
+    <string name="feature_send_money_review_reference_empty">None</string>
+    <string name="feature_send_money_confirm">Confirm and authorise</string>
+    <string name="feature_send_money_cancel">Cancel</string>
+
+    <string name="feature_send_money_submitting_staging">Setting up your payment</string>
+    <string name="feature_send_money_submitting_awaiting">Waiting for you to authorise at your bank</string>
+    <string name="feature_send_money_submitting_submitting">Sending your payment</string>
+    <string name="feature_send_money_submitting_lock">Do not close the app until this finishes.</string>
+
+    <string name="feature_send_money_success_title">Payment submitted</string>
+    <string name="feature_send_money_success_amount">%1$s to %2$s</string>
+    <string name="feature_send_money_success_status">Accepted — settlement in process</string>
+    <string name="feature_send_money_success_body">Your bank has accepted this payment. It may take a short time to reach %1$s.</string>
+    <string name="feature_send_money_success_payment_id">Payment %1$s</string>
+    <string name="feature_send_money_view_status">Track this payment</string>
+    <string name="feature_send_money_view_status_a11y">Open payment status to follow this payment to settlement</string>
+
+    <string name="feature_send_money_error_title">Payment could not be completed</string>
+    <string name="feature_send_money_error_signature_missing">This app could not sign the payment instruction. Nothing has been sent. Please report the reference below.</string>
+    <string name="feature_send_money_error_consent_not_authorised">The payment was not authorised at your bank. Authorise it to continue.</string>
+    <string name="feature_send_money_error_consent_mismatch">The payment changed after you approved it, so your bank refused it. Start again to send it.</string>
+    <string name="feature_send_money_error_outside_limits">This amount is outside your bank\'s payment limits. Try a smaller amount.</string>
+    <string name="feature_send_money_error_invalid_field">Your bank would not accept one of these details. Check them and try again.</string>
+    <string name="feature_send_money_error_consent_revoked">Access to this account was withdrawn, so the payment was refused.</string>
+    <string name="feature_send_money_error_token_expired">Your authorisation expired before the payment was sent. Authorise it again to continue.</string>
+    <string name="feature_send_money_error_rate_limited">Your bank is busy right now. Wait a moment and try again.</string>
+    <string name="feature_send_money_error_insufficient_funds">There is not enough money in this account to cover the payment. Nothing has been sent.</string>
+    <string name="feature_send_money_error_network">The payment could not be sent. Check your connection and try again.</string>
+    <string name="feature_send_money_error_reference">Reference %1$s</string>
+
+    <string name="feature_send_money_retry">Try again</string>
+    <string name="feature_send_money_reauthorise">Authorise again</string>
+    <string name="feature_send_money_view_consents">View consents</string>
+    <string name="feature_send_money_edit_amount">Change amount</string>
+</resources>

@@ -129,6 +129,7 @@ include(":feature:settings")
 include(":feature:account-holder")
 include(":feature:login")
 include(":feature:consent-callback")
+include(":feature:send-money")
 
 include(":core-base:analytics")
 include(":core-base:common")

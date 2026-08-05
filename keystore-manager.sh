@@ -166,6 +166,17 @@ load_env_vars() {
                 local key=$(echo "$line" | cut -d '=' -f1 | xargs)
                 # Extract the value (anything after the first =)
                 local value=$(echo "$line" | cut -d '=' -f2-)
+                # Strip one layer of matching surrounding quotes. `cut` returns the raw
+                # text after the first '=', quotes included — so KEYALG="RSA" produced the
+                # 5-character string "RSA" and keytool died with
+                #   NoSuchAlgorithmException: "RSA" KeyPairGenerator not available
+                # A `source`-based loader strips these; this hand-rolled one must too.
+                if [ ${#value} -ge 2 ]; then
+                    case "$value" in
+                        \"*\") value="${value:1:${#value}-2}" ;;
+                        \'*\') value="${value:1:${#value}-2}" ;;
+                    esac
+                fi
                 # Export the variable
                 export "$key"="$value"
             fi

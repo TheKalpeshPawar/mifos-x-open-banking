@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
@@ -42,7 +43,22 @@ class AppLogoutImplTest {
         session: RecordingConsentSession = RecordingConsentSession(consentId = "cn-1"),
         userData: RecordingUserDataRepository = RecordingUserDataRepository(),
         cache: RecordingStoreCacheManager = RecordingStoreCacheManager(),
-    ) = AppLogoutImpl(revoke, session, userData, cache)
+        paymentAuth: RecordingPaymentAuthSession = RecordingPaymentAuthSession(),
+    ) = AppLogoutImpl(revoke, session, paymentAuth, userData, cache)
+
+    /**
+     * The payment session keeps its own keys precisely so that clearing one leg cannot disturb the
+     * other — which means signing out has to clear it explicitly, or a payments-scoped token outlives
+     * the session that authorised it.
+     */
+    @Test
+    fun signingOutAlsoDropsThePaymentAuthorisation() = runTest {
+        val paymentAuth = RecordingPaymentAuthSession()
+
+        logout(paymentAuth = paymentAuth).logOut()
+
+        assertTrue(paymentAuth.cleared)
+    }
 
     @Test
     fun theHappyPathRevokesForgetsAndClearsEverything() = runTest {
@@ -212,4 +228,20 @@ private class RecordingStoreCacheManager : StoreCacheManager {
     }
 
     override suspend fun pruneExpiredDrafts(maxAgeMs: Long) = Unit
+}
+
+private class RecordingPaymentAuthSession : PaymentAuthSession {
+    var cleared: Boolean = false
+        private set
+
+    override fun savePending(consentId: String, state: String, nonce: String) = Unit
+    override fun pendingConsentId(): String? = null
+    override fun matchesPendingState(state: String?): Boolean = false
+    override fun pendingNonce(): String? = null
+    override fun paymentToken(): PsuTokenResponse? = null
+    override fun savePaymentToken(tokens: PsuTokenResponse) = Unit
+
+    override fun clear() {
+        cleared = true
+    }
 }

@@ -35,9 +35,9 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../keystores/release_keystore.keystore")
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../keystores/upload.keystore")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "Wizard@123"
-            keyAlias = System.getenv("KEYSTORE_ALIAS") ?: "kmp-project-template"
+            keyAlias = System.getenv("KEYSTORE_ALIAS") ?: "MifosXOpenBanking"
             keyPassword = System.getenv("KEYSTORE_ALIAS_PASSWORD") ?: "Wizard@123"
             enableV1Signing = true
             enableV2Signing = true

@@ -1,0 +1,394 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+package org.mifosx.openbanking.feature.sendmoney
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
+import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPickerList
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyStepIndicator
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_exceeds_balance
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_a_number
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_positive
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_label
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_cancel
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_confirm
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number_error
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_confirm
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry_a11y
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_name
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_sort_code
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_sort_code_error
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_body
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_title
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_helper
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_amount
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_from
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_reference
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_reference_empty
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_to
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_amount
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_indicator
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_indicator_a11y
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_recipient
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_review
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
+
+private const val TOTAL_STEPS = 3
+private const val REFERENCE_MAX_LENGTH = 35
+
+private val ScreenPadding = 16.dp
+private val SectionGap = 16.dp
+private val HeadingGap = 8.dp
+private val RowGap = 12.dp
+
+/**
+ * The form, all three steps of it.
+ *
+ * One state with a step field rather than three screen states: the payer and payee chosen in step
+ * one stay live through steps two and three, and returning from a failure must not discard them.
+ */
+@Composable
+internal fun SendMoneyContent(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(SectionGap),
+    ) {
+        SendMoneyStepIndicator(
+            current = state.stepIndex,
+            total = TOTAL_STEPS,
+            label = stringResource(Res.string.feature_send_money_step_indicator, state.stepIndex, TOTAL_STEPS),
+            accessibilityLabel = stringResource(
+                Res.string.feature_send_money_step_indicator_a11y,
+                state.stepIndex,
+                TOTAL_STEPS,
+                stringResource(state.step.labelResource()),
+            ),
+        )
+
+        when (state.step) {
+            SendMoneyStep.Recipient -> RecipientStep(state, onAction)
+            SendMoneyStep.Amount -> AmountStep(state, onAction)
+            SendMoneyStep.Review -> ReviewStep(state, onAction)
+        }
+    }
+}
+
+@Composable
+private fun RecipientStep(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    val selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y)
+
+    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+        SectionHeading(stringResource(Res.string.feature_send_money_debtor_heading))
+        SendMoneyPickerList(
+            rows = state.debtorRows,
+            selectedId = state.debtorAccountId,
+            onSelect = { onAction(SendMoneyAction.SelectDebtorAccount(it)) },
+            tagFor = SendMoneyTestTags::debtorRow,
+            selectedLabel = selectedLabel,
+            modifier = Modifier.testTag(SendMoneyTestTags.DEBTOR_LIST),
+        )
+
+        SectionHeading(stringResource(Res.string.feature_send_money_creditor_heading))
+        if (state.hasBeneficiaries) {
+            SendMoneyPickerList(
+                rows = state.beneficiaries,
+                selectedId = state.creditor?.beneficiaryId,
+                onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
+                tagFor = SendMoneyTestTags::creditorRow,
+                selectedLabel = selectedLabel,
+                modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
+            )
+        } else {
+            NoSavedPayees()
+        }
+
+        TextButton(
+            onClick = { onAction(SendMoneyAction.ShowManualCreditorEntry) },
+            modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = stringResource(Res.string.feature_send_money_manual_entry_a11y),
+            )
+            Text(
+                text = stringResource(Res.string.feature_send_money_manual_entry),
+                modifier = Modifier.padding(start = HeadingGap),
+            )
+        }
+
+        if (state.manualEntryVisible) {
+            ManualCreditorFields(state, onAction)
+        }
+    }
+}
+
+@Composable
+private fun ManualCreditorFields(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
+        OutlinedTextField(
+            value = state.manualName,
+            onValueChange = { onAction(SendMoneyAction.EnterManualName(it)) },
+            label = { Text(stringResource(Res.string.feature_send_money_manual_name)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_NAME),
+        )
+        OutlinedTextField(
+            value = state.manualSortCode,
+            onValueChange = { onAction(SendMoneyAction.EnterManualSortCode(it)) },
+            label = { Text(stringResource(Res.string.feature_send_money_manual_sort_code)) },
+            isError = state.fieldErrors.sortCodeInvalid,
+            supportingText = {
+                if (state.fieldErrors.sortCodeInvalid) {
+                    Text(stringResource(Res.string.feature_send_money_manual_sort_code_error))
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_SORT_CODE),
+        )
+        OutlinedTextField(
+            value = state.manualAccountNumber,
+            onValueChange = { onAction(SendMoneyAction.EnterManualAccountNumber(it)) },
+            label = { Text(stringResource(Res.string.feature_send_money_manual_account_number)) },
+            isError = state.fieldErrors.accountNumberInvalid,
+            supportingText = {
+                if (state.fieldErrors.accountNumberInvalid) {
+                    Text(stringResource(Res.string.feature_send_money_manual_account_number_error))
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER),
+        )
+        MifosFilledPillButton(
+            label = stringResource(Res.string.feature_send_money_manual_confirm),
+            onClick = { onAction(SendMoneyAction.ConfirmManualCreditor) },
+            testTag = SendMoneyTestTags.MANUAL_CONFIRM,
+        )
+    }
+}
+
+@Composable
+private fun AmountStep(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+        SectionHeading(stringResource(Res.string.feature_send_money_amount_heading))
+
+        OutlinedTextField(
+            value = state.amountMinorUnits,
+            onValueChange = { onAction(SendMoneyAction.EnterAmount(it)) },
+            label = { Text(stringResource(Res.string.feature_send_money_amount_label)) },
+            isError = state.amountProblem != null,
+            supportingText = {
+                state.amountProblem?.let { problem ->
+                    Text(
+                        text = stringResource(problem.messageResource()),
+                        modifier = Modifier.testTag(SendMoneyTestTags.AMOUNT_ERROR),
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.AMOUNT_FIELD),
+        )
+
+        OutlinedTextField(
+            value = state.reference,
+            onValueChange = { onAction(SendMoneyAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
+            label = { Text(stringResource(Res.string.feature_send_money_reference_label)) },
+            supportingText = { Text(stringResource(Res.string.feature_send_money_reference_helper)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REFERENCE_FIELD),
+        )
+
+        MifosFilledPillButton(
+            label = stringResource(Res.string.feature_send_money_review_button),
+            onClick = { onAction(SendMoneyAction.ReviewPayment) },
+            testTag = SendMoneyTestTags.REVIEW_BUTTON,
+            enabled = state.canReview,
+        )
+    }
+}
+
+@Composable
+private fun ReviewStep(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+        SectionHeading(stringResource(Res.string.feature_send_money_review_heading))
+
+        Column(
+            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REVIEW_SUMMARY),
+            verticalArrangement = Arrangement.spacedBy(RowGap),
+        ) {
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_from),
+                value = state.debtorAccountLabel,
+                tag = SendMoneyTestTags.REVIEW_FROM,
+            )
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_to),
+                value = state.creditorLabel,
+                tag = SendMoneyTestTags.REVIEW_TO,
+                secondary = state.creditorSupporting,
+            )
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_amount),
+                value = state.amountLabel,
+                tag = SendMoneyTestTags.REVIEW_AMOUNT,
+                emphasis = true,
+            )
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_reference),
+                value = state.reference.ifBlank {
+                    stringResource(Res.string.feature_send_money_review_reference_empty)
+                },
+                tag = SendMoneyTestTags.REVIEW_REFERENCE,
+            )
+        }
+
+        MifosFilledPillButton(
+            label = stringResource(Res.string.feature_send_money_confirm),
+            onClick = { onAction(SendMoneyAction.ConfirmAndStageConsent) },
+            testTag = SendMoneyTestTags.CONFIRM_BUTTON,
+        )
+        MifosTonalPillButton(
+            label = stringResource(Res.string.feature_send_money_cancel),
+            onClick = { onAction(SendMoneyAction.CancelPayment) },
+            testTag = SendMoneyTestTags.CANCEL_BUTTON,
+        )
+    }
+}
+
+@Composable
+private fun ReviewRow(
+    label: String,
+    value: String,
+    tag: String,
+    modifier: Modifier = Modifier,
+    secondary: String = "",
+    emphasis: Boolean = false,
+) {
+    Column(modifier = modifier.fillMaxWidth().testTag(tag)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = if (emphasis) {
+                MaterialTheme.typography.headlineSmall
+            } else {
+                MaterialTheme.typography.bodyLarge
+            },
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (secondary.isNotBlank()) {
+            Text(
+                text = secondary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoSavedPayees() {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.NO_SAVED_PAYEES),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(HeadingGap),
+    ) {
+        Text(
+            text = stringResource(Res.string.feature_send_money_no_saved_payees_title),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(Res.string.feature_send_money_no_saved_payees_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SectionHeading(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+private fun SendMoneyStep.labelResource(): StringResource = when (this) {
+    SendMoneyStep.Recipient -> Res.string.feature_send_money_step_recipient
+    SendMoneyStep.Amount -> Res.string.feature_send_money_step_amount
+    SendMoneyStep.Review -> Res.string.feature_send_money_step_review
+}
+
+private fun SendMoneyAmountProblem.messageResource(): StringResource = when (this) {
+    SendMoneyAmountProblem.NotANumber -> Res.string.feature_send_money_amount_error_not_a_number
+    SendMoneyAmountProblem.NotPositive -> Res.string.feature_send_money_amount_error_not_positive
+    SendMoneyAmountProblem.ExceedsAvailableBalance -> Res.string.feature_send_money_amount_error_exceeds_balance
+}

@@ -52,6 +52,34 @@ fun NetworkError.obieMessage(): String? = body?.parseObError()
 /** As [obieMessage], unwrapping [RemoteException]. */
 fun Throwable.obieMessage(): String? = (this as? RemoteException)?.networkError?.obieMessage()
 
+/**
+ * The ASPSP's own error code, e.g. `U008` or `U014`.
+ *
+ * The payment flow needs this rather than the HTTP status: four of its ten failure modes arrive as
+ * `400`, and only the code distinguishes "the amount is outside your limits" from "the instruction
+ * diverged from the one you approved" — recoveries that are not interchangeable.
+ */
+fun NetworkError.obieErrorCode(): String? = body?.parseObError()
+    ?.errors
+    ?.firstNotNullOfOrNull { it.errorCode?.takeIf(String::isNotBlank) }
+
+/** As [obieErrorCode], unwrapping [RemoteException]. */
+fun Throwable.obieErrorCode(): String? = (this as? RemoteException)?.networkError?.obieErrorCode()
+
+/**
+ * The envelope's top-level `Id` — the bank's own reference for this failure.
+ *
+ * Surfaced to the PSU rather than only logged: when a payment fails for a reason they cannot act on,
+ * this is the one thing that makes the call traceable in support.
+ */
+fun NetworkError.obieSupportReference(): String? = body?.parseObError()
+    ?.id
+    ?.takeIf(String::isNotBlank)
+
+/** As [obieSupportReference], unwrapping [RemoteException]. */
+fun Throwable.obieSupportReference(): String? =
+    (this as? RemoteException)?.networkError?.obieSupportReference()
+
 private fun String?.carriesUnsupportedProductCode(): Boolean {
     if (this.isNullOrBlank()) return false
     val errors = parseObError()?.errors

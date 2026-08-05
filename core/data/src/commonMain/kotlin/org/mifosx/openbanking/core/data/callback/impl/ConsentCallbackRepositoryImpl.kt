@@ -9,9 +9,6 @@
  */
 package org.mifosx.openbanking.core.data.callback.impl
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentStatusResult
 import org.mifosx.openbanking.core.data.callback.PendingAuthStore
@@ -25,8 +22,6 @@ import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkResult
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 class ConsentCallbackRepositoryImpl(
     private val oauth: OAuth,
@@ -66,29 +61,6 @@ class ConsentCallbackRepositoryImpl(
         return ValidationResult.Valid(code = code, consentId = pending.consentId)
     }
 
-    /**
-     * Fails closed: anything unreadable counts as a mismatch.
-     *
-     * Padding is optional because a JWT's base64url segments are unpadded per RFC 7515 §2, while
-     * Kotlin's [Base64.UrlSafe] demands padding by default and throws without it. Decoding a real
-     * HSBC `id_token` with the strict variant therefore threw on every genuine consent and reported
-     * it as a nonce mismatch.
-     */
-    @OptIn(ExperimentalEncodingApi::class)
-    @Suppress("ReturnCount")
-    private fun idTokenNonceMismatch(idToken: String?, expectedNonce: String): Boolean {
-        if (idToken == null) return true
-        return try {
-            val parts = idToken.split(".")
-            if (parts.size < 2) return true
-            val payload = jwtBase64.decode(parts[1]).decodeToString()
-            val nonce = Json.parseToJsonElement(payload).jsonObject["nonce"]?.jsonPrimitive?.content
-            nonce != expectedNonce
-        } catch (_: Exception) {
-            true
-        }
-    }
-
     override suspend fun exchangeCode(
         code: String,
         redirectUri: String,
@@ -124,9 +96,5 @@ class ConsentCallbackRepositoryImpl(
 
     private companion object {
         const val ERROR_ACCESS_DENIED = "access_denied"
-
-        /** JWT segments are unpadded base64url (RFC 7515 §2); accept them with or without padding. */
-        @OptIn(ExperimentalEncodingApi::class)
-        val jwtBase64: Base64 = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL)
     }
 }

@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.network.HSBCUKSandboxConfig
 import org.mifosx.openbanking.core.network.TOKEN_ENDPOINT
 import org.mifosx.openbanking.core.network.api.Aisp
 import org.mifosx.openbanking.core.network.api.OAuth
+import org.mifosx.openbanking.core.network.api.Pisp
 import org.mifosx.openbanking.core.network.config.HsbcConfig
 import org.mifosx.openbanking.core.network.getBaseUrl
 import org.mifosx.openbanking.core.network.hsbcSandboxHttpClient
@@ -49,9 +50,29 @@ val NetworkModule = module {
 
     single { Aisp(get()) }
 
+    single {
+        Pisp(
+            httpClient = get(),
+            kid = HsbcConfig.KID,
+            signingKeyPem = get(named("hsbcSigningKey")),
+            financialId = get(named("hsbcFinancialId")),
+        )
+    }
+
     single(named("hsbcClientId")) { HsbcConfig.CLIENT_ID }
     single(named("hsbcKid")) { HsbcConfig.KID }
     single(named("hsbcBankHost")) { HsbcConfig.BANK_HOST }
     single(named("hsbcAuthorizeHost")) { HsbcConfig.AUTHORIZE_HOST }
     single(named("hsbcRedirectUri")) { HsbcConfig.REDIRECT_URI }
+
+    /**
+     * The ASPSP's Open Banking organisation id, sent as `x-fapi-financial-id` on PISP calls.
+     *
+     * Blank because HSBC publishes no value for it: the sandbox's own Postman collection references
+     * an undefined variable for this header, and the AIS calls this app already makes are accepted
+     * without it. [org.mifosx.openbanking.core.network.pisp.fapiHeaders] omits the header entirely
+     * while this is blank, which is what the sandbox accepts; supply a value here if a live call
+     * ever rejects its absence.
+     */
+    single(named("hsbcFinancialId")) { "" }
 }
