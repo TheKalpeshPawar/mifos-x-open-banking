@@ -146,6 +146,8 @@ internal fun DomesticPaymentResponse.toPaymentReceipt(): PaymentReceipt {
             currency = amount?.currency.orEmpty(),
         ),
         creditorName = initiation?.creditorAccount?.name.orEmpty(),
+        reference = initiation?.remittanceInformation?.unstructured?.firstOrNull().orEmpty(),
+        debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
     )
 }
 

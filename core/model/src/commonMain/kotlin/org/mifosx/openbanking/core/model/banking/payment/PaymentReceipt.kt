@@ -19,6 +19,8 @@ import kotlinx.serialization.Serializable
  * @property consentId The consent this payment was executed against.
  * @property amountLabel The instructed amount echoed by the bank, formatted for display.
  * @property creditorName Who was paid, echoed from the submitted `Initiation`.
+ * @property reference The remittance reference, or empty when the payment carried none.
+ * @property debtorIdentification The paying account as the bank echoes it, unformatted.
  */
 @Serializable
 data class PaymentReceipt(
@@ -28,4 +30,6 @@ data class PaymentReceipt(
     val statusUpdateDateTime: String,
     val amountLabel: String,
     val creditorName: String,
+    val reference: String = "",
+    val debtorIdentification: String = "",
 )
