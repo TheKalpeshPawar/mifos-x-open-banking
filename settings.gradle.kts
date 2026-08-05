@@ -131,6 +131,7 @@ include(":feature:login")
 include(":feature:consent-callback")
 include(":feature:send-money")
 include(":feature:payment-status")
+include(":feature:payment-consent")
 
 include(":core-base:analytics")
 include(":core-base:common")

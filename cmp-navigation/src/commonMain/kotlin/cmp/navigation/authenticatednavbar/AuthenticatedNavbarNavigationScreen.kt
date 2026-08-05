@@ -37,6 +37,7 @@ import cmp.navigation.ui.ScaffoldNavigationData
 import cmp.navigation.ui.rememberKptNavController
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
@@ -56,11 +57,15 @@ import org.mifosx.openbanking.feature.directdebits.directDebitsScreen
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.login.LoginRenewRoute
+import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.loginRenewScreen
+import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
+import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import org.mifosx.openbanking.feature.product.ProductRoute
 import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
 import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
+import org.mifosx.openbanking.feature.sendmoney.sendMoneyGraph
 import org.mifosx.openbanking.feature.settings.LicencesRoute
 import org.mifosx.openbanking.feature.settings.licencesScreen
 import org.mifosx.openbanking.feature.settings.settingsScreen
@@ -119,6 +124,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
     val navigationItems = consumerNavBarTabs
     val startDestination: Any = HomeDestination
     val uriHandler = LocalUriHandler.current
+    val browserLauncher: BrowserLauncher = koinInject()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -157,6 +163,20 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             accountsGraph(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
+            )
+            sendMoneyGraph(
+                // The same Custom-Tabs launcher the sign-in consent uses. A payment authorisation is
+                // the identical hop to the identical bank; opening it any other way would be a
+                // second, less careful browser path for the more sensitive of the two flows.
+                onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
+                onNavigateToPaymentStatus = { paymentId ->
+                    navController.navigate(PaymentStatusRoute(paymentId))
+                },
+                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
+            )
+            paymentStatusScreen(
+                onBack = { navController.popBackStack() },
+                onStartNewPayment = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
             )
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },

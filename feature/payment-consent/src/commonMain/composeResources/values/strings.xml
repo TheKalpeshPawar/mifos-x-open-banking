@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_payment_consent_screen_title">Authorising payment</string>
+
+    <string name="feature_payment_consent_validating">Checking your authorisation…</string>
+    <string name="feature_payment_consent_exchanging">Confirming with your bank…</string>
+    <string name="feature_payment_consent_checking">Waiting for your bank to confirm…</string>
+    <string name="feature_payment_consent_checking_hint">Your bank has not confirmed this yet. It sometimes takes a moment.</string>
+    <string name="feature_payment_consent_check_again">Check again</string>
+
+    <string name="feature_payment_consent_authorised_title">Authorisation complete</string>
+    <string name="feature_payment_consent_authorised_body">Sending your payment now.</string>
+
+    <string name="feature_payment_consent_error_title">Authorisation could not be completed</string>
+    <string name="feature_payment_consent_error_state_mismatch">This authorisation could not be verified, so it was not accepted. No payment has been made. Start the payment again.</string>
+    <string name="feature_payment_consent_error_no_pending">There was no payment waiting to be authorised. No payment has been made.</string>
+    <string name="feature_payment_consent_error_code_expired">The authorisation expired before it could be completed. No payment has been made.</string>
+    <string name="feature_payment_consent_error_rejected">The payment was not approved at your bank. No payment has been made.</string>
+    <string name="feature_payment_consent_error_timed_out">Your bank did not confirm the authorisation in time. No payment has been made.</string>
+    <string name="feature_payment_consent_error_network">Could not reach your bank to finish authorising. No payment has been made.</string>
+
+    <string name="feature_payment_consent_restart">Authorise again</string>
+    <string name="feature_payment_consent_abandon">Cancel this payment</string>
+</resources>

@@ -22,7 +22,7 @@ import template.core.base.ui.nav.composableWithStayTransitions
  *
  * The 6 screens that already own a real destination — home, profile, settings,
  * login, splash, notifications — are wired by their own modules. The remaining
- * 26 below are placeholder destinations: type-safe @Serializable routes rendering
+ * 24 below are placeholder destinations: type-safe @Serializable routes rendering
  * [PlaceholderScreen], replaced by real feature modules in Phases 4–6. Detail
  * routes are arg-less data objects for now; their id/key args are added when the
  * owning feature is implemented.
@@ -32,10 +32,6 @@ import template.core.base.ui.nav.composableWithStayTransitions
 @Serializable data object TransactionsRoute
 
 @Serializable data object TransactionTagsRoute
-
-@Serializable data object SendMoneyRoute
-
-@Serializable data object SendMoneyConfirmRoute
 
 @Serializable data object CardsRoute
 
@@ -69,18 +65,15 @@ import template.core.base.ui.nav.composableWithStayTransitions
 @Serializable data object ForgotPasswordRoute
 
 // ─── Bottom-nav navigation helpers ───────────────────────────────────────────
-fun NavController.navigateToSendMoney(navOptions: NavOptions? = null) = navigate(SendMoneyRoute, navOptions)
 fun NavController.navigateToCards(navOptions: NavOptions? = null) = navigate(CardsRoute, navOptions)
 
 /**
- * Registers empty composables for all 26 not-yet-built banking screens. Wired
+ * Registers empty composables for all 24 not-yet-built banking screens. Wired
  * into the authenticated nav host so every route resolves end to end in Phase 2.
  */
 fun NavGraphBuilder.bankingPlaceholderDestinations() {
     composableWithStayTransitions<TransactionsRoute> { PlaceholderScreen("Transactions") }
     composableWithStayTransitions<TransactionTagsRoute> { PlaceholderScreen("Transaction tags") }
-    composableWithStayTransitions<SendMoneyRoute> { PlaceholderScreen("Pay") }
-    composableWithStayTransitions<SendMoneyConfirmRoute> { PlaceholderScreen("Confirm payment") }
     composableWithStayTransitions<CardsRoute> { PlaceholderScreen("Cards") }
     composableWithStayTransitions<CardDetailRoute> { PlaceholderScreen("Card detail") }
     composableWithStayTransitions<StandingOrderDetailRoute> { PlaceholderScreen("Standing order detail") }
