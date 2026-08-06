@@ -50,7 +50,7 @@ data class UserData(
             isUnlocked = true,
             isPasscodeEnabled = false,
             isBiometricsEnabled = false,
-            enableScreenCapture = false,
+            enableScreenCapture = true,
             selectedAccountId = "",
         )
     }

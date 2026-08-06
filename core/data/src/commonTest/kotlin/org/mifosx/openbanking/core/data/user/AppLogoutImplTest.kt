@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
@@ -240,6 +241,8 @@ private class RecordingPaymentAuthSession : PaymentAuthSession {
     override fun pendingNonce(): String? = null
     override fun paymentToken(): PsuTokenResponse? = null
     override fun savePaymentToken(tokens: PsuTokenResponse) = Unit
+    override fun saveDraft(draft: PaymentDraft) = Unit
+    override fun draft(): PaymentDraft? = null
 
     override fun clear() {
         cleared = true

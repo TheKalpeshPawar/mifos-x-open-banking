@@ -17,8 +17,10 @@
     <string name="feature_payment_consent_checking_hint">Your bank has not confirmed this yet. It sometimes takes a moment.</string>
     <string name="feature_payment_consent_check_again">Check again</string>
 
-    <string name="feature_payment_consent_authorised_title">Authorisation complete</string>
-    <string name="feature_payment_consent_authorised_body">Sending your payment now.</string>
+    <string name="feature_payment_consent_confirming_funds">Checking the money is available…</string>
+    <string name="feature_payment_consent_submitting">Sending your payment…</string>
+    <!-- Curly apostrophe, not \' — Compose Multiplatform renders the backslash literally. -->
+    <string name="feature_payment_consent_submitting_warning">Don’t close this screen</string>
 
     <string name="feature_payment_consent_error_title">Authorisation could not be completed</string>
     <string name="feature_payment_consent_error_state_mismatch">This authorisation could not be verified, so it was not accepted. No payment has been made. Start the payment again.</string>
@@ -27,6 +29,9 @@
     <string name="feature_payment_consent_error_rejected">The payment was not approved at your bank. No payment has been made.</string>
     <string name="feature_payment_consent_error_timed_out">Your bank did not confirm the authorisation in time. No payment has been made.</string>
     <string name="feature_payment_consent_error_network">Could not reach your bank to finish authorising. No payment has been made.</string>
+    <string name="feature_payment_consent_error_no_staged_payment">The payment details could not be found, so nothing was sent. Start the payment again.</string>
+    <string name="feature_payment_consent_error_insufficient_funds">Your bank says there is not enough money in the account to cover this payment. No payment has been made.</string>
+    <string name="feature_payment_consent_error_submission_failed">Your bank could not process the payment. Check your recent transactions before trying again.</string>
 
     <string name="feature_payment_consent_restart">Authorise again</string>
     <string name="feature_payment_consent_abandon">Cancel this payment</string>

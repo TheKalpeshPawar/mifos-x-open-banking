@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.parseMinorUnits
+import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.BeneficiariesRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
@@ -33,8 +34,12 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
+import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
 import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.combineContent
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.uuid.ExperimentalUuidApi
@@ -46,14 +51,20 @@ private const val INSTRUCTION_ID_PREFIX = "MFX"
 private const val END_TO_END_ID_PREFIX = "E2E"
 
 /**
- * Drives the payment journey.
+ * Drives the payment form up to the point the customer leaves for their bank.
+ *
+ * It builds the instruction, stages it, and hands off to the browser. It does **not** submit: the
+ * hop to the bank pops this screen without saving state, so the ViewModel that returns is a new and
+ * empty one. Confirming funds and submitting therefore belong to the leg that comes back —
+ * `PaymentConsentViewModel` — which reads the staged draft out of storage.
  *
  * Two things here are load-bearing and neither is obvious from the shape of the code:
  *
- * The **idempotency key and the draft are minted exactly once**, in [confirmAndStageConsent], and
- * every later call reuses them. A retry that mints a fresh key is not a retry — the bank has no way
- * to recognise it as a duplicate and pays twice. For the same reason the draft is stored rather than
- * rebuilt: the submitted `Initiation` must be byte-identical to the staged one.
+ * The **draft and its two idempotency keys are minted exactly once**, in [confirmAndStageConsent].
+ * Regenerating them would produce a second instruction the bank cannot recognise as a duplicate, and
+ * the draft is stored rather than rebuilt because the submitted `Initiation` must be byte-identical
+ * to the staged one. The two keys differ from each other because the consent and submission bodies
+ * differ; see [PaymentDraft].
  *
  * The **form survives stream emissions**. Loaded data ([accountsScreen], [beneficiariesScreen]) and
  * entered data ([form]) are separate flows combined into one `Content`, so an account refresh
@@ -65,6 +76,7 @@ class SendMoneyViewModel(
     private val accountsOverviewRepository: AccountsOverviewRepository,
     private val beneficiariesRepository: BeneficiariesRepository,
     private val paymentInitiationRepository: PaymentInitiationRepository,
+    private val capabilityRegistry: AccountCapabilityRegistry,
 ) : BaseViewModel<SendMoneyState, SendMoneyEvent, SendMoneyAction>(initialState = SendMoneyState()) {
 
     /** Everything the PSU has entered. Held apart from loaded data so a refresh cannot clear it. */
@@ -82,14 +94,20 @@ class SendMoneyViewModel(
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
     )
 
-    /** Which of the four screen states is showing. The form only renders under [Phase.Form]. */
+    /** Which of the three screen states is showing. The form only renders under [Phase.Form]. */
     private sealed interface Phase {
         data object Form : Phase
         data class Submitting(val stage: SendMoneyStage, val consentId: String?) : Phase
-        data class Success(val receipt: PaymentReceipt) : Phase
         data class Error(val kind: SendMoneyErrorKind, val supportReference: String?) : Phase
     }
 
+    /**
+     * The loaded accounts, already narrowed to those that may fund a payment.
+     *
+     * Filtered once here, as the stream lands, so the picker rows, the seeded selection, the
+     * balance comparison and the draft's debtor can never disagree about which accounts are
+     * payable. See [canFundAPayment] for why a credit card is not one of them.
+     */
     private val accountsScreen =
         MutableStateFlow<ScreenState<List<AccountWithBalance>>>(ScreenState.Loading)
     private val beneficiariesScreen =
@@ -107,7 +125,18 @@ class SendMoneyViewModel(
             }
 
     init {
+        // Two filters, deliberately different in kind. canFundAPayment is a PREDICTION from the
+        // product matrix and catches only what the account data can identify. The registry is what
+        // the bank has actually refused this session — the safety net for products the app cannot
+        // tell apart, such as a Global Money wallet reporting AccountTypeCode CACC.
         accountsOverviewRepository.overviewState(viewModelScope)
+            .combineContent(capabilityRegistry.unsupportedStream()) { accounts, refused, _ ->
+                accounts
+                    .filter { it.account.canFundAPayment() }
+                    .filterNot {
+                        AccountEndpoint.PaymentDebtor in refused[it.account.accountId].orEmpty()
+                    }
+            }
             .onEach { screen ->
                 accountsScreen.value = screen
                 seedSelection(screen)
@@ -138,9 +167,8 @@ class SendMoneyViewModel(
             is SendMoneyAction.EnterReference -> enterReference(action.reference)
             SendMoneyAction.ReviewPayment -> form.value = form.value.copy(step = SendMoneyStep.Review)
             SendMoneyAction.ConfirmAndStageConsent -> confirmAndStageConsent()
-            SendMoneyAction.SubmitPayment -> submitPayment()
-            SendMoneyAction.RetrySubmit -> submitPayment()
-            SendMoneyAction.CancelPayment -> cancelPayment()
+            SendMoneyAction.RetryStaging -> confirmAndStageConsent()
+            SendMoneyAction.ChangePayer -> changePayer()
             SendMoneyAction.BackStep -> backStep()
             SendMoneyAction.RetryLoad -> accountsOverviewRepository.refresh()
         }
@@ -267,7 +295,7 @@ class SendMoneyViewModel(
     private fun confirmAndStageConsent() {
         val draft = buildDraft() ?: return
         phase.value = Phase.Submitting(SendMoneyStage.StagingConsent, consentId = null)
-        updateState { copy(idempotencyKey = draft.idempotencyKey, draft = draft) }
+        updateState { copy(draft = draft) }
 
         viewModelScope.launch {
             when (val result = paymentInitiationRepository.stagePayment(draft)) {
@@ -283,43 +311,6 @@ class SendMoneyViewModel(
         }
     }
 
-    /**
-     * Confirms funds, then submits.
-     *
-     * A negative funds check stops here: the protocol calls the confirmation optional, but once made
-     * its answer is binding, and submitting anyway would be knowingly sending a payment the bank has
-     * just said it cannot cover.
-     */
-    private fun submitPayment() {
-        val draft = state.draft ?: return
-        val consentId = state.consentId ?: return
-        phase.value = Phase.Submitting(SendMoneyStage.SubmittingPayment, consentId)
-
-        viewModelScope.launch {
-            when (val funds = paymentInitiationRepository.confirmFunds(consentId)) {
-                is NetworkResult.Success ->
-                    if (funds.data) {
-                        submitConfirmed(draft, consentId)
-                    } else {
-                        phase.value = Phase.Error(SendMoneyErrorKind.InsufficientFunds, supportReference = null)
-                    }
-
-                is NetworkResult.Error -> fail(funds.error.toThrowable())
-            }
-        }
-    }
-
-    private suspend fun submitConfirmed(draft: PaymentDraft, consentId: String) {
-        when (val result = paymentInitiationRepository.submitPayment(draft, consentId)) {
-            is NetworkResult.Success -> {
-                phase.value = Phase.Success(result.data)
-                sendEvent(SendMoneyEvent.PaymentSucceeded(result.data.domesticPaymentId))
-            }
-
-            is NetworkResult.Error -> fail(result.error.toThrowable())
-        }
-    }
-
     private fun fail(throwable: Throwable) {
         phase.value = Phase.Error(
             kind = classifySendMoneyError(throwable),
@@ -327,11 +318,17 @@ class SendMoneyViewModel(
         )
     }
 
-    /** Abandons before anything was sent, so there is nothing to revoke — just clear and restart. */
-    private fun cancelPayment() {
-        form.value = Form(debtorAccountId = form.value.debtorAccountId)
+    /**
+     * Returns to the payer step after the bank refused the account the payment came from.
+     *
+     * Clears the payer as well as the draft: the account that was selected is the thing that failed,
+     * and by now the registry has removed it from the list, so leaving it selected would point at a
+     * row that no longer exists. The payee is kept — nothing was wrong with it.
+     */
+    private fun changePayer() {
+        form.value = form.value.copy(step = SendMoneyStep.Recipient, debtorAccountId = null)
         phase.value = Phase.Form
-        updateState { copy(idempotencyKey = "", draft = null, consentId = null) }
+        updateState { copy(draft = null, consentId = null) }
     }
 
     /**
@@ -343,7 +340,7 @@ class SendMoneyViewModel(
     private fun backStep() {
         form.value = form.value.copy(step = SendMoneyStep.Amount)
         phase.value = Phase.Form
-        updateState { copy(idempotencyKey = "", draft = null, consentId = null) }
+        updateState { copy(draft = null, consentId = null) }
     }
 
     /**
@@ -365,7 +362,8 @@ class SendMoneyViewModel(
             reference = current.reference.takeIf { it.isNotBlank() },
             instructionIdentification = INSTRUCTION_ID_PREFIX + hex,
             endToEndIdentification = END_TO_END_ID_PREFIX + hex,
-            idempotencyKey = Uuid.generateV4().toString(),
+            consentIdempotencyKey = Uuid.generateV4().toString(),
+            paymentIdempotencyKey = Uuid.generateV4().toString(),
         )
     }
 
@@ -380,13 +378,6 @@ class SendMoneyViewModel(
             amountLabel = amountLabel(entered),
             creditorName = entered.creditor?.name.orEmpty(),
             consentId = current.consentId,
-        )
-
-        is Phase.Success -> SendMoneyUiState.Success(
-            paymentId = current.receipt.domesticPaymentId,
-            statusLabel = current.receipt.status.name,
-            amountLabel = current.receipt.amountLabel,
-            creditorName = current.receipt.creditorName,
         )
 
         is Phase.Error -> SendMoneyUiState.Error(current.kind, current.supportReference)
@@ -415,13 +406,13 @@ class SendMoneyViewModel(
         return SendMoneyUiState.Content(
             step = entered.step,
             debtorAccounts = accounts.map { it.account },
-            debtorRows = accounts.map { it.toPickerRow() },
+            debtorRows = accounts.map { it.toAccountRow() },
             beneficiaries = payeeList.map { it.toPickerRow() },
             debtorAccountId = entered.debtorAccountId,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
             creditorSupporting = entered.creditor?.let { schemeLabel(it) }.orEmpty(),
-            debtorAccountLabel = selected?.account?.nickname.orEmpty(),
+            debtorAccountRow = selected?.toAccountRow(),
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
             manualAccountNumber = entered.manualAccountNumber,
@@ -464,12 +455,41 @@ class SendMoneyViewModel(
     }
 }
 
-private fun AccountWithBalance.toPickerRow(): SendMoneyPickerRow = SendMoneyPickerRow(
+/**
+ * Carries the account's raw fields rather than a finished name.
+ *
+ * `nickname` is blank on most HSBC accounts, so using it as the headline renders an empty row —
+ * which is exactly what shipped before this. The readable label is resolved at render by
+ * `core/ui`'s `accountDisplayName`, the same resolver Home and Accounts use.
+ */
+private fun AccountWithBalance.toAccountRow(): SendMoneyAccountRow = SendMoneyAccountRow(
     id = account.accountId,
-    initials = initialsOf(account.nickname),
-    headline = account.nickname,
+    nickname = account.nickname,
+    accountSubType = account.accountSubType,
+    accountNumber = account.accountNumber,
+    rawIdentification = account.rawIdentification,
     supporting = balance?.let { formatMinorUnits(parseMinorUnits(it.availableAmount) ?: 0L, it.currency) }
         .orEmpty(),
+)
+
+/**
+ * Whether this account's PRODUCT is known to be unable to fund a payment.
+ *
+ * Only a prediction, and deliberately a cheap one — it catches the credit card, which is visible in
+ * [BankAccount.accountSubType]. It does not catch a Global Money wallet, which reports
+ * `AccountTypeCode: CACC` and is indistinguishable here from a current account; that is caught from
+ * the bank's refusal instead, and reaches this screen through the capability registry.
+ *
+ * Fails open through [HsbcProductCapability.supports]: a product this app has never met keeps the
+ * payer role and is corrected by the bank, which is the safer default for an unknown.
+ */
+private fun BankAccount.canFundAPayment(): Boolean = HsbcProductCapability.supports(
+    endpoint = AccountEndpoint.PaymentDebtor,
+    productType = HsbcProductType.resolve(
+        accountSubType = accountSubType,
+        accountTypeCode = "",
+        description = "",
+    ),
 )
 
 private fun BeneficiaryItem.toPickerRow(): SendMoneyPickerRow = SendMoneyPickerRow(
@@ -498,14 +518,4 @@ private fun schemeLabelFor(scheme: BeneficiaryScheme, identification: String): S
     BeneficiaryScheme.Paym -> "Paym · $identification"
     BeneficiaryScheme.Card -> "Card · $identification"
     BeneficiaryScheme.Account -> identification
-}
-
-/** Up to two letters from the name, for the row avatar. */
-private fun initialsOf(name: String): String {
-    val words = name.split(' ').filter { it.isNotBlank() }
-    return when {
-        words.isEmpty() -> ""
-        words.size == 1 -> words.first().take(2).uppercase()
-        else -> (words[0].take(1) + words[1].take(1)).uppercase()
-    }
 }

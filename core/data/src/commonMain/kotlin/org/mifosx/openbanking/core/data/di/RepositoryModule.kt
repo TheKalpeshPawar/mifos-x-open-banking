@@ -102,6 +102,7 @@ val DataModule = module {
             pisp = get(),
             oauth = get(),
             paymentAuthSession = get(),
+            capabilityRegistry = get(),
             signingKeyPem = get(named("hsbcSigningKey")),
             clientId = get(named("hsbcClientId")),
             kid = get(named("hsbcKid")),

@@ -31,14 +31,13 @@ import template.core.base.ui.effects.EventsEffect
  * No navigation icon: this is a bottom-nav root, not a pushed screen, so there is nowhere to go
  * back to.
  *
- * The two events leave the ViewModel rather than becoming state because only the composition can
- * act on them — opening the bank's authorisation page is a browser hop, and moving to payment status
- * is the host's route table.
+ * Launching the bank's authorisation page leaves as an event rather than becoming state, because
+ * only the composition can open a browser. There is no success event to handle: the payment is
+ * completed by the leg that returns from the bank, which shows the receipt itself.
  */
 @Composable
 internal fun SendMoneyScreen(
     onLaunchAuthorisation: (String) -> Unit,
-    onNavigateToPaymentStatus: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SendMoneyViewModel = koinViewModel(),
@@ -48,7 +47,6 @@ internal fun SendMoneyScreen(
     EventsEffect(viewModel.eventFlow) { event ->
         when (event) {
             is SendMoneyEvent.LaunchAuthorisation -> onLaunchAuthorisation(event.url)
-            is SendMoneyEvent.PaymentSucceeded -> Unit
         }
     }
 
@@ -60,24 +58,16 @@ internal fun SendMoneyScreen(
         SendMoneyScreenContent(
             state = state,
             onAction = viewModel::trySendAction,
-            onNavigateToPaymentStatus = onNavigateToPaymentStatus,
             onNavigateToConsents = onNavigateToConsents,
         )
     }
 }
 
-/**
- * The stateless half every UI suite drives directly.
- *
- * `PaymentSucceeded` is not navigated on automatically: the PSU sees the receipt and chooses whether
- * to follow the payment, so the move to payment status is a tap on the success screen rather than
- * something that happens to them.
- */
+/** The stateless half every UI suite drives directly. */
 @Composable
 internal fun SendMoneyScreenContent(
     state: SendMoneyState,
     onAction: (SendMoneyAction) -> Unit,
-    onNavigateToPaymentStatus: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -97,21 +87,14 @@ internal fun SendMoneyScreenContent(
             modifier = modifier,
         )
 
-        is SendMoneyUiState.Success -> SendMoneySuccess(
-            amountLabel = current.amountLabel,
-            creditorName = current.creditorName,
-            paymentId = current.paymentId,
-            onViewStatus = { onNavigateToPaymentStatus(current.paymentId) },
-            modifier = modifier,
-        )
-
         is SendMoneyUiState.Error -> SendMoneyError(
             kind = current.kind,
             supportReference = current.supportReference,
-            onRetry = { onAction(SendMoneyAction.RetrySubmit) },
+            onRetry = { onAction(SendMoneyAction.RetryStaging) },
             onReauthorise = { onAction(SendMoneyAction.ConfirmAndStageConsent) },
             onViewConsents = onNavigateToConsents,
             onEditAmount = { onAction(SendMoneyAction.BackStep) },
+            onChangePayer = { onAction(SendMoneyAction.ChangePayer) },
             modifier = modifier,
         )
     }

@@ -10,7 +10,9 @@
 package org.mifosx.openbanking.feature.paymentstatus.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import template.core.base.network.NetworkError
 
 /**
@@ -31,20 +33,37 @@ sealed interface PaymentStatusUiState {
     data object Loading : PaymentStatusUiState
 
     /**
+     * @property status The bank's own status, rendered as its OBIE meaning beneath the chip. The
+     *   chip says the plain-English thing; this is the evidence behind it, and the difference
+     *   matters when someone is asking whether a refresh actually did anything.
      * @property inProgress Whether the payment is still in flight, which is what decides the note
      *   and the chip's colour. In-flight is not a fault, so it must not render as one.
+     * @property submittedAt When the payment was made, formatted. From the bank's
+     *   `CreationDateTime` — not its `StatusUpdateDateTime`, which means something else.
+     * @property settledAt When the funds are expected to settle, formatted, or empty when the bank
+     *   did not say. Empty means the row is not drawn at all rather than drawn blank.
+     * @property statusChangedAt When the status last moved, formatted. HSBC returns this equal to
+     *   [submittedAt] even on a settled payment; that is its answer, shown as given.
+     * @property charges What the bank actually charged. Empty renders no fee row — silence is not
+     *   the same claim as "£0.00", and only the bank can tell us which is true.
+     * @property lastCheckedAt Local clock time of the most recent successful read. Exists so an
+     *   unchanged status reads as "checked, no change yet" instead of a dead button.
      * @property refreshing Whether a manual re-read is running. Distinct from [Loading]: the current
      *   status stays on screen while it refreshes rather than collapsing back to a skeleton.
      */
     data class Content(
         val paymentId: String,
-        val statusLabel: String,
+        val status: PaymentStatus,
         val disposition: PaymentDisposition,
         val amountLabel: String,
         val creditorName: String,
         val reference: String,
         val debtorLabel: String,
         val submittedAt: String,
+        val settledAt: String = "",
+        val statusChangedAt: String = "",
+        val charges: List<PaymentCharge> = emptyList(),
+        val lastCheckedAt: String = "",
         val refreshing: Boolean = false,
     ) : PaymentStatusUiState {
 

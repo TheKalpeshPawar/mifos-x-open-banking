@@ -30,6 +30,7 @@ import org.mifosx.openbanking.core.network.pisp.writeHeaders
 import org.mifosx.openbanking.core.network.result.toNetworkResult
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import kotlin.time.Clock
 
 private const val PIS = "v4.0/pisp"
 
@@ -53,6 +54,7 @@ class Pisp(
     private val kid: String,
     private val signingKeyPem: String,
     private val financialId: String,
+    private val signingIssuer: String,
 ) {
 
     /**
@@ -149,7 +151,13 @@ class Pisp(
         body: JsonObject,
     ): HttpResponse {
         val payload = body.toString()
-        val signature = detachedJwsSignature(payload = body, kid = kid, signingKeyPem = signingKeyPem)
+        val signature = detachedJwsSignature(
+            payload = payload,
+            kid = kid,
+            signingKeyPem = signingKeyPem,
+            issuer = signingIssuer,
+            issuedAtEpochSeconds = Clock.System.now().epochSeconds,
+        )
         return httpClient.post(path) {
             bearerAuth(accessToken)
             fapiHeaders(financialId)

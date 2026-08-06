@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.callback
 
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 
 /**
@@ -49,6 +50,19 @@ interface PaymentAuthSession {
 
     fun savePaymentToken(tokens: PsuTokenResponse)
 
+    /**
+     * Records the staged instruction so the leg that returns from the bank can submit it.
+     *
+     * The screen that built the draft does not survive the hop: returning to the authenticated
+     * graph pops it without saving state, so its ViewModel is rebuilt empty. Only the draft that
+     * was actually staged may be stored — the submitted `Initiation` has to be byte-identical to
+     * the staged one, so a rebuilt equivalent is not a substitute.
+     */
+    fun saveDraft(draft: PaymentDraft)
+
+    /** The instruction staged for the authorisation in flight, or null when none is. */
+    fun draft(): PaymentDraft?
+
     /** Drops everything this holds. Leaves the AIS session in [ConsentSession] untouched. */
     fun clear()
 }
@@ -86,11 +100,21 @@ class SettingsPaymentAuthSession(
         )
     }
 
+    override fun saveDraft(draft: PaymentDraft) {
+        secureSettings.putString(KEY_DRAFT, json.encodeToString(PaymentDraft.serializer(), draft))
+    }
+
+    override fun draft(): PaymentDraft? {
+        val raw = secureSettings.getStringOrNull(KEY_DRAFT) ?: return null
+        return runCatching { json.decodeFromString(PaymentDraft.serializer(), raw) }.getOrNull()
+    }
+
     override fun clear() {
         secureSettings.remove(KEY_CONSENT_ID)
         secureSettings.remove(KEY_STATE)
         secureSettings.remove(KEY_NONCE)
         secureSettings.remove(KEY_PAYMENT_TOKENS)
+        secureSettings.remove(KEY_DRAFT)
     }
 
     private companion object {
@@ -98,5 +122,6 @@ class SettingsPaymentAuthSession(
         const val KEY_STATE = "payment_auth_state"
         const val KEY_NONCE = "payment_auth_nonce"
         const val KEY_PAYMENT_TOKENS = "payment_auth_tokens"
+        const val KEY_DRAFT = "payment_auth_draft"
     }
 }

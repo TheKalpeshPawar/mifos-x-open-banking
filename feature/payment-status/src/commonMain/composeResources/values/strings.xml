@@ -19,15 +19,31 @@
     <string name="feature_payment_status_failed">Failed</string>
     <string name="feature_payment_status_in_progress_note">Your bank has accepted this payment. The money has not left your account yet.</string>
 
+    <!-- The bank's own OBIE status, shown under the chip. Several of these share one chip label,
+         so this is what distinguishes them. -->
+    <string name="feature_payment_status_detail_received">Received by your bank</string>
+    <string name="feature_payment_status_detail_pending">Pending at your bank</string>
+    <string name="feature_payment_status_detail_acsp">Accepted — settlement in process</string>
+    <string name="feature_payment_status_detail_actc">Accepted — technical validation passed</string>
+    <string name="feature_payment_status_detail_acsc">Accepted — settlement completed</string>
+    <string name="feature_payment_status_detail_accc">Accepted — credit settled</string>
+    <string name="feature_payment_status_detail_acwp">Accepted without posting</string>
+    <string name="feature_payment_status_detail_rjct">Rejected by your bank</string>
+    <string name="feature_payment_status_detail_unknown">Your bank reported a status this app does not recognise</string>
+
     <string name="feature_payment_status_details">Details</string>
     <string name="feature_payment_status_reference">Reference</string>
     <string name="feature_payment_status_reference_empty">None</string>
     <string name="feature_payment_status_from">From</string>
     <string name="feature_payment_status_submitted">Submitted</string>
+    <string name="feature_payment_status_settled">Settles</string>
+    <string name="feature_payment_status_status_changed">Status updated</string>
+    <string name="feature_payment_status_fee">Fee (%1$s)</string>
     <string name="feature_payment_status_payment_id">Payment ID</string>
 
     <string name="feature_payment_status_refresh">Refresh</string>
     <string name="feature_payment_status_new_payment">Make another payment</string>
+    <string name="feature_payment_status_last_checked">Last checked · %1$s</string>
 
     <string name="feature_payment_status_error_title">Could not load this payment</string>
     <string name="feature_payment_status_error_not_found">This payment could not be found. It may have been made from another device.</string>

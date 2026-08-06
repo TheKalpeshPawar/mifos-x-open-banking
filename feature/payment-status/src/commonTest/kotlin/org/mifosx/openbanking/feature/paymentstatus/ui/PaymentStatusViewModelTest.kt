@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.TimeZone
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.feature.paymentstatus.FakePaymentInitiationRepository
@@ -28,6 +29,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class PaymentStatusViewModelTest {
 
@@ -41,12 +44,22 @@ class PaymentStatusViewModelTest {
         Dispatchers.resetMain()
     }
 
+    /** A clock that can be wound forward, so "last checked" is assertable rather than wall-clock. */
+    private class FixedClock(var instant: Instant) : Clock {
+        override fun now(): Instant = instant
+    }
+
+    private val clock = FixedClock(Instant.parse("2026-08-03T14:25:00Z"))
+
     private fun viewModel(
         repository: FakePaymentInitiationRepository = FakePaymentInitiationRepository(),
         paymentId: String = PaymentStatusFixtures.PAYMENT_ID,
     ) = PaymentStatusViewModel(
         savedStateHandle = SavedStateHandle(mapOf(PaymentStatusViewModel.PAYMENT_ID_ARG to paymentId)),
         repository = repository,
+        clock = clock,
+        // Fixed, so these assertions do not change meaning on a machine in another zone.
+        timeZone = TimeZone.UTC,
     )
 
     private fun content(vm: PaymentStatusViewModel): PaymentStatusUiState.Content =
@@ -70,6 +83,87 @@ class PaymentStatusViewModelTest {
         assertEquals("Jameson Lettings", state.creditorName)
         assertEquals("RENT-FLAT12", state.reference)
         assertEquals(PaymentStatusFixtures.PAYMENT_ID, state.paymentId)
+    }
+
+    /**
+     * The defect this rewrite exists for. "Submitted" was fed from `StatusUpdateDateTime`, which is
+     * when the status last moved — a different fact from when the payment was made, and one HSBC
+     * happens to return equal, which is exactly why the mislabel went unnoticed.
+     */
+    @Test
+    fun submittedComesFromCreationTimeNotTheStatusUpdateTime() = runTest {
+        val repository = FakePaymentInitiationRepository(
+            receipt = PaymentStatusFixtures.receiptWithDistinctTimestamps(),
+        )
+
+        val state = content(viewModel(repository))
+
+        assertEquals("3 Aug 2026, 14:22", state.submittedAt)
+        assertEquals("3 Aug 2026, 16:40", state.statusChangedAt)
+        assertEquals("4 Aug 2026, 09:00", state.settledAt)
+    }
+
+    @Test
+    fun carriesTheChargeTheBankActuallyApplied() = runTest {
+        val charge = content(viewModel()).charges.single()
+
+        assertEquals("UK.OBIE.CHAPSOut", charge.typeLabel)
+        assertEquals("£0.05", charge.amountLabel)
+    }
+
+    /** No charge is not the same claim as a zero charge, so nothing is invented to fill the gap. */
+    @Test
+    fun aPaymentWithNoChargesCarriesNone() = runTest {
+        val repository = FakePaymentInitiationRepository(
+            receipt = PaymentStatusFixtures.receipt(charges = emptyList()),
+        )
+
+        assertTrue(content(viewModel(repository)).charges.isEmpty())
+    }
+
+    @Test
+    fun aMissingSettlementTimeLeavesTheRowEmptyRatherThanFormattingNothing() = runTest {
+        val repository = FakePaymentInitiationRepository(
+            receipt = PaymentStatusFixtures.receipt().copy(settlementDateTime = ""),
+        )
+
+        assertEquals("", content(viewModel(repository)).settledAt)
+    }
+
+    /**
+     * The question that started this: a refresh returning the same status must still be visibly a
+     * refresh. Without a moving "last checked" the button is indistinguishable from a dead one.
+     */
+    @Test
+    fun refreshingUpdatesLastCheckedEvenWhenTheStatusHasNotMoved() = runTest {
+        val repository = FakePaymentInitiationRepository()
+        val vm = viewModel(repository)
+        assertEquals("14:25", content(vm).lastCheckedAt)
+
+        clock.instant = Instant.parse("2026-08-03T14:31:00Z")
+        vm.trySendAction(PaymentStatusAction.RefreshStatus)
+
+        val state = content(vm)
+        assertEquals("14:31", state.lastCheckedAt)
+        assertEquals(PaymentStatus.AcceptedSettlementInProcess, state.status)
+    }
+
+    /** And when it has moved, both the status and the stamp advance. */
+    @Test
+    fun aSettledReadUpdatesBothTheStatusAndTheStamp() = runTest {
+        val repository = FakePaymentInitiationRepository()
+        val vm = viewModel(repository)
+
+        repository.receiptReturns(
+            PaymentStatusFixtures.receipt(status = PaymentStatus.AcceptedCreditSettlementCompleted),
+        )
+        clock.instant = Instant.parse("2026-08-03T15:00:00Z")
+        vm.trySendAction(PaymentStatusAction.RefreshStatus)
+
+        val state = content(vm)
+        assertEquals(PaymentStatus.AcceptedCreditSettlementCompleted, state.status)
+        assertEquals(PaymentDisposition.TerminalSuccess, state.disposition)
+        assertEquals("15:00", state.lastCheckedAt)
     }
 
     /** The wire carries fourteen unpunctuated digits; people read a sort code in pairs. */

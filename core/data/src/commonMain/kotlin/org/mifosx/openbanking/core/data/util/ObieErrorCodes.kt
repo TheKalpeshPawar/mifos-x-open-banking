@@ -80,6 +80,37 @@ fun NetworkError.obieSupportReference(): String? = body?.parseObError()
 fun Throwable.obieSupportReference(): String? =
     (this as? RemoteException)?.networkError?.obieSupportReference()
 
+/**
+ * Which request field the bank objected to, e.g. `Data.Initiation.DebtorAccount.Identification`.
+ *
+ * More precise than the error code alone, because one code covers many fields: `U002` ("Invalid
+ * Field") says nothing about *which*. The path is what lets a refusal be attributed to the payer
+ * rather than the payee, the amount or the reference — and therefore what lets the app learn that a
+ * particular account cannot fund a payment instead of guessing from its product type.
+ */
+fun NetworkError.obieErrorPath(): String? = body?.parseObError()
+    ?.errors
+    ?.firstNotNullOfOrNull { it.path?.takeIf(String::isNotBlank) }
+
+/** As [obieErrorPath], unwrapping [RemoteException]. */
+fun Throwable.obieErrorPath(): String? = (this as? RemoteException)?.networkError?.obieErrorPath()
+
+/**
+ * Whether the bank refused the request because of the DEBTOR account specifically.
+ *
+ * Observed on two products, with different codes and the same path:
+ *  - credit card    `U021` — a card has no sort code and account number
+ *  - Global Money   `U002` — the identification was exactly what the bank publishes; the wallet is
+ *                            simply not a permitted payer
+ *
+ * Matched on the path rather than either code, so a future product refused under some third code is
+ * handled without another round of enumeration.
+ */
+fun Throwable.isDebtorAccountRefusal(): Boolean =
+    obieErrorPath()?.contains(DEBTOR_ACCOUNT_PATH_FRAGMENT, ignoreCase = true) == true
+
+private const val DEBTOR_ACCOUNT_PATH_FRAGMENT = "DebtorAccount"
+
 private fun String?.carriesUnsupportedProductCode(): Boolean {
     if (this.isNullOrBlank()) return false
     val errors = parseObError()?.errors

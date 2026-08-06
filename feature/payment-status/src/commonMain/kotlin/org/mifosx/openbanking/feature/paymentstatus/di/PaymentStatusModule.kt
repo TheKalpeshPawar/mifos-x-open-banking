@@ -9,13 +9,18 @@
  */
 package org.mifosx.openbanking.feature.paymentstatus.di
 
-import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
 
 /**
  * Koin bindings for the payment-status feature. Included by `cmp-navigation`'s feature module.
+ *
+ * Constructed explicitly rather than with `viewModelOf`, because the ViewModel's `clock` and
+ * `timeZone` are defaulted constructor parameters and `viewModelOf` does not honour Kotlin defaults
+ * — it would try to resolve a `Clock` from the graph and fail at runtime. They exist to be
+ * overridden in tests, not to be injected in production.
  */
 val PaymentStatusModule = module {
-    viewModelOf(::PaymentStatusViewModel)
+    viewModel { PaymentStatusViewModel(savedStateHandle = get(), repository = get()) }
 }

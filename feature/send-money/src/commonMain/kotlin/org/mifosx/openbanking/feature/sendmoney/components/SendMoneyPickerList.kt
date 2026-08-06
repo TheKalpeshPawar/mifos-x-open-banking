@@ -35,6 +35,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_balance_available
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
 
 private val ListShape = RoundedCornerShape(12.dp)
@@ -52,6 +57,69 @@ private val TextGap = 2.dp
  * One surface with hairline dividers rather than separate cards: these are alternatives within one
  * choice, and separating them into cards would read as several unrelated things.
  */
+/**
+ * The payer picker.
+ *
+ * Resolves each account's readable name here rather than taking a finished string, because HSBC
+ * leaves `Nickname` blank on most accounts and the fallback — "Current account ·· 3349" — comes from
+ * `core/ui`'s `@Composable` [accountDisplayName]. Reusing it is what keeps this list saying the same
+ * thing as Home and Accounts; deriving a name locally is how the rows ended up blank.
+ */
+@Composable
+internal fun SendMoneyAccountPickerList(
+    rows: List<SendMoneyAccountRow>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    tagFor: (String) -> String,
+    selectedLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val resolved = rows.map { row ->
+        val headline = accountDisplayName(
+            nickname = row.nickname,
+            accountSubType = row.accountSubType,
+            accountNumber = row.accountNumber,
+            rawIdentification = row.rawIdentification,
+        )
+        SendMoneyPickerRow(
+            id = row.id,
+            initials = initialsOf(headline),
+            headline = headline,
+            supporting = row.supporting.takeIf { it.isBlank() }
+                ?: stringResource(Res.string.feature_send_money_balance_available, row.supporting),
+        )
+    }
+
+    SendMoneyPickerList(
+        rows = resolved,
+        selectedId = selectedId,
+        onSelect = onSelect,
+        tagFor = tagFor,
+        selectedLabel = selectedLabel,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Up to two letters from the name, for the row avatar.
+ *
+ * The trailing identifier is dropped first — an account reads "Current account ·· 3349", and
+ * including the digits would render "C3" where the design asks for "CA". A single-word name falls
+ * back to its first two letters so "Savings" gives "SA" rather than one lonely letter.
+ */
+internal fun initialsOf(name: String): String {
+    val words = name.substringBefore('·')
+        .substringBefore('•')
+        .trim()
+        .split(' ')
+        .filter { it.isNotBlank() }
+    return when {
+        words.isEmpty() -> ""
+        words.size == 1 -> words.first().take(2).uppercase()
+        else -> (words[0].take(1) + words[1].take(1)).uppercase()
+    }
+}
+
 @Composable
 internal fun SendMoneyPickerList(
     rows: List<SendMoneyPickerRow>,

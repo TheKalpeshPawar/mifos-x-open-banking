@@ -59,8 +59,6 @@ import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.login.LoginRenewRoute
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.loginRenewScreen
-import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
-import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import org.mifosx.openbanking.feature.product.ProductRoute
 import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
@@ -169,14 +167,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 // the identical hop to the identical bank; opening it any other way would be a
                 // second, less careful browser path for the more sensitive of the two flows.
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
-                onNavigateToPaymentStatus = { paymentId ->
-                    navController.navigate(PaymentStatusRoute(paymentId))
-                },
                 onNavigateToConsents = { navController.navigate(ConsentListRoute) },
-            )
-            paymentStatusScreen(
-                onBack = { navController.popBackStack() },
-                onStartNewPayment = { navController.navigateToTab(AuthenticatedNavBarTabItem.PayTab) },
             )
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },

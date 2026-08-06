@@ -41,19 +41,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_completed
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_accc
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_acsc
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_acsp
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_actc
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_acwp
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_pending
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_received
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_rjct
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_unknown
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_details
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_failed
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_fee
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_from
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress_note
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_last_checked
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_new_payment
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_id
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference_empty
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_refresh
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_settled
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_status_changed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_submitted
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_to
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
@@ -117,6 +131,23 @@ internal fun PaymentStatusContent(
             onClick = onStartNewPayment,
             testTag = PaymentStatusTestTags.NEW_PAYMENT_BUTTON,
         )
+
+        // Without this, a refresh that returns the same status is indistinguishable from a button
+        // that does nothing — which is exactly how it read while the sandbox sat at ACSP.
+        if (state.lastCheckedAt.isNotBlank()) {
+            Text(
+                text = stringResource(
+                    Res.string.feature_payment_status_last_checked,
+                    state.lastCheckedAt,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(PaymentStatusTestTags.LAST_CHECKED),
+            )
+        }
     }
 }
 
@@ -146,6 +177,17 @@ private fun SummaryCard(state: PaymentStatusUiState.Content) {
             textAlign = TextAlign.Center,
         )
         StatusChip(state.disposition)
+
+        // The bank's own word, under the plain-English chip. "In progress" is our summary of ACSP;
+        // this line is the thing the bank actually said, which is what someone checking whether a
+        // refresh did anything needs to see.
+        Text(
+            text = stringResource(state.status.detailResource()),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.testTag(PaymentStatusTestTags.STATUS_DETAIL),
+        )
     }
 }
 
@@ -256,6 +298,38 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
                 value = state.submittedAt,
                 tag = PaymentStatusTestTags.DETAIL_SUBMITTED,
             )
+
+            // Omitted rather than drawn blank when the bank did not say — an empty value beside a
+            // label reads as data we lost, not data we were never given.
+            if (state.settledAt.isNotBlank()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_settled),
+                    value = state.settledAt,
+                    tag = PaymentStatusTestTags.DETAIL_SETTLED,
+                )
+            }
+
+            if (state.statusChangedAt.isNotBlank()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_status_changed),
+                    value = state.statusChangedAt,
+                    tag = PaymentStatusTestTags.DETAIL_STATUS_CHANGED,
+                )
+            }
+
+            // Only what the bank charged. No row at all when it charged nothing — "£0.00" would be
+            // a claim, and this screen is the first place in the journey entitled to make one.
+            state.charges.forEach { charge ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_fee, charge.typeLabel),
+                    value = charge.amountLabel,
+                    tag = PaymentStatusTestTags.DETAIL_FEE,
+                )
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             DetailRow(
                 label = stringResource(Res.string.feature_payment_status_payment_id),
@@ -294,4 +368,23 @@ private fun PaymentDisposition.labelResource() = when (this) {
     PaymentDisposition.InProgress -> Res.string.feature_payment_status_in_progress
     PaymentDisposition.TerminalSuccess -> Res.string.feature_payment_status_completed
     PaymentDisposition.TerminalFailure -> Res.string.feature_payment_status_failed
+}
+
+/**
+ * The bank's own status in words, rather than the enum name.
+ *
+ * Several OBIE statuses collapse into one disposition — `RCVD`, `PDNG` and `ACSP` all read as "In
+ * progress" — so the chip alone cannot tell you which one you are looking at, or whether a refresh
+ * moved between them. This line can.
+ */
+private fun PaymentStatus.detailResource() = when (this) {
+    PaymentStatus.Received -> Res.string.feature_payment_status_detail_received
+    PaymentStatus.Pending -> Res.string.feature_payment_status_detail_pending
+    PaymentStatus.AcceptedSettlementInProcess -> Res.string.feature_payment_status_detail_acsp
+    PaymentStatus.AcceptedTechnicalValidation -> Res.string.feature_payment_status_detail_actc
+    PaymentStatus.AcceptedSettlementCompleted -> Res.string.feature_payment_status_detail_acsc
+    PaymentStatus.AcceptedCreditSettlementCompleted -> Res.string.feature_payment_status_detail_accc
+    PaymentStatus.AcceptedWithoutPosting -> Res.string.feature_payment_status_detail_acwp
+    PaymentStatus.Rejected -> Res.string.feature_payment_status_detail_rjct
+    PaymentStatus.Unknown -> Res.string.feature_payment_status_detail_unknown
 }

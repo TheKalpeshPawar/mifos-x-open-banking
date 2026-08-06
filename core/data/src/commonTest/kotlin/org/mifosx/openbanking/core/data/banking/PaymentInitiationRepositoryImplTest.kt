@@ -1,0 +1,347 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+package org.mifosx.openbanking.core.data.banking
+
+import com.russhwolf.settings.MapSettings
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.HttpRequestData
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.data.TestSigningKey
+import org.mifosx.openbanking.core.data.banking.impl.PaymentInitiationRepositoryImpl
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
+import org.mifosx.openbanking.core.data.callback.SettingsPaymentAuthSession
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.network.api.OAuth
+import org.mifosx.openbanking.core.network.api.Pisp
+import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
+import template.core.base.network.NetworkResult
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+private const val CLIENT_CREDENTIALS_TOKEN = "tpp-client-credentials-token"
+private const val PSU_TOKEN = "psu-payments-token"
+private const val CONSENT_ID = "812774903"
+private const val PAYMENT_ID = "PMT-1"
+private const val CONSENT_KEY = "consent-key-1"
+private const val PAYMENT_KEY = "payment-key-1"
+
+private const val TOKEN_JSON =
+    """{"access_token":"$CLIENT_CREDENTIALS_TOKEN","expires_in":300,"scope":"payments","token_type":"Bearer"}"""
+private const val CONSENT_JSON =
+    """{"Data":{"ConsentId":"$CONSENT_ID","Status":"AwaitingAuthorisation"}}"""
+private const val FUNDS_JSON = """{"Data":{"FundsAvailableResult":{"FundsAvailable":true}}}"""
+
+/** The Global Money refusal, verbatim from the sandbox. */
+private const val DEBTOR_REFUSAL_BODY =
+    """{"Code":"400","Id":"ref-1","Message":"Bad Request","Errors":[{"ErrorCode":"U002",""" +
+        """"Message":"Invalid Field","Path":"Data.Initiation.DebtorAccount.Identification"}]}"""
+
+/** Same code, different field — must not be read as a statement about the payer. */
+private const val CREDITOR_REFUSAL_BODY =
+    """{"Code":"400","Id":"ref-2","Message":"Bad Request","Errors":[{"ErrorCode":"U002",""" +
+        """"Message":"Invalid Field","Path":"Data.Initiation.CreditorAccount.Identification"}]}"""
+private const val PAYMENT_JSON =
+    """{"Data":{"DomesticPaymentId":"$PAYMENT_ID","ConsentId":"$CONSENT_ID","Status":"AcceptedSettlementInProcess"}}"""
+
+/**
+ * Covers [PaymentInitiationRepositoryImpl] at the wire, with one recurring question: **which
+ * credential does each call present?**
+ *
+ * That question is not academic. Reading a submitted payment back on the PSU token returned `401`
+ * against the live HSBC sandbox immediately after an authorisation that had actually succeeded,
+ * because a payment resource is TPP-authenticated while the PSU token authorises only the payment
+ * itself. These cases pin the split so it cannot invert again.
+ */
+class PaymentInitiationRepositoryImplTest {
+
+    private val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+
+    private data class Recorded(
+        val path: String,
+        val authorization: String?,
+        val idempotencyKey: String?,
+        val body: String,
+    )
+
+    private val captured = mutableListOf<Recorded>()
+
+    private val registry = FakeAccountCapabilityRegistry()
+
+    private fun draft() = PaymentDraft(
+        debtorAccount = BankAccount(
+            accountId = "acc-1",
+            nickname = "",
+            accountSubType = "CurrentAccount",
+            currency = "GBP",
+            sortCode = "802001",
+            accountNumber = "10203349",
+            rawIdentification = "80200110203349",
+        ),
+        creditor = CreditorSelection(
+            name = "Liam Walker",
+            scheme = BeneficiaryScheme.SortCode,
+            identification = "40120965872310",
+        ),
+        amountMinorUnits = 50_000L,
+        currency = "GBP",
+        reference = "Invoice 2026-05",
+        instructionIdentification = "MFX20260805T1042330001",
+        endToEndIdentification = "E2E-RENT-FLAT12-202608",
+        consentIdempotencyKey = CONSENT_KEY,
+        paymentIdempotencyKey = PAYMENT_KEY,
+    )
+
+    private suspend fun repository(
+        session: PaymentAuthSession = SettingsPaymentAuthSession(MapSettings()),
+        errorBody: String? = null,
+        status: HttpStatusCode = HttpStatusCode.Created,
+    ): PaymentInitiationRepositoryImpl {
+        val client = HttpClient(
+            MockEngine { request: HttpRequestData ->
+                captured += Recorded(
+                    path = request.url.encodedPath,
+                    authorization = request.headers[HttpHeaders.Authorization],
+                    idempotencyKey = request.headers["x-idempotency-key"],
+                    body = request.body.toByteArray().decodeToString(),
+                )
+                // The token call always succeeds; errorBody applies to the OBIE call under test, so
+                // a failure case exercises the refusal path rather than dying at authentication.
+                val isToken = request.url.encodedPath.contains("oauth2/token")
+                val body = when {
+                    isToken -> TOKEN_JSON
+                    errorBody != null -> errorBody
+                    request.url.encodedPath.endsWith("funds-confirmation") -> FUNDS_JSON
+                    request.url.encodedPath.contains("domestic-payment-consents") -> CONSENT_JSON
+                    request.url.encodedPath.contains("domestic-payments") -> PAYMENT_JSON
+                    else -> "{}"
+                }
+                respond(body, if (isToken) HttpStatusCode.OK else status, jsonHeaders)
+            },
+        ) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val signingKey = TestSigningKey.pem()
+        return PaymentInitiationRepositoryImpl(
+            pisp = Pisp(
+                httpClient = client,
+                kid = "test-kid",
+                signingKeyPem = signingKey,
+                financialId = "",
+                signingIssuer = "mifos_init_00000/0000000000000000000000",
+            ),
+            oauth = OAuth(client, "https://sandbox.test/oauth2/token", "test-client", "test-kid", signingKey),
+            paymentAuthSession = session,
+            capabilityRegistry = registry,
+            signingKeyPem = signingKey,
+            clientId = "test-client",
+            kid = "test-kid",
+            bankHost = "sandbox.test",
+            authorizeHost = "authorize.sandbox.test",
+            redirectUri = "https://cb/",
+        )
+    }
+
+    private fun sessionHoldingAPsuToken(): PaymentAuthSession =
+        SettingsPaymentAuthSession(MapSettings()).apply {
+            savePaymentToken(
+                PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300),
+            )
+        }
+
+    private fun requestTo(fragment: String): Recorded =
+        assertNotNull(captured.lastOrNull { it.path.contains(fragment) }, "no request to $fragment")
+
+    // region — which credential each call presents
+
+    /**
+     * Staging happens before any PSU is involved, so it can only be the TPP's own credential.
+     */
+    @Test
+    fun stagingPresentsTheClientCredentialsToken() = runTest {
+        repository().stagePayment(draft())
+
+        assertEquals("Bearer $CLIENT_CREDENTIALS_TOKEN", requestTo("domestic-payment-consents").authorization)
+    }
+
+    /**
+     * The regression this suite exists for. Reading the payment back on the PSU token earned a `401`
+     * from the live sandbox; the TPP credential is what keeps a submitted payment readable, and
+     * readable long after the single-payment PSU token has expired.
+     */
+    @Test
+    fun readingAPaymentBackPresentsTheClientCredentialsTokenNotThePsuOne() = runTest {
+        val session = sessionHoldingAPsuToken()
+
+        repository(session).paymentStatus(PAYMENT_ID)
+
+        val read = requestTo("domestic-payments/$PAYMENT_ID")
+        assertEquals("Bearer $CLIENT_CREDENTIALS_TOKEN", read.authorization)
+        assertTrue(PSU_TOKEN !in read.authorization.orEmpty())
+    }
+
+    /** Funds confirmation and submission are the two calls the PSU actually authorised. */
+    @Test
+    fun confirmingFundsPresentsThePsuToken() = runTest {
+        repository(sessionHoldingAPsuToken()).confirmFunds(CONSENT_ID)
+
+        assertEquals("Bearer $PSU_TOKEN", requestTo("funds-confirmation").authorization)
+    }
+
+    @Test
+    fun submittingPresentsThePsuToken() = runTest {
+        repository(sessionHoldingAPsuToken()).submitPayment(draft(), CONSENT_ID)
+
+        assertEquals("Bearer $PSU_TOKEN", requestTo("domestic-payments").authorization)
+    }
+
+    /** No authorisation means no credential to submit under, and nothing should reach the bank. */
+    @Test
+    fun submittingWithoutAPsuTokenFailsWithoutCallingTheBank() = runTest {
+        val result = repository().submitPayment(draft(), CONSENT_ID)
+
+        assertIs<NetworkResult.Error<*>>(result)
+        assertTrue(captured.none { it.path.contains("domestic-payments") })
+    }
+
+    // endregion
+
+    // region — idempotency keys
+
+    /**
+     * The consent and submission bodies differ — only the latter carries `Data.ConsentId` — and the
+     * Read/Write profile answers a repeated key over a changed body with `400 U029`, permitting the
+     * ASPSP to treat it as fraudulent. So each POST carries its own key.
+     */
+    @Test
+    fun theTwoWritesCarryTheirOwnIdempotencyKeys() = runTest {
+        val session = SettingsPaymentAuthSession(MapSettings())
+        val repository = repository(session)
+        val draft = draft()
+
+        repository.stagePayment(draft)
+        session.savePaymentToken(
+            PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300),
+        )
+        repository.submitPayment(draft, CONSENT_ID)
+
+        assertEquals(CONSENT_KEY, requestTo("domestic-payment-consents").idempotencyKey)
+        assertEquals(PAYMENT_KEY, requestTo("domestic-payments").idempotencyKey)
+    }
+
+    /**
+     * Staging wipes whatever the last attempt left behind, so an abandoned payment cannot lend its
+     * PSU token to the next one. The token that submits is only ever the one this payment's own
+     * authorisation issued.
+     */
+    @Test
+    fun stagingDiscardsATokenLeftBehindByAnAbandonedAttempt() = runTest {
+        val session = sessionHoldingAPsuToken()
+
+        repository(session).stagePayment(draft())
+
+        assertNull(session.paymentToken())
+    }
+
+    // endregion
+
+    // region — learning which accounts cannot pay
+
+    /**
+     * The bank names the field it refused, so a refusal on the debtor is attributable to the
+     * account rather than the instruction. Recording it is what lets the picker stop offering an
+     * account the product matrix could not predict — a Global Money wallet reports
+     * `AccountTypeCode: CACC` and is indistinguishable from a current account until this happens.
+     */
+    @Test
+    fun aRefusalNamingTheDebtorMarksThatAccountUnpayable() = runTest {
+        val repository = repository(errorBody = DEBTOR_REFUSAL_BODY, status = HttpStatusCode.BadRequest)
+
+        repository.stagePayment(draft())
+
+        assertEquals(
+            listOf("acc-1" to AccountEndpoint.PaymentDebtor),
+            registry.marked,
+        )
+    }
+
+    /** A refusal about some other field says nothing about the payer, so nothing is recorded. */
+    @Test
+    fun aRefusalNamingAnotherFieldLeavesTheAccountAlone() = runTest {
+        val repository = repository(errorBody = CREDITOR_REFUSAL_BODY, status = HttpStatusCode.BadRequest)
+
+        repository.stagePayment(draft())
+
+        assertTrue(registry.marked.isEmpty())
+    }
+
+    /** A successful staging must not mark anything — the guard is on the error path only. */
+    @Test
+    fun aSuccessfulStagingMarksNothing() = runTest {
+        repository().stagePayment(draft())
+
+        assertTrue(registry.marked.isEmpty())
+    }
+
+    // endregion
+
+    // region — the draft that crosses the browser hop
+
+    /**
+     * The screen that built the draft does not survive the hop to the bank, so staging is the last
+     * moment the instruction can be written somewhere the returning leg will find it.
+     */
+    @Test
+    fun stagingStoresTheDraftForTheReturningLeg() = runTest {
+        val session = SettingsPaymentAuthSession(MapSettings())
+        val draft = draft()
+
+        repository(session).stagePayment(draft)
+
+        assertEquals(draft, session.draft())
+        assertEquals(draft, repository(session).stagedDraft())
+    }
+
+    @Test
+    fun thereIsNoStagedDraftBeforeAPaymentIsStaged() = runTest {
+        assertNull(repository().stagedDraft())
+    }
+
+    /** A staged consent hands back the id the authorisation and the submission both hang off. */
+    @Test
+    fun stagingReturnsTheConsentIdAndAnAuthorisationUrl() = runTest {
+        val result = repository().stagePayment(draft())
+
+        val staged = assertIs<NetworkResult.Success<StagedConsent>>(result).data
+        assertEquals(CONSENT_ID, staged.consentId)
+        assertTrue(staged.authorizationUrl.isNotBlank())
+        assertTrue(staged.state.isNotBlank())
+    }
+
+    // endregion
+}

@@ -22,11 +22,21 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
  * diverge — whereas regenerating any of these values between the two calls would break it.
  *
  * That is also why [instructionIdentification] and [endToEndIdentification] are stored rather than
- * minted per call, and why [idempotencyKey] lives here: a retry that mints a fresh key is not a
- * retry, it is a second payment instruction the bank has no way to recognise as a duplicate.
+ * minted per call: a retry that regenerates them is not a retry, it is a second payment instruction
+ * the bank has no way to recognise as a duplicate.
  *
  * @property amountMinorUnits The amount in minor units; formatting to a major-unit decimal string
  *   happens once, at the wire boundary.
+ * @property consentIdempotencyKey Guards the consent POST against duplication. Fixed for the life of
+ *   the draft so a retry of *that* call is recognised as the same request.
+ * @property paymentIdempotencyKey Guards the submission POST, and is deliberately a different value
+ *   from [consentIdempotencyKey]. The two calls send different bodies — the submission carries
+ *   `Data.ConsentId` and the consent does not — and the Read/Write profile forbids reusing one key
+ *   across differing bodies, answering a repeat with `400 U029` (or `422` from v4.0.1) and
+ *   permitting the ASPSP to treat it as fraudulent. Both are random per draft rather than derived
+ *   from its contents, matching the `uuid.v4()` the bank's own reference collection mints before
+ *   every write: a key derived from payer, payee, amount and reference would make two legitimate
+ *   identical payments in the same day collide, and silently swallow the second.
  */
 @Serializable
 data class PaymentDraft(
@@ -37,5 +47,6 @@ data class PaymentDraft(
     val reference: String?,
     val instructionIdentification: String,
     val endToEndIdentification: String,
-    val idempotencyKey: String,
+    val consentIdempotencyKey: String,
+    val paymentIdempotencyKey: String,
 )

@@ -30,11 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_amount
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_awaiting
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_lock
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_staging
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_submitting
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_success_amount
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStage
 
 private val ContentPadding = 24.dp
@@ -63,7 +62,6 @@ internal fun SendMoneySubmitting(
     val caption = when (stage) {
         SendMoneyStage.StagingConsent -> stringResource(Res.string.feature_send_money_submitting_staging)
         SendMoneyStage.AwaitingAuthorisation -> stringResource(Res.string.feature_send_money_submitting_awaiting)
-        SendMoneyStage.SubmittingPayment -> stringResource(Res.string.feature_send_money_submitting_submitting)
     }
 
     Column(
@@ -82,7 +80,7 @@ internal fun SendMoneySubmitting(
         )
 
         Text(
-            text = stringResource(Res.string.feature_send_money_success_amount, amountLabel, creditorName),
+            text = stringResource(Res.string.feature_send_money_submitting_amount, amountLabel, creditorName),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,

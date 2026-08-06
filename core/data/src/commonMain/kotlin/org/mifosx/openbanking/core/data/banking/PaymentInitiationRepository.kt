@@ -29,7 +29,8 @@ interface PaymentInitiationRepository {
      * Stages [draft] with the bank and builds the URL the PSU authorises it at.
      *
      * Records the returned consent id, `state` and `nonce` so the redirect can be validated when it
-     * comes back. Nothing moves until [submitPayment].
+     * comes back, and stores [draft] alongside them so the returning leg can submit the same
+     * instruction it staged. Nothing moves until [submitPayment].
      */
     suspend fun stagePayment(draft: PaymentDraft): NetworkResult<StagedConsent, NetworkError>
 
@@ -48,6 +49,15 @@ interface PaymentInitiationRepository {
      * byte-identical and the bank from refusing with `U008`.
      */
     suspend fun submitPayment(draft: PaymentDraft, consentId: String): NetworkResult<PaymentReceipt, NetworkError>
+
+    /**
+     * The instruction staged for the authorisation in flight, or null when none is.
+     *
+     * The leg that returns from the bank is not the one that built the draft, so it reads it back
+     * from here rather than holding it. Returning the *staged* draft is the point: the submitted
+     * `Initiation` must be byte-identical to the staged one, which a rebuilt equivalent would not be.
+     */
+    fun stagedDraft(): PaymentDraft?
 
     /** Reads a submitted payment's current settlement status. */
     suspend fun paymentStatus(domesticPaymentId: String): NetworkResult<PaymentReceipt, NetworkError>

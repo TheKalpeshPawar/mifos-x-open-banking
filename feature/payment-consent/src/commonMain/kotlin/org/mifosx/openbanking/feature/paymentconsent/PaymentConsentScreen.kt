@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -43,21 +42,25 @@ import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_abandon
-import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_authorised_body
-import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_authorised_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_check_again
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_checking
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_checking_hint
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_confirming_funds
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_code_expired
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_insufficient_funds
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_network
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_no_pending
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_no_staged_payment
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_rejected
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_state_mismatch
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_submission_failed
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_timed_out
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_exchanging
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_restart
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_screen_title
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_submitting
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_submitting_warning
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_validating
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentAction
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorKind
@@ -77,14 +80,15 @@ private val BodyMaxWidth = 320.dp
 private val ButtonTopGap = 8.dp
 
 /**
- * The authorisation return leg.
+ * The authorisation return leg, and the screen that finishes the payment.
  *
- * Every outcome leaves as a callback rather than a route change — send-money holds the idempotency
- * key and the staged instruction, so it is the only place that can decide what happens next.
+ * There is no navigation icon and no back affordance while the payment is in flight: this screen
+ * runs the funds check and the submission, and leaving mid-submission would strand the customer
+ * with an instruction whose outcome the app has not yet learned.
  */
 @Composable
 internal fun PaymentConsentScreen(
-    onAuthorised: (String) -> Unit,
+    onPaymentSubmitted: (String) -> Unit,
     onRestartAuthorisation: () -> Unit,
     onAbandoned: () -> Unit,
     modifier: Modifier = Modifier,
@@ -94,7 +98,7 @@ internal fun PaymentConsentScreen(
 
     EventsEffect(viewModel.eventFlow) { event ->
         when (event) {
-            is PaymentConsentEvent.Authorised -> onAuthorised(event.consentId)
+            is PaymentConsentEvent.PaymentSubmitted -> onPaymentSubmitted(event.paymentId)
             PaymentConsentEvent.RestartAuthorisation -> onRestartAuthorisation()
             PaymentConsentEvent.Abandoned -> onAbandoned()
         }
@@ -129,7 +133,10 @@ internal fun PaymentConsentScreenContent(
             modifier = modifier,
         )
 
-        PaymentConsentUiState.Authorised -> AuthorisedState(modifier)
+        PaymentConsentUiState.ConfirmingFunds ->
+            ProgressState(Res.string.feature_payment_consent_confirming_funds, modifier)
+
+        PaymentConsentUiState.Submitting -> SubmittingState(modifier)
 
         is PaymentConsentUiState.Error -> ErrorState(
             kind = current.kind,
@@ -217,44 +224,44 @@ private fun CheckingState(
     }
 }
 
+/**
+ * The one stage with a warning attached.
+ *
+ * Once the instruction is with the bank its outcome is unknown to the app until the response
+ * arrives, so the customer is asked to wait rather than left to guess whether backing out would
+ * cancel anything. It would not.
+ */
 @Composable
-private fun AuthorisedState(modifier: Modifier = Modifier) {
-    val title = stringResource(Res.string.feature_payment_consent_authorised_title)
+private fun SubmittingState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(ContentPadding)
-            .testTag(PaymentConsentTestTags.AUTHORISED_STATE)
-            .semantics { contentDescription = title },
+            .testTag(PaymentConsentTestTags.PROGRESS_INDICATOR),
         verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            modifier = Modifier
-                .size(IconWellSize)
-                .padding(bottom = IconBottomGap)
-                .background(color = MaterialTheme.colorScheme.tertiaryContainer, shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.size(IconSize),
-            )
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
+        CircularProgressIndicator(
+            modifier = Modifier.size(IndicatorSize),
+            color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = stringResource(Res.string.feature_payment_consent_authorised_body),
+            text = stringResource(Res.string.feature_payment_consent_submitting),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = BodyMaxWidth),
+            modifier = Modifier
+                .widthIn(max = BodyMaxWidth)
+                .testTag(PaymentConsentTestTags.PROGRESS_DETAIL),
+        )
+        Text(
+            text = stringResource(Res.string.feature_payment_consent_submitting_warning),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .widthIn(max = BodyMaxWidth)
+                .testTag(PaymentConsentTestTags.SUBMITTING_WARNING),
         )
     }
 }
@@ -328,4 +335,7 @@ private fun PaymentConsentErrorKind.bodyResource(): StringResource = when (this)
     PaymentConsentErrorKind.ConsentRejected -> Res.string.feature_payment_consent_error_rejected
     PaymentConsentErrorKind.AuthorisationTimedOut -> Res.string.feature_payment_consent_error_timed_out
     PaymentConsentErrorKind.NetworkError -> Res.string.feature_payment_consent_error_network
+    PaymentConsentErrorKind.NoStagedPayment -> Res.string.feature_payment_consent_error_no_staged_payment
+    PaymentConsentErrorKind.InsufficientFunds -> Res.string.feature_payment_consent_error_insufficient_funds
+    PaymentConsentErrorKind.SubmissionFailed -> Res.string.feature_payment_consent_error_submission_failed
 }

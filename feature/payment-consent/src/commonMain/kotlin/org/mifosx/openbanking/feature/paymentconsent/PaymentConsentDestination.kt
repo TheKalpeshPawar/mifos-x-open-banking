@@ -23,13 +23,13 @@ import template.core.base.ui.nav.composableWithStayTransitions
 data class PaymentConsentRoute(val redirectUrl: String)
 
 fun NavGraphBuilder.paymentConsentScreen(
-    onAuthorised: (String) -> Unit,
+    onPaymentSubmitted: (String) -> Unit,
     onRestartAuthorisation: () -> Unit,
     onAbandoned: () -> Unit,
 ) {
     composableWithStayTransitions<PaymentConsentRoute> {
         PaymentConsentScreen(
-            onAuthorised = onAuthorised,
+            onPaymentSubmitted = onPaymentSubmitted,
             onRestartAuthorisation = onRestartAuthorisation,
             onAbandoned = onAbandoned,
         )

@@ -38,6 +38,12 @@ internal object SendMoneyTestTags {
     const val REVIEW_REFERENCE = "sendMoney:reviewReference"
     const val CONFIRM_BUTTON = "sendMoney:confirmButton"
     const val CANCEL_BUTTON = "sendMoney:cancelButton"
+    const val REVIEW_HERO = "sendMoney:reviewHero"
+    const val REVIEW_PAYEE_CHIP = "sendMoney:reviewPayeeChip"
+    const val REVIEW_SENT_VIA = "sendMoney:reviewSentVia"
+    const val REVIEW_TOTAL = "sendMoney:reviewTotal"
+    const val REVIEW_AUTH_NOTICE = "sendMoney:reviewAuthNotice"
+    const val EDIT_PAYMENT_BUTTON = "sendMoney:editPaymentButton"
 
     const val SUBMITTING_INDICATOR = "sendMoney:submittingIndicator"
     const val SUBMITTING_AMOUNT = "sendMoney:submittingAmount"
@@ -55,6 +61,7 @@ internal object SendMoneyTestTags {
     const val REAUTHORISE_BUTTON = "sendMoney:reauthoriseButton"
     const val VIEW_CONSENTS_BUTTON = "sendMoney:viewConsentsButton"
     const val EDIT_AMOUNT_BUTTON = "sendMoney:editAmountButton"
+    const val CHANGE_PAYER_BUTTON = "sendMoney:changePayerButton"
 
     /** One debtor row, keyed by OBIE `AccountId`. */
     fun debtorRow(accountId: String): String = "sendMoney:debtorRow:$accountId"

@@ -56,6 +56,7 @@ val NetworkModule = module {
             kid = HsbcConfig.KID,
             signingKeyPem = get(named("hsbcSigningKey")),
             financialId = get(named("hsbcFinancialId")),
+            signingIssuer = get(named("hsbcSigningIssuer")),
         )
     }
 
@@ -75,4 +76,11 @@ val NetworkModule = module {
      * ever rejects its absence.
      */
     single(named("hsbcFinancialId")) { "" }
+
+    /**
+     * The `http://openbanking.org.uk/iss` claim in the detached JWS header: the organisation and
+     * software-statement pair the signing certificate was issued to. HSBC verifies it against the
+     * certificate, so it is not free text.
+     */
+    single(named("hsbcSigningIssuer")) { HsbcConfig.SIGNING_ISSUER }
 }

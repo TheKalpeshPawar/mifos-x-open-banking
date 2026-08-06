@@ -33,14 +33,12 @@ data object SendMoneyRoute
  */
 fun NavGraphBuilder.sendMoneyGraph(
     onLaunchAuthorisation: (String) -> Unit,
-    onNavigateToPaymentStatus: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
 ) {
     navigation<SendMoneyDestination>(startDestination = SendMoneyRoute) {
         composableWithStayTransitions<SendMoneyRoute> {
             SendMoneyScreen(
                 onLaunchAuthorisation = onLaunchAuthorisation,
-                onNavigateToPaymentStatus = onNavigateToPaymentStatus,
                 onNavigateToConsents = onNavigateToConsents,
             )
         }

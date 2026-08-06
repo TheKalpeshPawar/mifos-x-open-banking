@@ -26,12 +26,29 @@ enum class PaymentConsentErrorKind {
     ConsentRejected,
     AuthorisationTimedOut,
     NetworkError,
+
+    /**
+     * The authorisation succeeded but the staged instruction is not in storage, so there is nothing
+     * to submit. Terminal, and not offered a retry: resubmitting would mean rebuilding an
+     * `Initiation` the consent was not granted against.
+     */
+    NoStagedPayment,
+
+    /**
+     * The bank answered the funds check negatively. Submitting anyway would knowingly send a payment
+     * it has just said the account cannot cover.
+     */
+    InsufficientFunds,
+
+    /** The submission itself was refused. The consent is spent either way. */
+    SubmissionFailed,
 }
 
 /**
- * The three progress states are separate rather than one `loading` so the copy can say which stage
- * is running. An authorisation that appears to hang is otherwise indistinguishable from one that has
- * already failed.
+ * The progress states are separate rather than one `loading` so the copy can say which stage is
+ * running. A payment that appears to hang is otherwise indistinguishable from one that has already
+ * failed — and this screen now runs the whole tail of the journey, from validating the redirect
+ * through to the bank accepting the payment, which is several seconds of waiting to account for.
  */
 sealed interface PaymentConsentUiState {
 
@@ -45,12 +62,21 @@ sealed interface PaymentConsentUiState {
      * Polling until the consent reports `Authorised`.
      *
      * Load-bearing, not cosmetic: submitting against a consent that has not reached `AUTH` returns
-     * `400 U009`, so the hand-back to send-money is gated on this. It offers Check again rather than
-     * spinning indefinitely, because a bank that is slow to authorise is a normal outcome.
+     * `400 U009`, so the submission is gated on this. It offers Check again rather than spinning
+     * indefinitely, because a bank that is slow to authorise is a normal outcome.
      */
     data class Checking(val canCheckAgain: Boolean = false) : PaymentConsentUiState
 
-    data object Authorised : PaymentConsentUiState
+    /** Asking the bank whether the debtor account can cover the staged amount. */
+    data object ConfirmingFunds : PaymentConsentUiState
+
+    /**
+     * The payment itself is with the bank.
+     *
+     * The one stage the customer must not interrupt: the instruction has left, and until the
+     * response arrives its outcome is genuinely unknown to the app.
+     */
+    data object Submitting : PaymentConsentUiState
 
     data class Error(val kind: PaymentConsentErrorKind) : PaymentConsentUiState
 }
@@ -67,13 +93,13 @@ sealed interface PaymentConsentAction {
 }
 
 /**
- * Handed back to send-money rather than acted on here.
+ * Where the journey goes once this screen is finished with it.
  *
- * The payment is send-money's to complete — it holds the idempotency key and the staged
- * `Initiation` — so this screen reports the outcome and gets out of the way.
+ * Only [PaymentSubmitted] carries anything, because it is the only outcome with something to show:
+ * a payment the bank has accepted, identified by the id its receipt is read back under.
  */
 sealed interface PaymentConsentEvent {
-    data class Authorised(val consentId: String) : PaymentConsentEvent
+    data class PaymentSubmitted(val paymentId: String) : PaymentConsentEvent
     data object RestartAuthorisation : PaymentConsentEvent
     data object Abandoned : PaymentConsentEvent
 }

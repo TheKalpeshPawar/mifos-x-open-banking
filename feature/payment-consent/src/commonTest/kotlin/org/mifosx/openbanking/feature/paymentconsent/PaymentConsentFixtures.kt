@@ -9,8 +9,16 @@
  */
 package org.mifosx.openbanking.feature.paymentconsent
 
+import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
+import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorKind
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentState
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentUiState
@@ -20,6 +28,7 @@ import template.core.base.network.NetworkResult
 object PaymentConsentFixtures {
 
     const val CONSENT_ID = "812774903"
+    const val PAYMENT_ID = "58923-002"
     const val CODE = "auth-code-1"
     const val REDIRECT_URL = "https://callback.example/?code=$CODE&state=state-1"
 
@@ -34,13 +43,54 @@ object PaymentConsentFixtures {
         consentId = CONSENT_ID,
     )
 
-    fun authorisedState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Authorised, consentId = CONSENT_ID)
+    fun confirmingFundsState(): PaymentConsentState =
+        PaymentConsentState(uiState = PaymentConsentUiState.ConfirmingFunds, consentId = CONSENT_ID)
+
+    fun submittingState(): PaymentConsentState =
+        PaymentConsentState(uiState = PaymentConsentUiState.Submitting, consentId = CONSENT_ID)
 
     fun errorState(
         kind: PaymentConsentErrorKind = PaymentConsentErrorKind.StateMismatch,
     ): PaymentConsentState =
         PaymentConsentState(uiState = PaymentConsentUiState.Error(kind), consentId = CONSENT_ID)
+
+    /**
+     * A payer with no nickname, as HSBC actually returns them. Keeping the blank there stops a
+     * fixture from quietly asserting a field the live bank does not populate.
+     */
+    fun draft(): PaymentDraft = PaymentDraft(
+        debtorAccount = BankAccount(
+            accountId = "acc-1",
+            nickname = "",
+            accountSubType = "CurrentAccount",
+            currency = "GBP",
+            sortCode = "802001",
+            accountNumber = "10203349",
+            rawIdentification = "80200110203349",
+        ),
+        creditor = CreditorSelection(
+            name = "Liam Walker",
+            scheme = BeneficiaryScheme.SortCode,
+            identification = "40120965872310",
+        ),
+        amountMinorUnits = 50_000L,
+        currency = "GBP",
+        reference = "Invoice 2026-05",
+        instructionIdentification = "MFX20260805T1042330001",
+        endToEndIdentification = "E2E-RENT-FLAT12-202608",
+        consentIdempotencyKey = "consent-key-1",
+        paymentIdempotencyKey = "payment-key-1",
+    )
+
+    fun receipt(paymentId: String = PAYMENT_ID): PaymentReceipt = PaymentReceipt(
+        domesticPaymentId = paymentId,
+        consentId = CONSENT_ID,
+        status = PaymentStatus.AcceptedSettlementInProcess,
+        creationDateTime = "2026-08-05T10:42:33Z",
+        statusUpdateDateTime = "2026-08-05T10:42:33Z",
+        amountLabel = "£500.00",
+        creditorName = "Liam Walker",
+    )
 }
 
 class FakePaymentAuthRepository(
@@ -52,6 +102,10 @@ class FakePaymentAuthRepository(
 
     val exchangedCodes = mutableListOf<String>()
     val statusChecks = mutableListOf<String>()
+
+    /** How many times the authorisation was discarded — the session-clearing assertion hangs on it. */
+    var discardCount: Int = 0
+        private set
 
     override fun isPaymentRedirect(redirectUrl: String): Boolean = true
 
@@ -67,6 +121,10 @@ class FakePaymentAuthRepository(
         return status
     }
 
+    override fun discardAuthorisation() {
+        discardCount++
+    }
+
     fun validationReturns(result: PaymentAuthValidation) {
         validation = result
     }
@@ -77,5 +135,56 @@ class FakePaymentAuthRepository(
 
     fun statusReturns(result: NetworkResult<String, NetworkError>) {
         status = result
+    }
+}
+
+/**
+ * The payment write path, recorded rather than performed.
+ *
+ * [stagedDraft] defaults to a real draft because the callback's whole job now depends on finding
+ * one; the null case is the interesting exception, not the baseline.
+ */
+class FakePaymentInitiationRepository(
+    private var staged: PaymentDraft? = PaymentConsentFixtures.draft(),
+    private var funds: NetworkResult<Boolean, NetworkError> = NetworkResult.Success(true),
+    private var submission: NetworkResult<PaymentReceipt, NetworkError> =
+        NetworkResult.Success(PaymentConsentFixtures.receipt()),
+) : PaymentInitiationRepository {
+
+    val submittedDrafts = mutableListOf<PaymentDraft>()
+    val fundsChecks = mutableListOf<String>()
+
+    override suspend fun stagePayment(draft: PaymentDraft): NetworkResult<StagedConsent, NetworkError> =
+        throw UnsupportedOperationException("The callback leg never stages a payment")
+
+    override suspend fun confirmFunds(consentId: String): NetworkResult<Boolean, NetworkError> {
+        fundsChecks += consentId
+        return funds
+    }
+
+    override suspend fun submitPayment(
+        draft: PaymentDraft,
+        consentId: String,
+    ): NetworkResult<PaymentReceipt, NetworkError> {
+        submittedDrafts += draft
+        return submission
+    }
+
+    override fun stagedDraft(): PaymentDraft? = staged
+
+    override suspend fun paymentStatus(
+        domesticPaymentId: String,
+    ): NetworkResult<PaymentReceipt, NetworkError> = submission
+
+    fun stagedDraftReturns(draft: PaymentDraft?) {
+        staged = draft
+    }
+
+    fun fundsReturn(result: NetworkResult<Boolean, NetworkError>) {
+        funds = result
+    }
+
+    fun submissionReturns(result: NetworkResult<PaymentReceipt, NetworkError>) {
+        submission = result
     }
 }

@@ -13,6 +13,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.BeneficiariesRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
@@ -21,6 +24,7 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
@@ -76,8 +80,12 @@ class FakeBeneficiariesRepository(
 }
 
 /**
- * Records every call so the tests can assert the two properties that matter: that a retry reuses the
- * idempotency key and draft, and that a negative funds check stops the submission.
+ * Records every call so the tests can assert what this screen is responsible for: that the draft is
+ * built once and staged under two distinct idempotency keys.
+ *
+ * Send-money no longer confirms funds or submits — the leg returning from the bank does — so those
+ * members exist only to satisfy the interface, and a test that sees them called has caught the
+ * submission drifting back to the wrong screen.
  */
 class FakePaymentInitiationRepository(
     private var stageResult: NetworkResult<StagedConsent, NetworkError> =
@@ -111,6 +119,8 @@ class FakePaymentInitiationRepository(
         return submitResult
     }
 
+    override fun stagedDraft(): PaymentDraft? = stagedDrafts.lastOrNull()
+
     override suspend fun paymentStatus(
         domesticPaymentId: String,
     ): NetworkResult<PaymentReceipt, NetworkError> = NetworkResult.Success(SendMoneyFixtures.receipt())
@@ -125,5 +135,31 @@ class FakePaymentInitiationRepository(
 
     fun submitReturns(result: NetworkResult<PaymentReceipt, NetworkError>) {
         submitResult = result
+    }
+}
+
+/**
+ * The capability registry, behaving like the real in-memory one rather than only spying.
+ *
+ * Written locally rather than imported from `core/data`'s tests: test source sets do not cross
+ * modules, so the shape is copied by design.
+ */
+class FakeAccountCapabilityRegistry : AccountCapabilityRegistry {
+
+    private val state = MutableStateFlow<Map<String, Set<AccountEndpoint>>>(emptyMap())
+
+    override fun unsupportedStream(accountId: String): Flow<Set<AccountEndpoint>> =
+        state.map { it[accountId].orEmpty() }
+
+    override fun unsupportedStream(): Flow<Map<String, Set<AccountEndpoint>>> = state
+
+    override fun markUnsupported(accountId: String, endpoint: AccountEndpoint) {
+        state.update { current ->
+            current + (accountId to current[accountId].orEmpty() + endpoint)
+        }
+    }
+
+    override fun clear() {
+        state.value = emptyMap()
     }
 }

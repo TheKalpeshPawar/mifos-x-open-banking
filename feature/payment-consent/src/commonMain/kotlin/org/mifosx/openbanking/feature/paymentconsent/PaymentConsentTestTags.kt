@@ -19,4 +19,5 @@ internal object PaymentConsentTestTags {
     const val ERROR_STATE = "paymentConsent:errorState"
     const val RESTART_BUTTON = "paymentConsent:restartButton"
     const val ABANDON_BUTTON = "paymentConsent:abandonButton"
+    const val SUBMITTING_WARNING = "paymentConsent:submittingWarning"
 }

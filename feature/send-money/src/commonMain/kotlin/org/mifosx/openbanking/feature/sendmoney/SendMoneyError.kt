@@ -37,6 +37,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_change_payer
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_amount
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_consent_mismatch
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_consent_not_authorised
@@ -45,6 +46,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_invalid_field
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_network
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_outside_limits
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_payer_not_supported
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_rate_limited
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_reference
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_error_signature_missing
@@ -82,6 +84,7 @@ internal fun SendMoneyError(
     onReauthorise: () -> Unit,
     onViewConsents: () -> Unit,
     onEditAmount: () -> Unit,
+    onChangePayer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val title = stringResource(Res.string.feature_send_money_error_title)
@@ -140,6 +143,7 @@ internal fun SendMoneyError(
             onReauthorise = onReauthorise,
             onViewConsents = onViewConsents,
             onEditAmount = onEditAmount,
+            onChangePayer = onChangePayer,
         )
     }
 }
@@ -151,6 +155,7 @@ private fun SendMoneyErrorActions(
     onReauthorise: () -> Unit,
     onViewConsents: () -> Unit,
     onEditAmount: () -> Unit,
+    onChangePayer: () -> Unit,
 ) {
     if (kind.isRetryable) {
         MifosFilledPillButton(
@@ -184,6 +189,16 @@ private fun SendMoneyErrorActions(
             testTag = SendMoneyTestTags.EDIT_AMOUNT_BUTTON,
         )
     }
+    // The refused account is already gone from the picker by the time this is tapped — the registry
+    // removed it when the bank refused it — so the customer returns to a list they can succeed from.
+    if (kind == SendMoneyErrorKind.PayerNotSupported) {
+        MifosFilledPillButton(
+            label = stringResource(Res.string.feature_send_money_change_payer),
+            onClick = onChangePayer,
+            modifier = Modifier.padding(top = ButtonTopGap),
+            testTag = SendMoneyTestTags.CHANGE_PAYER_BUTTON,
+        )
+    }
 }
 
 private fun SendMoneyErrorKind.bodyResource(): StringResource = when (this) {
@@ -196,5 +211,6 @@ private fun SendMoneyErrorKind.bodyResource(): StringResource = when (this) {
     SendMoneyErrorKind.TokenExpired -> Res.string.feature_send_money_error_token_expired
     SendMoneyErrorKind.RateLimited -> Res.string.feature_send_money_error_rate_limited
     SendMoneyErrorKind.InsufficientFunds -> Res.string.feature_send_money_error_insufficient_funds
+    SendMoneyErrorKind.PayerNotSupported -> Res.string.feature_send_money_error_payer_not_supported
     SendMoneyErrorKind.NetworkError -> Res.string.feature_send_money_error_network
 }

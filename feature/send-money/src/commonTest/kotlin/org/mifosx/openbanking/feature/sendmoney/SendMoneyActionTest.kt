@@ -44,7 +44,6 @@ class SendMoneyActionTest {
                 SendMoneyScreenContent(
                     state = state,
                     onAction = { actions += it },
-                    onNavigateToPaymentStatus = {},
                     onNavigateToConsents = {},
                 )
             }
@@ -114,20 +113,24 @@ class SendMoneyActionTest {
     }
 
     @Test
-    fun tappingCancelAbandonsThePayment() {
-        val actions = captureActions(SendMoneyFixtures.reviewState(), SendMoneyTestTags.CANCEL_BUTTON, scroll = true)
+    fun tappingEditPaymentGoesBackToTheAmountStep() {
+        val actions = captureActions(
+            SendMoneyFixtures.reviewState(),
+            SendMoneyTestTags.EDIT_PAYMENT_BUTTON,
+            scroll = true,
+        )
 
-        assertEquals(listOf(SendMoneyAction.CancelPayment), actions)
+        assertEquals(listOf(SendMoneyAction.BackStep), actions)
     }
 
     @Test
-    fun tappingRetryResubmits() {
+    fun tappingRetryStagesTheConsentAgain() {
         val actions = captureActions(
             SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.NetworkError),
             SendMoneyTestTags.RETRY_BUTTON,
         )
 
-        assertEquals(listOf(SendMoneyAction.RetrySubmit), actions)
+        assertEquals(listOf(SendMoneyAction.RetryStaging), actions)
     }
 
     @Test
@@ -150,27 +153,7 @@ class SendMoneyActionTest {
         assertEquals(listOf(SendMoneyAction.ConfirmAndStageConsent), actions)
     }
 
-    /** The two navigating controls are callbacks, not actions — the host owns the route table. */
-    @Test
-    fun trackThisPaymentNavigatesRatherThanDispatching() {
-        val actions = mutableListOf<SendMoneyAction>()
-        var trackedPaymentId: String? = null
-        runComposeUiTest {
-            setContent {
-                SendMoneyScreenContent(
-                    state = SendMoneyFixtures.successState(),
-                    onAction = { actions += it },
-                    onNavigateToPaymentStatus = { trackedPaymentId = it },
-                    onNavigateToConsents = {},
-                )
-            }
-            onNodeWithTag(SendMoneyTestTags.VIEW_PAYMENT_STATUS_BUTTON).performClick()
-        }
-
-        assertEquals(SendMoneyFixtures.PAYMENT_ID, trackedPaymentId)
-        assertTrue(actions.isEmpty())
-    }
-
+    /** The navigating control is a callback, not an action — the host owns the route table. */
     @Test
     fun viewConsentsNavigatesRatherThanDispatching() {
         val actions = mutableListOf<SendMoneyAction>()
@@ -180,7 +163,6 @@ class SendMoneyActionTest {
                 SendMoneyScreenContent(
                     state = SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.ConsentRevoked),
                     onAction = { actions += it },
-                    onNavigateToPaymentStatus = {},
                     onNavigateToConsents = { wentToConsents = true },
                 )
             }

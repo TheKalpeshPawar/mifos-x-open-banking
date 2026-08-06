@@ -9,15 +9,22 @@
  */
 package org.mifosx.openbanking.feature.sendmoney
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -26,25 +33,29 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAccountPickerList
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPickerList
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyStepIndicator
+import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_exceeds_balance
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_a_number
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_positive
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_label
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_cancel
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_confirm
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_payment
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number_error
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_confirm
@@ -57,13 +68,17 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_title
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_helper
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_amount
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_auth_notice
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_details_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_from
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_hero_caption
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_reference
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_reference_empty
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_sent_via
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_sent_via_value
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_to
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_total
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_amount
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_indicator
@@ -82,6 +97,16 @@ private val ScreenPadding = 16.dp
 private val SectionGap = 16.dp
 private val HeadingGap = 8.dp
 private val RowGap = 12.dp
+private val HeroGap = 4.dp
+private val ChipCorner = 20.dp
+private val ChipPaddingHorizontal = 10.dp
+private val ChipPaddingVertical = 6.dp
+private val ChipGap = 8.dp
+private val ChipAvatarSize = 24.dp
+private val NoticeCorner = 12.dp
+private val NoticePadding = 12.dp
+private val NoticeGap = 10.dp
+private val NoticeIconSize = 16.dp
 
 /**
  * The form, all three steps of it.
@@ -131,7 +156,7 @@ private fun RecipientStep(
 
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
         SectionHeading(stringResource(Res.string.feature_send_money_debtor_heading))
-        SendMoneyPickerList(
+        SendMoneyAccountPickerList(
             rows = state.debtorRows,
             selectedId = state.debtorAccountId,
             onSelect = { onAction(SendMoneyAction.SelectDebtorAccount(it)) },
@@ -267,23 +292,39 @@ private fun AmountStep(
     }
 }
 
+/**
+ * The last thing the customer reads before money moves, so it is built around one figure.
+ *
+ * The amount leads at display size with the payee immediately under it: everything else on this
+ * step is detail that confirms *that* statement rather than competing with it.
+ *
+ * Deliberately absent is any fee or debit total. Charges arrive on the consent response, which does
+ * not exist until Confirm is tapped, so a figure here could only be hardcoded — and the sandbox
+ * quotes charges on some payments, which would make a printed £0.00 untrue on the one screen where
+ * that matters most.
+ */
 @Composable
 private fun ReviewStep(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
+    val payerLabel = state.debtorAccountRow?.let { row ->
+        accountDisplayName(
+            nickname = row.nickname,
+            accountSubType = row.accountSubType,
+            accountNumber = row.accountNumber,
+            rawIdentification = row.rawIdentification,
+        )
+    }.orEmpty()
+
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
-        SectionHeading(stringResource(Res.string.feature_send_money_review_heading))
+        ReviewHero(amountLabel = state.amountLabel, creditorName = state.creditorLabel)
 
         Column(
             modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REVIEW_SUMMARY),
             verticalArrangement = Arrangement.spacedBy(RowGap),
         ) {
-            ReviewRow(
-                label = stringResource(Res.string.feature_send_money_review_from),
-                value = state.debtorAccountLabel,
-                tag = SendMoneyTestTags.REVIEW_FROM,
-            )
+            SectionHeading(stringResource(Res.string.feature_send_money_review_details_heading))
             ReviewRow(
                 label = stringResource(Res.string.feature_send_money_review_to),
                 value = state.creditorLabel,
@@ -291,10 +332,9 @@ private fun ReviewStep(
                 secondary = state.creditorSupporting,
             )
             ReviewRow(
-                label = stringResource(Res.string.feature_send_money_review_amount),
-                value = state.amountLabel,
-                tag = SendMoneyTestTags.REVIEW_AMOUNT,
-                emphasis = true,
+                label = stringResource(Res.string.feature_send_money_review_from),
+                value = payerLabel,
+                tag = SendMoneyTestTags.REVIEW_FROM,
             )
             ReviewRow(
                 label = stringResource(Res.string.feature_send_money_review_reference),
@@ -303,17 +343,124 @@ private fun ReviewStep(
                 },
                 tag = SendMoneyTestTags.REVIEW_REFERENCE,
             )
+            // True of the instruction being sent: every Initiation declares LocalInstrument
+            // UK.OBIE.FPS. It says which rail, not how fast — the bank promises no timing.
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_sent_via),
+                value = stringResource(Res.string.feature_send_money_review_sent_via_value),
+                tag = SendMoneyTestTags.REVIEW_SENT_VIA,
+            )
+            ReviewRow(
+                label = stringResource(Res.string.feature_send_money_review_total),
+                value = state.amountLabel,
+                tag = SendMoneyTestTags.REVIEW_TOTAL,
+                emphasis = true,
+            )
         }
 
+        AuthorisationNotice()
+
         MifosFilledPillButton(
-            label = stringResource(Res.string.feature_send_money_confirm),
+            label = stringResource(Res.string.feature_send_money_confirm, state.amountLabel),
             onClick = { onAction(SendMoneyAction.ConfirmAndStageConsent) },
+            icon = Icons.Filled.Lock,
             testTag = SendMoneyTestTags.CONFIRM_BUTTON,
         )
         MifosTonalPillButton(
-            label = stringResource(Res.string.feature_send_money_cancel),
-            onClick = { onAction(SendMoneyAction.CancelPayment) },
-            testTag = SendMoneyTestTags.CANCEL_BUTTON,
+            label = stringResource(Res.string.feature_send_money_edit_payment),
+            onClick = { onAction(SendMoneyAction.BackStep) },
+            testTag = SendMoneyTestTags.EDIT_PAYMENT_BUTTON,
+        )
+    }
+}
+
+/** The amount, at the size it deserves, with who it is going to directly beneath. */
+@Composable
+private fun ReviewHero(amountLabel: String, creditorName: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REVIEW_HERO),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(HeroGap),
+    ) {
+        Text(
+            text = amountLabel,
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.testTag(SendMoneyTestTags.REVIEW_AMOUNT),
+        )
+        Text(
+            text = stringResource(Res.string.feature_send_money_review_hero_caption),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (creditorName.isNotBlank()) {
+            PayeeChip(creditorName)
+        }
+    }
+}
+
+/** Initials beside the name, reusing the same derivation the payee picker rows use. */
+@Composable
+private fun PayeeChip(creditorName: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(ChipCorner))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = ChipPaddingHorizontal, vertical = ChipPaddingVertical)
+            .testTag(SendMoneyTestTags.REVIEW_PAYEE_CHIP),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ChipGap),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(ChipAvatarSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = initialsOf(creditorName),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        Text(
+            text = creditorName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
+ * Says what happens next, rather than asserting a check this app has not made.
+ *
+ * The original mockup carried "Confirmation of Payee passed" here. HSBC exposes no CoP result to
+ * this app, so claiming one would be inventing a reassurance. What *is* true, and worth saying
+ * before an irreversible action, is that nothing moves until the bank has authenticated the PSU.
+ */
+@Composable
+private fun AuthorisationNotice() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(NoticeCorner))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(NoticePadding)
+            .testTag(SendMoneyTestTags.REVIEW_AUTH_NOTICE),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(NoticeIconSize),
+        )
+        Text(
+            text = stringResource(Res.string.feature_send_money_review_auth_notice),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }
 }

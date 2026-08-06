@@ -12,12 +12,16 @@ package org.mifosx.openbanking.feature.paymentstatus.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import org.mifosx.openbanking.core.common.formatDateTime
 import org.mifosx.openbanking.core.common.formatSortCode
+import org.mifosx.openbanking.core.common.formatTimeOfDay
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
+import kotlin.time.Clock
 
 private const val SORT_CODE_DIGITS = 6
 
@@ -32,6 +36,8 @@ private const val SORT_CODE_DIGITS = 6
 class PaymentStatusViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: PaymentInitiationRepository,
+    private val clock: Clock = Clock.System,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : BaseViewModel<PaymentStatusState, Nothing, PaymentStatusAction>(
     initialState = PaymentStatusState(
         paymentId = savedStateHandle.get<String>(PAYMENT_ID_ARG).orEmpty(),
@@ -74,16 +80,31 @@ class PaymentStatusViewModel(
         }
     }
 
+    /**
+     * The three timestamps are separate facts and are shown separately.
+     *
+     * [PaymentReceipt.creationDateTime] is when the payment was made — the only one that means
+     * "submitted". [PaymentReceipt.statusUpdateDateTime] is when the status last moved, which HSBC
+     * returns unchanged even on a settled payment. Conflating them, as this did, put the wrong
+     * label on the wrong value and left the right one unread.
+     */
     private fun PaymentReceipt.toContent(): PaymentStatusUiState.Content =
         PaymentStatusUiState.Content(
             paymentId = domesticPaymentId,
-            statusLabel = status.name,
+            status = status,
             disposition = status.disposition,
             amountLabel = amountLabel,
             creditorName = creditorName,
             reference = reference,
             debtorLabel = debtorIdentification.toAccountLabel(),
-            submittedAt = statusUpdateDateTime,
+            submittedAt = formatDateTime(creationDateTime, timeZone),
+            settledAt = settlementDateTime
+                .takeIf { it.isNotBlank() }
+                ?.let { formatDateTime(it, timeZone) }
+                .orEmpty(),
+            statusChangedAt = formatDateTime(statusUpdateDateTime, timeZone),
+            charges = charges,
+            lastCheckedAt = formatTimeOfDay(clock.now(), timeZone),
         )
 
     companion object {

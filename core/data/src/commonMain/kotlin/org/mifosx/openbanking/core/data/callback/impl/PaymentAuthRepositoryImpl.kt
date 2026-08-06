@@ -79,20 +79,25 @@ internal class PaymentAuthRepositoryImpl(
         }
 
     /**
-     * Read on the payments PSU token when there is one, else a fresh client-credentials token —
-     * the same credential that staged the consent can always read it back.
+     * Read on a **client-credentials** token, never the PSU one.
+     *
+     * A consent resource is TPP-authenticated: the same credential that created it reads it back.
+     * The PSU token from the authorisation leg authorises the *payment* — funds confirmation and
+     * submission — and presenting it here returns `401`, which is what this did before, right after
+     * an authorisation that had actually succeeded.
      */
     @Suppress("ReturnCount")
     override suspend fun consentStatus(consentId: String): NetworkResult<String, NetworkError> {
-        val token = paymentAuthSession.paymentToken()?.accesstoken
-            ?: when (val fallback = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)) {
-                is NetworkResult.Success -> fallback.data.accessToken
-                is NetworkResult.Error -> return fallback
-            }
+        val token = when (val result = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)) {
+            is NetworkResult.Success -> result.data.accessToken
+            is NetworkResult.Error -> return result
+        }
 
         return when (val result = pisp.getDomesticPaymentConsent(token, consentId)) {
             is NetworkResult.Success -> NetworkResult.Success(result.data.statusOrEmpty())
             is NetworkResult.Error -> result
         }
     }
+
+    override fun discardAuthorisation() = paymentAuthSession.clear()
 }

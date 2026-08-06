@@ -75,4 +75,13 @@ interface PaymentAuthRepository {
      * returns `400 U009`, so this is how the flow knows it may proceed.
      */
     suspend fun consentStatus(consentId: String): NetworkResult<String, NetworkError>
+
+    /**
+     * Forgets the authorisation and everything staged under it.
+     *
+     * Called at each of the three points a payment stops being in flight — submitted, failed, or
+     * abandoned — so a finished attempt leaves no consent id, PSU token or draft behind for the next
+     * one to find. Leaves the AIS session untouched, so the PSU stays signed in.
+     */
+    fun discardAuthorisation()
 }

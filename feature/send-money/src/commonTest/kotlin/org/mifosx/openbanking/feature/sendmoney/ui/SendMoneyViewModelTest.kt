@@ -15,6 +15,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.feature.sendmoney.FakeAccountCapabilityRegistry
 import org.mifosx.openbanking.feature.sendmoney.FakeAccountsOverviewRepository
 import org.mifosx.openbanking.feature.sendmoney.FakeBeneficiariesRepository
 import org.mifosx.openbanking.feature.sendmoney.FakePaymentInitiationRepository
@@ -52,11 +55,13 @@ class SendMoneyViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private val registry = FakeAccountCapabilityRegistry()
+
     private fun viewModel(
         accounts: FakeAccountsOverviewRepository = FakeAccountsOverviewRepository(),
         beneficiaries: FakeBeneficiariesRepository = FakeBeneficiariesRepository(),
         payments: FakePaymentInitiationRepository = FakePaymentInitiationRepository(),
-    ) = SendMoneyViewModel(accounts, beneficiaries, payments)
+    ) = SendMoneyViewModel(accounts, beneficiaries, payments, registry)
 
     private fun content(vm: SendMoneyViewModel): SendMoneyUiState.Content =
         assertIs<SendMoneyUiState.Content>(vm.stateFlow.value.uiState)
@@ -79,16 +84,49 @@ class SendMoneyViewModelTest {
         assertIs<SendMoneyUiState.Loading>(vm.stateFlow.value.uiState)
     }
 
-    /** TC-SEND-001. */
+    /**
+     * TC-SEND-001. Three of the four fixture accounts are payable: the credit card is predicted
+     * unpayable and dropped, the Global Money wallet is not predictable and stays until the bank
+     * refuses it.
+     */
     @Test
-    fun rendersBothPayerRowsAndEveryPayeeRow() = runTest {
+    fun rendersEveryPayablePayerRowAndEveryPayeeRow() = runTest {
         val vm = viewModel()
 
         val state = content(vm)
-        assertEquals(2, state.debtorRows.size)
+        assertEquals(3, state.debtorRows.size)
+        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.id })
         assertEquals(3, state.beneficiaries.size)
-        assertEquals("Current account ·· 3349", state.debtorRows.first().headline)
         assertEquals("Jameson Lettings", state.beneficiaries.first().headline)
+    }
+
+    /**
+     * The regression guard for the blank-row defect.
+     *
+     * HSBC leaves `Nickname` blank on most accounts, so a row must carry the fields
+     * `accountDisplayName` needs to derive "Current account ·· 3349". Reading `nickname` as the
+     * headline rendered an empty name and an empty avatar on every live account — and the original
+     * fixtures hid it, because they gave every account a nickname the real ones do not have.
+     */
+    @Test
+    fun anAccountWithNoNicknameStillCarriesEnoughToNameItself() = runTest {
+        val accounts = FakeAccountsOverviewRepository(
+            initial = ScreenState.Content(
+                listOf(
+                    AccountWithBalance(
+                        account = SendMoneyFixtures.currentAccount().copy(nickname = ""),
+                        balance = null,
+                    ),
+                ),
+                DataFreshness.FRESH,
+            ),
+        )
+
+        val row = content(viewModel(accounts = accounts)).debtorRows.single()
+
+        assertEquals("CurrentAccount", row.accountSubType)
+        assertEquals("10203349", row.accountNumber)
+        assertEquals("80200110203349", row.rawIdentification)
     }
 
     /** The picker lands usable rather than making the PSU choose an account they mostly always use. */
@@ -310,60 +348,122 @@ class SendMoneyViewModelTest {
         assertFalse(payments.stagedDrafts.single().creditor.isOwnAccount)
     }
 
+    /**
+     * A credit card cannot fund a domestic payment and must not be offered as one.
+     *
+     * Verified live: staging with the card as `DebtorAccount` is refused with `400 U021` — "the
+     * DebtorAccount.Identification value is incorrect for SchemeName
+     * 'UK.OBIE.SortCodeAccountNumber'". A card has no sort code and account number, so the app sent
+     * the masked PAN HSBC gave it and the bank rejected the field. Filtering beats letting someone
+     * fill in a payee and an amount before meeting a guaranteed refusal.
+     */
     @Test
-    fun aSuccessfulSubmissionReportsThePaymentId() = runTest {
-        val payments = FakePaymentInitiationRepository()
-        val vm = viewModel(payments = payments)
-        vm.completeForm()
-        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+    fun aCreditCardIsNotOfferedAsAPayer() = runTest {
+        val vm = viewModel()
 
-        vm.trySendAction(SendMoneyAction.SubmitPayment)
+        val ids = content(vm).debtorRows.map { it.id }
 
-        val state = assertIs<SendMoneyUiState.Success>(vm.stateFlow.value.uiState)
-        assertEquals(SendMoneyFixtures.PAYMENT_ID, state.paymentId)
-        assertEquals("£850.00", state.amountLabel)
-        assertEquals("Jameson Lettings", state.creditorName)
+        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in ids)
+        assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in ids)
     }
 
     /**
-     * TC-SEND-010, and the single most important assertion in this suite.
+     * The Global Money wallet IS offered, because nothing on the domain model can predict that it
+     * is unfundable — HSBC reports it as `AccountTypeCode: CACC`, identical to a current account.
      *
-     * A retry that mints a fresh key is not a retry — it is a second payment instruction the bank
-     * cannot recognise as a duplicate. The draft must be identical too, or the resubmitted
-     * `Initiation` diverges from the staged one and the bank refuses it with `U008`.
+     * This asserts the honest limit of the prediction. The wallet is removed only after the bank
+     * refuses it; see [aRefusedPayerDisappearsFromThePicker].
      */
     @Test
-    fun aRetryReusesTheSameIdempotencyKeyAndDraft() = runTest {
-        val payments = FakePaymentInitiationRepository()
-        val vm = viewModel(payments = payments)
-        vm.completeForm()
-        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
-        payments.submitReturns(NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline"))))
-        vm.trySendAction(SendMoneyAction.SubmitPayment)
+    fun aWalletIndistinguishableFromACurrentAccountIsStillOffered() = runTest {
+        val vm = viewModel()
 
-        payments.submitReturns(NetworkResult.Success(SendMoneyFixtures.receipt()))
-        vm.trySendAction(SendMoneyAction.RetrySubmit)
-
-        assertEquals(2, payments.submittedDrafts.size)
-        val first = payments.submittedDrafts[0]
-        val second = payments.submittedDrafts[1]
-        assertEquals(first.idempotencyKey, second.idempotencyKey)
-        assertEquals(first, second)
-        assertEquals(first.idempotencyKey, vm.stateFlow.value.idempotencyKey)
+        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
     }
 
-    /** Staging once and submitting must use one instruction, not two derivations of it. */
+    /**
+     * ...and disappears once the bank has refused it. This is the half the product matrix cannot
+     * do, and the reason the wallet does not need a database column to be handled correctly.
+     */
     @Test
-    fun submitsTheDraftThatWasStaged() = runTest {
+    fun aRefusedPayerDisappearsFromThePicker() = runTest {
+        val vm = viewModel()
+        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+
+        registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.PaymentDebtor)
+
+        val ids = content(vm).debtorRows.map { it.id }
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in ids)
+        assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
+    }
+
+    /** A refusal about another endpoint must not cost the account its payer role. */
+    @Test
+    fun anUnrelatedRefusalDoesNotRemoveAPayer() = runTest {
+        val vm = viewModel()
+
+        registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.DirectDebits)
+
+        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+    }
+
+    /**
+     * A payer refusal is not a connection problem and not a typo. There is nothing to check and
+     * nothing to retry — the only useful move is a different account.
+     */
+    @Test
+    fun aRefusedPayerIsReportedAsSuchAndOffersAWayOut() = runTest {
         val payments = FakePaymentInitiationRepository()
+        payments.stageReturns(
+            NetworkResult.Error(
+                NetworkError.Client.BadRequest(
+                    """{"Errors":[{"ErrorCode":"U002","Path":"Data.Initiation.DebtorAccount.Identification"}]}""",
+                ),
+            ),
+        )
         val vm = viewModel(payments = payments)
+        vm.completeForm()
+
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        val state = assertIs<SendMoneyUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(SendMoneyErrorKind.PayerNotSupported, state.kind)
+        assertFalse(state.kind.isRetryable)
+    }
+
+    /** Changing payer returns to the payer step, drops the refused selection, keeps the payee. */
+    @Test
+    fun changingPayerReturnsToTheRecipientStepWithThePayeeIntact() = runTest {
+        val vm = viewModel()
         vm.completeForm()
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        vm.trySendAction(SendMoneyAction.SubmitPayment)
+        vm.trySendAction(SendMoneyAction.ChangePayer)
 
-        assertEquals(payments.stagedDrafts.single(), payments.submittedDrafts.single())
-        assertEquals(SendMoneyFixtures.CONSENT_ID, payments.submittedConsentIds.single())
+        val state = content(vm)
+        assertEquals(SendMoneyStep.Recipient, state.step)
+        assertNull(state.debtorAccountId)
+        assertNotNull(state.creditor)
+        assertNull(vm.stateFlow.value.draft)
+    }
+
+    /**
+     * The draft is staged, stored, and left for the returning leg to submit. This screen must never
+     * send the payment itself — the browser hop destroys it, so a submission from here would be
+     * running in a ViewModel that is about to cease existing.
+     */
+    @Test
+    fun stagingDoesNotSubmitThePayment() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+        vm.completeForm()
+
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        assertEquals(1, payments.stagedDrafts.size)
+        assertTrue(payments.submittedDrafts.isEmpty())
+        assertTrue(payments.fundsChecks.isEmpty())
     }
 
     /** The OBIE cap is 40 characters. */
@@ -375,25 +475,28 @@ class SendMoneyViewModelTest {
 
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        val key = payments.stagedDrafts.single().idempotencyKey
-        assertTrue(key.isNotBlank())
-        assertTrue(key.length <= 40, "idempotency key was ${key.length} characters")
+        val draft = payments.stagedDrafts.single()
+        listOf(draft.consentIdempotencyKey, draft.paymentIdempotencyKey).forEach { key ->
+            assertTrue(key.isNotBlank())
+            assertTrue(key.length <= 40, "idempotency key was ${key.length} characters")
+        }
     }
 
-    /** TC-SEND-011: a negative funds check stops the payment before it is sent. */
+    /**
+     * The consent and submission bodies differ — only the latter carries `Data.ConsentId` — and the
+     * Read/Write profile answers a repeated key over a changed body with `400 U029`. So the two
+     * calls must not share one key, however tempting the symmetry.
+     */
     @Test
-    fun aNegativeFundsCheckStopsTheSubmission() = runTest {
+    fun theConsentAndPaymentPostsCarryDifferentIdempotencyKeys() = runTest {
         val payments = FakePaymentInitiationRepository()
-        payments.fundsReturn(NetworkResult.Success(false))
         val vm = viewModel(payments = payments)
         vm.completeForm()
+
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        vm.trySendAction(SendMoneyAction.SubmitPayment)
-
-        val state = assertIs<SendMoneyUiState.Error>(vm.stateFlow.value.uiState)
-        assertEquals(SendMoneyErrorKind.InsufficientFunds, state.kind)
-        assertTrue(payments.submittedDrafts.isEmpty())
+        val draft = payments.stagedDrafts.single()
+        assertTrue(draft.consentIdempotencyKey != draft.paymentIdempotencyKey)
     }
 
     // endregion
@@ -440,6 +543,30 @@ class SendMoneyViewModelTest {
         assertFalse(state.kind.isRetryable)
     }
 
+    /**
+     * `U021` names a field the bank would not accept, so it must read as a rejected detail — not as
+     * a connection problem with a Retry that can only fail again.
+     *
+     * Observed live: sending a credit card as `DebtorAccount` returned `400 U021`, and the app said
+     * "Check your connection and try again". The code fell through to `NetworkError` because the
+     * classifier did not know it.
+     */
+    @Test
+    fun aRejectedFieldIsNotReportedAsANetworkProblem() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        payments.stageReturns(
+            NetworkResult.Error(NetworkError.Client.BadRequest("""{"Errors":[{"ErrorCode":"U021"}]}""")),
+        )
+        val vm = viewModel(payments = payments)
+        vm.completeForm()
+
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        val state = assertIs<SendMoneyUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(SendMoneyErrorKind.InvalidField, state.kind)
+        assertFalse(state.kind.isRetryable)
+    }
+
     /** TC-SEND-009: editing the amount keeps the payer and payee already chosen. */
     @Test
     fun editingTheAmountReturnsToTheAmountStepWithSelectionsIntact() = runTest {
@@ -473,7 +600,6 @@ class SendMoneyViewModelTest {
 
         vm.trySendAction(SendMoneyAction.BackStep)
 
-        assertEquals("", vm.stateFlow.value.idempotencyKey)
         assertNull(vm.stateFlow.value.draft)
         assertNull(vm.stateFlow.value.consentId)
     }
@@ -506,19 +632,22 @@ class SendMoneyViewModelTest {
         assertTrue(state.kind.isRetryable)
     }
 
-    /** Nothing was sent, so there is nothing to revoke — just clear and start over. */
+    /**
+     * Editing from Review keeps the payer and payee but drops the draft: changing the amount makes
+     * it a different instruction, which must be staged under new keys rather than replayed.
+     */
     @Test
-    fun cancellingReturnsToTheRecipientStepAndClearsTheDraft() = runTest {
+    fun editingFromReviewReturnsToTheAmountStepAndClearsTheDraft() = runTest {
         val vm = viewModel()
         vm.completeForm()
+        vm.trySendAction(SendMoneyAction.ReviewPayment)
 
-        vm.trySendAction(SendMoneyAction.CancelPayment)
+        vm.trySendAction(SendMoneyAction.BackStep)
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Recipient, state.step)
-        assertNull(state.creditor)
+        assertEquals(SendMoneyStep.Amount, state.step)
+        assertNotNull(state.creditor)
         assertNull(vm.stateFlow.value.draft)
-        assertEquals("", vm.stateFlow.value.idempotencyKey)
     }
 
     @Test
@@ -543,17 +672,26 @@ class SendMoneyViewModelTest {
         assertEquals(1, accounts.refreshCount)
     }
 
-    /** Nothing to submit without a staged consent, and asking anyway must not throw. */
+    /**
+     * A staging failure leaves no consent, so the only sensible retry is to stage again — which
+     * mints a fresh consent under fresh keys, because the earlier attempt never produced one for the
+     * bank to recognise as a duplicate.
+     */
     @Test
-    fun submittingWithoutAStagedConsentDoesNothing() = runTest {
+    fun retryingAfterAStagingFailureStagesAgain() = runTest {
         val payments = FakePaymentInitiationRepository()
+        payments.stageReturns(
+            NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline"))),
+        )
         val vm = viewModel(payments = payments)
         vm.completeForm()
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        vm.trySendAction(SendMoneyAction.SubmitPayment)
+        payments.stageReturns(NetworkResult.Success(SendMoneyFixtures.stagedConsent()))
+        vm.trySendAction(SendMoneyAction.RetryStaging)
 
-        assertTrue(payments.submittedDrafts.isEmpty())
-        assertNotNull(vm.stateFlow.value.uiState)
+        assertEquals(2, payments.stagedDrafts.size)
+        assertNotNull(vm.stateFlow.value.consentId)
     }
 
     // endregion

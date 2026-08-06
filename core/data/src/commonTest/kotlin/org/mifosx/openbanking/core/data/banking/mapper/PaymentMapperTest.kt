@@ -57,7 +57,8 @@ class PaymentMapperTest {
         reference = reference,
         instructionIdentification = "MFX20260805T1042330001",
         endToEndIdentification = "E2E-RENT-FLAT12-202608",
-        idempotencyKey = "MFX-20260805-0001",
+        consentIdempotencyKey = "MFX-20260805-0001-consent",
+        paymentIdempotencyKey = "MFX-20260805-0001-payment",
     )
 
     /**

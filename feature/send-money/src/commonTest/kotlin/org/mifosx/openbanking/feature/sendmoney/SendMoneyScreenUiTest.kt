@@ -13,6 +13,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
@@ -33,7 +34,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun loadingRendersTheSkeleton() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.loadingState(), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.loadingState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.SKELETON).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertDoesNotExist()
@@ -43,7 +44,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun theRecipientStepRendersBothPickersAndTheManualEntryAffordance() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.recipientState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.STEP_INDICATOR).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
@@ -57,7 +58,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun anEmptyPayeeListKeepsManualEntryAvailable() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(beneficiaries = emptyList()), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.recipientState(beneficiaries = emptyList()), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
@@ -68,7 +69,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun theManualFieldsAppearOnlyWhenAskedFor() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(manualEntryVisible = true), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.recipientState(manualEntryVisible = true), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.MANUAL_SORT_CODE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER).performScrollTo().assertIsDisplayed()
@@ -88,26 +89,43 @@ class SendMoneyScreenUiTest {
                 SendMoneyFixtures.amountState(problem = SendMoneyAmountProblem.ExceedsAvailableBalance),
                 {},
                 {},
-                {},
             )
         }
         onNodeWithTag(SendMoneyTestTags.AMOUNT_ERROR, useUnmergedTree = true).assertExists()
         onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsNotEnabled()
     }
 
-    /** TC-SEND-014: four rows, and a blank reference says so explicitly. */
+    /** TC-SMC-001: the amount leads, the detail rows confirm it, and both controls are present. */
     @Test
-    fun theReviewStepShowsAllFourRowsAndBothControls() = runComposeUiTest {
+    fun theReviewStepLeadsWithTheAmountAndListsEveryDetail() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {})
         }
-        onNodeWithTag(SendMoneyTestTags.REVIEW_SUMMARY).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.REVIEW_FROM).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.REVIEW_TO).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_HERO).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REVIEW_AMOUNT).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_PAYEE_CHIP).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_SUMMARY).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_TO).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_FROM).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REVIEW_REFERENCE).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_SENT_VIA).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_TOTAL).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_AUTH_NOTICE).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CONFIRM_BUTTON).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.CANCEL_BUTTON).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.EDIT_PAYMENT_BUTTON).assertIsDisplayed()
+    }
+
+    /**
+     * TC-SMC-005. A fee figure here could only be hardcoded — charges arrive on the consent
+     * response, which does not exist until Confirm is tapped — and the sandbox quotes charges on
+     * some payments, so a printed £0.00 would sometimes be false.
+     */
+    @Test
+    fun theReviewStepShowsNoFeeFigureItCannotKnow() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {})
+        }
+        onNodeWithText("£0.00").assertDoesNotExist()
     }
 
     /**
@@ -117,7 +135,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun submittingRendersNoCallToActionAtAll() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.submittingState(), {}, {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.submittingState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.SUBMITTING_INDICATOR).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.SUBMITTING_AMOUNT).assertIsDisplayed()
@@ -134,23 +152,9 @@ class SendMoneyScreenUiTest {
                 SendMoneyFixtures.submittingState(stage = SendMoneyStage.AwaitingAuthorisation),
                 {},
                 {},
-                {},
             )
         }
         onNodeWithTag(SendMoneyTestTags.SUBMITTING_INDICATOR).assertIsDisplayed()
-    }
-
-    /** TC-SEND-012. */
-    @Test
-    fun successShowsTheReceiptAndTheWayToTrackIt() = runComposeUiTest {
-        setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.successState(), {}, {}, {})
-        }
-        onNodeWithTag(SendMoneyTestTags.SUCCESS_STATE).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.SUCCESS_AMOUNT).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.SUCCESS_STATUS_CHIP).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.SUCCESS_PAYMENT_ID).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.VIEW_PAYMENT_STATUS_BUTTON).assertIsDisplayed()
     }
 
     /** TC-SEND-009: U014 offers exactly one recovery, and it is not Retry. */
@@ -159,7 +163,6 @@ class SendMoneyScreenUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.OutsideControlParameters),
-                {},
                 {},
                 {},
             )
@@ -176,7 +179,6 @@ class SendMoneyScreenUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.SignatureMissing),
-                {},
                 {},
                 {},
             )
@@ -196,7 +198,6 @@ class SendMoneyScreenUiTest {
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.ConsentNotAuthorised),
                 {},
                 {},
-                {},
             )
         }
         onNodeWithTag(SendMoneyTestTags.REAUTHORISE_BUTTON).assertIsDisplayed()
@@ -209,7 +210,6 @@ class SendMoneyScreenUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.ConsentRevoked),
-                {},
                 {},
                 {},
             )
@@ -226,7 +226,6 @@ class SendMoneyScreenUiTest {
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.NetworkError, supportReference = null),
                 {},
                 {},
-                {},
             )
         }
         onNodeWithTag(SendMoneyTestTags.RETRY_BUTTON).assertIsDisplayed()
@@ -239,7 +238,6 @@ class SendMoneyScreenUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.errorState(kind = SendMoneyErrorKind.InsufficientFunds),
-                {},
                 {},
                 {},
             )

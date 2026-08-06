@@ -33,6 +33,47 @@ fun formatShortMonthDay(isoDateTime: String): String {
     }
 }
 
+/**
+ * Renders a full ISO-8601 timestamp as a readable local date and time, e.g. `"5 Aug 2026, 18:46"`.
+ *
+ * Converts to [timeZone] — the device's by default — so a bank offset such as `+00:00` reads as the
+ * wall-clock time the customer was looking at. Falls back to the raw input when it will not parse:
+ * the same contract as [formatShortMonthDay], and the right one for a value that comes from a bank,
+ * where an unexpected format should still be legible on screen rather than blank or fatal.
+ *
+ * @param timeZone Overridable so a test can assert a fixed rendering instead of one that moves with
+ *   the machine it runs on.
+ */
+fun formatDateTime(
+    isoDateTime: String,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): String {
+    val instant = runCatching { Instant.parse(isoDateTime) }.getOrNull() ?: return isoDateTime
+    val dateTime = instant.toLocalDateTime(timeZone)
+    // Indexed rather than getOrNull: month numbers are 1..12 against twelve abbreviations, so a
+    // miss would be a bug in this file, not a value a bank could send.
+    val month = MONTH_ABBREVIATIONS[dateTime.month.number - 1]
+    val hour = dateTime.hour.toString().padStart(2, '0')
+    val minute = dateTime.minute.toString().padStart(2, '0')
+    return "${dateTime.day} $month ${dateTime.year}, $hour:$minute"
+}
+
+/**
+ * Renders an instant as a 24-hour local wall-clock time, e.g. `"18:46"`.
+ *
+ * For "last checked at" style stamps, where the date is implicitly today and only the time carries
+ * information.
+ */
+fun formatTimeOfDay(
+    instant: Instant,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): String {
+    val dateTime = instant.toLocalDateTime(timeZone)
+    val hour = dateTime.hour.toString().padStart(2, '0')
+    val minute = dateTime.minute.toString().padStart(2, '0')
+    return "$hour:$minute"
+}
+
 fun formatDate(millis: Long): String {
     val dateTime = Instant
         .fromEpochMilliseconds(millis)

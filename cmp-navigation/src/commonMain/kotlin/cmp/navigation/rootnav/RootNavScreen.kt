@@ -45,6 +45,8 @@ import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
 import org.mifosx.openbanking.feature.paymentconsent.PaymentConsentRoute
 import org.mifosx.openbanking.feature.paymentconsent.paymentConsentScreen
+import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
+import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -101,11 +103,18 @@ fun RootNavScreen(
         splashDestination()
         authGraph(navController)
         paymentConsentScreen(
-            // Every outcome goes back to the Pay tab: send-money holds the idempotency key and the
-            // staged Initiation, so it is the only place that can finish or discard the payment.
-            onAuthorised = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+            // A submitted payment goes to its receipt; an abandoned or restarted one goes back into
+            // the app. Payment-status is registered here, at the root, rather than inside the navbar
+            // graph — the navbar hosts its own NavHost, which this navigator cannot reach into.
+            onPaymentSubmitted = { paymentId ->
+                navController.navigate(PaymentStatusRoute(paymentId), rootNavOptions())
+            },
             onRestartAuthorisation = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
             onAbandoned = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+        )
+        paymentStatusScreen(
+            onBack = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+            onStartNewPayment = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
         )
         consentCallbackDestination(
             onNavigateToHome = {

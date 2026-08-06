@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
@@ -37,6 +38,8 @@ object SendMoneyFixtures {
 
     const val CURRENT_ACCOUNT_ID = "123456791"
     const val SAVINGS_ACCOUNT_ID = "1123456841"
+    const val CREDIT_CARD_ID = "1123456842"
+    const val GLOBAL_MONEY_ID = "1123456843"
     const val JAMESON_ID = "BEN-001"
     const val SHARMA_ID = "BEN-002"
     const val EDF_ID = "BEN-003"
@@ -66,6 +69,40 @@ object SendMoneyFixtures {
         rawIdentification = "80122590953695",
     )
 
+    /**
+     * A credit card, as HSBC returns one: the account-number field is a masked PAN slice, not a
+     * real account number, which is why it cannot fund a payment. Present in [accounts] on purpose
+     * — the picker must be proven to exclude it, and a fixture without one proves nothing.
+     */
+    fun creditCard(): BankAccount = BankAccount(
+        accountId = CREDIT_CARD_ID,
+        nickname = "",
+        // "CARD", not "CreditCard": v4.0 has no AccountSubType, so AccountMapper falls through to
+        // AccountTypeCode, which HSBC sends as CARD. Both resolve, but the fixture mirrors the bank.
+        accountSubType = "CARD",
+        currency = "GBP",
+        sortCode = "",
+        accountNumber = "xxxx-xxxx-xxxx-3456",
+        rawIdentification = "xxxx-xxxx-xxxx-3456",
+    )
+
+    /**
+     * The Global Money wallet exactly as HSBC returns it: `AccountTypeCode: CACC`, so
+     * `accountSubType` reads "CACC" and nothing on the domain model distinguishes it from a current
+     * account. It stays in [accounts] on purpose — the app cannot predict that this is unfundable,
+     * and the tests should reflect that rather than pretend otherwise. What it CAN do is learn from
+     * the bank's refusal, which is what the registry-driven filter covers.
+     */
+    fun globalMoneyWallet(): BankAccount = BankAccount(
+        accountId = GLOBAL_MONEY_ID,
+        nickname = "",
+        accountSubType = "CACC",
+        currency = "GBP",
+        sortCode = "801197",
+        accountNumber = "70009652",
+        rawIdentification = "80119770009652",
+    )
+
     fun accounts(): List<AccountWithBalance> = listOf(
         AccountWithBalance(
             account = currentAccount(),
@@ -83,6 +120,24 @@ object SendMoneyFixtures {
                 currency = "GBP",
                 currentAmount = "482.10",
                 availableAmount = "482.10",
+            ),
+        ),
+        AccountWithBalance(
+            account = creditCard(),
+            balance = AccountBalance(
+                accountId = CREDIT_CARD_ID,
+                currency = "GBP",
+                currentAmount = "245865.06",
+                availableAmount = "245865.06",
+            ),
+        ),
+        AccountWithBalance(
+            account = globalMoneyWallet(),
+            balance = AccountBalance(
+                accountId = GLOBAL_MONEY_ID,
+                currency = "GBP",
+                currentAmount = "303167.25",
+                availableAmount = "303167.25",
             ),
         ),
     )
@@ -126,14 +181,34 @@ object SendMoneyFixtures {
         domesticPaymentId = PAYMENT_ID,
         consentId = CONSENT_ID,
         status = PaymentStatus.AcceptedSettlementInProcess,
+        creationDateTime = "2026-08-05T10:44:05+00:00",
         statusUpdateDateTime = "2026-08-05T10:44:05+00:00",
         amountLabel = "£850.00",
         creditorName = "Jameson Lettings",
     )
 
-    private fun debtorRows(): List<SendMoneyPickerRow> = listOf(
-        SendMoneyPickerRow(CURRENT_ACCOUNT_ID, "CU", "Current account ·· 3349", "£21,530.92"),
-        SendMoneyPickerRow(SAVINGS_ACCOUNT_ID, "BM", "BMM ACCOUNT ·· 3695", "£482.10"),
+    /**
+     * Raw fields, not a finished label — the readable name is resolved at render by
+     * `accountDisplayName`, exactly as it is in production. A fixture that pre-baked the label would
+     * have passed while the live screen rendered blank rows, which is what happened.
+     */
+    private fun debtorRows(): List<SendMoneyAccountRow> = listOf(
+        SendMoneyAccountRow(
+            id = CURRENT_ACCOUNT_ID,
+            nickname = "",
+            accountSubType = "CurrentAccount",
+            accountNumber = "10203349",
+            rawIdentification = "80200110203349",
+            supporting = "£21,530.92",
+        ),
+        SendMoneyAccountRow(
+            id = SAVINGS_ACCOUNT_ID,
+            nickname = "",
+            accountSubType = "Savings",
+            accountNumber = "90953695",
+            rawIdentification = "80122590953695",
+            supporting = "£482.10",
+        ),
     )
 
     private fun creditorRows(): List<SendMoneyPickerRow> = listOf(
@@ -194,7 +269,7 @@ object SendMoneyFixtures {
             debtorRows = debtorRows(),
             beneficiaries = creditorRows(),
             debtorAccountId = CURRENT_ACCOUNT_ID,
-            debtorAccountLabel = "Current account ·· 3349",
+            debtorAccountRow = debtorRows().first(),
             creditor = jamesonSelection(),
             creditorLabel = "Jameson Lettings",
             creditorSupporting = "Sort Code · 40-12-09 65872310",
@@ -206,22 +281,13 @@ object SendMoneyFixtures {
     )
 
     fun submittingState(
-        stage: SendMoneyStage = SendMoneyStage.SubmittingPayment,
+        stage: SendMoneyStage = SendMoneyStage.AwaitingAuthorisation,
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Submitting(
             stage = stage,
             amountLabel = "£850.00",
             creditorName = "Jameson Lettings",
             consentId = CONSENT_ID,
-        ),
-    )
-
-    fun successState(): SendMoneyState = SendMoneyState(
-        uiState = SendMoneyUiState.Success(
-            paymentId = PAYMENT_ID,
-            statusLabel = "AcceptedSettlementInProcess",
-            amountLabel = "£850.00",
-            creditorName = "Jameson Lettings",
         ),
     )
 

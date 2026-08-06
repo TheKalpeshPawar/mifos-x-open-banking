@@ -11,7 +11,13 @@ package org.mifosx.openbanking.core.model.hsbcProduct
 
 import kotlinx.serialization.Serializable
 
-/** The per-account AIS resources this app reads. */
+/**
+ * What an account can be used for.
+ *
+ * Mostly the per-account AIS resources this app reads, plus [PaymentDebtor], which is a PISP
+ * capability rather than a readable resource — an account either can fund a domestic payment or
+ * cannot, and the bank will not tell us which until we try.
+ */
 enum class AccountEndpoint {
     Balances,
     Transactions,
@@ -22,6 +28,9 @@ enum class AccountEndpoint {
     Statements,
     Product,
     Party,
+
+    /** Whether the account may appear as `DebtorAccount` on a domestic payment. */
+    PaymentDebtor,
 }
 
 /**
@@ -95,6 +104,24 @@ data class HsbcProductCapability(
             HsbcProductCapability(
                 AccountEndpoint.DirectDebits,
                 setOf(HsbcProductType.PersonalCurrentAccount),
+            ),
+
+            // Which products may FUND a domestic payment. Established empirically — the published
+            // matrix covers AIS reads only — by staging a real consent and reading the refusal:
+            //   400 U021 "the DebtorAccount.Identification value is incorrect for SchemeName
+            //             'UK.OBIE.SortCodeAccountNumber'"
+            //   Path: Data.Initiation.DebtorAccount.Identification
+            // A card has no sort code and account number, and PaymentMapper can only express that
+            // one scheme, so offering it as a payer guarantees a rejection.
+            //
+            // This row predicts ONLY what is cheap to predict. It is deliberately not a complete
+            // list of unfundable products: a Global Money wallet is also refused (400 U002, same
+            // path) but reports AccountTypeCode CACC, so nothing reaching this matrix can tell it
+            // from a current account. That case is caught at runtime instead, from the bank's own
+            // refusal — see PaymentInitiationRepositoryImpl.stagePayment.
+            HsbcProductCapability(
+                AccountEndpoint.PaymentDebtor,
+                ALL_PRODUCTS - HsbcProductType.CreditCard,
             ),
         )
 

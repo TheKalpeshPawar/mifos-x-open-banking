@@ -47,6 +47,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private const val KID = "test-kid-1"
+private const val SIGNING_ISSUER = "mifos_init_00000/0000000000000000000000"
 private const val IDEMPOTENCY_KEY = "MFX-20260805-0001"
 private const val CONSENT_ID = "812774903"
 private const val SUBMITTED_PAYMENT_BODY =
@@ -103,6 +104,7 @@ class PispTest {
             kid = KID,
             signingKeyPem = TestSigningKey.pem(),
             financialId = financialId,
+            signingIssuer = SIGNING_ISSUER,
         )
     }
 

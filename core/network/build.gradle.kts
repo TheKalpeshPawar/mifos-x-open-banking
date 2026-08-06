@@ -69,6 +69,7 @@ val hsbcConfigKeys = mapOf(
     "HSBC_AUTHORIZE_HOST" to "",
     "HSBC_REDIRECT_URI" to "",
     "HSBC_TRANSPORT_P12_PASSWORD" to "",
+    "HSBC_SIGNING_ISSUER" to "",
 )
 
 // env var → local.properties → gradle property → default. Blank is treated as absent
@@ -139,6 +140,13 @@ val generateHsbcConfig = tasks.register("generateHsbcConfig") {
             |     * empty passphrase builds and passes on desktop, then crashes every Android launch.
             |     */
             |    const val TRANSPORT_P12_PASSWORD: String = "${value("HSBC_TRANSPORT_P12_PASSWORD")}"
+            |
+            |    /**
+            |     * The `http://openbanking.org.uk/iss` claim carried in the detached JWS header on
+            |     * PISP writes: the organisation and software-statement pair the signing certificate
+            |     * was issued to. HSBC verifies it against the certificate.
+            |     */
+            |    const val SIGNING_ISSUER: String = "${value("HSBC_SIGNING_ISSUER")}"
             |}
             |
             """.trimMargin(),

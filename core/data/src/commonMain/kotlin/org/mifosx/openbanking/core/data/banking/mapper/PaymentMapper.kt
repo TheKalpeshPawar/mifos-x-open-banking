@@ -13,6 +13,7 @@ import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
+import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -25,6 +26,7 @@ import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.In
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.InstructedAmount
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.RemittanceInformation
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.Risk
+import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.Charge
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentConsentResponse
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentResponse
 
@@ -35,6 +37,16 @@ private const val SCHEME_SORT_CODE = "UK.OBIE.SortCodeAccountNumber"
 private const val SCHEME_IBAN = "UK.OBIE.IBAN"
 private const val SCHEME_PAYM = "UK.OBIE.Paym"
 private const val SCHEME_PAN = "UK.OBIE.PAN"
+
+/**
+ * Faster Payments — the rail a consumer domestic payment should declare.
+ *
+ * Stated explicitly rather than left to the ASPSP's default, so the instruction says which scheme it
+ * intends. Note the sandbox quotes `UK.OBIE.CHAPSOut` charges and a `CutOffDateTime` equal to the
+ * consent's own `CreationDateTime` either way, so this does not change what that environment
+ * returns; it is about the request being unambiguous, not about working around a response.
+ */
+private const val LOCAL_INSTRUMENT_FPS = "UK.OBIE.FPS"
 
 /** A payment the PSU makes to one of their own accounts, as opposed to anyone else's. */
 private const val CONTEXT_TRANSFER_TO_SELF = "TransferToSelf"
@@ -51,6 +63,7 @@ private const val CONTEXT_TRANSFER_TO_THIRD_PARTY = "TransferToThirdParty"
 internal fun PaymentDraft.toInitiation(): Initiation = Initiation(
     instructionIdentification = instructionIdentification,
     endToEndIdentification = endToEndIdentification,
+    localInstrument = LOCAL_INSTRUMENT_FPS,
     instructedAmount = InstructedAmount(
         amount = amountMinorUnits.toMajorUnitString(),
         currency = currency,
@@ -140,7 +153,9 @@ internal fun DomesticPaymentResponse.toPaymentReceipt(): PaymentReceipt {
         domesticPaymentId = data?.domesticPaymentId.orEmpty(),
         consentId = data?.consentId.orEmpty(),
         status = PaymentStatus.fromWire(data?.status),
+        creationDateTime = data?.creationDateTime.orEmpty(),
         statusUpdateDateTime = data?.statusUpdateDateTime.orEmpty(),
+        settlementDateTime = data?.expectedSettlementDateTime.orEmpty(),
         amountLabel = formatMinorUnits(
             minorUnits = amount?.amount.toMinorUnits(),
             currency = amount?.currency.orEmpty(),
@@ -148,8 +163,22 @@ internal fun DomesticPaymentResponse.toPaymentReceipt(): PaymentReceipt {
         creditorName = initiation?.creditorAccount?.name.orEmpty(),
         reference = initiation?.remittanceInformation?.unstructured?.firstOrNull().orEmpty(),
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        charges = data?.charges.orEmpty().map { it.toPaymentCharge() },
     )
 }
+
+/**
+ * Formats a charge for display, reusing the same minor-unit path as the payment amount so a fee and
+ * the sum it is levied on cannot be rendered by two different rules.
+ */
+private fun Charge.toPaymentCharge(): PaymentCharge = PaymentCharge(
+    bearer = chargeBearer.orEmpty(),
+    typeLabel = type.orEmpty(),
+    amountLabel = formatMinorUnits(
+        minorUnits = amount?.amount.toMinorUnits(),
+        currency = amount?.currency.orEmpty(),
+    ),
+)
 
 /**
  * Parses an OBIE major-unit amount string back to minor units.

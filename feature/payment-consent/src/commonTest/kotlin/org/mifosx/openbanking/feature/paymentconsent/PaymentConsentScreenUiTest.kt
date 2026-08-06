@@ -75,9 +75,23 @@ class PaymentConsentScreenUiTest {
     }
 
     @Test
-    fun authorisedRendersItsOwnState() = runComposeUiTest {
-        setContent { PaymentConsentScreenContent(PaymentConsentFixtures.authorisedState(), {}) }
-        onNodeWithTag(PaymentConsentTestTags.AUTHORISED_STATE).assertIsDisplayed()
+    fun confirmingFundsNamesTheStageItHasReached() = runComposeUiTest {
+        setContent { PaymentConsentScreenContent(PaymentConsentFixtures.confirmingFundsState(), {}) }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_INDICATOR).assertIsDisplayed()
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_DETAIL).assertIsDisplayed()
+    }
+
+    /**
+     * The instruction is with the bank at this point, so the screen tells the customer to wait and
+     * offers nothing to tap — there is no exit that would undo anything.
+     */
+    @Test
+    fun submittingWarnsAgainstLeavingAndOffersNoExit() = runComposeUiTest {
+        setContent { PaymentConsentScreenContent(PaymentConsentFixtures.submittingState(), {}) }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_INDICATOR).assertIsDisplayed()
+        onNodeWithTag(PaymentConsentTestTags.SUBMITTING_WARNING).assertIsDisplayed()
+        onNodeWithTag(PaymentConsentTestTags.ABANDON_BUTTON).assertDoesNotExist()
+        onNodeWithTag(PaymentConsentTestTags.CHECK_AGAIN_BUTTON).assertDoesNotExist()
     }
 
     /** Both exits are always present: restarting and abandoning are equally legitimate here. */
