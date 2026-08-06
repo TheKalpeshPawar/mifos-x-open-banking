@@ -34,6 +34,8 @@
     <string name="feature_statements_retry">Retry</string>
     <string name="feature_statements_retry_accessibility">Retry loading statements</string>
 
-    <string name="feature_statements_download_unavailable">This statement isn\'t available to download.</string>
-    <string name="feature_statements_download_error">Couldn\'t download the statement. Try again.</string>
+    <!-- Curly apostrophes, not \' — Compose Multiplatform does not collapse Android's escape and
+         renders the backslash on screen. Same trap as %% in a templated string. -->
+    <string name="feature_statements_download_unavailable">This statement isn’t available to download.</string>
+    <string name="feature_statements_download_error">Couldn’t download the statement. Try again.</string>
 </resources>

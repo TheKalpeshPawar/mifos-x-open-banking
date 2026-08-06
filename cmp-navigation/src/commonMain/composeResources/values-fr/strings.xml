@@ -13,5 +13,5 @@
     <string name="home">Accueil</string>
     <string name="profile">Profil</string>
     <string name="settings">Paramètres</string>
-    <string name="not_connected">⚠️ Vous n\'êtes pas connecté à Internet</string>
+    <string name="not_connected">⚠️ Vous n’êtes pas connecté à Internet</string>
 </resources>
