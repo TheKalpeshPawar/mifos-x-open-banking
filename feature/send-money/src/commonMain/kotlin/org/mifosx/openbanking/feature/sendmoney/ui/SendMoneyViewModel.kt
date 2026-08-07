@@ -83,7 +83,7 @@ class SendMoneyViewModel(
 
     /** Everything the PSU has entered. Held apart from loaded data so a refresh cannot clear it. */
     private data class Form(
-        val step: SendMoneyStep = SendMoneyStep.Recipient,
+        val step: SendMoneyStep = SendMoneyStep.Form,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccountId: String? = null,
         val creditor: CreditorSelection? = null,
@@ -230,7 +230,6 @@ class SendMoneyViewModel(
                 isOwnAccount = isOwnAccount(payee.identification),
             ),
             reference = payee.reference,
-            step = SendMoneyStep.Amount,
             manualEntryVisible = false,
         )
     }
@@ -286,7 +285,6 @@ class SendMoneyViewModel(
                 isOwnAccount = isOwnAccount(identification),
             ),
             fieldErrors = SendMoneyFieldErrors(),
-            step = SendMoneyStep.Amount,
         )
     }
 
@@ -354,19 +352,19 @@ class SendMoneyViewModel(
      * row that no longer exists. The payee is kept — nothing was wrong with it.
      */
     private fun changePayer() {
-        form.value = form.value.copy(step = SendMoneyStep.Recipient, debtorAccountId = null)
+        form.value = form.value.copy(step = SendMoneyStep.Form, debtorAccountId = null)
         phase.value = Phase.Form
         updateState { copy(draft = null, consentId = null) }
     }
 
     /**
-     * Returns to the amount step from a failure, keeping the payer and payee already chosen.
+     * Returns to the form from a failure, keeping the payer and payee already chosen.
      *
      * The draft is dropped deliberately: editing the amount changes the instruction, so the next
      * attempt is a different payment and must be staged under a new key rather than replayed.
      */
     private fun backStep() {
-        form.value = form.value.copy(step = SendMoneyStep.Amount)
+        form.value = form.value.copy(step = SendMoneyStep.Form)
         phase.value = Phase.Form
         updateState { copy(draft = null, consentId = null) }
     }

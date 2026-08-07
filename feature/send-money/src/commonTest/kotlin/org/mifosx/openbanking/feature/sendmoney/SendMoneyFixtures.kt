@@ -220,47 +220,58 @@ object SendMoneyFixtures {
 
     fun loadingState(): SendMoneyState = SendMoneyState(uiState = SendMoneyUiState.Loading)
 
-    fun recipientState(
+    /**
+     * The form page — payer, payee and amount, which used to be three separate steps.
+     *
+     * Empty by default, which is how the page first renders. [filledFormState] is the same page with
+     * a payee and an amount already entered, for the cases that care about the action being enabled.
+     */
+    fun formState(
         beneficiaries: List<SendMoneyPickerRow> = creditorRows(),
         manualEntryVisible: Boolean = false,
+        creditor: CreditorSelection? = null,
+        creditorLabel: String = "",
+        amountMinorUnits: String = "",
+        amountLabel: String = "",
+        reference: String = "",
+        problem: SendMoneyAmountProblem? = null,
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
-            step = SendMoneyStep.Recipient,
+            step = SendMoneyStep.Form,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
             beneficiaries = beneficiaries,
             debtorAccountId = CURRENT_ACCOUNT_ID,
+            creditor = creditor,
+            creditorLabel = creditorLabel,
             manualEntryVisible = manualEntryVisible,
+            amountMinorUnits = amountMinorUnits,
+            amountLabel = amountLabel,
+            reference = reference,
+            amountProblem = problem,
             availableBalanceMinorUnits = 2_153_092L,
         ),
     )
 
-    /** The chosen payee, as the amount and review steps carry it forward. */
+    /** The form with everything filled in, so `canReview` is true unless [problem] says otherwise. */
+    fun filledFormState(
+        amountMinorUnits: String = "85000",
+        problem: SendMoneyAmountProblem? = null,
+    ): SendMoneyState = formState(
+        creditor = jamesonSelection(),
+        creditorLabel = "Jameson Lettings",
+        amountMinorUnits = amountMinorUnits,
+        amountLabel = "£850.00",
+        reference = "RENT-FLAT12",
+        problem = problem,
+    )
+
+    /** The chosen payee, as the form and review carry it forward. */
     fun jamesonSelection(): CreditorSelection = CreditorSelection(
         name = "Jameson Lettings",
         scheme = BeneficiaryScheme.SortCode,
         identification = "40120965872310",
         beneficiaryId = JAMESON_ID,
-    )
-
-    fun amountState(
-        amountMinorUnits: String = "85000",
-        problem: SendMoneyAmountProblem? = null,
-    ): SendMoneyState = SendMoneyState(
-        uiState = SendMoneyUiState.Content(
-            step = SendMoneyStep.Amount,
-            debtorAccounts = listOf(currentAccount(), savingsAccount()),
-            debtorRows = debtorRows(),
-            beneficiaries = creditorRows(),
-            debtorAccountId = CURRENT_ACCOUNT_ID,
-            creditor = jamesonSelection(),
-            creditorLabel = "Jameson Lettings",
-            amountMinorUnits = amountMinorUnits,
-            amountLabel = "£850.00",
-            reference = "RENT-FLAT12",
-            amountProblem = problem,
-            availableBalanceMinorUnits = 2_153_092L,
-        ),
     )
 
     fun reviewState(reference: String = "RENT-FLAT12"): SendMoneyState = SendMoneyState(

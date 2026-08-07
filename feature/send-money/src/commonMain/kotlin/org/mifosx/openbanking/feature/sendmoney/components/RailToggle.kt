@@ -10,23 +10,38 @@
 package org.mifosx.openbanking.feature.sendmoney.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyTestTags
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_rail_domestic
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_rail_international
 import template.core.base.designsystem.theme.KptTheme
 
+/**
+ * Which rail the payment goes out on.
+ *
+ * The two rails accept genuinely different fields, so this is not a cosmetic filter — switching it
+ * changes what the form asks for. It renders on the form page only: the rail must not be able to
+ * change while a review of a specific payment is on screen.
+ */
 @Composable
 fun RailToggle(
     rail: PaymentRail,
@@ -36,16 +51,18 @@ fun RailToggle(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .testTag(SendMoneyTestTags.RAIL_TOGGLE)
             .background(KptTheme.colorScheme.surfaceContainer, RoundedCornerShape(8.dp))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        listOf(PaymentRail.Domestic, PaymentRail.International).forEach { r ->
-            val selected = r == rail
+        listOf(PaymentRail.Domestic, PaymentRail.International).forEach { option ->
+            val selected = option == rail
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .height(40.dp)
+                    .testTag(SendMoneyTestTags.railOption(option))
                     .background(
                         if (selected) {
                             KptTheme.colorScheme.primary
@@ -54,11 +71,11 @@ fun RailToggle(
                         },
                         RoundedCornerShape(6.dp),
                     )
-                    .clickable { onSelect(r) },
+                    .selectable(selected = selected, role = Role.RadioButton) { onSelect(option) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (r == PaymentRail.Domestic) "Domestic" else "International",
+                    text = stringResource(option.labelResource()),
                     style = KptTheme.typography.labelMedium,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (selected) {
@@ -70,4 +87,9 @@ fun RailToggle(
             }
         }
     }
+}
+
+private fun PaymentRail.labelResource(): StringResource = when (this) {
+    PaymentRail.Domestic -> Res.string.feature_send_money_rail_domestic
+    PaymentRail.International -> Res.string.feature_send_money_rail_international
 }

@@ -12,6 +12,12 @@
     <string name="feature_send_money_screen_title">Send money</string>
     <string name="feature_send_money_loading_a11y">Loading your accounts and payees</string>
 
+    <string name="feature_send_money_rail_domestic">Domestic</string>
+    <string name="feature_send_money_rail_international">International</string>
+
+    <!-- Sits under the sticky action bar; the form itself is long enough to scroll past a header. -->
+    <string name="feature_send_money_form_trust_note">Protected by UK Open Banking</string>
+
     <string name="feature_send_money_balance_available">%1$s available</string>
     <string name="feature_send_money_debtor_heading">Choose the account to pay from</string>
     <string name="feature_send_money_creditor_heading">Choose who to pay</string>

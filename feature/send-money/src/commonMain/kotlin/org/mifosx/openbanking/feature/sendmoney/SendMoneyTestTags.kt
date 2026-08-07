@@ -9,12 +9,20 @@
  */
 package org.mifosx.openbanking.feature.sendmoney
 
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+
 /**
  * Stable tags the three UI suites drive this screen by. Append-only: a renamed tag silently drops
  * whichever assertions referenced it.
  */
 internal object SendMoneyTestTags {
     const val SKELETON = "sendMoney:skeleton"
+
+    const val FORM_PAGE = "sendMoney:formPage"
+    const val REVIEW_PAGE = "sendMoney:reviewPage"
+    const val RAIL_TOGGLE = "sendMoney:railToggle"
+    const val FORM_ACTIONS = "sendMoney:formActions"
+    const val FORM_TRUST_NOTE = "sendMoney:formTrustNote"
 
     const val DEBTOR_LIST = "sendMoney:debtorList"
     const val CREDITOR_LIST = "sendMoney:creditorList"
@@ -61,6 +69,12 @@ internal object SendMoneyTestTags {
     const val VIEW_CONSENTS_BUTTON = "sendMoney:viewConsentsButton"
     const val EDIT_AMOUNT_BUTTON = "sendMoney:editAmountButton"
     const val CHANGE_PAYER_BUTTON = "sendMoney:changePayerButton"
+
+    /** One rail option in the toggle. */
+    fun railOption(rail: PaymentRail): String = "sendMoney:rail:" + when (rail) {
+        PaymentRail.Domestic -> "domestic"
+        PaymentRail.International -> "international"
+    }
 
     /** One debtor row, keyed by OBIE `AccountId`. */
     fun debtorRow(accountId: String): String = "sendMoney:debtorRow:$accountId"

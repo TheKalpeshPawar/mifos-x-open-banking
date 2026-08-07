@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,6 +57,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_payment
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_form_trust_note
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number_error
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_confirm
@@ -104,10 +106,10 @@ private val NoticeGap = 10.dp
 private val NoticeIconSize = 16.dp
 
 /**
- * The form, all three steps of it.
+ * The form and its review, as two pages of one state.
  *
- * One state with a step field rather than three screen states: the payer and payee chosen in step
- * one stay live through steps two and three, and returning from a failure must not discard them.
+ * A step field rather than two screen states: what the customer chose stays live across the pages,
+ * and coming back from a failure must not discard it.
  */
 @Composable
 internal fun SendMoneyContent(
@@ -115,33 +117,52 @@ internal fun SendMoneyContent(
     onAction: (SendMoneyAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(SectionGap),
-    ) {
-        RailToggle(
-            rail = state.rail,
-            onSelect = { onAction(SendMoneyAction.SelectRail(it)) },
-        )
+    when (state.step) {
+        SendMoneyStep.Form -> SendMoneyFormPage(state, onAction, modifier)
+        SendMoneyStep.Review -> SendMoneyReviewPage(state, onAction, modifier)
+    }
+}
 
-        when (state.step) {
-            SendMoneyStep.Recipient -> RecipientStep(state, onAction)
-            SendMoneyStep.Amount -> AmountStep(state, onAction)
-            SendMoneyStep.Review -> ReviewStep(state, onAction)
+/**
+ * Payer, payee and amount on one scroll, with the action pinned below it.
+ *
+ * The three used to be separate steps. Nothing about them needed sequencing — none of the three
+ * constrains what the others may be — so walking the customer through them only hid how short the
+ * form actually is. Pinning the action matters once they are combined: the page is now long enough
+ * that a button at the end of the scroll would sit off screen on a phone.
+ */
+@Composable
+private fun SendMoneyFormPage(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize().testTag(SendMoneyTestTags.FORM_PAGE)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(SectionGap),
+        ) {
+            RailToggle(
+                rail = state.rail,
+                onSelect = { onAction(SendMoneyAction.SelectRail(it)) },
+            )
+            PayerSection(state, onAction)
+            PayeeSection(state, onAction)
+            AmountSection(state, onAction)
         }
+        FormActions(state, onAction)
     }
 }
 
 @Composable
-private fun RecipientStep(
+private fun PayerSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    val selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y)
-
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
         SectionHeading(stringResource(Res.string.feature_send_money_debtor_heading))
         SendMoneyAccountPickerList(
@@ -149,10 +170,18 @@ private fun RecipientStep(
             selectedId = state.debtorAccountId,
             onSelect = { onAction(SendMoneyAction.SelectDebtorAccount(it)) },
             tagFor = SendMoneyTestTags::debtorRow,
-            selectedLabel = selectedLabel,
+            selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y),
             modifier = Modifier.testTag(SendMoneyTestTags.DEBTOR_LIST),
         )
+    }
+}
 
+@Composable
+private fun PayeeSection(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
         SectionHeading(stringResource(Res.string.feature_send_money_creditor_heading))
         if (state.hasBeneficiaries) {
             SendMoneyPickerList(
@@ -160,7 +189,7 @@ private fun RecipientStep(
                 selectedId = state.creditor?.beneficiaryId,
                 onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
                 tagFor = SendMoneyTestTags::creditorRow,
-                selectedLabel = selectedLabel,
+                selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y),
                 modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
             )
         } else {
@@ -183,6 +212,47 @@ private fun RecipientStep(
 
         if (state.manualEntryVisible) {
             ManualCreditorFields(state, onAction)
+        }
+    }
+}
+
+/** The action bar, pinned so it stays reachable however far the form has been scrolled. */
+@Composable
+private fun FormActions(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.FORM_ACTIONS)
+            .background(KptTheme.colorScheme.surface)
+            .padding(ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(HeroGap),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MifosFilledPillButton(
+            label = stringResource(Res.string.feature_send_money_review_button),
+            onClick = { onAction(SendMoneyAction.ReviewPayment) },
+            testTag = SendMoneyTestTags.REVIEW_BUTTON,
+            enabled = state.canReview,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.testTag(SendMoneyTestTags.FORM_TRUST_NOTE),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = KptTheme.colorScheme.outline,
+                modifier = Modifier.size(NoticeIconSize),
+            )
+            Text(
+                text = stringResource(Res.string.feature_send_money_form_trust_note),
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.outline,
+            )
         }
     }
 }
@@ -237,7 +307,7 @@ private fun ManualCreditorFields(
 }
 
 @Composable
-private fun AmountStep(
+private fun AmountSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
@@ -270,13 +340,6 @@ private fun AmountStep(
             singleLine = true,
             modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REFERENCE_FIELD),
         )
-
-        MifosFilledPillButton(
-            label = stringResource(Res.string.feature_send_money_review_button),
-            onClick = { onAction(SendMoneyAction.ReviewPayment) },
-            testTag = SendMoneyTestTags.REVIEW_BUTTON,
-            enabled = state.canReview,
-        )
     }
 }
 
@@ -292,9 +355,10 @@ private fun AmountStep(
  * that matters most.
  */
 @Composable
-private fun ReviewStep(
+private fun SendMoneyReviewPage(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val payerLabel = state.debtorAccountRow?.let { row ->
         accountDisplayName(
@@ -305,7 +369,14 @@ private fun ReviewStep(
         )
     }.orEmpty()
 
-    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.REVIEW_PAGE)
+            .verticalScroll(rememberScrollState())
+            .padding(ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(SectionGap),
+    ) {
         ReviewHero(amountLabel = state.amountLabel, creditorName = state.creditorLabel)
 
         Column(

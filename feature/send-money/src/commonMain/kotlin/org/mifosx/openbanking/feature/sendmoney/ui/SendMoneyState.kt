@@ -21,14 +21,18 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import template.core.base.network.NetworkError
 
 /**
- * The three steps the form moves through inside a single `Content` state.
+ * The two pages the form moves through inside a single `Content` state.
  *
  * Modelled as data rather than as separate screen states because the step is a property of one form
- * — the selections made in earlier steps stay live, and going back must not discard them.
+ * — what the customer chose stays live, and going back must not discard it. That is also why
+ * [Review] is a page here rather than its own route: a separate destination would be rebuilt empty
+ * on the way back, and the draft has to survive being edited.
+ *
+ * Payer, payee and amount were three steps until they became one scrolling page; nothing about the
+ * form needed the customer to be walked through it in order.
  */
 enum class SendMoneyStep {
-    Recipient,
-    Amount,
+    Form,
     Review,
 }
 

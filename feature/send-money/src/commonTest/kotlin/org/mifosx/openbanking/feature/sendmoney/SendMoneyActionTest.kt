@@ -57,7 +57,7 @@ class SendMoneyActionTest {
     @Test
     fun tappingAnAccountRowSelectsThatPayer() {
         val actions = captureActions(
-            SendMoneyFixtures.recipientState(),
+            SendMoneyFixtures.formState(),
             SendMoneyTestTags.debtorRow(SendMoneyFixtures.SAVINGS_ACCOUNT_ID),
         )
 
@@ -70,7 +70,7 @@ class SendMoneyActionTest {
     @Test
     fun tappingAPayeeRowSelectsThatCreditor() {
         val actions = captureActions(
-            SendMoneyFixtures.recipientState(),
+            SendMoneyFixtures.formState(),
             SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID),
         )
 
@@ -80,7 +80,7 @@ class SendMoneyActionTest {
     @Test
     fun tappingManualEntryOpensTheFields() {
         val actions = captureActions(
-            SendMoneyFixtures.recipientState(),
+            SendMoneyFixtures.formState(),
             SendMoneyTestTags.MANUAL_ENTRY_BUTTON,
         )
 
@@ -90,7 +90,7 @@ class SendMoneyActionTest {
     @Test
     fun tappingUseTheseDetailsConfirmsTheManualPayee() {
         val actions = captureActions(
-            SendMoneyFixtures.recipientState(manualEntryVisible = true),
+            SendMoneyFixtures.formState(manualEntryVisible = true),
             SendMoneyTestTags.MANUAL_CONFIRM,
             scroll = true,
         )
@@ -98,9 +98,15 @@ class SendMoneyActionTest {
         assertEquals(listOf(SendMoneyAction.ConfirmManualCreditor), actions)
     }
 
+    /**
+     * No scroll: the action bar is pinned below the form, not the last thing in it.
+     *
+     * That is the point of pinning it — the merged page is long enough that a button at the end of
+     * the scroll would sit off screen on a phone.
+     */
     @Test
-    fun tappingReviewMovesToTheReviewStep() {
-        val actions = captureActions(SendMoneyFixtures.amountState(), SendMoneyTestTags.REVIEW_BUTTON, scroll = true)
+    fun tappingReviewMovesToTheReviewPage() {
+        val actions = captureActions(SendMoneyFixtures.filledFormState(), SendMoneyTestTags.REVIEW_BUTTON)
 
         assertEquals(listOf(SendMoneyAction.ReviewPayment), actions)
     }
@@ -113,7 +119,7 @@ class SendMoneyActionTest {
     }
 
     @Test
-    fun tappingEditPaymentGoesBackToTheAmountStep() {
+    fun tappingEditPaymentGoesBackToTheForm() {
         val actions = captureActions(
             SendMoneyFixtures.reviewState(),
             SendMoneyTestTags.EDIT_PAYMENT_BUTTON,

@@ -42,9 +42,9 @@ class SendMoneyScreenUiTest {
 
     /** TC-SEND-001. */
     @Test
-    fun theRecipientStepRendersBothPickersAndTheManualEntryAffordance() = runComposeUiTest {
+    fun theFormPageRendersBothPickersAndTheManualEntryAffordance() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(), {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
@@ -53,11 +53,52 @@ class SendMoneyScreenUiTest {
         onNodeWithTag(SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID)).assertIsDisplayed()
     }
 
+    /**
+     * The payer, the payee and the amount are one page, not three steps.
+     *
+     * This is the assertion the split into steps made impossible: the amount used to live behind a
+     * transition, so nothing could check that all three are reachable without one.
+     */
+    @Test
+    fun theFormPageCarriesTheAmountAndReferenceOnTheSameScroll() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.AMOUNT_FIELD).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
+    }
+
+    /** Pinned, so it is reachable however far the form has been scrolled. */
+    @Test
+    fun theFormActionBarStaysOutsideTheScroll() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.filledFormState(), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.FORM_ACTIONS).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.FORM_TRUST_NOTE).assertIsDisplayed()
+    }
+
+    /** The rail cannot be changed once a specific payment is being reviewed. */
+    @Test
+    fun theReviewPageDropsTheRailToggleAndTheFormActions() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.REVIEW_PAGE).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.FORM_ACTIONS).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertDoesNotExist()
+    }
+
     /** TC-SEND-013: no payees is not a dead end. */
     @Test
     fun anEmptyPayeeListKeepsManualEntryAvailable() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(beneficiaries = emptyList()), {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.formState(beneficiaries = emptyList()), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
@@ -68,7 +109,7 @@ class SendMoneyScreenUiTest {
     @Test
     fun theManualFieldsAppearOnlyWhenAskedFor() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.recipientState(manualEntryVisible = true), {}, {})
+            SendMoneyScreenContent(SendMoneyFixtures.formState(manualEntryVisible = true), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.MANUAL_SORT_CODE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER).performScrollTo().assertIsDisplayed()
@@ -85,7 +126,7 @@ class SendMoneyScreenUiTest {
     fun anAmountBeyondTheBalanceDisablesReview() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
-                SendMoneyFixtures.amountState(problem = SendMoneyAmountProblem.ExceedsAvailableBalance),
+                SendMoneyFixtures.filledFormState(problem = SendMoneyAmountProblem.ExceedsAvailableBalance),
                 {},
                 {},
             )
@@ -96,7 +137,7 @@ class SendMoneyScreenUiTest {
 
     /** TC-SMC-001: the amount leads, the detail rows confirm it, and both controls are present. */
     @Test
-    fun theReviewStepLeadsWithTheAmountAndListsEveryDetail() = runComposeUiTest {
+    fun theReviewPageLeadsWithTheAmountAndListsEveryDetail() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {})
         }
@@ -120,7 +161,7 @@ class SendMoneyScreenUiTest {
      * some payments, so a printed £0.00 would sometimes be false.
      */
     @Test
-    fun theReviewStepShowsNoFeeFigureItCannotKnow() = runComposeUiTest {
+    fun theReviewPageShowsNoFeeFigureItCannotKnow() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.reviewState(), {}, {})
         }

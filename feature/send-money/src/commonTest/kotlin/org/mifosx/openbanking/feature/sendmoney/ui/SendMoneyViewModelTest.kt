@@ -66,14 +66,14 @@ class SendMoneyViewModelTest {
     private fun content(vm: SendMoneyViewModel): SendMoneyUiState.Content =
         assertIs<SendMoneyUiState.Content>(vm.stateFlow.value.uiState)
 
-    /** Walks the form to the review step, which every submission test needs first. */
+    /** Walks the form to the review page, which every submission test needs first. */
     private fun SendMoneyViewModel.completeForm(amountMinorUnits: String = "85000") {
         trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
         trySendAction(SendMoneyAction.EnterAmount(amountMinorUnits))
         trySendAction(SendMoneyAction.ReviewPayment)
     }
 
-    // region — loading & the recipient step
+    // region — loading & the form page
 
     @Test
     fun startsLoadingUntilTheAccountsArrive() = runTest {
@@ -164,13 +164,13 @@ class SendMoneyViewModelTest {
     }
 
     @Test
-    fun choosingAPayeeAdvancesToTheAmountStep() = runTest {
+    fun choosingAPayeeKeepsTheFormOnOnePage() = runTest {
         val vm = viewModel()
 
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Amount, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertEquals("Jameson Lettings", state.creditor?.name)
         assertEquals(JAMESON_IDENTIFICATION, state.creditor?.identification)
     }
@@ -192,7 +192,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Amount, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertEquals(JAMESON_IDENTIFICATION, state.creditor?.identification)
     }
 
@@ -221,7 +221,7 @@ class SendMoneyViewModelTest {
         val state = content(vm)
         assertTrue(state.fieldErrors.sortCodeInvalid)
         assertTrue(state.fieldErrors.accountNumberInvalid)
-        assertEquals(SendMoneyStep.Recipient, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertNull(state.creditor)
     }
 
@@ -463,7 +463,7 @@ class SendMoneyViewModelTest {
 
     /** Changing payer returns to the payer step, drops the refused selection, keeps the payee. */
     @Test
-    fun changingPayerReturnsToTheRecipientStepWithThePayeeIntact() = runTest {
+    fun changingPayerReturnsToTheFormWithThePayeeIntact() = runTest {
         val vm = viewModel()
         vm.completeForm()
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
@@ -471,7 +471,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.ChangePayer)
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Recipient, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertNull(state.debtorAccountId)
         assertNotNull(state.creditor)
         assertNull(vm.stateFlow.value.draft)
@@ -598,7 +598,7 @@ class SendMoneyViewModelTest {
 
     /** TC-SEND-009: editing the amount keeps the payer and payee already chosen. */
     @Test
-    fun editingTheAmountReturnsToTheAmountStepWithSelectionsIntact() = runTest {
+    fun editingReturnsToTheFormWithSelectionsIntact() = runTest {
         val payments = FakePaymentInitiationRepository()
         payments.stageReturns(
             NetworkResult.Error(NetworkError.Client.BadRequest("""{"Errors":[{"ErrorCode":"U014"}]}""")),
@@ -611,7 +611,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.BackStep)
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Amount, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertEquals("Jameson Lettings", state.creditor?.name)
         assertEquals(SendMoneyFixtures.CURRENT_ACCOUNT_ID, state.debtorAccountId)
     }
@@ -666,7 +666,7 @@ class SendMoneyViewModelTest {
      * it a different instruction, which must be staged under new keys rather than replayed.
      */
     @Test
-    fun editingFromReviewReturnsToTheAmountStepAndClearsTheDraft() = runTest {
+    fun editingFromReviewReturnsToTheFormAndClearsTheDraft() = runTest {
         val vm = viewModel()
         vm.completeForm()
         vm.trySendAction(SendMoneyAction.ReviewPayment)
@@ -674,7 +674,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.BackStep)
 
         val state = content(vm)
-        assertEquals(SendMoneyStep.Amount, state.step)
+        assertEquals(SendMoneyStep.Form, state.step)
         assertNotNull(state.creditor)
         assertNull(vm.stateFlow.value.draft)
     }
