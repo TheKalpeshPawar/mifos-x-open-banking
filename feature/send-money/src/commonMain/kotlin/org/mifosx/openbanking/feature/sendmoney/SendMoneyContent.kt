@@ -19,12 +19,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
@@ -68,6 +72,10 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_sort_code_error
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_body
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_title
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_non_gbp_notice
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_needs_payer
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payer_bank_choice
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payer_bank_choice_supporting
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_helper
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_auth_notice
@@ -173,6 +181,85 @@ private fun PayerSection(
             selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y),
             modifier = Modifier.testTag(SendMoneyTestTags.DEBTOR_LIST),
         )
+        BankChoosesPayerRow(
+            selected = state.letBankChoosePayer,
+            onClick = { onAction(SendMoneyAction.LetBankChoosePayer) },
+        )
+        if (state.showsNonGbpAdvisory) {
+            NonGbpPayerNotice()
+        }
+    }
+}
+
+/**
+ * The "don't send a payer" option, as a peer of the accounts rather than an absence.
+ *
+ * Sending no `DebtorAccount` is a shape the bank supports, not a form left incomplete, so it is
+ * offered as something to choose. It sits outside the picker list because it is not an account —
+ * putting it in the list would make it selectable by the same code that keys payees by account id.
+ */
+@Composable
+private fun BankChoosesPayerRow(
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.PAYER_BANK_CHOICE)
+            .clip(RoundedCornerShape(NoticeCorner))
+            .background(
+                if (selected) KptTheme.colorScheme.primaryContainer else KptTheme.colorScheme.surface,
+            )
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(NoticePadding),
+        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.AccountBalance,
+            contentDescription = null,
+            tint = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(HeroGap)) {
+            Text(
+                text = stringResource(Res.string.feature_send_money_payer_bank_choice),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(Res.string.feature_send_money_payer_bank_choice_supporting),
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** The amount is instructed in sterling whatever the payer holds, so say so before it is entered. */
+@Composable
+private fun NonGbpPayerNotice() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.NON_GBP_NOTICE)
+            .clip(RoundedCornerShape(NoticeCorner))
+            .background(KptTheme.colorScheme.surfaceContainer)
+            .padding(NoticePadding),
+        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Info,
+            contentDescription = null,
+            tint = KptTheme.colorScheme.outline,
+            modifier = Modifier.size(NoticeIconSize),
+        )
+        Text(
+            text = stringResource(Res.string.feature_send_money_non_gbp_notice),
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -183,8 +270,12 @@ private fun PayeeSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
         SectionHeading(stringResource(Res.string.feature_send_money_creditor_heading))
-        if (state.hasBeneficiaries) {
-            SendMoneyPickerList(
+        when {
+            // Beneficiaries are saved per account, so without one there is no list to read.
+            // Saying so beats showing someone else's payees or an empty list that looks broken.
+            state.payeesUnavailable -> ChoosePayerFirstNotice()
+
+            state.hasBeneficiaries -> SendMoneyPickerList(
                 rows = state.beneficiaries,
                 selectedId = state.creditor?.beneficiaryId,
                 onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
@@ -192,8 +283,8 @@ private fun PayeeSection(
                 selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y),
                 modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
             )
-        } else {
-            NoSavedPayees()
+
+            else -> NoSavedPayees()
         }
 
         TextButton(
@@ -555,6 +646,31 @@ private fun ReviewRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * Why the payee list is empty when no payer has been chosen.
+ *
+ * Not an error and not an empty state: the list is account-scoped, so it genuinely cannot be
+ * fetched yet. [NoSavedPayees] is the different case where an account was chosen and has none.
+ */
+@Composable
+private fun ChoosePayerFirstNotice() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER)
+            .clip(RoundedCornerShape(NoticeCorner))
+            .background(KptTheme.colorScheme.surfaceContainer)
+            .padding(NoticePadding),
+        verticalArrangement = Arrangement.spacedBy(HeroGap),
+    ) {
+        Text(
+            text = stringResource(Res.string.feature_send_money_payee_needs_payer),
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

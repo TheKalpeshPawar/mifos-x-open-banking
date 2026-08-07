@@ -14,9 +14,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -40,6 +40,7 @@ import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
+import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineContent
 import template.core.base.network.NetworkResult
@@ -51,6 +52,9 @@ private const val SORT_CODE_DIGITS = 6
 private const val ACCOUNT_NUMBER_DIGITS = 8
 private const val INSTRUCTION_ID_PREFIX = "MFX"
 private const val END_TO_END_ID_PREFIX = "E2E"
+
+/** `InstructedAmount.Currency`. GBP on both rails; see [SendMoneyViewModel.buildDraft]. */
+private const val INSTRUCTED_CURRENCY = "GBP"
 
 /**
  * Drives the payment form up to the point the customer leaves for their bank.
@@ -86,6 +90,7 @@ class SendMoneyViewModel(
         val step: SendMoneyStep = SendMoneyStep.Form,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccountId: String? = null,
+        val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
@@ -122,12 +127,24 @@ class SendMoneyViewModel(
     private val phase = MutableStateFlow<Phase>(Phase.Form)
     private val selectedAccountId = MutableStateFlow("")
 
+    /**
+     * Payees for the chosen payer, re-fetched whenever that changes.
+     *
+     * A blank id emits an empty list rather than being filtered out. Filtering meant de-selecting an
+     * account produced no emission at all, so the previous account's payees stayed in state and on
+     * screen under a payer that no longer existed — they are scoped to an account, and with no
+     * account the honest answer is none.
+     */
     private val beneficiariesStream: Flow<ScreenState<List<BeneficiaryItem>>> =
+        // No distinctUntilChanged: a StateFlow already drops equal values, and applying it here is
+        // a deprecated no-op. It was meaningful only while a filter() sat in front of this.
         selectedAccountId
-            .filter { it.isNotBlank() }
-            .distinctUntilChanged()
             .flatMapLatest { accountId ->
-                beneficiariesRepository.beneficiariesStream(accountId, viewModelScope).state
+                if (accountId.isBlank()) {
+                    flowOf(ScreenState.Content(emptyList(), DataFreshness.FRESH))
+                } else {
+                    beneficiariesRepository.beneficiariesStream(accountId, viewModelScope).state
+                }
             }
 
     init {
@@ -144,10 +161,7 @@ class SendMoneyViewModel(
                         AccountEndpoint.PaymentDebtor in refused[it.account.accountId].orEmpty()
                     }
             }
-            .onEach { screen ->
-                accountsScreen.value = screen
-                seedSelection(screen)
-            }
+            .onEach { screen -> accountsScreen.value = screen }
             .launchIn(viewModelScope)
 
         beneficiariesStream
@@ -165,6 +179,7 @@ class SendMoneyViewModel(
         when (action) {
             is SendMoneyAction.SelectRail -> selectRail(action.rail)
             is SendMoneyAction.SelectDebtorAccount -> selectDebtor(action.accountId)
+            SendMoneyAction.LetBankChoosePayer -> letBankChoosePayer()
             is SendMoneyAction.SelectCreditor -> selectCreditor(action.beneficiaryId)
             SendMoneyAction.ShowManualCreditorEntry -> form.value = form.value.copy(manualEntryVisible = true)
             is SendMoneyAction.EnterManualSortCode -> enterSortCode(action.sortCode)
@@ -189,21 +204,30 @@ class SendMoneyViewModel(
         }
     }
 
-    /**
-     * Pre-selects the first account so the form opens usable, matching the picker's landing state.
-     * Only ever seeds — a later refresh must not move a selection the PSU has made.
-     */
-    private fun seedSelection(screen: ScreenState<List<AccountWithBalance>>) {
-        if (form.value.debtorAccountId != null) return
-        val first = (screen as? ScreenState.Content)?.data?.firstOrNull()?.account ?: return
-        form.value = form.value.copy(debtorAccountId = first.accountId)
-        selectedAccountId.value = first.accountId
-    }
-
     /** Changing the payer re-keys the payee list: counterparties are saved per account, not per customer. */
     private fun selectDebtor(accountId: String) {
         selectedAccountId.value = accountId
-        form.value = form.value.copy(debtorAccountId = accountId, creditor = null)
+        form.value = form.value.copy(
+            debtorAccountId = accountId,
+            letBankChoosePayer = false,
+            creditor = null,
+        )
+    }
+
+    /**
+     * Send no `DebtorAccount` and let the PSU pick the account at their bank.
+     *
+     * A sanctioned shape rather than a gap: HSBC's own international sample omits the block, and
+     * both rails accept a consent without it. The payee is dropped with it — beneficiaries are saved
+     * per account, so a payee chosen under one payer means nothing once there is no payer at all.
+     */
+    private fun letBankChoosePayer() {
+        selectedAccountId.value = ""
+        form.value = form.value.copy(
+            debtorAccountId = null,
+            letBankChoosePayer = true,
+            creditor = null,
+        )
     }
 
     private fun selectRail(rail: PaymentRail) {
@@ -352,7 +376,11 @@ class SendMoneyViewModel(
      * row that no longer exists. The payee is kept — nothing was wrong with it.
      */
     private fun changePayer() {
-        form.value = form.value.copy(step = SendMoneyStep.Form, debtorAccountId = null)
+        form.value = form.value.copy(
+            step = SendMoneyStep.Form,
+            debtorAccountId = null,
+            letBankChoosePayer = false,
+        )
         phase.value = Phase.Form
         updateState { copy(draft = null, consentId = null) }
     }
@@ -376,16 +404,19 @@ class SendMoneyViewModel(
     @Suppress("ReturnCount")
     private fun buildDraft(): PaymentDraft? {
         val current = form.value
-        val account = debtorAccount() ?: return null
         val creditor = current.creditor ?: return null
         val amount = current.amountMinorUnits.toLongOrNull() ?: return null
         val hex = Uuid.generateV4().toHexString()
         val isInternational = current.rail == PaymentRail.International
         return PaymentDraft(
-            debtorAccount = account,
+            // Null when the PSU left the choice to the bank; both mappers omit the block.
+            debtorAccount = debtorAccount(),
             creditor = creditor,
             amountMinorUnits = amount,
-            currency = account.currency,
+            // Always GBP. HSBC instructs in sterling on both rails and converts at their end, so
+            // reading this off the payer would send whatever a foreign-currency account happens to
+            // hold. What the recipient receives is CurrencyOfTransfer, which is a separate field.
+            currency = INSTRUCTED_CURRENCY,
             reference = current.reference.takeIf { it.isNotBlank() && !isInternational },
             instructionIdentification = INSTRUCTION_ID_PREFIX + hex,
             endToEndIdentification = END_TO_END_ID_PREFIX + hex,
@@ -445,10 +476,12 @@ class SendMoneyViewModel(
             debtorRows = accounts.map { it.toAccountRow() },
             beneficiaries = filteredPayees.map { it.toPickerRow() },
             debtorAccountId = entered.debtorAccountId,
+            letBankChoosePayer = entered.letBankChoosePayer,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
             creditorSupporting = entered.creditor?.let { schemeLabel(it) }.orEmpty(),
             debtorAccountRow = selected?.toAccountRow(),
+            debtorCurrency = selected?.account?.currency.orEmpty(),
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
             manualAccountNumber = entered.manualAccountNumber,
@@ -465,9 +498,10 @@ class SendMoneyViewModel(
         )
     }
 
+    /** Always in the instructed currency — the amount is not the payer account's own currency. */
     private fun amountLabel(entered: Form): String {
         val minor = entered.amountMinorUnits.toLongOrNull() ?: return ""
-        return formatMinorUnits(minor, debtorAccount()?.currency.orEmpty())
+        return formatMinorUnits(minor, INSTRUCTED_CURRENCY)
     }
 
     private fun accounts(): List<AccountWithBalance> =

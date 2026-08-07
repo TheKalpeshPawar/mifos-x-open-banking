@@ -179,6 +179,7 @@ sealed interface SendMoneyUiState {
         val beneficiaries: List<SendMoneyPickerRow>,
         val debtorRows: List<SendMoneyAccountRow>,
         val debtorAccountId: String? = null,
+        val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
@@ -196,11 +197,45 @@ sealed interface SendMoneyUiState {
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
         val availableBalanceMinorUnits: Long? = null,
+        val debtorCurrency: String = "",
     ) : SendMoneyUiState {
 
-        /** Review is reachable only once the amount is present and unobjectionable. */
+        /**
+         * Review is reachable only once the amount is payable, a payee is chosen, and the payer
+         * question has been answered one way or the other.
+         *
+         * The payer clause matters because "no account chosen" and "the bank will choose" look the
+         * same in the draft — both send no `DebtorAccount`. Without it someone could reach a review
+         * saying "you'll choose at your bank" for a decision they never made.
+         */
         val canReview: Boolean
-            get() = amountProblem == null && amountMinorUnits.isNotBlank() && creditor != null
+            get() = amountProblem == null &&
+                amountMinorUnits.isNotBlank() &&
+                creditor != null &&
+                !payerUndecided
+
+        /** Neither an account picked nor the bank asked to pick one. */
+        val payerUndecided: Boolean
+            get() = debtorAccountId == null && !letBankChoosePayer
+
+        /**
+         * Whether saved payees can be listed at all.
+         *
+         * Beneficiaries are an account-scoped resource, so this is about the account and not about
+         * the payer decision: asking the bank to choose settles the payer but still leaves no
+         * account to read payees from, and only manual entry works from there.
+         */
+        val payeesUnavailable: Boolean
+            get() = debtorAccountId == null
+
+        /**
+         * Whether to warn that the payer is not a sterling account.
+         *
+         * `InstructedAmount` is always GBP, so a non-GBP payer means the bank converts — and this
+         * app cannot say at what rate, because no consent exists yet to quote one.
+         */
+        val showsNonGbpAdvisory: Boolean
+            get() = debtorCurrency.isNotBlank() && !debtorCurrency.equals("GBP", ignoreCase = true)
 
         val hasBeneficiaries: Boolean
             get() = beneficiaries.isNotEmpty()
@@ -233,6 +268,9 @@ data class SendMoneyState(
 sealed interface SendMoneyAction {
     data class SelectRail(val rail: PaymentRail) : SendMoneyAction
     data class SelectDebtorAccount(val accountId: String) : SendMoneyAction
+
+    /** Send no `DebtorAccount` and let the PSU pick the account at their bank. */
+    data object LetBankChoosePayer : SendMoneyAction
     data class SelectCreditor(val beneficiaryId: String) : SendMoneyAction
     data object ShowManualCreditorEntry : SendMoneyAction
     data class EnterManualSortCode(val sortCode: String) : SendMoneyAction

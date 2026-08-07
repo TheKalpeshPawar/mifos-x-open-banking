@@ -25,6 +25,9 @@ internal object SendMoneyTestTags {
     const val FORM_TRUST_NOTE = "sendMoney:formTrustNote"
 
     const val DEBTOR_LIST = "sendMoney:debtorList"
+    const val PAYER_BANK_CHOICE = "sendMoney:payerBankChoice"
+    const val PAYEE_NEEDS_PAYER = "sendMoney:payeeNeedsPayer"
+    const val NON_GBP_NOTICE = "sendMoney:nonGbpNotice"
     const val CREDITOR_LIST = "sendMoney:creditorList"
     const val NO_SAVED_PAYEES = "sendMoney:noSavedPayees"
     const val MANUAL_ENTRY_BUTTON = "sendMoney:manualEntryButton"

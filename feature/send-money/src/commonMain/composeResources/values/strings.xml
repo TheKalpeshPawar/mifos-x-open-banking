@@ -18,6 +18,12 @@
     <!-- Sits under the sticky action bar; the form itself is long enough to scroll past a header. -->
     <string name="feature_send_money_form_trust_note">Protected by UK Open Banking</string>
 
+    <string name="feature_send_money_payer_bank_choice">Choose at my bank</string>
+    <string name="feature_send_money_payer_bank_choice_supporting">Your bank will ask which account to pay from</string>
+    <string name="feature_send_money_payee_needs_payer">Choose an account to pay from to see its saved payees.</string>
+    <!-- InstructedAmount is always GBP, so a non-sterling payer means the bank converts. -->
+    <string name="feature_send_money_non_gbp_notice">This payment is instructed in pounds. Your bank will convert from this account and may charge for it.</string>
+
     <string name="feature_send_money_balance_available">%1$s available</string>
     <string name="feature_send_money_debtor_heading">Choose the account to pay from</string>
     <string name="feature_send_money_creditor_heading">Choose who to pay</string>

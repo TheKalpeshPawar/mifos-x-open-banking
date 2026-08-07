@@ -68,6 +68,7 @@ class SendMoneyViewModelTest {
 
     /** Walks the form to the review page, which every submission test needs first. */
     private fun SendMoneyViewModel.completeForm(amountMinorUnits: String = "85000") {
+        trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
         trySendAction(SendMoneyAction.EnterAmount(amountMinorUnits))
         trySendAction(SendMoneyAction.ReviewPayment)
@@ -91,6 +92,8 @@ class SendMoneyViewModelTest {
     @Test
     fun rendersEveryPayablePayerRowAndEveryPayeeRow() = runTest {
         val vm = viewModel()
+
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
 
         val state = content(vm)
         assertEquals(2, state.debtorRows.size)
@@ -129,12 +132,112 @@ class SendMoneyViewModelTest {
         assertEquals("80200110203349", row.rawIdentification)
     }
 
-    /** The picker lands usable rather than making the PSU choose an account they mostly always use. */
+    /**
+     * Nothing is chosen for the customer.
+     *
+     * Preselecting the first account meant a payer was sent that nobody picked. Omitting
+     * `DebtorAccount` is a shape the bank supports, so "not decided yet" is a real state rather than
+     * an incomplete one — but it is not the same as asking the bank to choose, which is why both
+     * flags are asserted here.
+     */
     @Test
-    fun preselectsTheFirstAccount() = runTest {
+    fun opensWithNoPayerChosen() = runTest {
         val vm = viewModel()
 
-        assertEquals(SendMoneyFixtures.CURRENT_ACCOUNT_ID, content(vm).debtorAccountId)
+        val state = content(vm)
+        assertNull(state.debtorAccountId)
+        assertFalse(state.letBankChoosePayer)
+        assertTrue(state.payerUndecided)
+    }
+
+    /** Payees are saved per account, so there is nothing to list until a payer exists. */
+    @Test
+    fun offersNoPayeesUntilAPayerIsChosen() = runTest {
+        val vm = viewModel()
+        assertTrue(content(vm).beneficiaries.isEmpty())
+
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        assertEquals(3, content(vm).beneficiaries.size)
+    }
+
+    /**
+     * De-selecting the payer takes its payees with it.
+     *
+     * The list is scoped to an account, so with no account there are none. The stream used to filter
+     * a blank id out rather than answer for it, which meant no emission at all — the previous
+     * account's payees stayed in state, selectable, under a payer that no longer existed.
+     */
+    @Test
+    fun lettingTheBankChooseClearsThePayeesItCanNoLongerScope() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+        assertEquals(3, content(vm).beneficiaries.size)
+
+        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
+
+        val state = content(vm)
+        assertTrue(state.beneficiaries.isEmpty())
+        assertTrue(state.payeesUnavailable)
+        assertNull(state.creditor)
+    }
+
+    /** Asking the bank to choose is a decision, so the form may proceed on it. */
+    @Test
+    fun lettingTheBankChooseSettlesThePayerQuestion() = runTest {
+        val vm = viewModel()
+
+        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
+
+        val state = content(vm)
+        assertNull(state.debtorAccountId)
+        assertTrue(state.letBankChoosePayer)
+        assertFalse(state.payerUndecided)
+    }
+
+    /** A draft with no payer omits the block rather than inventing one. */
+    @Test
+    fun aBankChosenPayerStagesWithoutADebtorAccount() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+
+        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
+        // Saved payees are account-scoped, so with no payer the only payee is a hand-entered one.
+        vm.trySendAction(SendMoneyAction.EnterManualName("Liam Walker"))
+        vm.trySendAction(SendMoneyAction.EnterManualSortCode("401209"))
+        vm.trySendAction(SendMoneyAction.EnterManualAccountNumber("65872310"))
+        vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
+        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.ReviewPayment)
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        assertNull(payments.stagedDrafts.single().debtorAccount)
+    }
+
+    /** The amount is instructed in sterling whether or not a payer has been chosen. */
+    @Test
+    fun stagesInSterlingRegardlessOfThePayersOwnCurrency() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+
+        vm.completeForm()
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        assertEquals("GBP", payments.stagedDrafts.single().currency)
+    }
+
+    /** Review is not reachable while the payer question is still open. */
+    @Test
+    fun cannotReviewUntilThePayerQuestionIsAnswered() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+        vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
+        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        assertTrue(content(vm).canReview)
+
+        vm.trySendAction(SendMoneyAction.ChangePayer)
+
+        assertFalse(content(vm).canReview)
     }
 
     /** A later refresh must not move a selection the PSU has made. */
@@ -155,6 +258,7 @@ class SendMoneyViewModelTest {
         val beneficiaries = FakeBeneficiariesRepository()
         val vm = viewModel(beneficiaries = beneficiaries)
 
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.SAVINGS_ACCOUNT_ID))
 
         assertContentEquals(
@@ -166,6 +270,7 @@ class SendMoneyViewModelTest {
     @Test
     fun choosingAPayeeKeepsTheFormOnOnePage() = runTest {
         val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
 
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
 
@@ -292,6 +397,7 @@ class SendMoneyViewModelTest {
     @Test
     fun acceptsAnAmountWithinTheBalance() = runTest {
         val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
 
         vm.trySendAction(SendMoneyAction.EnterAmount("85000"))

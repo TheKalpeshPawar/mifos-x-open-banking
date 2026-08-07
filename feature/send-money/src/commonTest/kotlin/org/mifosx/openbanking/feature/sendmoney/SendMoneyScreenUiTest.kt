@@ -71,6 +71,63 @@ class SendMoneyScreenUiTest {
         onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
     }
 
+    /**
+     * The payee list is account-scoped, so before a payer exists there is nothing to show.
+     *
+     * A notice rather than an empty list: an empty list looks like "you have no payees", which is a
+     * different and wrong statement.
+     */
+    @Test
+    fun noPayerChosenExplainsWhyThereAreNoPayees() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+    }
+
+    /** Sending no payer is something to choose, not something left undone. */
+    @Test
+    fun theBankChoiceIsOfferedAlongsideTheAccounts() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).assertIsDisplayed()
+    }
+
+    /** Asking the bank to choose still leaves the payee unanswerable from saved payees. */
+    @Test
+    fun lettingTheBankChooseStillNeedsAManualPayee() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(debtorAccountId = null, letBankChoosePayer = true),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
+    }
+
+    /** The amount is instructed in sterling, so a non-sterling payer is worth saying out loud. */
+    @Test
+    fun aNonSterlingPayerIsCalledOut() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorCurrency = "USD"), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.NON_GBP_NOTICE).assertIsDisplayed()
+    }
+
+    @Test
+    fun aSterlingPayerGetsNoConversionNotice() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.NON_GBP_NOTICE).assertDoesNotExist()
+    }
+
     /** Pinned, so it is reachable however far the form has been scrolled. */
     @Test
     fun theFormActionBarStaysOutsideTheScroll() = runComposeUiTest {
