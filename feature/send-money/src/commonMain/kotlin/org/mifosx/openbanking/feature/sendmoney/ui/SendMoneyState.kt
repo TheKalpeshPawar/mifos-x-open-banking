@@ -198,6 +198,8 @@ sealed interface SendMoneyUiState {
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
         val availableBalanceMinorUnits: Long? = null,
         val debtorCurrency: String = "",
+        /** What the recipient may be paid in. Empty on the domestic rail. */
+        val transferCurrencies: List<String> = emptyList(),
     ) : SendMoneyUiState {
 
         /**

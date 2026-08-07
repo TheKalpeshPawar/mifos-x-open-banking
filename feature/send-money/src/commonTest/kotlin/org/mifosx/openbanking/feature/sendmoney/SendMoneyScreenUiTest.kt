@@ -16,6 +16,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStage
@@ -126,6 +128,82 @@ class SendMoneyScreenUiTest {
             SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.NON_GBP_NOTICE).assertDoesNotExist()
+    }
+
+    /**
+     * The two rails ask for different fields, because the bank accepts different fields.
+     *
+     * Reference is refused internationally with `U005`, and ChargeBearer is refused domestically —
+     * so neither is a preference, and showing the wrong one would invite a request that cannot be
+     * sent.
+     */
+    @Test
+    fun theDomesticRailAsksForAReferenceAndNoCharges() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(rail = PaymentRail.Domestic), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).assertDoesNotExist()
+    }
+
+    @Test
+    fun theInternationalRailAsksForChargesAndCurrencyAndNoReference() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
+    }
+
+    /** All four OBIE values are offered, even though only one is exercised by HSBC's samples. */
+    @Test
+    fun everyChargeBearerIsOffered() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        ChargeBearer.entries.forEach { bearer ->
+            onNodeWithTag(SendMoneyTestTags.chargeBearerChip(bearer)).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    /** Only the two currencies Global Money accepts. */
+    @Test
+    fun onlyTheAcceptedTransferCurrenciesAreOffered() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.currencyChip("USD")).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.currencyChip("EUR")).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.currencyChip("GBP")).assertDoesNotExist()
+    }
+
+    /** Each rail identifies a creditor its own way, and refuses the other's scheme with `U027`. */
+    @Test
+    fun manualEntryAsksForAnIbanOnTheInternationalRail() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International, manualEntryVisible = true),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.MANUAL_IBAN).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.MANUAL_SORT_CODE).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER).assertDoesNotExist()
     }
 
     /** Pinned, so it is reachable however far the form has been scrolled. */

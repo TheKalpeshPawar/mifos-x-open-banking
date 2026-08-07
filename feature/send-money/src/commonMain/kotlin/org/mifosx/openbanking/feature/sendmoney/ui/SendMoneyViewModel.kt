@@ -53,6 +53,35 @@ private const val ACCOUNT_NUMBER_DIGITS = 8
 private const val INSTRUCTION_ID_PREFIX = "MFX"
 private const val END_TO_END_ID_PREFIX = "E2E"
 
+/** ISO 13616 bounds: a country's IBAN is fixed-length, but the shortest is 15 and the longest 34. */
+private const val IBAN_MIN_LENGTH = 15
+private const val IBAN_MAX_LENGTH = 34
+private const val IBAN_COUNTRY_PREFIX_LENGTH = 2
+
+/**
+ * What the recipient can be paid in.
+ *
+ * Global Money accepts only these two, and the sandbox refuses anything else on that path with
+ * `U002`. The first is the default when the rail is switched.
+ */
+private val TRANSFER_CURRENCIES = listOf("USD", "EUR")
+
+/** Written-down IBANs carry spaces and are often lower case; OBIE wants neither. */
+private fun String.normaliseIban(): String = filterNot { it.isWhitespace() }.uppercase()
+
+/**
+ * Whether a string could be an IBAN at all.
+ *
+ * Shape only — length, alphanumeric, and the two-letter country prefix followed by check digits. It
+ * deliberately stops short of the mod-97 checksum: this is the guard that stops obvious nonsense
+ * reaching the bank, not a claim that the account exists.
+ */
+private fun String.isPlausibleIban(): Boolean = normaliseIban().let { candidate ->
+    candidate.length in IBAN_MIN_LENGTH..IBAN_MAX_LENGTH &&
+        candidate.all { it.isLetterOrDigit() } &&
+        candidate.take(IBAN_COUNTRY_PREFIX_LENGTH).all { it.isLetter() }
+}
+
 /** `InstructedAmount.Currency`. GBP on both rails; see [SendMoneyViewModel.buildDraft]. */
 private const val INSTRUCTED_CURRENCY = "GBP"
 
@@ -230,16 +259,71 @@ class SendMoneyViewModel(
         )
     }
 
+    /**
+     * Switching rails invalidates the payee and everything typed towards one.
+     *
+     * The two rails identify a creditor differently — sort code and account number against an IBAN —
+     * so a payee chosen under one is not a payee under the other, and half-typed fields for the
+     * wrong scheme would be carried into a request that cannot accept them. The **amount survives**
+     * on purpose: it means the same thing on both rails, and re-typing it is a cost with no reason.
+     *
+     * The transfer currency is normalised because it defaults to GBP, which the international rail
+     * never offers. Leaving it would stage `CurrencyOfTransfer: GBP` with nothing on screen having
+     * said so.
+     */
     private fun selectRail(rail: PaymentRail) {
-        form.value = form.value.copy(rail = rail, creditor = null, manualEntryVisible = false)
+        val current = form.value
+        form.value = current.copy(
+            rail = rail,
+            creditor = null,
+            manualEntryVisible = false,
+            manualSortCode = "",
+            manualAccountNumber = "",
+            manualIban = "",
+            fieldErrors = SendMoneyFieldErrors(),
+            currencyOfTransfer = when (rail) {
+                PaymentRail.Domestic -> INSTRUCTED_CURRENCY
+                PaymentRail.International ->
+                    current.currencyOfTransfer
+                        .takeIf { it in TRANSFER_CURRENCIES }
+                        ?: TRANSFER_CURRENCIES.first()
+            },
+        )
     }
 
     private fun enterIban(raw: String) {
         form.value = form.value.copy(
             manualIban = raw,
+            // Quiet until something has been typed: flagging an empty field tells someone they got
+            // it wrong before they have had a go.
             fieldErrors = form.value.fieldErrors.copy(
-                ibanInvalid = raw.isNotEmpty() && raw.length < 5,
+                ibanInvalid = raw.isNotBlank() && !raw.isPlausibleIban(),
             ),
+        )
+    }
+
+    /**
+     * The international rail's manual payee: a name and an IBAN.
+     *
+     * The IBAN is normalised before it becomes the identification — written down it carries spaces
+     * and is often lower case, and OBIE wants it unpunctuated and upper case.
+     */
+    private fun confirmManualIbanCreditor(current: Form) {
+        val iban = current.manualIban.normaliseIban()
+        if (!iban.isPlausibleIban()) {
+            form.value = current.copy(
+                fieldErrors = SendMoneyFieldErrors(ibanInvalid = true),
+            )
+            return
+        }
+        form.value = current.copy(
+            creditor = CreditorSelection(
+                name = current.manualName,
+                scheme = BeneficiaryScheme.Iban,
+                identification = iban,
+                isOwnAccount = isOwnAccount(iban),
+            ),
+            fieldErrors = SendMoneyFieldErrors(),
         )
     }
 
@@ -290,6 +374,10 @@ class SendMoneyViewModel(
      */
     private fun confirmManualCreditor() {
         val current = form.value
+        if (current.rail == PaymentRail.International) {
+            confirmManualIbanCreditor(current)
+            return
+        }
         val sortCode = current.manualSortCode.filter(Char::isDigit)
         val accountNumber = current.manualAccountNumber.filter(Char::isDigit)
         val errors = SendMoneyFieldErrors(
@@ -490,6 +578,11 @@ class SendMoneyViewModel(
             amountMinorUnits = entered.amountMinorUnits,
             amountLabel = amountLabel(entered),
             currencyOfTransfer = entered.currencyOfTransfer,
+            transferCurrencies = if (entered.rail == PaymentRail.International) {
+                TRANSFER_CURRENCIES
+            } else {
+                emptyList()
+            },
             chargeBearer = entered.chargeBearer,
             reference = entered.reference,
             amountProblem = entered.amountProblem,

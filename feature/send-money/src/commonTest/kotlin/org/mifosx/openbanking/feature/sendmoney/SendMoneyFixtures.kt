@@ -15,6 +15,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
@@ -235,12 +236,20 @@ object SendMoneyFixtures {
         amountLabel: String = "",
         reference: String = "",
         problem: SendMoneyAmountProblem? = null,
+        rail: PaymentRail = PaymentRail.Domestic,
         debtorAccountId: String? = CURRENT_ACCOUNT_ID,
         letBankChoosePayer: Boolean = false,
         debtorCurrency: String = "GBP",
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Form,
+            rail = rail,
+            transferCurrencies = if (rail == PaymentRail.International) {
+                listOf("USD", "EUR")
+            } else {
+                emptyList()
+            },
+            currencyOfTransfer = if (rail == PaymentRail.International) "USD" else "GBP",
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
             beneficiaries = beneficiaries,

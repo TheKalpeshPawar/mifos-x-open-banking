@@ -44,10 +44,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.sendmoney.components.ChargeBearerPicker
 import org.mifosx.openbanking.feature.sendmoney.components.RailToggle
+import org.mifosx.openbanking.feature.sendmoney.components.RecipientCurrencyPicker
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAccountPickerList
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPickerList
 import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
@@ -57,8 +60,10 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_positive
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_label
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charges_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_confirm
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_payment
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_form_trust_note
@@ -67,6 +72,8 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_confirm
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry_a11y
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_iban
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_iban_error
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_name
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_sort_code
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_sort_code_error
@@ -361,34 +368,55 @@ private fun ManualCreditorFields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_NAME),
         )
-        OutlinedTextField(
-            value = state.manualSortCode,
-            onValueChange = { onAction(SendMoneyAction.EnterManualSortCode(it)) },
-            label = { Text(stringResource(Res.string.feature_send_money_manual_sort_code)) },
-            isError = state.fieldErrors.sortCodeInvalid,
-            supportingText = {
-                if (state.fieldErrors.sortCodeInvalid) {
-                    Text(stringResource(Res.string.feature_send_money_manual_sort_code_error))
-                }
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_SORT_CODE),
-        )
-        OutlinedTextField(
-            value = state.manualAccountNumber,
-            onValueChange = { onAction(SendMoneyAction.EnterManualAccountNumber(it)) },
-            label = { Text(stringResource(Res.string.feature_send_money_manual_account_number)) },
-            isError = state.fieldErrors.accountNumberInvalid,
-            supportingText = {
-                if (state.fieldErrors.accountNumberInvalid) {
-                    Text(stringResource(Res.string.feature_send_money_manual_account_number_error))
-                }
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER),
-        )
+        // The rails identify a creditor differently — sort code and account number against an IBAN —
+        // and each refuses the other's scheme with U027, so only one set is ever offered.
+        if (state.rail == PaymentRail.Domestic) {
+            OutlinedTextField(
+                value = state.manualSortCode,
+                onValueChange = { onAction(SendMoneyAction.EnterManualSortCode(it)) },
+                label = { Text(stringResource(Res.string.feature_send_money_manual_sort_code)) },
+                isError = state.fieldErrors.sortCodeInvalid,
+                supportingText = {
+                    if (state.fieldErrors.sortCodeInvalid) {
+                        Text(stringResource(Res.string.feature_send_money_manual_sort_code_error))
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_SORT_CODE),
+            )
+            OutlinedTextField(
+                value = state.manualAccountNumber,
+                onValueChange = { onAction(SendMoneyAction.EnterManualAccountNumber(it)) },
+                label = { Text(stringResource(Res.string.feature_send_money_manual_account_number)) },
+                isError = state.fieldErrors.accountNumberInvalid,
+                supportingText = {
+                    if (state.fieldErrors.accountNumberInvalid) {
+                        Text(stringResource(Res.string.feature_send_money_manual_account_number_error))
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER),
+            )
+        } else {
+            OutlinedTextField(
+                value = state.manualIban,
+                onValueChange = { onAction(SendMoneyAction.EnterManualIban(it)) },
+                label = { Text(stringResource(Res.string.feature_send_money_manual_iban)) },
+                isError = state.fieldErrors.ibanInvalid,
+                supportingText = {
+                    if (state.fieldErrors.ibanInvalid) {
+                        Text(
+                            text = stringResource(Res.string.feature_send_money_manual_iban_error),
+                            modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_IBAN_ERROR),
+                        )
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.MANUAL_IBAN),
+            )
+        }
         MifosFilledPillButton(
             label = stringResource(Res.string.feature_send_money_manual_confirm),
             onClick = { onAction(SendMoneyAction.ConfirmManualCreditor) },
@@ -423,14 +451,35 @@ private fun AmountSection(
             modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.AMOUNT_FIELD),
         )
 
-        OutlinedTextField(
-            value = state.reference,
-            onValueChange = { onAction(SendMoneyAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
-            label = { Text(stringResource(Res.string.feature_send_money_reference_label)) },
-            supportingText = { Text(stringResource(Res.string.feature_send_money_reference_helper)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REFERENCE_FIELD),
-        )
+        // Domestic only. International refuses RemittanceInformation outright with U005, so showing
+        // the field there would invite someone to type a reference the recipient never sees.
+        if (state.rail == PaymentRail.Domestic) {
+            OutlinedTextField(
+                value = state.reference,
+                onValueChange = { onAction(SendMoneyAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
+                label = { Text(stringResource(Res.string.feature_send_money_reference_label)) },
+                supportingText = { Text(stringResource(Res.string.feature_send_money_reference_helper)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REFERENCE_FIELD),
+            )
+        }
+
+        // International only, and both required there: ChargeBearer is refused on domestic and
+        // missing on international earns U004.
+        if (state.rail == PaymentRail.International) {
+            SectionHeading(stringResource(Res.string.feature_send_money_currency_heading))
+            RecipientCurrencyPicker(
+                selected = state.currencyOfTransfer,
+                currencies = state.transferCurrencies,
+                onSelect = { onAction(SendMoneyAction.SelectCurrencyOfTransfer(it)) },
+            )
+
+            SectionHeading(stringResource(Res.string.feature_send_money_charges_heading))
+            ChargeBearerPicker(
+                selected = state.chargeBearer,
+                onSelect = { onAction(SendMoneyAction.SelectChargeBearer(it)) },
+            )
+        }
     }
 }
 

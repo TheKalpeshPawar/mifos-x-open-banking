@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.sendmoney
 
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 
 /**
@@ -39,6 +40,10 @@ internal object SendMoneyTestTags {
     const val AMOUNT_FIELD = "sendMoney:amountField"
     const val AMOUNT_ERROR = "sendMoney:amountError"
     const val REFERENCE_FIELD = "sendMoney:referenceField"
+    const val MANUAL_IBAN = "sendMoney:manualIban"
+    const val MANUAL_IBAN_ERROR = "sendMoney:manualIbanError"
+    const val CURRENCY_PICKER = "sendMoney:currencyPicker"
+    const val CHARGE_BEARER_PICKER = "sendMoney:chargeBearerPicker"
     const val REVIEW_BUTTON = "sendMoney:reviewButton"
 
     const val REVIEW_SUMMARY = "sendMoney:reviewSummary"
@@ -78,6 +83,12 @@ internal object SendMoneyTestTags {
         PaymentRail.Domestic -> "domestic"
         PaymentRail.International -> "international"
     }
+
+    /** One recipient-currency chip. */
+    fun currencyChip(code: String): String = "sendMoney:currency:$code"
+
+    /** One charge-bearer chip. */
+    fun chargeBearerChip(bearer: ChargeBearer): String = "sendMoney:chargeBearer:" + bearer.name
 
     /** One debtor row, keyed by OBIE `AccountId`. */
     fun debtorRow(accountId: String): String = "sendMoney:debtorRow:$accountId"

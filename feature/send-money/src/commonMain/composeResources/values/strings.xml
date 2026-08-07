@@ -45,6 +45,20 @@
     <string name="feature_send_money_amount_error_not_a_number">Enter an amount in whole pence</string>
     <string name="feature_send_money_amount_error_not_positive">Enter an amount greater than zero</string>
     <string name="feature_send_money_amount_error_exceeds_balance">That is more than the balance available on this account</string>
+    <!-- International only. Only BorneByCreditor is exercised by HSBC's own samples. -->
+    <string name="feature_send_money_charges_heading">Who pays the charges</string>
+    <string name="feature_send_money_charge_bearer_creditor">Recipient pays</string>
+    <string name="feature_send_money_charge_bearer_debtor">I pay</string>
+    <string name="feature_send_money_charge_bearer_shared">Shared</string>
+    <string name="feature_send_money_charge_bearer_service_level">Whatever the scheme decides</string>
+
+    <string name="feature_send_money_currency_heading">Recipient receives</string>
+    <string name="feature_send_money_currency_usd">US dollars (USD)</string>
+    <string name="feature_send_money_currency_eur">Euros (EUR)</string>
+
+    <string name="feature_send_money_manual_iban">IBAN</string>
+    <string name="feature_send_money_manual_iban_error">Enter a valid IBAN</string>
+
     <string name="feature_send_money_reference_label">Reference (optional)</string>
     <string name="feature_send_money_reference_helper">Max 35 characters</string>
     <string name="feature_send_money_review_button">Review payment</string>
