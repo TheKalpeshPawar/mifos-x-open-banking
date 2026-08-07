@@ -28,10 +28,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Sync
@@ -52,8 +50,8 @@ import org.mifosx.openbanking.feature.paymentshub.ui.PaymentsHubState
 import org.mifosx.openbanking.feature.paymentshub.ui.PaymentsHubUiState
 import template.core.base.designsystem.theme.KptTheme
 
-private val QuickActionCardMinHeight = 100.dp
-private val QuickActionIconSize = 28.dp
+private val QuickActionCardMinHeight = 120.dp
+private val QuickActionIconSize = 24.dp
 private val ActivityAvatarSize = 48.dp
 private val StatusDotSize = 8.dp
 private val CardBorderThickness = 1.dp
@@ -105,7 +103,7 @@ private fun PaymentsHubContentLoaded(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize()
-            .padding(horizontal = KptTheme.spacing.md),
+            .padding(horizontal = KptTheme.spacing.lg),
         contentPadding = PaddingValues(
             top = KptTheme.spacing.sm,
             bottom = KptTheme.spacing.lg,
@@ -113,19 +111,11 @@ private fun PaymentsHubContentLoaded(
         verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.lg),
     ) {
         item {
-            Column {
-                Text(
-                    text = "Payments",
-                    style = KptTheme.typography.headlineMedium,
-                    color = KptTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.height(KptTheme.spacing.xs))
-                Text(
-                    text = "Manage your transfers, limits, and standing orders.",
-                    style = KptTheme.typography.bodyMedium,
-                    color = KptTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = "Quick Actions",
+                style = KptTheme.typography.titleLarge,
+                color = KptTheme.colorScheme.primary,
+            )
         }
 
         item {
@@ -134,10 +124,9 @@ private fun PaymentsHubContentLoaded(
 
         item {
             Text(
-                text = "In-flight & Recent",
+                text = "Recent",
                 style = KptTheme.typography.titleMedium,
                 color = KptTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = KptTheme.spacing.md),
             )
         }
 
@@ -160,12 +149,6 @@ private fun PaymentsHubContentLoaded(
 private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
     val gap = KptTheme.spacing.md
     Column {
-        Text(
-            text = "Quick Actions",
-            style = KptTheme.typography.titleMedium,
-            color = KptTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = gap),
-        )
         for (row in quickActionRows(onNavigateToSendMoney)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -176,6 +159,7 @@ private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         icon = card.icon,
                         label = card.label,
+                        subtext = card.subtext,
                         onClick = card.onClick,
                     )
                 }
@@ -190,6 +174,7 @@ private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
 private data class QuickActionItem(
     val icon: @Composable () -> Unit,
     val label: String,
+    val subtext: String = "",
     val onClick: (() -> Unit)? = null,
 )
 
@@ -198,23 +183,23 @@ private fun quickActionRows(
     onSendMoney: () -> Unit,
 ): List<List<QuickActionItem>> = listOf(
     listOf(
-        QuickActionItem(quickActionIcon(Icons.Filled.Send), "Send money", onSendMoney),
-        QuickActionItem(quickActionIcon(Icons.Filled.CalendarMonth), "Schedule"),
+        QuickActionItem(quickActionIcon(Icons.Filled.Send), "Send money", "Pay instantly", onSendMoney),
+        QuickActionItem(quickActionIcon(Icons.Filled.CalendarMonth), "Schedule", "Pay on a date"),
     ),
     listOf(
-        QuickActionItem(quickActionIcon(Icons.Filled.Sync), "Standing order"),
-        QuickActionItem(quickActionIcon(Icons.Filled.Public), "International"),
-    ),
-    listOf(
-        QuickActionItem(quickActionIcon(Icons.Filled.Speed), "VRP/Sweeping"),
-        QuickActionItem(quickActionIcon(Icons.Filled.AccountBalanceWallet), "Check funds"),
+        QuickActionItem(quickActionIcon(Icons.Filled.Sync), "Standing order", "Repeat on schedule"),
+        QuickActionItem(quickActionIcon(Icons.Filled.Speed), "VRP / Sweeping", "Automatic sweep"),
     ),
 )
+
+private val QuickActionIconCircleSize = 48.dp
+private val QuickActionIconCircleBg = 62.dp // circle with internal padding
 
 @Composable
 private fun QuickActionCard(
     icon: @Composable () -> Unit,
     label: String,
+    subtext: String = "",
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
@@ -232,13 +217,29 @@ private fun QuickActionCard(
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                icon()
+                Box(
+                    modifier = Modifier
+                        .size(QuickActionIconCircleSize)
+                        .clip(CircleShape)
+                        .background(KptTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    icon()
+                }
                 Spacer(Modifier.height(KptTheme.spacing.sm))
                 Text(
                     text = label,
-                    style = KptTheme.typography.labelMedium,
+                    style = KptTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = KptTheme.colorScheme.onSurface,
                 )
+                if (subtext.isNotBlank()) {
+                    Text(
+                        text = subtext,
+                        style = KptTheme.typography.bodySmall,
+                        color = KptTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -272,6 +273,7 @@ private fun ActivityCard(item: PaymentHistoryItem, onClick: () -> Unit) {
     }
 }
 
+@Composable
 private fun activityCardBorder() =
     Modifier.border(CardBorderThickness, KptTheme.colorScheme.outlineVariant, KptTheme.shapes.medium)
 
@@ -372,11 +374,6 @@ private fun EmptyActivity() {
             Text(
                 text = "No payments yet",
                 style = KptTheme.typography.bodyLarge,
-                color = KptTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "Your payment activity will appear here after your first transfer.",
-                style = KptTheme.typography.bodySmall,
                 color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }

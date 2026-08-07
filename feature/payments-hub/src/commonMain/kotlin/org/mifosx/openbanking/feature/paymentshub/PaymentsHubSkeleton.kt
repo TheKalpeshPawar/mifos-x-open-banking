@@ -25,7 +25,7 @@ import template.core.base.designsystem.theme.KptTheme
 internal fun PaymentsHubSkeleton(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .padding(horizontal = KptTheme.spacing.md)
+            .padding(horizontal = KptTheme.spacing.lg)
             .testTag(PaymentsHubTestTags.SKELETON),
         verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.lg),
     ) {

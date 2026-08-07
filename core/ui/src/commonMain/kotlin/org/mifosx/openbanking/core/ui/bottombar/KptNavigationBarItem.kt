@@ -9,21 +9,13 @@
  */
 package org.mifosx.openbanking.core.ui.bottombar
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import template.core.base.designsystem.theme.KptTheme
@@ -42,29 +34,15 @@ fun RowScope.KptNavigationBarItem(
             Icon(
                 imageVector = if (isSelected) selectedIcon else unselectedIcon,
                 contentDescription = stringResource(contentDescriptionRes),
-                tint = Color.Unspecified,
             )
         },
-        label = {
-            Spacer(
-                modifier = Modifier
-                    .height(4.dp)
-                    .width(10.dp)
-                    .background(
-                        color = KptTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(7.dp),
-                    )
-                    .animateContentSize(),
-            )
-        },
-        selected = false,
-        alwaysShowLabel = isSelected,
+        selected = isSelected,
         onClick = onClick,
         modifier = modifier,
         colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = KptTheme.colorScheme.primary,
-            unselectedIconColor = KptTheme.colorScheme.primary,
-            indicatorColor = Color.Transparent,
+            selectedIconColor = KptTheme.colorScheme.onPrimaryContainer,
+            unselectedIconColor = KptTheme.colorScheme.outline,
+            indicatorColor = KptTheme.colorScheme.primaryContainer,
         ),
     )
 }

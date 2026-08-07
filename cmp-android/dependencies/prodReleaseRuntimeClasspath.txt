@@ -30,8 +30,12 @@
 :feature:direct-debits
 :feature:home
 :feature:login
+:feature:payment-consent
+:feature:payment-status
+:feature:payments-hub
 :feature:product
 :feature:scheduled-payments
+:feature:send-money
 :feature:settings
 :feature:standing-orders
 :feature:statement-detail
