@@ -63,6 +63,19 @@ interface PaymentAuthSession {
     /** The instruction staged for the authorisation in flight, or null when none is. */
     fun draft(): PaymentDraft?
 
+    /**
+     * Records when the bank confirmed the PSU's authorisation.
+     *
+     * Kept here rather than passed down the submit call because the two moments are separated by
+     * network calls the history layer does not see. OBIE returns one `CreationDateTime` and no
+     * per-stage history, so this is the only way the payment detail timeline can show when approval
+     * actually happened rather than inferring it.
+     */
+    fun saveApprovedAt(instant: String)
+
+    /** When the consent was confirmed authorised, or null if that has not happened yet. */
+    fun approvedAt(): String?
+
     /** Drops everything this holds. Leaves the AIS session in [ConsentSession] untouched. */
     fun clear()
 }
@@ -109,12 +122,19 @@ class SettingsPaymentAuthSession(
         return runCatching { json.decodeFromString(PaymentDraft.serializer(), raw) }.getOrNull()
     }
 
+    override fun saveApprovedAt(instant: String) {
+        secureSettings.putString(KEY_APPROVED_AT, instant)
+    }
+
+    override fun approvedAt(): String? = secureSettings.getStringOrNull(KEY_APPROVED_AT)
+
     override fun clear() {
         secureSettings.remove(KEY_CONSENT_ID)
         secureSettings.remove(KEY_STATE)
         secureSettings.remove(KEY_NONCE)
         secureSettings.remove(KEY_PAYMENT_TOKENS)
         secureSettings.remove(KEY_DRAFT)
+        secureSettings.remove(KEY_APPROVED_AT)
     }
 
     private companion object {
@@ -122,6 +142,7 @@ class SettingsPaymentAuthSession(
         const val KEY_STATE = "payment_auth_state"
         const val KEY_NONCE = "payment_auth_nonce"
         const val KEY_PAYMENT_TOKENS = "payment_auth_tokens"
+        const val KEY_APPROVED_AT = "payment_auth_approved_at"
         const val KEY_DRAFT = "payment_auth_draft"
     }
 }

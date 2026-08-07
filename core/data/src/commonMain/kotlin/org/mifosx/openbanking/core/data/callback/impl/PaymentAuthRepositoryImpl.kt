@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.api.Pisp
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import kotlin.time.Clock
 
 private const val ERROR_ACCESS_DENIED = "access_denied"
 
@@ -97,6 +98,10 @@ internal class PaymentAuthRepositoryImpl(
             is NetworkResult.Success -> NetworkResult.Success(result.data.statusOrEmpty())
             is NetworkResult.Error -> result
         }
+    }
+
+    override fun recordApproved() {
+        paymentAuthSession.saveApprovedAt(Clock.System.now().toString())
     }
 
     override fun discardAuthorisation() = paymentAuthSession.clear()

@@ -68,6 +68,32 @@ class PaymentConsentViewModelTest {
     }
 
     /**
+     * Approval is stamped when it is observed, because the bank never reports it.
+     *
+     * OBIE returns one `CreationDateTime` and no per-stage history, so if this moment is not
+     * recorded here the payment detail timeline can only infer approval from a later event.
+     */
+    @Test
+    fun anAuthorisedConsentRecordsWhenItWasApproved() = runTest {
+        val repository = FakePaymentAuthRepository()
+
+        viewModel(repository)
+
+        assertEquals(1, repository.approvedRecordedCount)
+    }
+
+    /** A consent still awaiting the PSU has not been approved, so nothing is stamped. */
+    @Test
+    fun aConsentStillAwaitingAuthorisationRecordsNothing() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("AWAU"))
+
+        viewModel(repository)
+
+        assertEquals(0, repository.approvedRecordedCount)
+    }
+
+    /**
      * The whole point of the move: the leg that returns from the bank is the one that submits,
      * because the screen that built the draft no longer exists by the time the redirect lands.
      */

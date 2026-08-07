@@ -20,6 +20,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 private const val PAYMENT_TYPE_DOMESTIC = "domestic_payment"
+private const val PAYMENT_TYPE_INTERNATIONAL = "international_payment"
 
 private fun PaymentStatus.toLabel(): String = when (disposition) {
     PaymentDisposition.TerminalSuccess -> "Sent"
@@ -41,10 +42,18 @@ private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
 private fun BankAccount?.historyIdentification(): String =
     this?.let { it.rawIdentification.ifBlank { it.sortCode + it.accountNumber } }.orEmpty()
 
-internal fun PaymentReceipt.toEntity(draft: PaymentDraft): PaymentHistoryEntity =
+/** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
+private fun PaymentDraft.paymentType(): String =
+    if (currencyOfTransfer != null) PAYMENT_TYPE_INTERNATIONAL else PAYMENT_TYPE_DOMESTIC
+
+internal fun PaymentReceipt.toEntity(
+    draft: PaymentDraft,
+    approvedAt: String? = null,
+    submittedAt: String? = null,
+): PaymentHistoryEntity =
     PaymentHistoryEntity(
         id = domesticPaymentId,
-        domesticPaymentId = domesticPaymentId,
+        paymentId = domesticPaymentId,
         errorKind = null,
         errorDescription = null,
         status = status.name,
@@ -60,8 +69,13 @@ internal fun PaymentReceipt.toEntity(draft: PaymentDraft): PaymentHistoryEntity 
         currency = draft.currency,
         reference = draft.reference,
         creationDateTime = creationDateTime,
+        approvedAt = approvedAt,
+        submittedAt = submittedAt,
         settlementDateTime = settlementDateTime.takeIf { it.isNotBlank() },
-        paymentType = PAYMENT_TYPE_DOMESTIC,
+        chargeBearer = draft.chargeBearer?.wireValue,
+        currencyOfTransfer = draft.currencyOfTransfer,
+        // Derived, not assumed: the status read-back has to hit the matching rail's endpoint.
+        paymentType = draft.paymentType(),
         syncedAt = null,
     )
 
@@ -70,7 +84,7 @@ internal fun PaymentDraft.toFailureEntity(
     errorDescription: String,
 ): PaymentHistoryEntity = PaymentHistoryEntity(
     id = errorId(),
-    domesticPaymentId = null,
+    paymentId = null,
     errorKind = errorKind,
     errorDescription = errorDescription,
     status = null,
@@ -84,7 +98,9 @@ internal fun PaymentDraft.toFailureEntity(
     reference = reference,
     creationDateTime = "",
     settlementDateTime = null,
-    paymentType = PAYMENT_TYPE_DOMESTIC,
+    chargeBearer = chargeBearer?.wireValue,
+    currencyOfTransfer = currencyOfTransfer,
+    paymentType = paymentType(),
     syncedAt = null,
 )
 
@@ -92,7 +108,7 @@ internal fun PaymentHistoryEntity.toPaymentHistoryItem(): PaymentHistoryItem {
     val resolved = status?.let(PaymentStatus.Companion::fromWire)
     return PaymentHistoryItem(
         id = id,
-        domesticPaymentId = domesticPaymentId,
+        domesticPaymentId = paymentId,
         debtorName = debtorName,
         creditorName = creditorName,
         creditorIdentification = creditorIdentification,

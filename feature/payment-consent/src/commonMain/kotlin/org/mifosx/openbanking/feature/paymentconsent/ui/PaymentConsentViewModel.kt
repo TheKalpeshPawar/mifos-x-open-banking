@@ -106,6 +106,9 @@ class PaymentConsentViewModel(
             when (val result = repository.consentStatus(state.consentId)) {
                 is NetworkResult.Success ->
                     if (result.data.trim().uppercase() in AUTHORISED_STATUSES) {
+                        // Stamped before submitting, so the timeline records approval at the moment
+                        // it was observed rather than at whatever time the submission happens to land.
+                        repository.recordApproved()
                         completePayment()
                     } else {
                         updateState {

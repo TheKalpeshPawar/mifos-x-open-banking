@@ -32,7 +32,7 @@ interface PaymentHistoryDao {
     @Query("SELECT * FROM payment_history ORDER BY creationDateTime DESC LIMIT 5")
     fun observeRecent(): Flow<List<PaymentHistoryEntity>>
 
-    @Query("SELECT * FROM payment_history WHERE domesticPaymentId = :paymentId")
+    @Query("SELECT * FROM payment_history WHERE paymentId = :paymentId")
     fun observeById(paymentId: String): Flow<PaymentHistoryEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -125,6 +125,13 @@ class FakePaymentAuthRepository(
         return status
     }
 
+    var approvedRecordedCount: Int = 0
+        private set
+
+    override fun recordApproved() {
+        approvedRecordedCount++
+    }
+
     override fun discardAuthorisation() {
         discardCount++
     }

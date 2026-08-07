@@ -17,6 +17,7 @@ import org.mifosx.openbanking.core.data.banking.mapper.toEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toFailureEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentHistoryItem
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentReceipt
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
@@ -38,13 +39,27 @@ internal class PaymentHistoryRepositoryImpl(
     private val dao: PaymentHistoryDao,
     private val pisp: Pisp,
     private val oauth: OAuth,
+    private val paymentAuthSession: PaymentAuthSession,
 ) : PaymentHistoryRepository {
 
     override fun observeRecent(): Flow<List<PaymentHistoryItem>> =
         dao.observeRecent().map { entities -> entities.map { it.toPaymentHistoryItem() } }
 
+    /**
+     * Stamps the two stage times the bank does not report.
+     *
+     * OBIE returns a single `CreationDateTime`, so approval and submission are only knowable from
+     * what this app observed: the approval instant was recorded by the callback leg and is read back
+     * off the session, and submission is now, because this is called the moment the POST succeeds.
+     */
     override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {
-        dao.upsert(receipt.toEntity(draft))
+        dao.upsert(
+            receipt.toEntity(
+                draft = draft,
+                approvedAt = paymentAuthSession.approvedAt(),
+                submittedAt = Clock.System.now().toString(),
+            ),
+        )
     }
 
     override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {
@@ -68,14 +83,14 @@ internal class PaymentHistoryRepositoryImpl(
         }
 
         entities
-            .filter { it.domesticPaymentId != null && it.errorKind == null }
+            .filter { it.paymentId != null && it.errorKind == null }
             .filter { e ->
                 val resolved = e.status?.let(PaymentStatus.Companion::fromWire)
                 resolved?.disposition == PaymentDisposition.InProgress
             }
             .forEach { entity ->
                 val now = Clock.System.now().toEpochMilliseconds().toString()
-                val result = pisp.getDomesticPayment(token, entity.domesticPaymentId!!)
+                val result = pisp.getDomesticPayment(token, entity.paymentId!!)
                 when (result) {
                     is template.core.base.network.NetworkResult.Success -> {
                         val receipt = result.data.toPaymentReceipt()

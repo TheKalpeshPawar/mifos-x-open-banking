@@ -120,6 +120,7 @@ val DataModule = module {
             dao = get(),
             pisp = get(),
             oauth = get(),
+            paymentAuthSession = get(),
         )
     }
 

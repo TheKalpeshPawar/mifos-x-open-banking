@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.banking.mapper
 
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
@@ -73,7 +74,7 @@ class PaymentHistoryMapperTest {
         val entity = receipt().toEntity(draft())
 
         assertEquals("19901", entity.id)
-        assertEquals("19901", entity.domesticPaymentId)
+        assertEquals("19901", entity.paymentId)
         assertNull(entity.errorKind)
         assertNull(entity.errorDescription)
         assertEquals("AcceptedSettlementCompleted", entity.status)
@@ -94,7 +95,7 @@ class PaymentHistoryMapperTest {
     fun mapsPreSubmissionFailureToEntityWithNullFields() {
         val entity = draft().toFailureEntity("InsufficientFunds", "Not enough money")
 
-        assertNull(entity.domesticPaymentId)
+        assertNull(entity.paymentId)
         assertEquals("InsufficientFunds", entity.errorKind)
         assertEquals("Not enough money", entity.errorDescription)
         assertNull(entity.status)
@@ -182,6 +183,57 @@ class PaymentHistoryMapperTest {
 
         assertEquals("80119770009652", entity.debtorIdentification)
         assertEquals("", entity.debtorAccountId)
+    }
+
+    /**
+     * The rail is derived, not assumed.
+     *
+     * It was hardcoded to domestic on both paths, which mattered because the status read-back has to
+     * hit the matching rail's endpoint — an international payment filed as domestic is looked up
+     * against the wrong one.
+     */
+    @Test
+    fun recordsAnInternationalDraftAsInternational() {
+        val intl = draft().copy(
+            currencyOfTransfer = "USD",
+            chargeBearer = ChargeBearer.Shared,
+        )
+
+        val entity = receipt().toEntity(intl)
+
+        assertEquals("international_payment", entity.paymentType)
+        assertEquals("USD", entity.currencyOfTransfer)
+        assertEquals("Shared", entity.chargeBearer)
+    }
+
+    @Test
+    fun leavesTheInternationalColumnsNullOnADomesticPayment() {
+        val entity = receipt().toEntity(draft())
+
+        assertEquals("domestic_payment", entity.paymentType)
+        assertNull(entity.currencyOfTransfer)
+        assertNull(entity.chargeBearer)
+    }
+
+    /** The two stages OBIE never reports, so the timeline can only show what was observed. */
+    @Test
+    fun storesTheStageTimestampsItIsGiven() {
+        val entity = receipt().toEntity(
+            draft = draft(),
+            approvedAt = "2026-08-07T09:20:00Z",
+            submittedAt = "2026-08-07T09:45:00Z",
+        )
+
+        assertEquals("2026-08-07T09:20:00Z", entity.approvedAt)
+        assertEquals("2026-08-07T09:45:00Z", entity.submittedAt)
+    }
+
+    @Test
+    fun leavesTheStageTimestampsNullWhenNoneWereObserved() {
+        val entity = receipt().toEntity(draft())
+
+        assertNull(entity.approvedAt)
+        assertNull(entity.submittedAt)
     }
 
     @Test

@@ -246,6 +246,8 @@ private class RecordingPaymentAuthSession : PaymentAuthSession {
     override fun savePaymentToken(tokens: PsuTokenResponse) = Unit
     override fun saveDraft(draft: PaymentDraft) = Unit
     override fun draft(): PaymentDraft? = null
+    override fun saveApprovedAt(instant: String) = Unit
+    override fun approvedAt(): String? = null
 
     override fun clear() {
         cleared = true

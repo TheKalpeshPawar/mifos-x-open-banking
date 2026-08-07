@@ -12,10 +12,12 @@ package org.mifosx.openbanking.core.database
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
+import org.mifosx.openbanking.core.database.migration.ALL_MIGRATIONS
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class AppDatabaseTest {
 
@@ -48,9 +50,29 @@ class AppDatabaseTest {
 
     @Test
     fun databaseVersionIsCurrent() {
-        // Bumped to 3 when AccountEntity gained rawIdentification. Update this constant when
-        // bumping AppDatabase.VERSION so this guardrail stays meaningful.
-        assertEquals(3, AppDatabase.VERSION)
+        // Update this constant when bumping AppDatabase.VERSION so the guardrail stays meaningful.
+        // 4 added payment_history; 5 renamed its id column and added the timeline and international
+        // fields — and is the first version reached by a real migration rather than a table drop.
+        assertEquals(5, AppDatabase.VERSION)
+    }
+
+    /**
+     * Every version above the oldest must be reachable without dropping tables.
+     *
+     * The destructive fallback is still configured, so a missing migration does not fail the build
+     * or throw at runtime — it silently wipes `payment_history`, which is the one table holding data
+     * that exists nowhere else. This asserts the path exists rather than trusting that it does.
+     */
+    @Test
+    fun everyVersionSincePaymentHistoryHasAMigrationPath() {
+        val covered = ALL_MIGRATIONS.map { it.startVersion to it.endVersion }.toSet()
+
+        for (from in 4 until AppDatabase.VERSION) {
+            assertTrue(
+                (from to from + 1) in covered,
+                "no migration from $from to ${from + 1}; payment history would be dropped",
+            )
+        }
     }
 
     @Test

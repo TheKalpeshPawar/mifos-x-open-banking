@@ -83,5 +83,14 @@ interface PaymentAuthRepository {
      * abandoned — so a finished attempt leaves no consent id, PSU token or draft behind for the next
      * one to find. Leaves the AIS session untouched, so the PSU stays signed in.
      */
+    /**
+     * Records that the consent has reached an authorised status, at this moment.
+     *
+     * The caller decides what counts as authorised, because that is a status-code judgement; this
+     * only stamps the time. OBIE reports no per-stage history, so without this the payment detail
+     * timeline could show approval happening only by inference from a later event.
+     */
+    fun recordApproved()
+
     fun discardAuthorisation()
 }
