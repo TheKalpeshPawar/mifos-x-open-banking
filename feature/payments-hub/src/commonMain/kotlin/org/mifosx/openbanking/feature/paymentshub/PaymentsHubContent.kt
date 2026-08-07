@@ -193,14 +193,13 @@ private fun quickActionRows(
 )
 
 private val QuickActionIconCircleSize = 48.dp
-private val QuickActionIconCircleBg = 62.dp // circle with internal padding
 
 @Composable
 private fun QuickActionCard(
     icon: @Composable () -> Unit,
     label: String,
-    subtext: String = "",
     modifier: Modifier = Modifier,
+    subtext: String = "",
     onClick: (() -> Unit)? = null,
 ) {
     Card(

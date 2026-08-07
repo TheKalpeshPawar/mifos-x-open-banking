@@ -47,6 +47,12 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.CreditorAccount as IntlCreditorAccount
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Data as IntlData
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.DebtorAccount as IntlDebtorAccount
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Initiation as IntlInitiation
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InstructedAmount as IntlInstructedAmount
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Risk as IntlRisk
 
 private const val KID = "test-kid-1"
 private const val SIGNING_ISSUER = "mifos_init_00000/0000000000000000000000"
@@ -54,6 +60,11 @@ private const val IDEMPOTENCY_KEY = "MFX-20260805-0001"
 private const val CONSENT_ID = "812774903"
 private const val SUBMITTED_PAYMENT_BODY =
     """{"Data":{"DomesticPaymentId":"PMT-1","Status":"AcceptedSettlementInProcess"}}"""
+private const val INTL_CONSENT_RESPONSE =
+    """{"Data":{"ConsentId":"45076","Status":"AWAU","CreationDateTime":"2026-08-06T08:50:59+00:00"}}"""
+private const val INTL_CONSENT_WITH_CHARGES_RESPONSE =
+    """{"Data":{"ConsentId":"99","Status":"AWAU","Charges":[{"ChargeBearer":"BorneByDebtor",""" +
+        """"Type":"UK.OBIE.SWIFTCharge","Amount":{"Amount":"5.00","Currency":"GBP"}}]}}"""
 
 /**
  * Covers [Pisp] at the wire: paths, the credential each call carries, the FAPI + write headers, and
@@ -327,28 +338,28 @@ class PispTest {
 
     private fun internationalConsentRequest(): InternationalPaymentConsentRequest =
         InternationalPaymentConsentRequest(
-            data = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Data(
-                initiation = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Initiation(
+            data = IntlData(
+                initiation = IntlInitiation(
                     instructionIdentification = "MFX20260807T1530000001",
                     endToEndIdentification = "E2E-INTL-202608",
                     currencyOfTransfer = "EUR",
-                    instructedAmount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InstructedAmount(
+                    instructedAmount = IntlInstructedAmount(
                         amount = "100.00",
                         currency = "GBP",
                     ),
-                    creditorAccount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.CreditorAccount(
+                    creditorAccount = IntlCreditorAccount(
                         schemeName = "UK.OBIE.IBAN",
                         identification = "DE89370400440532013000",
                         name = "Klara Weiss",
                     ),
                     chargeBearer = "BorneByCreditor",
-                    debtorAccount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.DebtorAccount(
+                    debtorAccount = IntlDebtorAccount(
                         schemeName = "UK.OBIE.SortCodeAccountNumber",
                         identification = "80200110203349",
                     ),
                 ),
             ),
-            risk = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Risk(
+            risk = IntlRisk(
                 categoryPurposeCode = "EPAY",
             ),
         )
@@ -374,7 +385,7 @@ class PispTest {
     @Test
     fun `deserialises international consent response`() = runTest {
         val pisp = pisp(
-            responseBody = """{"Data":{"ConsentId":"45076","Status":"AWAU","CreationDateTime":"2026-08-06T08:50:59+00:00"}}""",
+            responseBody = INTL_CONSENT_RESPONSE,
         )
 
         val result = pisp.createInternationalPaymentConsent(
@@ -458,7 +469,7 @@ class PispTest {
     @Test
     fun `deserialises charges from international consent`() = runTest {
         val pisp = pisp(
-            responseBody = """{"Data":{"ConsentId":"99","Status":"AWAU","Charges":[{"ChargeBearer":"BorneByDebtor","Type":"UK.OBIE.SWIFTCharge","Amount":{"Amount":"5.00","Currency":"GBP"}}]}}""",
+            responseBody = INTL_CONSENT_WITH_CHARGES_RESPONSE,
         )
 
         val result = pisp.createInternationalPaymentConsent(

@@ -173,36 +173,34 @@ internal class PaymentInitiationRepositoryImpl(
             ?: return NetworkResult.Error(
                 NetworkError.Client.Unauthorized("No payments token — the consent is not authorised"),
             )
-        if (draft.isInternational()) {
-            return when (
+        val submitted: NetworkResult<PaymentReceipt, NetworkError> = if (draft.isInternational()) {
+            when (
                 val result = pisp.createInternationalPayment(
                     psuAccessToken = token,
                     request = draft.toIntlPaymentRequest(consentId),
                     idempotencyKey = draft.paymentIdempotencyKey,
                 )
             ) {
-                is NetworkResult.Success -> {
-                    val receipt = result.data.toIntlPaymentReceipt()
-                    paymentHistoryRepository.saveSubmitted(receipt, draft)
-                    NetworkResult.Success(receipt)
-                }
+                is NetworkResult.Success -> NetworkResult.Success(result.data.toIntlPaymentReceipt())
+                is NetworkResult.Error -> result
+            }
+        } else {
+            when (
+                val result = pisp.createDomesticPayment(
+                    psuAccessToken = token,
+                    request = draft.toPaymentRequest(consentId),
+                    idempotencyKey = draft.paymentIdempotencyKey,
+                )
+            ) {
+                is NetworkResult.Success -> NetworkResult.Success(result.data.toPaymentReceipt())
                 is NetworkResult.Error -> result
             }
         }
-        return when (
-            val result = pisp.createDomesticPayment(
-                psuAccessToken = token,
-                request = draft.toPaymentRequest(consentId),
-                idempotencyKey = draft.paymentIdempotencyKey,
-            )
-        ) {
-            is NetworkResult.Success -> {
-                val receipt = result.data.toPaymentReceipt()
-                paymentHistoryRepository.saveSubmitted(receipt, draft)
-                NetworkResult.Success(receipt)
-            }
-            is NetworkResult.Error -> result
+        // Recorded once, after either rail resolves, so the two paths cannot drift on what is saved.
+        if (submitted is NetworkResult.Success) {
+            paymentHistoryRepository.saveSubmitted(submitted.data, draft)
         }
+        return submitted
     }
 
     @Suppress("ReturnCount")

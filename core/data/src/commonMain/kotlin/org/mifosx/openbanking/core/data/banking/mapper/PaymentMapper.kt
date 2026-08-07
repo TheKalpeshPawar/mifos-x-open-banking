@@ -29,22 +29,13 @@ import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.Ri
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.Charge
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentConsentResponse
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentResponse
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentConsentRequest
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentRequest
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.response.InternationalPaymentConsentResponse
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.response.InternationalPaymentResponse
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.CreditorAccount as IntlCreditorAccountReq
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Data as IntlDataReq
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.DebtorAccount as IntlDebtorAccount
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Initiation as IntlInitiationReq
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InstructedAmount as IntlInstructedAmountReq
-import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Risk as IntlRiskReq
 
 private const val MINOR_UNITS_PER_MAJOR = 100L
 private const val FRACTION_DIGITS = 2
 
-private const val SCHEME_SORT_CODE = "UK.OBIE.SortCodeAccountNumber"
-private const val SCHEME_IBAN = "UK.OBIE.IBAN"
+/** Shared with [PaymentIntlMapper.kt], which maps the same schemes on the international rail. */
+internal const val SCHEME_SORT_CODE = "UK.OBIE.SortCodeAccountNumber"
+internal const val SCHEME_IBAN = "UK.OBIE.IBAN"
 private const val SCHEME_PAYM = "UK.OBIE.Paym"
 private const val SCHEME_PAN = "UK.OBIE.PAN"
 
@@ -138,7 +129,7 @@ private fun BeneficiaryScheme.toObieSchemeName(): String = when (this) {
  * Done with integer arithmetic rather than a floating-point divide: a payment amount must not pick
  * up a representation error on its way to the wire.
  */
-private fun Long.toMajorUnitString(): String {
+internal fun Long.toMajorUnitString(): String {
     val major = this / MINOR_UNITS_PER_MAJOR
     val minor = (this % MINOR_UNITS_PER_MAJOR).toString().padStart(FRACTION_DIGITS, '0')
     return "$major.$minor"
@@ -181,89 +172,6 @@ internal fun DomesticPaymentResponse.toPaymentReceipt(): PaymentReceipt {
  * Formats a charge for display, reusing the same minor-unit path as the payment amount so a fee and
  * the sum it is levied on cannot be rendered by two different rules.
  */
-private const val CHARGE_BEARER_BORNE_BY_CREDITOR = "BorneByCreditor"
-private const val RISK_CATEGORY_EPAY = "EPAY"
-
-internal fun PaymentDraft.toIntlInitiation(): IntlInitiationReq = IntlInitiationReq(
-    instructionIdentification = instructionIdentification,
-    endToEndIdentification = endToEndIdentification,
-    currencyOfTransfer = currencyOfTransfer,
-    instructedAmount = IntlInstructedAmountReq(
-        amount = amountMinorUnits.toMajorUnitString(),
-        currency = currency,
-    ),
-    creditorAccount = creditor.toIntlObieCreditor(),
-    chargeBearer = chargeBearer,
-    debtorAccount = if (debtorAccount.rawIdentification.isNotBlank()) {
-        IntlDebtorAccount(
-            schemeName = SCHEME_SORT_CODE,
-            identification = debtorAccount.rawIdentification,
-            name = debtorAccount.nickname.takeIf { it.isNotBlank() },
-        )
-    } else {
-        null
-    },
-)
-
-internal fun PaymentDraft.toIntlRisk(): IntlRiskReq = IntlRiskReq(
-    categoryPurposeCode = RISK_CATEGORY_EPAY,
-)
-
-internal fun PaymentDraft.toIntlConsentRequest(): InternationalPaymentConsentRequest =
-    InternationalPaymentConsentRequest(
-        data = IntlDataReq(initiation = toIntlInitiation()),
-        risk = toIntlRisk(),
-    )
-
-internal fun PaymentDraft.toIntlPaymentRequest(consentId: String): InternationalPaymentRequest =
-    InternationalPaymentRequest(
-        data = IntlDataReq(consentId = consentId, initiation = toIntlInitiation()),
-        risk = toIntlRisk(),
-    )
-
-private fun CreditorSelection.toIntlObieCreditor(): IntlCreditorAccountReq =
-    IntlCreditorAccountReq(
-        schemeName = SCHEME_IBAN,
-        identification = identification,
-        name = name.takeIf { it.isNotBlank() },
-    )
-
-internal fun InternationalPaymentConsentResponse.intlConsentIdOrNull(): String? =
-    data?.consentId?.takeIf { it.isNotBlank() }
-
-internal fun InternationalPaymentConsentResponse.intlStatusOrEmpty(): String =
-    data?.status.orEmpty()
-
-internal fun InternationalPaymentResponse.toIntlPaymentReceipt(): PaymentReceipt {
-    val initiation = data?.initiation
-    val amount = initiation?.instructedAmount
-    return PaymentReceipt(
-        domesticPaymentId = data?.internationalPaymentId.orEmpty(),
-        consentId = data?.consentId.orEmpty(),
-        status = PaymentStatus.fromWire(data?.status),
-        creationDateTime = data?.creationDateTime.orEmpty(),
-        statusUpdateDateTime = data?.statusUpdateDateTime.orEmpty(),
-        amountLabel = formatMinorUnits(
-            minorUnits = amount?.amount.toMinorUnits(),
-            currency = amount?.currency.orEmpty(),
-        ),
-        creditorName = initiation?.creditorAccount?.name.orEmpty(),
-        settlementDateTime = "",
-        reference = "",
-        debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
-        charges = data?.charges.orEmpty().map { c ->
-            PaymentCharge(
-                bearer = c.chargeBearer.orEmpty(),
-                typeLabel = c.type.orEmpty(),
-                amountLabel = formatMinorUnits(
-                    minorUnits = c.amount?.amount.toMinorUnits(),
-                    currency = c.amount?.currency.orEmpty(),
-                ),
-            )
-        },
-    )
-}
-
 private fun Charge.toPaymentCharge(): PaymentCharge = PaymentCharge(
     bearer = chargeBearer.orEmpty(),
     typeLabel = type.orEmpty(),
@@ -280,7 +188,7 @@ private fun Charge.toPaymentCharge(): PaymentCharge = PaymentCharge(
  * receipt renders whatever the bank echoed, and an unreadable amount should show as zero rather
  * than fail the whole mapping.
  */
-private fun String?.toMinorUnits(): Long {
+internal fun String?.toMinorUnits(): Long {
     val raw = this?.trim().orEmpty()
     if (raw.isEmpty()) return 0L
     val negative = raw.startsWith('-')
