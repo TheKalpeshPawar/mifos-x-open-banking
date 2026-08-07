@@ -36,7 +36,7 @@ private const val FRAME_HEIGHT = 892
 /**
  * Golden-image coverage for [TransactionDetailScreenContent] across its four rendered states, captured
  * with Roborazzi under Robolectric's native graphics (no device). Goldens are committed under
- * `src/androidUnitTest/screenshots/`; the record task writes them and the verify task fails the build
+ * `build/outputs/roborazzi/`; the record task writes them and the verify task fails the build
  * on any pixel drift.
  *
  * Capture is driven through [createComposeRule]'s `onRoot()` rather than the standalone
@@ -70,7 +70,7 @@ class TransactionDetailScreenScreenshotTest {
             }
         }
         composeRule.onRoot()
-            .captureRoboImage("src/androidUnitTest/screenshots/transaction_detail_$state.png")
+            .captureRoboImage("build/outputs/roborazzi/transaction_detail_$state.png")
     }
 
     @Composable

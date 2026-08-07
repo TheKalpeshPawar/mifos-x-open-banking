@@ -43,8 +43,12 @@ private const val TALL_DEVICE = "w412dp-h1800dp"
 
 /**
  * Golden-image coverage for [SendMoneyScreenContent], captured with Roborazzi under Robolectric's
- * native graphics. Goldens live in `src/androidUnitTest/screenshots/`; `recordRoborazziDebug` writes
- * them and `verifyRoborazziDebug` fails the build on pixel drift.
+ * native graphics.
+ *
+ * Goldens are **not tracked** — `recordRoborazziDemoDebug` writes them under
+ * `build/outputs/roborazzi/` for local review. So this suite fails on a composition crash
+ * and lets a change be eyeballed, but `verifyRoborazziDemoDebug` can only detect drift against a
+ * baseline recorded on the same machine; a clean checkout has nothing to compare against.
  *
  * The two rails get separate goldens because they are not a styling variation — each asks for fields
  * the other refuses, so the difference between them is the thing most worth being able to see.
@@ -108,6 +112,6 @@ class SendMoneyScreenScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("src/androidUnitTest/screenshots/send_money_$state.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/send_money_$state.png")
     }
 }

@@ -145,7 +145,3 @@ graphify-out/
 *.db
 *.db-shm
 *.db-wal
-
-# Roborazzi goldens. Recorded locally with recordRoborazziDemoDebug; not tracked, so
-# verifyRoborazziDemoDebug only detects drift against a baseline recorded on the same machine.
-feature/send-money/src/androidUnitTest/screenshots/

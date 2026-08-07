@@ -83,7 +83,7 @@ class ConsentDetailScreenScreenshotTest {
                 )
             }
         }
-        composeRule.onRoot().captureRoboImage("src/androidUnitTest/screenshots/consent_detail_$state.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/consent_detail_$state.png")
     }
 
     @Composable
