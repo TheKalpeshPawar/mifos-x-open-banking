@@ -88,10 +88,10 @@ object SendMoneyFixtures {
 
     /**
      * The Global Money wallet exactly as HSBC returns it: `AccountTypeCode: CACC`, so
-     * `accountSubType` reads "CACC" and nothing on the domain model distinguishes it from a current
-     * account. It stays in [accounts] on purpose — the app cannot predict that this is unfundable,
-     * and the tests should reflect that rather than pretend otherwise. What it CAN do is learn from
-     * the bank's refusal, which is what the registry-driven filter covers.
+     * `accountSubType` reads "CACC" and is indistinguishable from a current account. The one field
+     * that gives it away is the free-text description, which the sandbox returns verbatim as
+     * "GLOBAL MONEY ACCOUNT" — so the fixture carries it. It stays in [accounts] on purpose: the
+     * picker must be proven to exclude it, and a fixture without one proves nothing.
      */
     fun globalMoneyWallet(): BankAccount = BankAccount(
         accountId = GLOBAL_MONEY_ID,
@@ -101,6 +101,7 @@ object SendMoneyFixtures {
         sortCode = "801197",
         accountNumber = "70009652",
         rawIdentification = "80119770009652",
+        description = "GLOBAL MONEY ACCOUNT",
     )
 
     fun accounts(): List<AccountWithBalance> = listOf(

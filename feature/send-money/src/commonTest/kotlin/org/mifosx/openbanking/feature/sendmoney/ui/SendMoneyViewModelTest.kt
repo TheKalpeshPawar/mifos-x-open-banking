@@ -85,17 +85,17 @@ class SendMoneyViewModelTest {
     }
 
     /**
-     * TC-SEND-001. Three of the four fixture accounts are payable: the credit card is predicted
-     * unpayable and dropped, the Global Money wallet is not predictable and stays until the bank
-     * refuses it.
+     * TC-SEND-001. Two of the four fixture accounts are payable: the credit card is dropped on its
+     * subtype and the Global Money wallet on its description, both before the bank is asked.
      */
     @Test
     fun rendersEveryPayablePayerRowAndEveryPayeeRow() = runTest {
         val vm = viewModel()
 
         val state = content(vm)
-        assertEquals(3, state.debtorRows.size)
+        assertEquals(2, state.debtorRows.size)
         assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.id })
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in state.debtorRows.map { it.id })
         assertEquals(3, state.beneficiaries.size)
         assertEquals("Jameson Lettings", state.beneficiaries.first().headline)
     }
@@ -369,32 +369,61 @@ class SendMoneyViewModelTest {
     }
 
     /**
-     * The Global Money wallet IS offered, because nothing on the domain model can predict that it
-     * is unfundable — HSBC reports it as `AccountTypeCode: CACC`, identical to a current account.
+     * The Global Money wallet is excluded BEFORE the bank is asked.
      *
-     * This asserts the honest limit of the prediction. The wallet is removed only after the bank
-     * refuses it; see [aRefusedPayerDisappearsFromThePicker].
+     * It reports `AccountTypeCode: CACC`, identical to a current account, so the only thing that
+     * gives it away is the free-text `Description`. That used to be passed to the resolver as an
+     * empty string, so every wallet was offered and removed only once the bank refused it with
+     * `U002` — and since the capability registry is in memory, it returned on the next launch to
+     * fail the same way. This is the regression test for that.
      */
     @Test
-    fun aWalletIndistinguishableFromACurrentAccountIsStillOffered() = runTest {
+    fun aGlobalMoneyWalletIsNotOfferedAsAPayer() = runTest {
         val vm = viewModel()
 
-        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        val ids = content(vm).debtorRows.map { it.id }
+
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in ids)
+        assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
     }
 
     /**
-     * ...and disappears once the bank has refused it. This is the half the product matrix cannot
-     * do, and the reason the wallet does not need a database column to be handled correctly.
+     * A wallet the bank did not describe is indistinguishable again, and falls back to the refusal.
+     *
+     * Proves the description is what does the work above, rather than some other property of the
+     * fixture, and that removing the prediction does not remove the safety net.
      */
     @Test
-    fun aRefusedPayerDisappearsFromThePicker() = runTest {
-        val vm = viewModel()
+    fun aWalletWithNoDescriptionFallsBackToTheBanksRefusal() = runTest {
+        val undisclosed = SendMoneyFixtures.accounts().map { row ->
+            if (row.account.accountId == SendMoneyFixtures.GLOBAL_MONEY_ID) {
+                row.copy(account = row.account.copy(description = ""))
+            } else {
+                row
+            }
+        }
+        val vm = viewModel(
+            accounts = FakeAccountsOverviewRepository(
+                ScreenState.Content(undisclosed, DataFreshness.FRESH),
+            ),
+        )
         assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
 
         registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.PaymentDebtor)
 
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+    }
+
+    /** The registry still removes any payer the bank refuses, matrix prediction or not. */
+    @Test
+    fun aRefusedPayerDisappearsFromThePicker() = runTest {
+        val vm = viewModel()
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
+
+        registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.PaymentDebtor)
+
         val ids = content(vm).debtorRows.map { it.id }
-        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in ids)
+        assertFalse(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
     }
 
@@ -403,9 +432,9 @@ class SendMoneyViewModelTest {
     fun anUnrelatedRefusalDoesNotRemoveAPayer() = runTest {
         val vm = viewModel()
 
-        registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.DirectDebits)
+        registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.DirectDebits)
 
-        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
     }
 
     /**

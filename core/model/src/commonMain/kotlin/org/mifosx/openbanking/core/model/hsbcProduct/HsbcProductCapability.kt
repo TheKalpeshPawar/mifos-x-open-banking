@@ -114,14 +114,19 @@ data class HsbcProductCapability(
             // A card has no sort code and account number, and PaymentMapper can only express that
             // one scheme, so offering it as a payer guarantees a rejection.
             //
-            // This row predicts ONLY what is cheap to predict. It is deliberately not a complete
-            // list of unfundable products: a Global Money wallet is also refused (400 U002, same
-            // path) but reports AccountTypeCode CACC, so nothing reaching this matrix can tell it
-            // from a current account. That case is caught at runtime instead, from the bank's own
-            // refusal — see PaymentInitiationRepositoryImpl.stagePayment.
+            // A Global Money wallet is refused the same way (400 U002, same path). It reports
+            // AccountTypeCode CACC, indistinguishable from a current account, so it is recognised
+            // only by its free-text Description — which HsbcProductType.resolve matches, and which
+            // BankAccount now carries. Excluded here rather than left to the bank: the runtime
+            // capability registry is in memory, so relying on it meant the same rejection on every
+            // launch. The registry still backs this up for products the matrix cannot predict.
+            //
+            // Deliberately still NOT a complete list. Savings and foreign-currency accounts stay
+            // payable — savings was confirmed accepted as a payer on both rails, and no non-GBP
+            // payer has ever been tested, so excluding one would be a guess.
             HsbcProductCapability(
                 AccountEndpoint.PaymentDebtor,
-                ALL_PRODUCTS - HsbcProductType.CreditCard,
+                ALL_PRODUCTS - HsbcProductType.CreditCard - HsbcProductType.GlobalMoney,
             ),
         )
 

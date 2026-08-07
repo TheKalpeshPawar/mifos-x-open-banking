@@ -44,5 +44,8 @@ private fun Account.toBankAccountOrNull(): BankAccount? {
         sortCode = identification.take(SORT_CODE_LENGTH),
         accountNumber = identification.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),
         rawIdentification = identification,
+        // Kept verbatim, not as a name: it is the only field that identifies a Global Money wallet,
+        // whose AccountTypeCode is CACC exactly like an ordinary current account.
+        description = description ?: "",
     )
 }

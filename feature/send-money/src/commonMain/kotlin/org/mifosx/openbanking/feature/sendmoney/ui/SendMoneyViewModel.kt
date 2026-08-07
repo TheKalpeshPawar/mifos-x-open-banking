@@ -132,9 +132,10 @@ class SendMoneyViewModel(
 
     init {
         // Two filters, deliberately different in kind. canFundAPayment is a PREDICTION from the
-        // product matrix and catches only what the account data can identify. The registry is what
-        // the bank has actually refused this session — the safety net for products the app cannot
-        // tell apart, such as a Global Money wallet reporting AccountTypeCode CACC.
+        // product matrix, and now catches both refused products: the credit card by its subtype and
+        // the Global Money wallet by its description. The registry is what the bank has actually
+        // refused this session — the safety net for anything the matrix cannot predict. It is only
+        // a backstop now, not the sole defence, which matters because it does not survive a restart.
         accountsOverviewRepository.overviewState(viewModelScope)
             .combineContent(capabilityRegistry.unsupportedStream()) { accounts, refused, _ ->
                 accounts
@@ -515,10 +516,15 @@ private fun AccountWithBalance.toAccountRow(): SendMoneyAccountRow = SendMoneyAc
 /**
  * Whether this account's PRODUCT is known to be unable to fund a payment.
  *
- * Only a prediction, and deliberately a cheap one — it catches the credit card, which is visible in
- * [BankAccount.accountSubType]. It does not catch a Global Money wallet, which reports
- * `AccountTypeCode: CACC` and is indistinguishable here from a current account; that is caught from
- * the bank's refusal instead, and reaches this screen through the capability registry.
+ * Catches both products the sandbox refuses as a named payer: the credit card, visible in
+ * [BankAccount.accountSubType], and the Global Money wallet, which reports `AccountTypeCode: CACC`
+ * and is identifiable **only** by its free-text [BankAccount.description]. That description used to
+ * be passed as an empty string here, so every wallet resolved to a plain current account, was
+ * offered as a payer, and was removed only after the bank refused it with `U002` — and because the
+ * capability registry is in memory, it came back on the next launch to fail the same way.
+ *
+ * The registry still runs alongside this, and still matters: it catches whatever the product matrix
+ * cannot predict. This is the prediction; that is the correction.
  *
  * Fails open through [HsbcProductCapability.supports]: a product this app has never met keeps the
  * payer role and is corrected by the bank, which is the safer default for an unknown.
@@ -528,7 +534,7 @@ private fun BankAccount.canFundAPayment(): Boolean = HsbcProductCapability.suppo
     productType = HsbcProductType.resolve(
         accountSubType = accountSubType,
         accountTypeCode = "",
-        description = "",
+        description = description,
     ),
 )
 
