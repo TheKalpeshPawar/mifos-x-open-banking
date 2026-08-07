@@ -44,6 +44,8 @@ object SendMoneyFixtures {
     const val JAMESON_ID = "BEN-001"
     const val SHARMA_ID = "BEN-002"
     const val EDF_ID = "BEN-003"
+    const val WEISS_ID = "BEN-101"
+    const val DUPONT_ID = "BEN-102"
     const val CONSENT_ID = "812774903"
     const val PAYMENT_ID = "PMT-812774903-01"
     const val SUPPORT_REFERENCE = "9b7e4d20-1a6c-4f88-9d3a-2c5b7e10f4a6"
@@ -219,6 +221,24 @@ object SendMoneyFixtures {
         SendMoneyPickerRow(EDF_ID, "EE", "EDF Energy", "Sort Code · 60-00-01 99887766"),
     )
 
+    /**
+     * IBAN payees, which is all the international rail ever lists.
+     *
+     * The ViewModel filters the two schemes apart, so a fixture handing sort-code payees to an
+     * international form would depict a screen the app cannot produce — and a golden of it would
+     * document the wrong thing.
+     */
+    private fun internationalCreditorRows(): List<SendMoneyPickerRow> = listOf(
+        SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00"),
+        SendMoneyPickerRow(DUPONT_ID, "MD", "Marie Dupont", "IBAN · FR14 2004 1010 0505 0001 3M02 606"),
+    )
+
+    /** Whichever scheme the rail lists. */
+    private fun payeesFor(rail: PaymentRail): List<SendMoneyPickerRow> = when (rail) {
+        PaymentRail.Domestic -> creditorRows()
+        PaymentRail.International -> internationalCreditorRows()
+    }
+
     fun loadingState(): SendMoneyState = SendMoneyState(uiState = SendMoneyUiState.Loading)
 
     /**
@@ -228,7 +248,8 @@ object SendMoneyFixtures {
      * a payee and an amount already entered, for the cases that care about the action being enabled.
      */
     fun formState(
-        beneficiaries: List<SendMoneyPickerRow> = creditorRows(),
+        rail: PaymentRail = PaymentRail.Domestic,
+        beneficiaries: List<SendMoneyPickerRow> = payeesFor(rail),
         manualEntryVisible: Boolean = false,
         creditor: CreditorSelection? = null,
         creditorLabel: String = "",
@@ -236,7 +257,6 @@ object SendMoneyFixtures {
         amountLabel: String = "",
         reference: String = "",
         problem: SendMoneyAmountProblem? = null,
-        rail: PaymentRail = PaymentRail.Domestic,
         debtorAccountId: String? = CURRENT_ACCOUNT_ID,
         letBankChoosePayer: Boolean = false,
         debtorCurrency: String = "GBP",
