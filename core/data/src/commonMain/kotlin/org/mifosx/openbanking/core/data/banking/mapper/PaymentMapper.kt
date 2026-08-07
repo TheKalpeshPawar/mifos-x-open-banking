@@ -69,7 +69,8 @@ internal fun PaymentDraft.toInitiation(): Initiation = Initiation(
         amount = amountMinorUnits.toMajorUnitString(),
         currency = currency,
     ),
-    debtorAccount = debtorAccount.toObieDebtor(),
+    // Absent when the PSU chose to pick their account at the bank instead.
+    debtorAccount = debtorAccount?.toObieDebtor(),
     creditorAccount = creditor.toObieCreditor(),
     remittanceInformation = reference
         ?.takeIf { it.isNotBlank() }

@@ -155,9 +155,12 @@ internal class PaymentInitiationRepositoryImpl(
     private fun NetworkResult.Error<NetworkError>.alsoRecordRefusedPayer(
         draft: PaymentDraft,
     ): NetworkResult.Error<NetworkError> = also {
+        // A refusal with no debtor cannot be attributed to an account: the bank was rejecting the
+        // payer it selected itself, not one this app offered, so there is nothing to remember.
+        val refusedAccountId = draft.debtorAccount?.accountId ?: return@also
         if (error.toThrowable().isDebtorAccountRefusal()) {
             capabilityRegistry.markUnsupported(
-                accountId = draft.debtorAccount.accountId,
+                accountId = refusedAccountId,
                 endpoint = AccountEndpoint.PaymentDebtor,
             )
         }

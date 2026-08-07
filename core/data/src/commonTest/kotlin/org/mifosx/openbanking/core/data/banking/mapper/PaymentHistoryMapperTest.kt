@@ -23,19 +23,21 @@ import kotlin.test.assertTrue
 
 class PaymentHistoryMapperTest {
 
+    private fun payerAccount() = BankAccount(
+        accountId = "123456791",
+        nickname = "",
+        accountSubType = "CurrentAccount",
+        currency = "GBP",
+        sortCode = "802001",
+        accountNumber = "10203349",
+        rawIdentification = "80200110203349",
+    )
+
     private fun draft(
         amountMinorUnits: Long = 10_000L,
         reference: String? = "Dinner payment",
     ) = PaymentDraft(
-        debtorAccount = BankAccount(
-            accountId = "123456791",
-            nickname = "",
-            accountSubType = "CurrentAccount",
-            currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
-        ),
+        debtorAccount = payerAccount(),
         creditor = CreditorSelection(
             name = "Mr Dharani C",
             scheme = BeneficiaryScheme.SortCode,
@@ -149,11 +151,37 @@ class PaymentHistoryMapperTest {
     @Test
     fun usesNicknameWhenAvailable() {
         val d = draft().copy(
-            debtorAccount = draft().debtorAccount.copy(nickname = "My Current"),
+            debtorAccount = payerAccount().copy(nickname = "My Current"),
         )
         val entity = receipt().toEntity(d)
 
         assertEquals("My Current", entity.debtorName)
+    }
+
+    /** A draft the PSU never chose a payer for: the bank picks one during authorisation. */
+    @Test
+    fun writesBlankPayerColumnsWhenNoAccountWasChosen() {
+        val entity = draft().copy(debtorAccount = null).toFailureEntity("NetworkError", "offline")
+
+        assertEquals("", entity.debtorAccountId)
+        assertEquals("", entity.debtorName)
+        assertEquals("", entity.debtorIdentification)
+    }
+
+    /**
+     * With no payer of our own, the identification recorded is the one the bank chose.
+     *
+     * The sandbox often answers a no-debtor consent with a Global Money wallet — the very product it
+     * refuses when a TPP names it — so this cannot be assumed to be an account we offered.
+     */
+    @Test
+    fun recordsTheBanksChosenPayerWhenNoneWasSent() {
+        val bankChose = receipt().copy(debtorIdentification = "80119770009652")
+
+        val entity = bankChose.toEntity(draft().copy(debtorAccount = null))
+
+        assertEquals("80119770009652", entity.debtorIdentification)
+        assertEquals("", entity.debtorAccountId)
     }
 
     @Test

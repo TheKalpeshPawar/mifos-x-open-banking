@@ -32,6 +32,7 @@ import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
@@ -93,7 +94,7 @@ class SendMoneyViewModel(
         val manualName: String = "",
         val amountMinorUnits: String = "",
         val currencyOfTransfer: String = "GBP",
-        val chargeBearer: String = "BorneByCreditor",
+        val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),

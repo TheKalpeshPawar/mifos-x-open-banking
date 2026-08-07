@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.data.banking.mapper
 
 import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
+import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
@@ -26,6 +27,20 @@ private fun PaymentStatus.toLabel(): String = when (disposition) {
     PaymentDisposition.TerminalFailure -> "Failed"
 }
 
+/**
+ * The payer's three columns, blank when the PSU left the account to the bank.
+ *
+ * The entity's debtor columns are non-null, so a draft with no debtor writes empty strings rather
+ * than widening the schema. Blank here means "not chosen by us" — for a submitted payment the bank's
+ * own choice is on the receipt's `debtorIdentification`, and that is what the detail screen reads.
+ */
+private fun BankAccount?.historyAccountId(): String = this?.accountId.orEmpty()
+
+private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
+
+private fun BankAccount?.historyIdentification(): String =
+    this?.let { it.rawIdentification.ifBlank { it.sortCode + it.accountNumber } }.orEmpty()
+
 internal fun PaymentReceipt.toEntity(draft: PaymentDraft): PaymentHistoryEntity =
     PaymentHistoryEntity(
         id = domesticPaymentId,
@@ -33,10 +48,11 @@ internal fun PaymentReceipt.toEntity(draft: PaymentDraft): PaymentHistoryEntity 
         errorKind = null,
         errorDescription = null,
         status = status.name,
-        debtorAccountId = draft.debtorAccount.accountId,
-        debtorName = draft.debtorAccount.displayName(),
-        debtorIdentification = draft.debtorAccount.rawIdentification.ifBlank {
-            draft.debtorAccount.sortCode + draft.debtorAccount.accountNumber
+        debtorAccountId = draft.debtorAccount.historyAccountId(),
+        debtorName = draft.debtorAccount.historyName(),
+        // The bank's chosen payer when we sent none, else the one the PSU picked.
+        debtorIdentification = debtorIdentification.ifBlank {
+            draft.debtorAccount.historyIdentification()
         },
         creditorName = draft.creditor.name,
         creditorIdentification = draft.creditor.identification,
@@ -58,11 +74,9 @@ internal fun PaymentDraft.toFailureEntity(
     errorKind = errorKind,
     errorDescription = errorDescription,
     status = null,
-    debtorAccountId = debtorAccount.accountId,
-    debtorName = debtorAccount.displayName(),
-    debtorIdentification = debtorAccount.rawIdentification.ifBlank {
-        debtorAccount.sortCode + debtorAccount.accountNumber
-    },
+    debtorAccountId = debtorAccount.historyAccountId(),
+    debtorName = debtorAccount.historyName(),
+    debtorIdentification = debtorAccount.historyIdentification(),
     creditorName = creditor.name,
     creditorIdentification = creditor.identification,
     amountMinorUnits = amountMinorUnits,

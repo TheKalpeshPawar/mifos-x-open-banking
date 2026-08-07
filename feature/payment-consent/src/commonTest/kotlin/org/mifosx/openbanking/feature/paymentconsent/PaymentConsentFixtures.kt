@@ -9,6 +9,9 @@
  */
 package org.mifosx.openbanking.feature.paymentconsent
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
@@ -16,6 +19,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
@@ -186,5 +190,34 @@ class FakePaymentInitiationRepository(
 
     fun submissionReturns(result: NetworkResult<PaymentReceipt, NetworkError>) {
         submission = result
+    }
+}
+
+/**
+ * The payment history write path, recorded rather than persisted.
+ *
+ * The callback leg writes a row on both outcomes — a submitted payment and a pre-submission failure
+ * — so both are captured separately rather than counted, which is what lets a test assert that a
+ * failure was recorded once and not also saved as a submission.
+ */
+class FakePaymentHistoryRepository : PaymentHistoryRepository {
+
+    val submitted = mutableListOf<Pair<PaymentReceipt, PaymentDraft>>()
+    val failures = mutableListOf<Triple<PaymentDraft, String, String>>()
+    var refreshCount: Int = 0
+        private set
+
+    override fun observeRecent(): Flow<List<PaymentHistoryItem>> = flowOf(emptyList())
+
+    override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {
+        submitted += receipt to draft
+    }
+
+    override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {
+        failures += Triple(draft, errorKind, errorDescription)
+    }
+
+    override suspend fun refreshStatuses() {
+        refreshCount++
     }
 }

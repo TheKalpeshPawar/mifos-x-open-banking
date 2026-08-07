@@ -14,6 +14,7 @@ import org.mifosx.openbanking.core.data.util.isDebtorAccountRefusal
 import org.mifosx.openbanking.core.data.util.obieErrorCode
 import org.mifosx.openbanking.core.data.util.obieSupportReference
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
@@ -186,7 +187,7 @@ sealed interface SendMoneyUiState {
         val amountMinorUnits: String = "",
         val amountLabel: String = "",
         val currencyOfTransfer: String = "GBP",
-        val chargeBearer: String = "BorneByCreditor",
+        val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
@@ -237,7 +238,7 @@ sealed interface SendMoneyAction {
     data object ConfirmManualCreditor : SendMoneyAction
     data class EnterAmount(val minorUnits: String) : SendMoneyAction
     data class SelectCurrencyOfTransfer(val currency: String) : SendMoneyAction
-    data class SelectChargeBearer(val bearer: String) : SendMoneyAction
+    data class SelectChargeBearer(val bearer: ChargeBearer) : SendMoneyAction
     data class EnterReference(val reference: String) : SendMoneyAction
     data object ReviewPayment : SendMoneyAction
     data object ConfirmAndStageConsent : SendMoneyAction

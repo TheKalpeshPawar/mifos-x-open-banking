@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.data.banking.mapper
 
 import org.mifosx.openbanking.core.common.formatMinorUnits
+import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
@@ -47,17 +48,22 @@ internal fun PaymentDraft.toIntlInitiation(): IntlInitiationReq = IntlInitiation
         currency = currency,
     ),
     creditorAccount = creditor.toIntlObieCreditor(),
-    chargeBearer = chargeBearer,
-    debtorAccount = if (debtorAccount.rawIdentification.isNotBlank()) {
-        IntlDebtorAccount(
-            schemeName = SCHEME_SORT_CODE,
-            identification = debtorAccount.rawIdentification,
-            name = debtorAccount.nickname.takeIf { it.isNotBlank() },
-        )
-    } else {
-        null
-    },
+    chargeBearer = chargeBearer?.wireValue,
+    // Absent when the PSU chose to pick their account at the bank instead.
+    debtorAccount = debtorAccount.toIntlObieDebtor(),
 )
+
+private fun BankAccount?.toIntlObieDebtor(): IntlDebtorAccount? = this?.let { account ->
+    account.rawIdentification
+        .takeIf { it.isNotBlank() }
+        ?.let { identification ->
+            IntlDebtorAccount(
+                schemeName = SCHEME_SORT_CODE,
+                identification = identification,
+                name = account.nickname.takeIf { it.isNotBlank() },
+            )
+        }
+}
 
 internal fun PaymentDraft.toIntlRisk(): IntlRiskReq = IntlRiskReq(
     categoryPurposeCode = RISK_CATEGORY_EPAY,

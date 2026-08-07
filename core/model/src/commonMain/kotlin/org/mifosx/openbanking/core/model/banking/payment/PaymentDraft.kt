@@ -37,10 +37,18 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
  *   from its contents, matching the `uuid.v4()` the bank's own reference collection mints before
  *   every write: a key derived from payer, payee, amount and reference would make two legitimate
  *   identical payments in the same day collide, and silently swallow the second.
+ *
+ * @property debtorAccount The account to pay from, or null to let the PSU choose it at the bank.
+ *   Omitting `DebtorAccount` is a sanctioned shape — it is absent from HSBC's own international
+ *   sample, and both rails accept a consent without it, after which the bank fills one in during
+ *   authorisation. Note the account it picks is not predictable and may be a product this app would
+ *   never have offered as a payer, so nothing downstream may assume a debtor it recognises.
+ * @property reference Domestic only. International refuses `RemittanceInformation` with `U005`.
+ * @property chargeBearer International only. Domestic refuses it; international requires it.
  */
 @Serializable
 data class PaymentDraft(
-    val debtorAccount: BankAccount,
+    val debtorAccount: BankAccount?,
     val creditor: CreditorSelection,
     val amountMinorUnits: Long,
     val currency: String,
@@ -50,5 +58,5 @@ data class PaymentDraft(
     val consentIdempotencyKey: String,
     val paymentIdempotencyKey: String,
     val currencyOfTransfer: String? = null,
-    val chargeBearer: String? = null,
+    val chargeBearer: ChargeBearer? = null,
 )

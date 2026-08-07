@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
 import org.mifosx.openbanking.feature.paymentconsent.FakePaymentAuthRepository
+import org.mifosx.openbanking.feature.paymentconsent.FakePaymentHistoryRepository
 import org.mifosx.openbanking.feature.paymentconsent.FakePaymentInitiationRepository
 import org.mifosx.openbanking.feature.paymentconsent.PaymentConsentFixtures
 import template.core.base.network.NetworkError
@@ -44,12 +45,14 @@ class PaymentConsentViewModelTest {
     private fun viewModel(
         repository: FakePaymentAuthRepository = FakePaymentAuthRepository(),
         payments: FakePaymentInitiationRepository = FakePaymentInitiationRepository(),
+        history: FakePaymentHistoryRepository = FakePaymentHistoryRepository(),
     ) = PaymentConsentViewModel(
         savedStateHandle = SavedStateHandle(
             mapOf(PaymentConsentViewModel.REDIRECT_URL_ARG to PaymentConsentFixtures.REDIRECT_URL),
         ),
         repository = repository,
         paymentInitiationRepository = payments,
+        paymentHistoryRepository = history,
     )
 
     // region — the happy path
