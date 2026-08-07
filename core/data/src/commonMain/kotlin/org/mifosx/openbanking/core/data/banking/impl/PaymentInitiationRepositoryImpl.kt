@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.data.banking.impl
 
 import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.mapper.consentIdOrNull
 import org.mifosx.openbanking.core.data.banking.mapper.statusOrEmpty
@@ -53,6 +54,7 @@ internal class PaymentInitiationRepositoryImpl(
     private val bankHost: String,
     private val authorizeHost: String,
     private val redirectUri: String,
+    private val paymentHistoryRepository: PaymentHistoryRepository,
 ) : PaymentInitiationRepository {
 
     @Suppress("ReturnCount")
@@ -169,7 +171,11 @@ internal class PaymentInitiationRepositoryImpl(
                 idempotencyKey = draft.paymentIdempotencyKey,
             )
         ) {
-            is NetworkResult.Success -> NetworkResult.Success(result.data.toPaymentReceipt())
+            is NetworkResult.Success -> {
+                val receipt = result.data.toPaymentReceipt()
+                paymentHistoryRepository.saveSubmitted(receipt, draft)
+                NetworkResult.Success(receipt)
+            }
             is NetworkResult.Error -> result
         }
     }

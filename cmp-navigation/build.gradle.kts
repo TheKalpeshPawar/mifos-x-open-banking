@@ -51,6 +51,7 @@ kotlin {
             implementation(projects.feature.sendMoney)
             implementation(projects.feature.paymentStatus)
             implementation(projects.feature.paymentConsent)
+            implementation(projects.feature.paymentsHub)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

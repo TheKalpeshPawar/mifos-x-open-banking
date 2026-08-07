@@ -12,6 +12,7 @@ package org.mifosx.openbanking.feature.paymentconsent.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
@@ -42,6 +43,7 @@ class PaymentConsentViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: PaymentAuthRepository,
     private val paymentInitiationRepository: PaymentInitiationRepository,
+    private val paymentHistoryRepository: PaymentHistoryRepository,
 ) : BaseViewModel<PaymentConsentState, PaymentConsentEvent, PaymentConsentAction>(
     initialState = PaymentConsentState(),
 ) {
@@ -175,7 +177,20 @@ class PaymentConsentViewModel(
      * issued.
      */
     private fun fail(kind: PaymentConsentErrorKind) {
+        // Read the draft before discarding the session — discard clears the stored draft.
+        val draft = paymentInitiationRepository.stagedDraft()
         repository.discardAuthorisation()
+
+        if (draft != null) {
+            viewModelScope.launch {
+                paymentHistoryRepository.saveFailed(
+                    draft = draft,
+                    errorKind = kind.name,
+                    errorDescription = kind.description(),
+                )
+            }
+        }
+
         updateState { copy(uiState = PaymentConsentUiState.Error(kind)) }
     }
 

@@ -14,6 +14,7 @@ import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.data.user.UserDataRepository
+import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 
 /**
@@ -29,6 +30,7 @@ internal class AppLogoutImpl(
     private val paymentAuthSession: PaymentAuthSession,
     private val userDataRepository: UserDataRepository,
     private val storeCacheManager: StoreCacheManager,
+    private val paymentHistoryDao: PaymentHistoryDao,
 ) : AppLogout {
 
     override suspend fun logOut() {
@@ -54,5 +56,8 @@ internal class AppLogoutImpl(
         //    to the auth graph. Must run after step 2 so it reads the already-cleared token state.
         userDataRepository.clearUserData()
         storeCacheManager.clearAll()
+
+        // 4. Drop payment history snapshots — the next session's hub should start empty.
+        paymentHistoryDao.clear()
     }
 }

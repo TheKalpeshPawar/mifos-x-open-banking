@@ -19,8 +19,10 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.di.BankingModule
+import org.mifosx.openbanking.core.data.banking.impl.PaymentHistoryRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.PaymentInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
@@ -109,6 +111,15 @@ val DataModule = module {
             bankHost = get(named("hsbcBankHost")),
             authorizeHost = get(named("hsbcAuthorizeHost")),
             redirectUri = get(named("hsbcRedirectUri")),
+            paymentHistoryRepository = get(),
+        )
+    }
+
+    single<PaymentHistoryRepository> {
+        PaymentHistoryRepositoryImpl(
+            dao = get(),
+            pisp = get(),
+            oauth = get(),
         )
     }
 
@@ -125,6 +136,7 @@ val DataModule = module {
             paymentAuthSession = get(),
             userDataRepository = get(),
             storeCacheManager = get(),
+            paymentHistoryDao = get(),
         )
     }
 

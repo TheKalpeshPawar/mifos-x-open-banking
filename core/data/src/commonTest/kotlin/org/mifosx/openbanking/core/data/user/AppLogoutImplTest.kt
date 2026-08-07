@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.user
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
@@ -16,6 +17,8 @@ import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
+import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
+import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
@@ -45,7 +48,7 @@ class AppLogoutImplTest {
         userData: RecordingUserDataRepository = RecordingUserDataRepository(),
         cache: RecordingStoreCacheManager = RecordingStoreCacheManager(),
         paymentAuth: RecordingPaymentAuthSession = RecordingPaymentAuthSession(),
-    ) = AppLogoutImpl(revoke, session, paymentAuth, userData, cache)
+    ) = AppLogoutImpl(revoke, session, paymentAuth, userData, cache, paymentHistoryDao = FakePaymentHistoryDao())
 
     /**
      * The payment session keeps its own keys precisely so that clearing one leg cannot disturb the
@@ -246,5 +249,21 @@ private class RecordingPaymentAuthSession : PaymentAuthSession {
 
     override fun clear() {
         cleared = true
+    }
+}
+
+private class FakePaymentHistoryDao : PaymentHistoryDao {
+    var clearCallCount = 0
+
+    override fun observeRecent(): Flow<List<PaymentHistoryEntity>> =
+        MutableStateFlow(emptyList())
+
+    override fun observeById(paymentId: String): Flow<PaymentHistoryEntity?> =
+        MutableStateFlow(null)
+
+    override suspend fun upsert(entity: PaymentHistoryEntity) {}
+
+    override suspend fun clear() {
+        clearCallCount++
     }
 }

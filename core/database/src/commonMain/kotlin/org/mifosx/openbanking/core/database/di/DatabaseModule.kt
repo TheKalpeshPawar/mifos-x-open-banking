@@ -30,6 +30,7 @@ val DatabaseModule = module {
     single { get<AppDatabase>().bookkeeperDao }
     single { get<AppDatabase>().accountDao }
     single { get<AppDatabase>().transactionDao }
+    single { get<AppDatabase>().paymentHistoryDao }
 }
 
 /**

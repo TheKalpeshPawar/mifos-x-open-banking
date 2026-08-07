@@ -21,6 +21,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.data.TestSigningKey
@@ -31,6 +33,8 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.OAuth
@@ -164,7 +168,16 @@ class PaymentInitiationRepositoryImplTest {
             bankHost = "sandbox.test",
             authorizeHost = "authorize.sandbox.test",
             redirectUri = "https://cb/",
+            paymentHistoryRepository = FakePaymentHistoryRepo(),
         )
+    }
+
+    private class FakePaymentHistoryRepo : PaymentHistoryRepository {
+        override fun observeRecent(): Flow<List<PaymentHistoryItem>> =
+            MutableStateFlow(emptyList())
+        override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {}
+        override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {}
+        override suspend fun refreshStatuses() {}
     }
 
     private fun sessionHoldingAPsuToken(): PaymentAuthSession =

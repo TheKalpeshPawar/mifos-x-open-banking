@@ -44,6 +44,18 @@ enum class PaymentConsentErrorKind {
     SubmissionFailed,
 }
 
+internal fun PaymentConsentErrorKind.description(): String = when (this) {
+    PaymentConsentErrorKind.StateMismatch -> "Authorisation verification failed"
+    PaymentConsentErrorKind.NoPendingAuthorisation -> "No payment in progress"
+    PaymentConsentErrorKind.CodeExpired -> "Authorisation code expired"
+    PaymentConsentErrorKind.ConsentRejected -> "Payment declined by HSBC"
+    PaymentConsentErrorKind.AuthorisationTimedOut -> "Authorisation timed out"
+    PaymentConsentErrorKind.NetworkError -> "Connection failed"
+    PaymentConsentErrorKind.NoStagedPayment -> "Payment instruction lost"
+    PaymentConsentErrorKind.InsufficientFunds -> "Insufficient funds"
+    PaymentConsentErrorKind.SubmissionFailed -> "Payment refused by HSBC"
+}
+
 /**
  * The progress states are separate rather than one `loading` so the copy can say which stage is
  * running. A payment that appears to hang is otherwise indistinguishable from one that has already

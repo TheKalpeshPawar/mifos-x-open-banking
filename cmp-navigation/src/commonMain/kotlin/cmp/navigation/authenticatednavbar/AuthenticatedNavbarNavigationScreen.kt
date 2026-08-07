@@ -59,10 +59,13 @@ import org.mifosx.openbanking.feature.home.homeGraph
 import org.mifosx.openbanking.feature.login.LoginRenewRoute
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.loginRenewScreen
+import org.mifosx.openbanking.feature.paymentshub.paymentsHubGraph
+import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
 import org.mifosx.openbanking.feature.product.ProductRoute
 import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
 import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyRoute
 import org.mifosx.openbanking.feature.sendmoney.sendMoneyGraph
 import org.mifosx.openbanking.feature.settings.LicencesRoute
 import org.mifosx.openbanking.feature.settings.licencesScreen
@@ -162,12 +165,15 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             accountsGraph(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
             )
+            paymentsHubGraph(
+                onNavigateToSendMoney = { navController.navigate(SendMoneyRoute) },
+                onNavigateToPaymentStatus = { paymentId ->
+                    navController.navigate(PaymentStatusRoute(paymentId))
+                },
+            )
             sendMoneyGraph(
-                // The same Custom-Tabs launcher the sign-in consent uses. A payment authorisation is
-                // the identical hop to the identical bank; opening it any other way would be a
-                // second, less careful browser path for the more sensitive of the two flows.
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
-                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
+                onNavigateToConsents = {},
             )
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },

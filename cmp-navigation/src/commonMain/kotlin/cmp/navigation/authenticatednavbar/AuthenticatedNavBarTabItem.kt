@@ -29,8 +29,8 @@ import org.mifosx.openbanking.feature.accounts.AccountsDestination
 import org.mifosx.openbanking.feature.accounts.AccountsRoute
 import org.mifosx.openbanking.feature.home.HomeDestination
 import org.mifosx.openbanking.feature.home.HomeRoute
-import org.mifosx.openbanking.feature.sendmoney.SendMoneyDestination
-import org.mifosx.openbanking.feature.sendmoney.SendMoneyRoute
+import org.mifosx.openbanking.feature.paymentshub.PaymentsHubDestination
+import org.mifosx.openbanking.feature.paymentshub.PaymentsHubRoute
 import org.mifosx.openbanking.feature.settings.SettingsRoute
 
 /**
@@ -83,8 +83,8 @@ sealed class AuthenticatedNavBarTabItem(
         icon = Icons.Filled.Payments,
         labelRes = Res.string.pay,
         contentDescriptionRes = Res.string.pay,
-        graphRoute = SendMoneyDestination.toObjectNavigationRoute(),
-        startDestinationRoute = SendMoneyRoute.toObjectNavigationRoute(),
+        graphRoute = PaymentsHubDestination.toObjectNavigationRoute(),
+        startDestinationRoute = PaymentsHubRoute.toObjectNavigationRoute(),
         testTag = "PayTab",
     )
 

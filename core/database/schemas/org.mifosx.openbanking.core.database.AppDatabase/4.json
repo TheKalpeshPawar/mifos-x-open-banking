@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "ee306ff598c18c030a106bafcdce70ef",
+    "identityHash": "741cc11b7a7f6c485325dc508457c8c4",
     "entities": [
       {
         "tableName": "samples",
@@ -131,7 +131,7 @@
       },
       {
         "tableName": "accounts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `nickname` TEXT NOT NULL, `accountSubType` TEXT NOT NULL, `currency` TEXT NOT NULL, `sortCode` TEXT NOT NULL, `accountNumber` TEXT NOT NULL, `rawIdentification` TEXT NOT NULL, `description` TEXT NOT NULL, PRIMARY KEY(`accountId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `nickname` TEXT NOT NULL, `accountSubType` TEXT NOT NULL, `currency` TEXT NOT NULL, `sortCode` TEXT NOT NULL, `accountNumber` TEXT NOT NULL, `rawIdentification` TEXT NOT NULL, PRIMARY KEY(`accountId`))",
         "fields": [
           {
             "fieldPath": "accountId",
@@ -172,12 +172,6 @@
           {
             "fieldPath": "rawIdentification",
             "columnName": "rawIdentification",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "description",
-            "columnName": "description",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -259,11 +253,118 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `${TABLE_NAME}` (`accountId`)"
           }
         ]
+      },
+      {
+        "tableName": "payment_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `domesticPaymentId` TEXT, `errorKind` TEXT, `errorDescription` TEXT, `status` TEXT, `debtorAccountId` TEXT NOT NULL, `debtorName` TEXT NOT NULL, `debtorIdentification` TEXT NOT NULL, `creditorName` TEXT NOT NULL, `creditorIdentification` TEXT NOT NULL, `amountMinorUnits` INTEGER NOT NULL, `currency` TEXT NOT NULL, `reference` TEXT, `creationDateTime` TEXT NOT NULL, `settlementDateTime` TEXT, `paymentType` TEXT NOT NULL, `syncedAt` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "domesticPaymentId",
+            "columnName": "domesticPaymentId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "errorKind",
+            "columnName": "errorKind",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "errorDescription",
+            "columnName": "errorDescription",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "debtorAccountId",
+            "columnName": "debtorAccountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "debtorName",
+            "columnName": "debtorName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "debtorIdentification",
+            "columnName": "debtorIdentification",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creditorName",
+            "columnName": "creditorName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creditorIdentification",
+            "columnName": "creditorIdentification",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMinorUnits",
+            "columnName": "amountMinorUnits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reference",
+            "columnName": "reference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "creationDateTime",
+            "columnName": "creationDateTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "settlementDateTime",
+            "columnName": "settlementDateTime",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "paymentType",
+            "columnName": "paymentType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncedAt",
+            "columnName": "syncedAt",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ee306ff598c18c030a106bafcdce70ef')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '741cc11b7a7f6c485325dc508457c8c4')"
     ]
   }
 }
