@@ -9,19 +9,26 @@
  */
 package org.mifosx.openbanking.feature.paymentshub
 
+/**
+ * Stable tags the UI suites drive this screen by.
+ *
+ * Every tag here is applied to something. The screen has no account-chip row and no activity list
+ * separate from the column that also holds the quick actions, so tags for those were removed rather
+ * than left declared against nothing — a tag no composable emits reads as coverage that does not
+ * exist, which is how the two quick-action assertions came to fail from the day they were written.
+ */
 internal object PaymentsHubTestTags {
     const val SKELETON = "paymentsHub:skeleton"
-    const val ACCOUNT_CHIPS = "paymentsHub:accountChips"
     const val QUICK_ACTIONS_GRID = "paymentsHub:quickActionsGrid"
     const val QUICK_ACTION_SEND_MONEY = "paymentsHub:quickActionSendMoney"
     const val QUICK_ACTION_SCHEDULE = "paymentsHub:quickActionSchedule"
     const val QUICK_ACTION_STANDING_ORDER = "paymentsHub:quickActionStandingOrder"
-    const val QUICK_ACTION_INTERNATIONAL = "paymentsHub:quickActionInternational"
-    const val ACTIVITY_LIST = "paymentsHub:activityList"
+
+    /** The fourth card is "VRP / Sweeping"; it was named for an international rail it never showed. */
+    const val QUICK_ACTION_VRP = "paymentsHub:quickActionVrp"
     const val EMPTY_ACTIVITY = "paymentsHub:emptyActivity"
     const val ERROR_SCREEN = "paymentsHub:errorScreen"
     const val RETRY_BUTTON = "paymentsHub:retryButton"
 
-    fun accountChip(accountId: String): String = "paymentsHub:accountChip:$accountId"
     fun activityCard(id: String): String = "paymentsHub:activityCard:$id"
 }

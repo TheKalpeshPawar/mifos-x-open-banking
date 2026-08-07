@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.mifosx.openbanking.core.common.formatMinorUnits
@@ -148,15 +149,16 @@ private fun PaymentsHubContentLoaded(
 @Composable
 private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
     val gap = KptTheme.spacing.md
-    Column {
-        for (row in quickActionRows(onNavigateToSendMoney)) {
+    val rows = quickActionRows(onNavigateToSendMoney)
+    Column(modifier = Modifier.testTag(PaymentsHubTestTags.QUICK_ACTIONS_GRID)) {
+        for (row in rows) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(gap),
             ) {
                 for (card in row) {
                     QuickActionCard(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).testTag(card.testTag),
                         icon = card.icon,
                         label = card.label,
                         subtext = card.subtext,
@@ -164,7 +166,7 @@ private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
                     )
                 }
             }
-            if (row != quickActionRows(onNavigateToSendMoney).last()) {
+            if (row != rows.last()) {
                 Spacer(Modifier.height(gap))
             }
         }
@@ -174,6 +176,7 @@ private fun QuickActionsSection(onNavigateToSendMoney: () -> Unit) {
 private data class QuickActionItem(
     val icon: @Composable () -> Unit,
     val label: String,
+    val testTag: String,
     val subtext: String = "",
     val onClick: (() -> Unit)? = null,
 )
@@ -183,12 +186,33 @@ private fun quickActionRows(
     onSendMoney: () -> Unit,
 ): List<List<QuickActionItem>> = listOf(
     listOf(
-        QuickActionItem(quickActionIcon(Icons.Filled.Send), "Send money", "Pay instantly", onSendMoney),
-        QuickActionItem(quickActionIcon(Icons.Filled.CalendarMonth), "Schedule", "Pay on a date"),
+        QuickActionItem(
+            icon = quickActionIcon(Icons.Filled.Send),
+            label = "Send money",
+            testTag = PaymentsHubTestTags.QUICK_ACTION_SEND_MONEY,
+            subtext = "Pay instantly",
+            onClick = onSendMoney,
+        ),
+        QuickActionItem(
+            icon = quickActionIcon(Icons.Filled.CalendarMonth),
+            label = "Schedule",
+            testTag = PaymentsHubTestTags.QUICK_ACTION_SCHEDULE,
+            subtext = "Pay on a date",
+        ),
     ),
     listOf(
-        QuickActionItem(quickActionIcon(Icons.Filled.Sync), "Standing order", "Repeat on schedule"),
-        QuickActionItem(quickActionIcon(Icons.Filled.Speed), "VRP / Sweeping", "Automatic sweep"),
+        QuickActionItem(
+            icon = quickActionIcon(Icons.Filled.Sync),
+            label = "Standing order",
+            testTag = PaymentsHubTestTags.QUICK_ACTION_STANDING_ORDER,
+            subtext = "Repeat on schedule",
+        ),
+        QuickActionItem(
+            icon = quickActionIcon(Icons.Filled.Speed),
+            label = "VRP / Sweeping",
+            testTag = PaymentsHubTestTags.QUICK_ACTION_VRP,
+            subtext = "Automatic sweep",
+        ),
     ),
 )
 
@@ -249,6 +273,7 @@ private fun ActivityCard(item: PaymentHistoryItem, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(PaymentsHubTestTags.activityCard(item.id))
             .then(if (item.isFailure) Modifier else activityCardBorder())
             .clickable(enabled = item.domesticPaymentId != null) { onClick() },
         colors = CardDefaults.cardColors(
@@ -366,7 +391,10 @@ private fun ActivityAmount(item: PaymentHistoryItem) {
 @Composable
 private fun EmptyActivity() {
     Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = KptTheme.spacing.xl),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = KptTheme.spacing.xl)
+            .testTag(PaymentsHubTestTags.EMPTY_ACTIVITY),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

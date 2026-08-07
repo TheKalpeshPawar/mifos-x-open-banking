@@ -52,6 +52,7 @@ internal fun PaymentsHubError(
         MifosFilledPillButton(
             label = "Try again",
             onClick = onRetry,
+            testTag = PaymentsHubTestTags.RETRY_BUTTON,
         )
     }
 }
