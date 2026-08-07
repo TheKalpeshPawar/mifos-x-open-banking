@@ -42,9 +42,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.sendmoney.components.RailToggle
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAccountPickerList
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPickerList
-import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyStepIndicator
 import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_exceeds_balance
@@ -81,14 +81,13 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_total
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_amount
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_indicator
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_indicator_a11y
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_recipient
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_review
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
+import template.core.base.designsystem.theme.KptTheme
 
 private const val TOTAL_STEPS = 3
 private const val REFERENCE_MAX_LENGTH = 35
@@ -127,16 +126,9 @@ internal fun SendMoneyContent(
             .padding(ScreenPadding),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
-        SendMoneyStepIndicator(
-            current = state.stepIndex,
-            total = TOTAL_STEPS,
-            label = stringResource(Res.string.feature_send_money_step_indicator, state.stepIndex, TOTAL_STEPS),
-            accessibilityLabel = stringResource(
-                Res.string.feature_send_money_step_indicator_a11y,
-                state.stepIndex,
-                TOTAL_STEPS,
-                stringResource(state.step.labelResource()),
-            ),
+        RailToggle(
+            rail = state.rail,
+            onSelect = { onAction(SendMoneyAction.SelectRail(it)) },
         )
 
         when (state.step) {
@@ -522,9 +514,9 @@ private fun NoSavedPayees() {
 @Composable
 private fun SectionHeading(text: String) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        text = text.uppercase(),
+        style = KptTheme.typography.bodySmall,
+        color = KptTheme.colorScheme.outline,
     )
 }
 

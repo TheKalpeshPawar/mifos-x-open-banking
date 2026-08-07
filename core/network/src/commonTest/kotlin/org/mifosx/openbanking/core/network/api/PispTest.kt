@@ -32,6 +32,8 @@ import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.In
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.InstructedAmount
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.RemittanceInformation
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.Risk
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentConsentRequest
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentRequest
 import org.mifosx.openbanking.core.network.pisp.HEADER_FAPI_FINANCIAL_ID
 import org.mifosx.openbanking.core.network.pisp.HEADER_FAPI_INTERACTION_ID
 import org.mifosx.openbanking.core.network.pisp.HEADER_IDEMPOTENCY_KEY
@@ -319,5 +321,152 @@ class PispTest {
                 idempotencyKey = "x".repeat(41),
             )
         }
+    }
+
+    // region — International payment endpoints
+
+    private fun internationalConsentRequest(): InternationalPaymentConsentRequest =
+        InternationalPaymentConsentRequest(
+            data = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Data(
+                initiation = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Initiation(
+                    instructionIdentification = "MFX20260807T1530000001",
+                    endToEndIdentification = "E2E-INTL-202608",
+                    currencyOfTransfer = "EUR",
+                    instructedAmount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InstructedAmount(
+                        amount = "100.00",
+                        currency = "GBP",
+                    ),
+                    creditorAccount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.CreditorAccount(
+                        schemeName = "UK.OBIE.IBAN",
+                        identification = "DE89370400440532013000",
+                        name = "Klara Weiss",
+                    ),
+                    chargeBearer = "BorneByCreditor",
+                    debtorAccount = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.DebtorAccount(
+                        schemeName = "UK.OBIE.SortCodeAccountNumber",
+                        identification = "80200110203349",
+                    ),
+                ),
+            ),
+            risk = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Risk(
+                categoryPurposeCode = "EPAY",
+            ),
+        )
+
+    @Test
+    fun `stages an international consent with correct path and headers`() = runTest {
+        val pisp = pisp()
+
+        pisp.createInternationalPaymentConsent(
+            paymentsScopeToken = "cc-payments-token",
+            request = internationalConsentRequest(),
+            idempotencyKey = IDEMPOTENCY_KEY,
+        )
+
+        val request = captured.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertEquals("/v4.0/pisp/international-payment-consents", request.path)
+        assertEquals("Bearer cc-payments-token", request.headers[HttpHeaders.Authorization])
+        assertNotNull(request.headers[HEADER_JWS_SIGNATURE])
+        assertEquals(IDEMPOTENCY_KEY, request.headers[HEADER_IDEMPOTENCY_KEY])
+    }
+
+    @Test
+    fun `deserialises international consent response`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"ConsentId":"45076","Status":"AWAU","CreationDateTime":"2026-08-06T08:50:59+00:00"}}""",
+        )
+
+        val result = pisp.createInternationalPaymentConsent(
+            paymentsScopeToken = "cc-token",
+            request = internationalConsentRequest(),
+            idempotencyKey = IDEMPOTENCY_KEY,
+        )
+
+        val consent = assertIs<NetworkResult.Success<*>>(result).data
+        assertNotNull(consent)
+    }
+
+    @Test
+    fun `reads an international consent status`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"ConsentId":"45076","Status":"AUTH"}}""",
+            status = HttpStatusCode.OK,
+        )
+
+        val result = pisp.getInternationalPaymentConsent("cc-token", "45076")
+
+        assertIs<NetworkResult.Success<*>>(result)
+        assertEquals("/v4.0/pisp/international-payment-consents/45076", captured.single().path)
+    }
+
+    @Test
+    fun `confirms international funds with the correct path`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"FundsAvailableResult":{"FundsAvailable":true}}}""",
+            status = HttpStatusCode.OK,
+        )
+
+        val result = pisp.getInternationalFundsConfirmation("psu-token", "45076")
+
+        assertIs<NetworkResult.Success<*>>(result)
+        assertEquals(
+            "/v4.0/pisp/international-payment-consents/45076/funds-confirmation",
+            captured.single().path,
+        )
+    }
+
+    @Test
+    fun `submits an international payment`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"InternationalPaymentId":"INT-PMT-1","Status":"ACSP"}}""",
+        )
+
+        val submission = InternationalPaymentRequest(
+            data = org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.Data(
+                consentId = "45076",
+                initiation = internationalConsentRequest().data?.initiation,
+            ),
+            risk = internationalConsentRequest().risk,
+        )
+        val result = pisp.createInternationalPayment(
+            psuAccessToken = "psu-payments-token",
+            request = submission,
+            idempotencyKey = "intl-submit-key",
+        )
+
+        val response = assertIs<NetworkResult.Success<*>>(result).data
+        assertNotNull(response)
+        val request = captured.single()
+        assertEquals("/v4.0/pisp/international-payments", request.path)
+        assertEquals("Bearer psu-payments-token", request.headers[HttpHeaders.Authorization])
+    }
+
+    @Test
+    fun `reads an international payment status`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"InternationalPaymentId":"INT-PMT-1","Status":"ACSC"}}""",
+            status = HttpStatusCode.OK,
+        )
+
+        val result = pisp.getInternationalPayment("cc-token", "INT-PMT-1")
+
+        assertIs<NetworkResult.Success<*>>(result)
+        assertEquals("/v4.0/pisp/international-payments/INT-PMT-1", captured.single().path)
+    }
+
+    @Test
+    fun `deserialises charges from international consent`() = runTest {
+        val pisp = pisp(
+            responseBody = """{"Data":{"ConsentId":"99","Status":"AWAU","Charges":[{"ChargeBearer":"BorneByDebtor","Type":"UK.OBIE.SWIFTCharge","Amount":{"Amount":"5.00","Currency":"GBP"}}]}}""",
+        )
+
+        val result = pisp.createInternationalPaymentConsent(
+            paymentsScopeToken = "cc-token",
+            request = internationalConsentRequest(),
+            idempotencyKey = IDEMPOTENCY_KEY,
+        )
+
+        assertIs<NetworkResult.Success<*>>(result)
     }
 }

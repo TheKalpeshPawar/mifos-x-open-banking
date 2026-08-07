@@ -16,6 +16,7 @@ import org.mifosx.openbanking.core.data.util.obieSupportReference
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import template.core.base.network.NetworkError
 
 /**
@@ -116,9 +117,10 @@ internal val SendMoneyErrorKind.needsAmountChange: Boolean
 data class SendMoneyFieldErrors(
     val sortCodeInvalid: Boolean = false,
     val accountNumberInvalid: Boolean = false,
+    val ibanInvalid: Boolean = false,
 ) {
     val isEmpty: Boolean
-        get() = !sortCodeInvalid && !accountNumberInvalid
+        get() = !sortCodeInvalid && !accountNumberInvalid && !ibanInvalid
 }
 
 /** Why the entered amount is not yet payable. */
@@ -167,6 +169,7 @@ sealed interface SendMoneyUiState {
      */
     data class Content(
         val step: SendMoneyStep,
+        val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
         val beneficiaries: List<SendMoneyPickerRow>,
         val debtorRows: List<SendMoneyAccountRow>,
@@ -178,9 +181,12 @@ sealed interface SendMoneyUiState {
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",
+        val manualIban: String = "",
         val manualName: String = "",
         val amountMinorUnits: String = "",
         val amountLabel: String = "",
+        val currencyOfTransfer: String = "GBP",
+        val chargeBearer: String = "BorneByCreditor",
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
@@ -223,14 +229,18 @@ data class SendMoneyState(
 )
 
 sealed interface SendMoneyAction {
+    data class SelectRail(val rail: PaymentRail) : SendMoneyAction
     data class SelectDebtorAccount(val accountId: String) : SendMoneyAction
     data class SelectCreditor(val beneficiaryId: String) : SendMoneyAction
     data object ShowManualCreditorEntry : SendMoneyAction
     data class EnterManualSortCode(val sortCode: String) : SendMoneyAction
     data class EnterManualAccountNumber(val accountNumber: String) : SendMoneyAction
+    data class EnterManualIban(val iban: String) : SendMoneyAction
     data class EnterManualName(val name: String) : SendMoneyAction
     data object ConfirmManualCreditor : SendMoneyAction
     data class EnterAmount(val minorUnits: String) : SendMoneyAction
+    data class SelectCurrencyOfTransfer(val currency: String) : SendMoneyAction
+    data class SelectChargeBearer(val bearer: String) : SendMoneyAction
     data class EnterReference(val reference: String) : SendMoneyAction
     data object ReviewPayment : SendMoneyAction
     data object ConfirmAndStageConsent : SendMoneyAction

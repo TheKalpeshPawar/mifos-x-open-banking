@@ -13,19 +13,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Initiation(
-    @SerialName("InstructionIdentification")
-    val instructionIdentification: String? = null,
-    @SerialName("EndToEndIdentification")
-    val endToEndIdentification: String? = null,
-    @SerialName("CurrencyOfTransfer")
-    val currencyOfTransfer: String? = null,
-    @SerialName("InstructedAmount")
-    val instructedAmount: InstructedAmount? = null,
-    @SerialName("CreditorAccount")
-    val creditorAccount: CreditorAccount? = null,
+data class Charge(
     @SerialName("ChargeBearer")
     val chargeBearer: String? = null,
-    @SerialName("DebtorAccount")
-    val debtorAccount: DebtorAccount? = null,
+    @SerialName("Type")
+    val type: String? = null,
+    @SerialName("Amount")
+    val amount: InstructedAmount? = null,
 )

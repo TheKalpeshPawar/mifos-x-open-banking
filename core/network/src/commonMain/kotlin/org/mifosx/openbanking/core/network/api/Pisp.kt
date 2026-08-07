@@ -23,6 +23,10 @@ import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.request.Do
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentConsentResponse
 import org.mifosx.openbanking.core.network.model.pisp.domesticPayment.response.DomesticPaymentResponse
 import org.mifosx.openbanking.core.network.model.pisp.fundsConfirmation.response.FundsConfirmationResponse
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentConsentRequest
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.request.InternationalPaymentRequest
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.response.InternationalPaymentConsentResponse
+import org.mifosx.openbanking.core.network.model.pisp.internationalPayment.response.InternationalPaymentResponse
 import org.mifosx.openbanking.core.network.pisp.detachedJwsSignature
 import org.mifosx.openbanking.core.network.pisp.fapiHeaders
 import org.mifosx.openbanking.core.network.pisp.obieBody
@@ -131,6 +135,54 @@ class Pisp(
         domesticPaymentId: String,
     ): NetworkResult<DomesticPaymentResponse, NetworkError> =
         authorizedGet("$PIS/domestic-payments/$domesticPaymentId", accessToken).toNetworkResult()
+
+    suspend fun createInternationalPaymentConsent(
+        paymentsScopeToken: String,
+        request: InternationalPaymentConsentRequest,
+        idempotencyKey: String,
+    ): NetworkResult<InternationalPaymentConsentResponse, NetworkError> =
+        signedPost(
+            path = "$PIS/international-payment-consents",
+            accessToken = paymentsScopeToken,
+            idempotencyKey = idempotencyKey,
+            body = obieBody(InternationalPaymentConsentRequest.serializer(), request),
+        ).toNetworkResult()
+
+    suspend fun getInternationalPaymentConsent(
+        accessToken: String,
+        consentId: String,
+    ): NetworkResult<InternationalPaymentConsentResponse, NetworkError> =
+        authorizedGet("$PIS/international-payment-consents/$consentId", accessToken).toNetworkResult()
+
+    suspend fun getInternationalFundsConfirmation(
+        psuAccessToken: String,
+        consentId: String,
+    ): NetworkResult<FundsConfirmationResponse, NetworkError> =
+        authorizedGet(
+            "$PIS/international-payment-consents/$consentId/funds-confirmation",
+            psuAccessToken,
+        ).toNetworkResult()
+
+    suspend fun createInternationalPayment(
+        psuAccessToken: String,
+        request: InternationalPaymentRequest,
+        idempotencyKey: String,
+    ): NetworkResult<InternationalPaymentResponse, NetworkError> =
+        signedPost(
+            path = "$PIS/international-payments",
+            accessToken = psuAccessToken,
+            idempotencyKey = idempotencyKey,
+            body = obieBody(InternationalPaymentRequest.serializer(), request),
+        ).toNetworkResult()
+
+    suspend fun getInternationalPayment(
+        accessToken: String,
+        internationalPaymentId: String,
+    ): NetworkResult<InternationalPaymentResponse, NetworkError> =
+        authorizedGet(
+            "$PIS/international-payments/$internationalPaymentId",
+            accessToken,
+        ).toNetworkResult()
 
     private suspend fun authorizedGet(path: String, accessToken: String): HttpResponse =
         httpClient.get(path) {

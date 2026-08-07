@@ -34,6 +34,7 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
@@ -82,13 +83,17 @@ class SendMoneyViewModel(
     /** Everything the PSU has entered. Held apart from loaded data so a refresh cannot clear it. */
     private data class Form(
         val step: SendMoneyStep = SendMoneyStep.Recipient,
+        val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccountId: String? = null,
         val creditor: CreditorSelection? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",
+        val manualIban: String = "",
         val manualName: String = "",
         val amountMinorUnits: String = "",
+        val currencyOfTransfer: String = "GBP",
+        val chargeBearer: String = "BorneByCreditor",
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
@@ -156,14 +161,22 @@ class SendMoneyViewModel(
 
     override fun handleAction(action: SendMoneyAction) {
         when (action) {
+            is SendMoneyAction.SelectRail -> selectRail(action.rail)
             is SendMoneyAction.SelectDebtorAccount -> selectDebtor(action.accountId)
             is SendMoneyAction.SelectCreditor -> selectCreditor(action.beneficiaryId)
             SendMoneyAction.ShowManualCreditorEntry -> form.value = form.value.copy(manualEntryVisible = true)
             is SendMoneyAction.EnterManualSortCode -> enterSortCode(action.sortCode)
             is SendMoneyAction.EnterManualAccountNumber -> enterAccountNumber(action.accountNumber)
+            is SendMoneyAction.EnterManualIban -> enterIban(action.iban)
             is SendMoneyAction.EnterManualName -> form.value = form.value.copy(manualName = action.name)
             SendMoneyAction.ConfirmManualCreditor -> confirmManualCreditor()
             is SendMoneyAction.EnterAmount -> enterAmount(action.minorUnits)
+            is SendMoneyAction.SelectCurrencyOfTransfer ->
+                form.value =
+                    form.value.copy(currencyOfTransfer = action.currency)
+            is SendMoneyAction.SelectChargeBearer ->
+                form.value =
+                    form.value.copy(chargeBearer = action.bearer)
             is SendMoneyAction.EnterReference -> enterReference(action.reference)
             SendMoneyAction.ReviewPayment -> form.value = form.value.copy(step = SendMoneyStep.Review)
             SendMoneyAction.ConfirmAndStageConsent -> confirmAndStageConsent()
@@ -189,6 +202,19 @@ class SendMoneyViewModel(
     private fun selectDebtor(accountId: String) {
         selectedAccountId.value = accountId
         form.value = form.value.copy(debtorAccountId = accountId, creditor = null)
+    }
+
+    private fun selectRail(rail: PaymentRail) {
+        form.value = form.value.copy(rail = rail, creditor = null, manualEntryVisible = false)
+    }
+
+    private fun enterIban(raw: String) {
+        form.value = form.value.copy(
+            manualIban = raw,
+            fieldErrors = form.value.fieldErrors.copy(
+                ibanInvalid = raw.isNotEmpty() && raw.length < 5,
+            ),
+        )
     }
 
     private fun selectCreditor(beneficiaryId: String) {
@@ -354,16 +380,19 @@ class SendMoneyViewModel(
         val creditor = current.creditor ?: return null
         val amount = current.amountMinorUnits.toLongOrNull() ?: return null
         val hex = Uuid.generateV4().toHexString()
+        val isInternational = current.rail == PaymentRail.International
         return PaymentDraft(
             debtorAccount = account,
             creditor = creditor,
             amountMinorUnits = amount,
             currency = account.currency,
-            reference = current.reference.takeIf { it.isNotBlank() },
+            reference = current.reference.takeIf { it.isNotBlank() && !isInternational },
             instructionIdentification = INSTRUCTION_ID_PREFIX + hex,
             endToEndIdentification = END_TO_END_ID_PREFIX + hex,
             consentIdempotencyKey = Uuid.generateV4().toString(),
             paymentIdempotencyKey = Uuid.generateV4().toString(),
+            currencyOfTransfer = if (isInternational) current.currencyOfTransfer else null,
+            chargeBearer = if (isInternational) current.chargeBearer else null,
         )
     }
 
@@ -402,12 +431,19 @@ class SendMoneyViewModel(
         entered: Form,
     ): SendMoneyUiState.Content {
         val payeeList = (payees as? ScreenState.Content)?.data.orEmpty()
+        val filteredPayees = payeeList.filter { payee ->
+            when (entered.rail) {
+                PaymentRail.Domestic -> payee.scheme == BeneficiaryScheme.SortCode
+                PaymentRail.International -> payee.scheme == BeneficiaryScheme.Iban
+            }
+        }
         val selected = accounts.firstOrNull { it.account.accountId == entered.debtorAccountId }
         return SendMoneyUiState.Content(
             step = entered.step,
+            rail = entered.rail,
             debtorAccounts = accounts.map { it.account },
             debtorRows = accounts.map { it.toAccountRow() },
-            beneficiaries = payeeList.map { it.toPickerRow() },
+            beneficiaries = filteredPayees.map { it.toPickerRow() },
             debtorAccountId = entered.debtorAccountId,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
@@ -416,9 +452,12 @@ class SendMoneyViewModel(
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
             manualAccountNumber = entered.manualAccountNumber,
+            manualIban = entered.manualIban,
             manualName = entered.manualName,
             amountMinorUnits = entered.amountMinorUnits,
             amountLabel = amountLabel(entered),
+            currencyOfTransfer = entered.currencyOfTransfer,
+            chargeBearer = entered.chargeBearer,
             reference = entered.reference,
             amountProblem = entered.amountProblem,
             fieldErrors = entered.fieldErrors,

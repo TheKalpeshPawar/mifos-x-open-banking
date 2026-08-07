@@ -49,4 +49,6 @@ data class PaymentDraft(
     val endToEndIdentification: String,
     val consentIdempotencyKey: String,
     val paymentIdempotencyKey: String,
+    val currencyOfTransfer: String? = null,
+    val chargeBearer: String? = null,
 )

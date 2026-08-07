@@ -13,8 +13,13 @@ import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.mapper.consentIdOrNull
+import org.mifosx.openbanking.core.data.banking.mapper.intlConsentIdOrNull
+import org.mifosx.openbanking.core.data.banking.mapper.intlStatusOrEmpty
 import org.mifosx.openbanking.core.data.banking.mapper.statusOrEmpty
 import org.mifosx.openbanking.core.data.banking.mapper.toConsentRequest
+import org.mifosx.openbanking.core.data.banking.mapper.toIntlConsentRequest
+import org.mifosx.openbanking.core.data.banking.mapper.toIntlPaymentReceipt
+import org.mifosx.openbanking.core.data.banking.mapper.toIntlPaymentRequest
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentReceipt
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentRequest
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
@@ -35,14 +40,6 @@ import kotlin.time.Clock
 private const val AUTHORIZE_PATH = "/obie/open-banking/v1.1/oauth2/authorize"
 private const val RESPONSE_TYPE = "code id_token"
 
-/**
- * Talks to the PISP endpoints directly rather than through a store — see
- * [PaymentInitiationRepository] for why nothing here may be cached.
- *
- * Stateless, like every repository here: the only things it holds are its injected collaborators.
- * The in-flight authorisation lives in [PaymentAuthSession], which survives the browser hop and a
- * process death; a field here would not.
- */
 internal class PaymentInitiationRepositoryImpl(
     private val pisp: Pisp,
     private val oauth: OAuth,
@@ -59,11 +56,6 @@ internal class PaymentInitiationRepositoryImpl(
 
     @Suppress("ReturnCount")
     override suspend fun stagePayment(draft: PaymentDraft): NetworkResult<StagedConsent, NetworkError> {
-        // Every payment starts from nothing: a fresh client-credentials token below, a fresh consent
-        // from the bank, a fresh state/nonce for the authorisation, and a fresh PSU token when that
-        // authorisation returns. Clearing first is what guarantees the last of those — without it a
-        // payments token left behind by an abandoned attempt would still be in storage, and the next
-        // payment could submit on a credential its own authorisation never issued.
         paymentAuthSession.clear()
 
         val tokenResult = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)
@@ -72,20 +64,16 @@ internal class PaymentInitiationRepositoryImpl(
             is NetworkResult.Error -> return tokenResult
         }
 
-        val consentResult = pisp.createDomesticPaymentConsent(
-            paymentsScopeToken = paymentsToken,
-            request = draft.toConsentRequest(),
-            idempotencyKey = draft.consentIdempotencyKey,
-        )
-        val consent = when (consentResult) {
-            is NetworkResult.Success -> consentResult.data
-            is NetworkResult.Error -> return consentResult.alsoRecordRefusedPayer(draft)
+        val pair = if (draft.isInternational()) {
+            stageIntlConsent(paymentsToken, draft)
+        } else {
+            stageDomesticConsent(paymentsToken, draft)
         }
 
-        val consentId = consent.consentIdOrNull()
-            ?: return NetworkResult.Error(
-                NetworkError.Client.BadRequest("Consent response carried no ConsentId"),
-            )
+        val (consentId, status) = when (pair) {
+            is NetworkResult.Success -> pair.data
+            is NetworkResult.Error -> return pair
+        }
 
         val auth = generateConsentAuthorizationUrl(
             audience = "https://$bankHost",
@@ -106,7 +94,7 @@ internal class PaymentInitiationRepositoryImpl(
         return NetworkResult.Success(
             StagedConsent(
                 consentId = consentId,
-                status = consent.statusOrEmpty(),
+                status = status,
                 authorizationUrl = auth.authorizationUrl,
                 state = auth.state,
                 nonce = auth.nonce,
@@ -114,34 +102,56 @@ internal class PaymentInitiationRepositoryImpl(
         )
     }
 
+    private suspend fun stageDomesticConsent(
+        token: String,
+        draft: PaymentDraft,
+    ): NetworkResult<Pair<String, String>, NetworkError> {
+        val result = pisp.createDomesticPaymentConsent(
+            paymentsScopeToken = token,
+            request = draft.toConsentRequest(),
+            idempotencyKey = draft.consentIdempotencyKey,
+        )
+        return when (result) {
+            is NetworkResult.Success -> {
+                val id = result.data.consentIdOrNull()
+                    ?: return NetworkResult.Error(NetworkError.Client.BadRequest("no ConsentId"))
+                NetworkResult.Success(id to result.data.statusOrEmpty())
+            }
+            is NetworkResult.Error -> result.alsoRecordRefusedPayer(draft)
+        }
+    }
+
+    private suspend fun stageIntlConsent(
+        token: String,
+        draft: PaymentDraft,
+    ): NetworkResult<Pair<String, String>, NetworkError> {
+        val result = pisp.createInternationalPaymentConsent(
+            paymentsScopeToken = token,
+            request = draft.toIntlConsentRequest(),
+            idempotencyKey = draft.consentIdempotencyKey,
+        )
+        return when (result) {
+            is NetworkResult.Success -> {
+                val id = result.data.intlConsentIdOrNull()
+                    ?: return NetworkResult.Error(NetworkError.Client.BadRequest("no ConsentId"))
+                NetworkResult.Success(id to result.data.intlStatusOrEmpty())
+            }
+            is NetworkResult.Error -> result.alsoRecordRefusedPayer(draft)
+        }
+    }
+
     override suspend fun confirmFunds(consentId: String): NetworkResult<Boolean, NetworkError> {
         val token = paymentAuthSession.paymentToken()?.accesstoken
             ?: return NetworkResult.Error(
                 NetworkError.Client.Unauthorized("No payments token — the consent is not authorised"),
             )
-
         return when (val result = pisp.getFundsConfirmation(token, consentId)) {
             is NetworkResult.Success ->
                 NetworkResult.Success(result.data.data?.fundsAvailableResult?.fundsAvailable == true)
-
             is NetworkResult.Error -> result
         }
     }
 
-    /**
-     * Remembers that the bank refused this payer, so the picker can stop offering it.
-     *
-     * The product matrix predicts what it cheaply can — a credit card is visible in the account
-     * subtype — but it cannot predict everything: a Global Money wallet reports `AccountTypeCode:
-     * CACC` and is indistinguishable from a current account by the time the app sees it, yet HSBC
-     * refuses it as a debtor. Rather than enumerate products the app cannot identify, this learns
-     * from the refusal itself, mirroring how AIS reads already correct their own predictions on a
-     * `U000`.
-     *
-     * Keyed on the error PATH, not the code: `U021` and `U002` were both observed on
-     * `Data.Initiation.DebtorAccount.Identification`, and a third code on the same path means the
-     * same thing.
-     */
     private fun NetworkResult.Error<NetworkError>.alsoRecordRefusedPayer(
         draft: PaymentDraft,
     ): NetworkResult.Error<NetworkError> = also {
@@ -163,7 +173,22 @@ internal class PaymentInitiationRepositoryImpl(
             ?: return NetworkResult.Error(
                 NetworkError.Client.Unauthorized("No payments token — the consent is not authorised"),
             )
-
+        if (draft.isInternational()) {
+            return when (
+                val result = pisp.createInternationalPayment(
+                    psuAccessToken = token,
+                    request = draft.toIntlPaymentRequest(consentId),
+                    idempotencyKey = draft.paymentIdempotencyKey,
+                )
+            ) {
+                is NetworkResult.Success -> {
+                    val receipt = result.data.toIntlPaymentReceipt()
+                    paymentHistoryRepository.saveSubmitted(receipt, draft)
+                    NetworkResult.Success(receipt)
+                }
+                is NetworkResult.Error -> result
+            }
+        }
         return when (
             val result = pisp.createDomesticPayment(
                 psuAccessToken = token,
@@ -180,24 +205,17 @@ internal class PaymentInitiationRepositoryImpl(
         }
     }
 
-    /**
-     * Reads the status back on a **client-credentials** token.
-     *
-     * Deliberately not the PSU token: that one is minted for a single payment and expires with it,
-     * whereas a submitted payment stays readable indefinitely on the TPP's own credential. Using the
-     * client-credentials token is what lets someone come back tomorrow and still see the outcome —
-     * and it avoids the `401` that presenting a PSU token to a TPP-authenticated read earns.
-     */
     @Suppress("ReturnCount")
     override suspend fun paymentStatus(domesticPaymentId: String): NetworkResult<PaymentReceipt, NetworkError> {
         val token = when (val result = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)) {
             is NetworkResult.Success -> result.data.accessToken
             is NetworkResult.Error -> return result
         }
-
         return when (val result = pisp.getDomesticPayment(token, domesticPaymentId)) {
             is NetworkResult.Success -> NetworkResult.Success(result.data.toPaymentReceipt())
             is NetworkResult.Error -> result
         }
     }
+
+    private fun PaymentDraft.isInternational(): Boolean = currencyOfTransfer != null
 }
