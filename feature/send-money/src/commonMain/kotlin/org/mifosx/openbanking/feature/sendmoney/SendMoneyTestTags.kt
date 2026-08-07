@@ -46,6 +46,7 @@ internal object SendMoneyTestTags {
     const val CHARGE_BEARER_PICKER = "sendMoney:chargeBearerPicker"
     const val REVIEW_BUTTON = "sendMoney:reviewButton"
 
+    const val REVIEW_LEAD = "sendMoney:reviewLead"
     const val REVIEW_SUMMARY = "sendMoney:reviewSummary"
     const val REVIEW_FROM = "sendMoney:reviewFrom"
     const val REVIEW_TO = "sendMoney:reviewTo"
@@ -56,6 +57,8 @@ internal object SendMoneyTestTags {
     const val REVIEW_HERO = "sendMoney:reviewHero"
     const val REVIEW_PAYEE_CHIP = "sendMoney:reviewPayeeChip"
     const val REVIEW_SENT_VIA = "sendMoney:reviewSentVia"
+    const val REVIEW_CURRENCY = "sendMoney:reviewCurrency"
+    const val REVIEW_CHARGE_BEARER = "sendMoney:reviewChargeBearer"
     const val REVIEW_TOTAL = "sendMoney:reviewTotal"
     const val REVIEW_AUTH_NOTICE = "sendMoney:reviewAuthNotice"
     const val EDIT_PAYMENT_BUTTON = "sendMoney:editPaymentButton"

@@ -26,8 +26,6 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_loading_a11y
 import template.core.base.designsystem.component.KptShimmerLoadingBox
 
-private val ScreenPadding = 16.dp
-private val SectionGap = 16.dp
 private val HeadingHeight = 20.dp
 private val HeadingWidth = 220.dp
 private val PickerListHeight = 144.dp

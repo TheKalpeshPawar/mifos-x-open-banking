@@ -206,6 +206,49 @@ class SendMoneyScreenUiTest {
         onNodeWithTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER).assertDoesNotExist()
     }
 
+    /**
+     * The review describes the rail it is actually reviewing.
+     *
+     * "Sent via" read "Faster Payments" on both rails, which is untrue of an international payment,
+     * and the two fields that rail turns on had no row at all — so a customer could approve a
+     * currency conversion and a charge arrangement neither of which the review mentioned.
+     */
+    @Test
+    fun theDomesticReviewNamesFasterPaymentsAndShowsTheReference() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.reviewState(rail = PaymentRail.Domestic), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.REVIEW_REFERENCE).performScrollTo().assertIsDisplayed()
+        onNodeWithText("Faster Payments").assertExists()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_CURRENCY).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_CHARGE_BEARER).assertDoesNotExist()
+    }
+
+    @Test
+    fun theInternationalReviewShowsTheCurrencyAndChargesAndNoReference() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.reviewState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.REVIEW_CURRENCY).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_CHARGE_BEARER).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_REFERENCE).assertDoesNotExist()
+        onNodeWithText("Faster Payments").assertDoesNotExist()
+    }
+
+    /** With no payer of our own the row says so, rather than rendering as an empty field. */
+    @Test
+    fun theReviewSaysWhenTheBankWillChooseThePayer() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.reviewState(debtorAccountRow = null), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.REVIEW_FROM).performScrollTo().assertIsDisplayed()
+        onNodeWithText("You’ll choose at your bank").assertExists()
+    }
+
     /** Pinned, so it is reachable however far the form has been scrolled. */
     @Test
     fun theFormActionBarStaysOutsideTheScroll() = runComposeUiTest {

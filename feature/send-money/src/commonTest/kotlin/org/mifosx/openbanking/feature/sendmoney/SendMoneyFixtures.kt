@@ -14,6 +14,7 @@ import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
@@ -308,14 +309,23 @@ object SendMoneyFixtures {
         beneficiaryId = JAMESON_ID,
     )
 
-    fun reviewState(reference: String = "RENT-FLAT12"): SendMoneyState = SendMoneyState(
+    fun reviewState(
+        reference: String = "RENT-FLAT12",
+        rail: PaymentRail = PaymentRail.Domestic,
+        debtorAccountRow: SendMoneyAccountRow? = debtorRows().first(),
+        currencyOfTransfer: String = "USD",
+        chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
+    ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Review,
+            rail = rail,
+            currencyOfTransfer = currencyOfTransfer,
+            chargeBearer = chargeBearer,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
-            beneficiaries = creditorRows(),
-            debtorAccountId = CURRENT_ACCOUNT_ID,
-            debtorAccountRow = debtorRows().first(),
+            beneficiaries = payeesFor(rail),
+            debtorAccountId = if (debtorAccountRow == null) null else CURRENT_ACCOUNT_ID,
+            debtorAccountRow = debtorAccountRow,
             creditor = jamesonSelection(),
             creditorLabel = "Jameson Lettings",
             creditorSupporting = "Sort Code · 40-12-09 65872310",
