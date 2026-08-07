@@ -80,16 +80,12 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_to
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_total
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_amount
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_recipient
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_step_review
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
 import template.core.base.designsystem.theme.KptTheme
 
-private const val TOTAL_STEPS = 3
 private const val REFERENCE_MAX_LENGTH = 35
 
 private val ScreenPadding = 16.dp
@@ -518,12 +514,6 @@ private fun SectionHeading(text: String) {
         style = KptTheme.typography.bodySmall,
         color = KptTheme.colorScheme.outline,
     )
-}
-
-private fun SendMoneyStep.labelResource(): StringResource = when (this) {
-    SendMoneyStep.Recipient -> Res.string.feature_send_money_step_recipient
-    SendMoneyStep.Amount -> Res.string.feature_send_money_step_amount
-    SendMoneyStep.Review -> Res.string.feature_send_money_step_review
 }
 
 private fun SendMoneyAmountProblem.messageResource(): StringResource = when (this) {

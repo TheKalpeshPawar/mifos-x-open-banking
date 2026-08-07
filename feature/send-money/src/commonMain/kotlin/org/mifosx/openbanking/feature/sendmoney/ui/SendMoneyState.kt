@@ -193,9 +193,6 @@ sealed interface SendMoneyUiState {
         val availableBalanceMinorUnits: Long? = null,
     ) : SendMoneyUiState {
 
-        val stepIndex: Int
-            get() = step.ordinal + 1
-
         /** Review is reachable only once the amount is present and unobjectionable. */
         val canReview: Boolean
             get() = amountProblem == null && amountMinorUnits.isNotBlank() && creditor != null

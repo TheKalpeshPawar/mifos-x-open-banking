@@ -28,8 +28,6 @@ import template.core.base.designsystem.component.KptShimmerLoadingBox
 
 private val ScreenPadding = 16.dp
 private val SectionGap = 16.dp
-private val StepIndicatorHeight = 20.dp
-private val StepIndicatorWidth = 160.dp
 private val HeadingHeight = 20.dp
 private val HeadingWidth = 220.dp
 private val PickerListHeight = 144.dp
@@ -38,8 +36,8 @@ private val CreditorListHeight = 216.dp
 /**
  * Loading state.
  *
- * Shaped like the recipient step it replaces — indicator, heading, payer list, heading, payee list —
- * so nothing jumps when the accounts and payees land. The preview for this state draws a centred
+ * Shaped like the recipient step it replaces — heading, payer list, heading, payee list — so nothing
+ * jumps when the accounts and payees land. The preview for this state draws a centred
  * spinner, but every other screen in this app uses a shimmer skeleton and the convention wins:
  * a spinner here would be the one screen that loads differently from the rest.
  */
@@ -54,9 +52,6 @@ internal fun SendMoneySkeleton(modifier: Modifier = Modifier) {
             .semantics { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
-        KptShimmerLoadingBox(
-            modifier = Modifier.width(StepIndicatorWidth).height(StepIndicatorHeight),
-        )
         KptShimmerLoadingBox(
             modifier = Modifier.width(HeadingWidth).height(HeadingHeight),
         )

@@ -15,7 +15,6 @@ package org.mifosx.openbanking.feature.sendmoney
  */
 internal object SendMoneyTestTags {
     const val SKELETON = "sendMoney:skeleton"
-    const val STEP_INDICATOR = "sendMoney:stepIndicator"
 
     const val DEBTOR_LIST = "sendMoney:debtorList"
     const val CREDITOR_LIST = "sendMoney:creditorList"

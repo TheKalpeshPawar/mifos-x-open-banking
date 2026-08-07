@@ -46,7 +46,6 @@ class SendMoneyScreenUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.recipientState(), {}, {})
         }
-        onNodeWithTag(SendMoneyTestTags.STEP_INDICATOR).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()

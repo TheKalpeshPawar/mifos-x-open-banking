@@ -12,12 +12,6 @@
     <string name="feature_send_money_screen_title">Send money</string>
     <string name="feature_send_money_loading_a11y">Loading your accounts and payees</string>
 
-    <string name="feature_send_money_step_indicator">Step %1$d of %2$d</string>
-    <string name="feature_send_money_step_indicator_a11y">Step %1$d of %2$d: %3$s</string>
-    <string name="feature_send_money_step_recipient">Recipient</string>
-    <string name="feature_send_money_step_amount">Amount</string>
-    <string name="feature_send_money_step_review">Review</string>
-
     <string name="feature_send_money_balance_available">%1$s available</string>
     <string name="feature_send_money_debtor_heading">Choose the account to pay from</string>
     <string name="feature_send_money_creditor_heading">Choose who to pay</string>
