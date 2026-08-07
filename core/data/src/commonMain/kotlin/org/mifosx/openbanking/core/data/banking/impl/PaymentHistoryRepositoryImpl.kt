@@ -15,18 +15,22 @@ import kotlinx.coroutines.flow.map
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.mapper.toEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toFailureEntity
+import org.mifosx.openbanking.core.data.banking.mapper.toIntlPaymentReceipt
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentHistoryItem
+import org.mifosx.openbanking.core.data.banking.mapper.toPaymentRail
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentReceipt
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.api.Pisp
+import template.core.base.network.NetworkResult
 import kotlin.time.Clock
 
 /**
@@ -67,6 +71,10 @@ internal class PaymentHistoryRepositoryImpl(
         dao.upsert(draft.toFailureEntity(errorKind, errorDescription).copy(creationDateTime = now))
     }
 
+    /** Null when no row exists, so a caller cannot mistake "unknown" for "domestic". */
+    override suspend fun railOf(paymentId: String): PaymentRail? =
+        dao.observeById(paymentId).first()?.let { it.paymentType.toPaymentRail() }
+
     /**
      * Refreshes every in-flight submitted payment.
      *
@@ -90,24 +98,42 @@ internal class PaymentHistoryRepositoryImpl(
             }
             .forEach { entity ->
                 val now = Clock.System.now().toEpochMilliseconds().toString()
-                val result = pisp.getDomesticPayment(token, entity.paymentId!!)
-                when (result) {
-                    is template.core.base.network.NetworkResult.Success -> {
-                        val receipt = result.data.toPaymentReceipt()
-                        dao.upsert(
-                            entity.copy(
-                                status = receipt.status.name,
-                                settlementDateTime = receipt.settlementDateTime
-                                    .takeIf { it.isNotBlank() },
-                                syncedAt = now,
-                            ),
-                        )
-                    }
-                    is template.core.base.network.NetworkResult.Error -> {
+                val receipt = fetchReceipt(token, entity.paymentId!!, entity.paymentType.toPaymentRail())
+                dao.upsert(
+                    if (receipt == null) {
                         // Keep the last-known status; mark that we tried.
-                        dao.upsert(entity.copy(syncedAt = now))
-                    }
-                }
+                        entity.copy(syncedAt = now)
+                    } else {
+                        entity.copy(
+                            status = receipt.status.name,
+                            settlementDateTime = receipt.settlementDateTime.takeIf { it.isNotBlank() },
+                            syncedAt = now,
+                        )
+                    },
+                )
             }
+    }
+
+    /**
+     * Reads a payment's status from the endpoint belonging to its rail.
+     *
+     * The two are not interchangeable: an id issued by one rail answers 404 against the other, so
+     * every international payment used to fail its own status refresh. Null on any failure — a
+     * refresh that cannot reach the bank leaves the stored status alone rather than overwriting it.
+     */
+    private suspend fun fetchReceipt(
+        token: String,
+        paymentId: String,
+        rail: PaymentRail,
+    ): PaymentReceipt? = when (rail) {
+        PaymentRail.Domestic ->
+            (pisp.getDomesticPayment(token, paymentId) as? NetworkResult.Success)
+                ?.data
+                ?.toPaymentReceipt()
+
+        PaymentRail.International ->
+            (pisp.getInternationalPayment(token, paymentId) as? NetworkResult.Success)
+                ?.data
+                ?.toIntlPaymentReceipt()
     }
 }

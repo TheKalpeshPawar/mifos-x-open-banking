@@ -12,6 +12,7 @@ package org.mifosx.openbanking.core.data.banking
 import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 
 /**
@@ -30,6 +31,18 @@ interface PaymentHistoryRepository {
 
     /** Persists a payment that failed before reaching submission. */
     suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String)
+
+    /**
+     * Which rail a submitted payment was sent on, so its status is read from the right endpoint.
+     *
+     * The two rails have separate status endpoints, and an id is only valid against its own — an
+     * international payment looked up as domestic answers 404. The rail is not derivable from the
+     * id, so it is read back from the row written at submission.
+     *
+     * Returns null when nothing is stored for [paymentId], which the caller must decide about
+     * rather than have guessed for it.
+     */
+    suspend fun railOf(paymentId: String): PaymentRail?
 
     /**
      * For every stored payment whose status is still InProgress, fetches the current status from

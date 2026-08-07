@@ -20,6 +20,7 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
@@ -227,4 +228,7 @@ class FakePaymentHistoryRepository : PaymentHistoryRepository {
     override suspend fun refreshStatuses() {
         refreshCount++
     }
+
+    /** The callback leg never reads a rail back; it always has the draft in hand. */
+    override suspend fun railOf(paymentId: String): PaymentRail? = null
 }

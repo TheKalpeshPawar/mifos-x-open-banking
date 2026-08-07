@@ -14,6 +14,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import kotlin.uuid.ExperimentalUuidApi
@@ -45,6 +46,16 @@ private fun BankAccount?.historyIdentification(): String =
 /** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
 private fun PaymentDraft.paymentType(): String =
     if (currencyOfTransfer != null) PAYMENT_TYPE_INTERNATIONAL else PAYMENT_TYPE_DOMESTIC
+
+/**
+ * The rail a stored row was sent on.
+ *
+ * Domestic is the fallback for an unrecognised value because every row written before v5 was
+ * labelled domestic regardless of the rail it actually used, so an unknown string is far more
+ * likely to be an old domestic row than a new international one.
+ */
+internal fun String?.toPaymentRail(): PaymentRail =
+    if (this == PAYMENT_TYPE_INTERNATIONAL) PaymentRail.International else PaymentRail.Domestic
 
 internal fun PaymentReceipt.toEntity(
     draft: PaymentDraft,

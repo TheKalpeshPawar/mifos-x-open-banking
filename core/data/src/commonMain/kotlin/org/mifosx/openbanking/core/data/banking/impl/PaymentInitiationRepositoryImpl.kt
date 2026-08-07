@@ -26,6 +26,7 @@ import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.util.isDebtorAccountRefusal
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -206,15 +207,32 @@ internal class PaymentInitiationRepositoryImpl(
         return submitted
     }
 
+    /**
+     * Reads a submitted payment's status from the endpoint belonging to its rail.
+     *
+     * The rail cannot be told from the id, and the two endpoints do not accept each other's — an
+     * international payment read as domestic answers 404, which is what every international payment
+     * used to do on its own status screen. It is read back from the row written at submission.
+     * Domestic is the fallback when no row is stored, matching how those ids were treated before
+     * the rail was recorded at all.
+     */
     @Suppress("ReturnCount")
     override suspend fun paymentStatus(domesticPaymentId: String): NetworkResult<PaymentReceipt, NetworkError> {
         val token = when (val result = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)) {
             is NetworkResult.Success -> result.data.accessToken
             is NetworkResult.Error -> return result
         }
-        return when (val result = pisp.getDomesticPayment(token, domesticPaymentId)) {
-            is NetworkResult.Success -> NetworkResult.Success(result.data.toPaymentReceipt())
-            is NetworkResult.Error -> result
+        val rail = paymentHistoryRepository.railOf(domesticPaymentId) ?: PaymentRail.Domestic
+        return when (rail) {
+            PaymentRail.Domestic -> when (val r = pisp.getDomesticPayment(token, domesticPaymentId)) {
+                is NetworkResult.Success -> NetworkResult.Success(r.data.toPaymentReceipt())
+                is NetworkResult.Error -> r
+            }
+
+            PaymentRail.International -> when (val r = pisp.getInternationalPayment(token, domesticPaymentId)) {
+                is NetworkResult.Success -> NetworkResult.Success(r.data.toIntlPaymentReceipt())
+                is NetworkResult.Error -> r
+            }
         }
     }
 

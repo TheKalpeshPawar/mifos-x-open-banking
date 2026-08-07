@@ -34,6 +34,7 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -70,6 +71,9 @@ private const val DEBTOR_REFUSAL_BODY =
 private const val CREDITOR_REFUSAL_BODY =
     """{"Code":"400","Id":"ref-2","Message":"Bad Request","Errors":[{"ErrorCode":"U002",""" +
         """"Message":"Invalid Field","Path":"Data.Initiation.CreditorAccount.Identification"}]}"""
+private const val INTL_PAYMENT_JSON =
+    """{"Data":{"InternationalPaymentId":"$PAYMENT_ID","ConsentId":"$CONSENT_ID",""" +
+        """"Status":"AcceptedSettlementInProcess"}}"""
 private const val PAYMENT_JSON =
     """{"Data":{"DomesticPaymentId":"$PAYMENT_ID","ConsentId":"$CONSENT_ID","Status":"AcceptedSettlementInProcess"}}"""
 
@@ -125,6 +129,7 @@ class PaymentInitiationRepositoryImplTest {
         session: PaymentAuthSession = SettingsPaymentAuthSession(MapSettings()),
         errorBody: String? = null,
         status: HttpStatusCode = HttpStatusCode.Created,
+        storedRail: PaymentRail? = null,
     ): PaymentInitiationRepositoryImpl {
         val client = HttpClient(
             MockEngine { request: HttpRequestData ->
@@ -142,6 +147,7 @@ class PaymentInitiationRepositoryImplTest {
                     errorBody != null -> errorBody
                     request.url.encodedPath.endsWith("funds-confirmation") -> FUNDS_JSON
                     request.url.encodedPath.contains("domestic-payment-consents") -> CONSENT_JSON
+                    request.url.encodedPath.contains("international-payments") -> INTL_PAYMENT_JSON
                     request.url.encodedPath.contains("domestic-payments") -> PAYMENT_JSON
                     else -> "{}"
                 }
@@ -168,16 +174,23 @@ class PaymentInitiationRepositoryImplTest {
             bankHost = "sandbox.test",
             authorizeHost = "authorize.sandbox.test",
             redirectUri = "https://cb/",
-            paymentHistoryRepository = FakePaymentHistoryRepo(),
+            paymentHistoryRepository = FakePaymentHistoryRepo(storedRail),
         )
     }
 
-    private class FakePaymentHistoryRepo : PaymentHistoryRepository {
+    /**
+     * [rail] drives which status endpoint the repository is expected to call. Null is the
+     * no-stored-row case, which must fall back to domestic rather than failing to read at all.
+     */
+    private class FakePaymentHistoryRepo(
+        private val rail: PaymentRail? = null,
+    ) : PaymentHistoryRepository {
         override fun observeRecent(): Flow<List<PaymentHistoryItem>> =
             MutableStateFlow(emptyList())
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {}
         override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {}
         override suspend fun refreshStatuses() {}
+        override suspend fun railOf(paymentId: String): PaymentRail? = rail
     }
 
     private fun sessionHoldingAPsuToken(): PaymentAuthSession =
@@ -216,6 +229,45 @@ class PaymentInitiationRepositoryImplTest {
         val read = requestTo("domestic-payments/$PAYMENT_ID")
         assertEquals("Bearer $CLIENT_CREDENTIALS_TOKEN", read.authorization)
         assertTrue(PSU_TOKEN !in read.authorization.orEmpty())
+    }
+
+    /**
+     * An international payment is read from the international endpoint.
+     *
+     * The rail cannot be told from the id and the two endpoints do not accept each other's, so this
+     * used to call the domestic one for everything — meaning every international payment answered
+     * 404 on its own status screen. The rail comes from the row written at submission.
+     */
+    @Test
+    fun readingAnInternationalPaymentUsesTheInternationalEndpoint() = runTest {
+        repository(storedRail = PaymentRail.International).paymentStatus(PAYMENT_ID)
+
+        assertNotNull(
+            captured.lastOrNull { it.path.contains("international-payments/$PAYMENT_ID") },
+            "expected the international endpoint, saw ${captured.map { it.path }}",
+        )
+        assertNull(captured.firstOrNull { it.path.contains("domestic-payments/$PAYMENT_ID") })
+    }
+
+    @Test
+    fun readingADomesticPaymentUsesTheDomesticEndpoint() = runTest {
+        repository(storedRail = PaymentRail.Domestic).paymentStatus(PAYMENT_ID)
+
+        assertNotNull(captured.lastOrNull { it.path.contains("domestic-payments/$PAYMENT_ID") })
+        assertNull(captured.firstOrNull { it.path.contains("international-payments/$PAYMENT_ID") })
+    }
+
+    /**
+     * With no stored row the rail is unknown, and domestic is the safe read.
+     *
+     * Every id written before the rail was recorded was domestic in practice, so guessing the other
+     * way would break the rows most likely to hit this path.
+     */
+    @Test
+    fun readingAPaymentWithNoStoredRowFallsBackToDomestic() = runTest {
+        repository(storedRail = null).paymentStatus(PAYMENT_ID)
+
+        assertNotNull(captured.lastOrNull { it.path.contains("domestic-payments/$PAYMENT_ID") })
     }
 
     /** Funds confirmation and submission are the two calls the PSU actually authorised. */
