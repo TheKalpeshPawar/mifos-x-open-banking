@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.paymentconsent.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
 import template.core.base.network.NetworkError
+import template.core.base.ui.viewmodel.BackgroundEvent
 
 /**
  * Why an authorisation return failed.
@@ -148,7 +149,25 @@ sealed interface PaymentConsentAction {
  * Only [PaymentSubmitted] carries anything, because it is the only outcome with something to show:
  * a payment the bank has accepted, identified by the id its receipt is read back under.
  */
-sealed interface PaymentConsentEvent {
+/**
+ * Every event here is a [BackgroundEvent], and that is load-bearing rather than defensive.
+ *
+ * `EventsEffect` filters events out — permanently, not queued — unless the screen is `RESUMED` or the
+ * event opts out. That default exists to stop a backgrounded screen navigating twice, and it is right
+ * for a screen the customer is looking at. This screen is the opposite case: the authorisation leg
+ * sends them to the bank and the whole tail of the journey — code exchange, consent read, funds
+ * check, submission — runs here while the app may still be behind the browser. Observed live, that
+ * tail took 25 seconds.
+ *
+ * Without this, a payment that fully succeeded emitted [PaymentSubmitted] into a screen that was not
+ * `RESUMED`, the event was dropped, and the customer sat on a progress panel forever while their
+ * money had already moved and the receipt existed. All three cases are terminal handoffs, so losing
+ * any of them strands the journey.
+ *
+ * The duplicate-navigation risk the default guards against does not apply: each is emitted once, at
+ * the end of a flow that then clears its session, and the channel delivers it once.
+ */
+sealed interface PaymentConsentEvent : BackgroundEvent {
     data class PaymentSubmitted(val paymentId: String) : PaymentConsentEvent
     data object RestartAuthorisation : PaymentConsentEvent
     data object Abandoned : PaymentConsentEvent

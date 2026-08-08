@@ -24,6 +24,7 @@ import org.mifosx.openbanking.feature.paymentconsent.FakePaymentInitiationReposi
 import org.mifosx.openbanking.feature.paymentconsent.PaymentConsentFixtures
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
+import template.core.base.ui.viewmodel.BackgroundEvent
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -567,6 +568,26 @@ class PaymentConsentViewModelTest {
         vm.trySendAction(PaymentConsentAction.AbandonPayment)
 
         assertEquals(PaymentConsentEvent.Abandoned, vm.eventFlow.first())
+    }
+
+    /**
+     * The regression test for a payment that succeeded and never showed its receipt.
+     *
+     * `EventsEffect` filters an event out — permanently, since the channel has already yielded it —
+     * unless the screen is `RESUMED` or the event is a [BackgroundEvent]. This screen runs the whole
+     * tail of the journey while the customer may still be in the bank's browser tab, so the emission
+     * routinely lands while it is not resumed. Live, the payment was created, funds confirmed and the
+     * instruction submitted over 25 seconds; `PaymentSubmitted` was then dropped and the screen sat
+     * on a progress panel while the money had already moved.
+     *
+     * Asserted on the type rather than through a fake lifecycle because the type *is* the contract
+     * `EventsEffect` checks. Removing the supertype reintroduces the bug and fails here.
+     */
+    @Test
+    fun everyEventOptsOutOfTheResumedOnlyFilterThatWouldDiscardIt() {
+        assertIs<BackgroundEvent>(PaymentConsentEvent.PaymentSubmitted(PaymentConsentFixtures.PAYMENT_ID))
+        assertIs<BackgroundEvent>(PaymentConsentEvent.RestartAuthorisation)
+        assertIs<BackgroundEvent>(PaymentConsentEvent.Abandoned)
     }
 
     // endregion
