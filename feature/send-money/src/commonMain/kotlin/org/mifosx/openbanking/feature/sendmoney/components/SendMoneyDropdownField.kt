@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -43,10 +44,7 @@ import androidx.compose.ui.unit.dp
 import org.mifosx.openbanking.feature.sendmoney.CardBorder
 import org.mifosx.openbanking.feature.sendmoney.CardCorner
 import org.mifosx.openbanking.feature.sendmoney.CardPadding
-import org.mifosx.openbanking.feature.sendmoney.ChipCorner
-import org.mifosx.openbanking.feature.sendmoney.ChipGap
-import org.mifosx.openbanking.feature.sendmoney.ChipPaddingHorizontal
-import org.mifosx.openbanking.feature.sendmoney.ChipPaddingVertical
+import org.mifosx.openbanking.feature.sendmoney.HeroGap
 import org.mifosx.openbanking.feature.sendmoney.RowGap
 import template.core.base.designsystem.theme.KptTheme
 
@@ -129,14 +127,23 @@ internal fun <T> SendMoneyDropdownField(
 }
 
 /**
- * The same control, compact enough to sit beside the amount rather than under it.
+ * The same control, sized to sit BESIDE the amount rather than under it.
  *
- * A chip and not a second full-width field because it belongs to the figure it qualifies: the
- * currency the amount is instructed in is part of the amount, and a row of its own would read as a
- * fourth question rather than as the unit on the one already asked.
+ * It belongs to the figure it qualifies — the currency the amount is instructed in is part of the
+ * amount — so a full-width row of its own would read as a fourth question rather than as the unit
+ * on the one already asked.
+ *
+ * **This is the adapted one, and [SendMoneyDropdownField] is not.** Both were candidates and only
+ * one could take a caller-supplied width: the field hard-codes `fillMaxWidth()` onto the host and
+ * pads its anchor by `CardPadding` on each side, which is right for a control that owns a row and
+ * leaves a fifth-width box with nothing left for "GBP" and a caret. This one passes its [modifier]
+ * straight through, which is what lets the amount card hand it a weight. What changed is only the
+ * anchor's skin: it was a pill in `surfaceContainerHighest`, sized by its own text, and it is now
+ * the field's corner, border, background and height, filling whatever box it is given. A pill
+ * floating beside a bordered figure read as a tag ON the amount rather than as half of it.
  */
 @Composable
-internal fun <T> SendMoneyDropdownChip(
+internal fun <T> SendMoneyDropdownBox(
     label: String,
     selected: T,
     options: List<T>,
@@ -155,11 +162,19 @@ internal fun <T> SendMoneyDropdownChip(
     ) { onOpen ->
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(ChipCorner))
-                .background(KptTheme.colorScheme.surfaceContainerHighest)
+                .fillMaxSize()
+                .clip(RoundedCornerShape(CardCorner))
+                .border(
+                    width = CardBorder,
+                    color = KptTheme.colorScheme.outlineVariant,
+                    shape = RoundedCornerShape(CardCorner),
+                )
+                .background(KptTheme.colorScheme.surfaceContainerLowest)
                 .clickable(role = Role.DropdownList, onClick = onOpen)
-                .padding(horizontal = ChipPaddingHorizontal, vertical = ChipPaddingVertical),
-            horizontalArrangement = Arrangement.spacedBy(ChipGap / 2),
+                // Narrower than the field's CardPadding on purpose: this box is a fifth of the row,
+                // and 16dp a side would leave a three-letter code ellipsised on a small phone.
+                .padding(horizontal = HeroGap * 2),
+            horizontalArrangement = Arrangement.spacedBy(HeroGap, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -167,6 +182,8 @@ internal fun <T> SendMoneyDropdownChip(
                 style = KptTheme.typography.labelLarge,
                 color = KptTheme.colorScheme.onSurface,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             Icon(
                 imageVector = Icons.Filled.ArrowDropDown,

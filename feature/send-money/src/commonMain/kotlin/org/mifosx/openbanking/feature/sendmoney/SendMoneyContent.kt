@@ -10,7 +10,9 @@
 package org.mifosx.openbanking.feature.sendmoney
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,12 +39,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.currencySymbol
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.sendmoney.components.RailToggle
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAmountCard
-import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownChip
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownBox
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownField
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPayeeAvatarRow
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPayerPicker
@@ -71,6 +74,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_needs_payer
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payees_failed_body
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payees_failed_title
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payees_loading_a11y
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_helper
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_retry
@@ -204,9 +208,15 @@ private fun ConversionNotice(instructedCurrency: String) {
  * item is "Add new" — the only route to paying an unsaved account. Dropping the row when the list is
  * empty would take that away exactly when it is needed.
  *
- * Three empty cases, and they are not interchangeable: no payer chosen yet, a read that failed, or a
- * payer with nothing saved against it. The middle one used to render as the last, so a bank refusing
- * the beneficiaries endpoint read as the customer having no payees.
+ * Four cases with no list to show, and they are not interchangeable: no payer chosen yet, a read
+ * still in flight, a read that failed, or a payer with nothing saved against it. Two of them used to
+ * render as the last — so a bank refusing the beneficiaries endpoint read as the customer having no
+ * payees, and so did the entire window between choosing a payer and the answer arriving.
+ *
+ * The order of the arms is the ordering of causes, not a preference. "No payer" comes first because
+ * with no payer nothing is in flight to be loading. Loading comes before "none saved" because "you
+ * have no saved payees" is a claim about the account that cannot be made until the bank has
+ * answered — which is the whole defect, and it returns the moment these two are swapped.
  */
 @Composable
 private fun PayeeSection(
@@ -226,11 +236,16 @@ private fun PayeeSection(
             onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
             onAddNew = { onAction(SendMoneyAction.ShowManualCreditorEntry) },
             modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
+            // The placeholders belong in this row, not under it: a second line made the section
+            // taller while loading, so everything below jumped when the payees landed.
+            loading = state.payeesLoading,
+            loadingContentDescription = stringResource(Res.string.feature_send_money_payees_loading_a11y),
         )
         when {
             // Beneficiaries are saved per account, so without one there is no list to read.
             // Saying so beats showing someone else's payees or an empty row that looks broken.
             state.payeesUnavailable -> ChoosePayerFirstNotice()
+            state.payeesLoading -> Unit
             state.payeesFailed -> PayeesFailedNotice(onAction)
             !state.hasBeneficiaries -> NoSavedPayees()
         }
@@ -373,10 +388,12 @@ private fun AmountSection(
             errorMessage = state.amountProblem?.let { stringResource(it.messageResource()) },
             onAmountChange = { onAction(SendMoneyAction.EnterAmount(it)) },
         ) {
-            // Hidden domestically rather than shown and disabled: sterling is the only option on
-            // that rail, and a dead control invites a tap that does nothing.
-            if (state.rail == PaymentRail.International) {
-                InstructedCurrencyControl(state, onAction)
+            // Both rails fill the slot, so the figure begins at the same x-position on each and
+            // switching rails does not shift it. What differs is only whether the box can be
+            // opened: domestically sterling is the only option there is to open it onto.
+            when (state.rail) {
+                PaymentRail.Domestic -> StaticCurrencyBox(state.instructedCurrency)
+                PaymentRail.International -> InstructedCurrencyControl(state, onAction)
             }
         }
 
@@ -402,7 +419,7 @@ private fun AmountSection(
 }
 
 /**
- * The currency, at the amount row's trailing edge.
+ * The currency, in the box at the amount row's LEADING edge.
  *
  * The code alone on the control and the currency spelled out in the menu: beside a 36sp figure the
  * unit is read as part of the number, so "US Dollar (USD)" there would compete with it — but a menu
@@ -417,15 +434,57 @@ private fun InstructedCurrencyControl(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    SendMoneyDropdownChip(
+    SendMoneyDropdownBox(
         label = state.instructedCurrency,
         selected = state.instructedCurrency,
         options = state.offeredCurrencies,
         optionLabel = { currencyName(it) },
         optionTestTag = SendMoneyTestTags::instructedCurrencyOption,
         onSelect = { onAction(SendMoneyAction.SelectInstructedCurrency(it)) },
-        modifier = Modifier.testTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER),
+        modifier = Modifier.fillMaxSize().testTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER),
     )
+}
+
+/**
+ * The domestic rail's currency: the same box, saying `£`, with nothing to open.
+ *
+ * The rail was previously given no control at all, on the reasoning that a dead control invites a
+ * tap. That was right about the tap and wrong about the alternative it chose — it left the figure
+ * with nothing on screen naming sterling, so the one rail where the currency is certain was the one
+ * rail that never said what it was.
+ *
+ * So: shown, and genuinely inert. No `clickable` and no `Role`, which is what keeps it out of the
+ * tab order and out of a screen reader's list of controls — it reads as the label it is. It is
+ * drawn in `surfaceContainer` rather than the field's `surfaceContainerLowest` so that it is
+ * visibly not the openable box its international counterpart is, while keeping that box's corner,
+ * border and height so the figure does not move between the two.
+ *
+ * The symbol comes from [instructedCurrency] rather than a literal `£`: `selectRail` pins the
+ * domestic rail to `DOMESTIC_CURRENCY`, so the two cannot disagree, and reading the state means a
+ * future rail with a different fixed currency cannot render the wrong mark here.
+ */
+@Composable
+private fun StaticCurrencyBox(instructedCurrency: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(SendMoneyTestTags.STATIC_CURRENCY_BOX)
+            .clip(RoundedCornerShape(CardCorner))
+            .border(
+                width = CardBorder,
+                color = KptTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(CardCorner),
+            )
+            .background(KptTheme.colorScheme.surfaceContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = currencySymbol(instructedCurrency),
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
 }
 
 /**

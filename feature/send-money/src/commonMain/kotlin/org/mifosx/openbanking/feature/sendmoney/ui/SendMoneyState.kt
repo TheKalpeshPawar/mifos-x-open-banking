@@ -242,6 +242,27 @@ sealed interface SendMoneyUiState {
          * returned `200` on the same token.
          */
         val payeesFailed: Boolean = false,
+        /**
+         * The saved-payee read is still running, as opposed to having finished with nothing.
+         *
+         * The third outcome of the same stream, and the one that had nowhere to go: `isFailure()`
+         * excludes `Loading` deliberately — its KDoc says why, that "a notice under a list that is
+         * about to arrive would flash on every payer change" — but that intent was carried into no
+         * field, so everything downstream still saw a non-`Content` state flattened to an empty
+         * list and said "no saved payees" about a read that had not answered yet.
+         *
+         * The window is wider than it looks. It opens the moment a payer is chosen, reopens on
+         * every payer switch, and opens again on Retry — the failure path caches no content, so
+         * `ScreenDataStream` has nothing to preserve and the re-read passes back through `Loading`,
+         * flashing "no saved payees" over the failure card the customer has just tapped.
+         *
+         * **Not true merely because the stream says `Loading`.** The stream is seeded `Loading`
+         * before any payer exists, and with no payer nothing is in flight to wait for — so the
+         * ViewModel gates this on a chosen payer. Without that gate the very first paint of the
+         * form, which correctly says "choose an account to pay from", would also claim to be
+         * fetching that account's payees.
+         */
+        val payeesLoading: Boolean = false,
     ) : SendMoneyUiState {
 
         /**

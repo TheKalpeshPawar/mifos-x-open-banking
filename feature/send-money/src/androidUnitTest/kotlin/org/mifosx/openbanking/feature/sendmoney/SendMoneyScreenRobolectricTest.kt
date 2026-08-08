@@ -115,6 +115,8 @@ class SendMoneyScreenRobolectricTest {
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).assertDoesNotExist()
         composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
+        // No menu, but the rail still names what it is sending — the static box in the picker's place.
+        composeRule.onNodeWithTag(SendMoneyTestTags.STATIC_CURRENCY_BOX).performScrollTo().assertIsDisplayed()
     }
 
     /** ChargeBearer is required internationally with `U004`, and refused domestically. */
@@ -127,6 +129,26 @@ class SendMoneyScreenRobolectricTest {
             .assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
+        // The dropdown takes the static box's place rather than joining it: one currency control.
+        composeRule.onNodeWithTag(SendMoneyTestTags.STATIC_CURRENCY_BOX).assertDoesNotExist()
+    }
+
+    /**
+     * A read still running is its own state too, and the one that used to render as "no payees".
+     *
+     * On Robolectric rather than only on desktop because this is the harness that draws with real
+     * Android graphics — the shimmer is an infinite animation, and a state that never lets the test
+     * go idle is a state that would never let the app go idle either.
+     */
+    @Test
+    fun aPayeeReadStillRunningShowsPlaceholdersRatherThanNoPayees() {
+        render(SendMoneyFixtures.formState(payeesLoading = true))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).assertDoesNotExist()
+        // The escape that never needed the list survives the wait for it.
+        composeRule.onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
     }
 
     /** Two taps now, not one: the options live in a menu that has to be opened first. */

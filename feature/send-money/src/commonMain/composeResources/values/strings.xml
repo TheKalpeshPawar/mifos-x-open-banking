@@ -46,6 +46,11 @@
     <string name="feature_send_money_payees_failed_title">Couldn’t load your saved payees</string>
     <string name="feature_send_money_payees_failed_body">Your bank did not return them this time. You can try again, or pay someone by entering their account details.</string>
 
+    <!-- The payee read is still running. Spoken only: the state itself is a shimmer, which has no
+         text of its own, so without this a screen reader passes over the wait in silence and the
+         next thing it announces is whatever the read turned out to be. -->
+    <string name="feature_send_money_payees_loading_a11y">Loading your saved payees</string>
+
     <!-- The caption under the dashed avatar that opens the manual fields. -->
     <string name="feature_send_money_payee_add_new">Add new</string>
     <string name="feature_send_money_manual_entry_a11y">Enter a sort code and account number for someone who is not a saved payee</string>

@@ -644,6 +644,12 @@ class SendMoneyViewModel(
             amountLabel = amountLabel(entered),
             instructedCurrency = entered.instructedCurrency,
             payeesFailed = payees.isFailure(),
+            // Gated on a payer, not read straight off the stream. beneficiariesScreen is seeded
+            // Loading and the blank-id branch short-circuits to Content(emptyList()), so between
+            // the two there is a first paint where the stream says Loading and nothing is in
+            // flight — labelling that "still asking" would put a shimmer under the notice that
+            // already explains why the list is empty, and would say two things at once.
+            payeesLoading = entered.debtorAccountId != null && payees is ScreenState.Loading,
             offeredCurrencies = if (entered.rail == PaymentRail.International) {
                 OFFERED_CURRENCIES
             } else {
@@ -699,8 +705,10 @@ class SendMoneyViewModel(
  * Whether a payee read came back as a failure rather than as an answer.
  *
  * `Loading` is not one — it is the read still in progress, and a notice under a list that is about
- * to arrive would flash on every payer change. `Empty` is not one either: it is the bank saying
- * there are none.
+ * to arrive would flash on every payer change. That exclusion is now only half the answer: it keeps
+ * the failure notice away, but for a long time nothing else picked the state up, so the in-flight
+ * window fell through to "no saved payees" instead. `payeesLoading` is the field that catches it.
+ * `Empty` is not a failure either: it is the bank saying there are none.
  *
  * **`Unauthenticated` is treated as a payee failure and deliberately NOT escalated** to the
  * full-screen `TokenExpired` the accounts stream raises. Three reasons, in order of weight:

@@ -174,4 +174,145 @@ class SendMoneyPayeeLoadTest {
         assertFalse(state.payeesFailed)
         assertFalse(state.hasBeneficiaries)
     }
+
+    /**
+     * The read is running, and that is a third answer rather than the absence of one.
+     *
+     * Every assertion here is about what the screen must NOT say. An empty list with no
+     * explanation renders as "No saved payees", so the in-flight window told the customer
+     * something about their own account that the bank had not yet been asked.
+     */
+    @Test
+    fun aReadStillInFlightIsLoadingRatherThanAnEmptyList() = runTest {
+        val beneficiaries = failing(ScreenState.Loading)
+        val vm = viewModel(beneficiaries = beneficiaries)
+
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        val state = content(vm)
+        assertTrue(state.payeesLoading)
+        // Neither of the other two notices, both of which are claims the bank has not made yet.
+        assertFalse(state.payeesFailed)
+        assertFalse(state.payeesUnavailable)
+        // And no list, so nothing downstream can mistake this for a loaded empty account.
+        assertFalse(state.hasBeneficiaries)
+    }
+
+    /**
+     * **The trap.** No payer chosen is NOT loading, however the stream happens to be seeded.
+     *
+     * `beneficiariesScreen` starts at `Loading` and the blank-id branch short-circuits to
+     * `Content(emptyList())`, so at first paint the stream can read `Loading` while nothing has
+     * been asked for. The form already explains that case — "choose an account to pay from" — and a
+     * shimmer under that notice would be the screen saying two different things at once, one of
+     * them untrue. This is the pairing [retryingThePayeesDoesNothingWithoutAPayer] also guards.
+     */
+    @Test
+    fun noPayerChosenIsNotTreatedAsLoading() = runTest {
+        val vm = viewModel(beneficiaries = failing(ScreenState.Loading))
+
+        val state = content(vm)
+        assertTrue(state.payeesUnavailable)
+        assertFalse(state.payeesLoading)
+    }
+
+    /**
+     * Payees arriving ends the wait.
+     *
+     * The first of four terminal outcomes, each asserted on its own below: a spinner that never
+     * stops is worse than the state it was added to fix.
+     */
+    @Test
+    fun payeesArrivingClearsTheLoadingFlag() = runTest {
+        val beneficiaries = failing(ScreenState.Loading)
+        val vm = viewModel(beneficiaries = beneficiaries)
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+        assertTrue(content(vm).payeesLoading)
+
+        beneficiaries.emit(ScreenState.Content(SendMoneyFixtures.beneficiaries(), DataFreshness.FRESH))
+
+        val state = content(vm)
+        assertFalse(state.payeesLoading)
+        assertTrue(state.hasBeneficiaries)
+    }
+
+    /** An account with nothing saved against it ends it too, and gets the "no payees" notice. */
+    @Test
+    fun anEmptyAnswerClearsTheLoadingFlag() = runTest {
+        val beneficiaries = failing(ScreenState.Loading)
+        val vm = viewModel(beneficiaries = beneficiaries)
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        beneficiaries.emit(ScreenState.Content(emptyList(), DataFreshness.FRESH))
+
+        val state = content(vm)
+        assertFalse(state.payeesLoading)
+        assertFalse(state.payeesFailed)
+        assertFalse(state.hasBeneficiaries)
+    }
+
+    /** And a refusal ends it, handing over to the failure card rather than sitting there. */
+    @Test
+    fun aRefusalClearsTheLoadingFlag() = runTest {
+        val beneficiaries = failing(ScreenState.Loading)
+        val vm = viewModel(beneficiaries = beneficiaries)
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        beneficiaries.emit(ScreenState.Error(RemoteException(NetworkError.Client.Forbidden(null))))
+
+        val state = content(vm)
+        assertFalse(state.payeesLoading)
+        assertTrue(state.payeesFailed)
+    }
+
+    /**
+     * Deselecting the payer ends it as well, which is the outcome with no answer at all.
+     *
+     * Letting the bank choose drops the account, and beneficiaries are account-scoped — so the read
+     * that was in flight is no longer for anything. Without this the shimmer would outlive the
+     * question it was asked, under a notice explaining that there is no account to ask about.
+     */
+    @Test
+    fun losingThePayerEndsTheWaitRatherThanLeavingItRunning() = runTest {
+        val beneficiaries = failing(ScreenState.Loading)
+        val vm = viewModel(beneficiaries = beneficiaries)
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+        assertTrue(content(vm).payeesLoading)
+
+        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
+
+        val state = content(vm)
+        assertFalse(state.payeesLoading)
+        assertTrue(state.payeesUnavailable)
+    }
+
+    /**
+     * **The second symptom, and the easier one to regress.** Retry must not flash "no saved payees".
+     *
+     * The failure path caches no content, so `ScreenDataStream` has nothing to preserve and a
+     * refresh genuinely passes back through `Loading`. Before `payeesLoading` existed that
+     * `Loading` flattened to an empty list, so tapping Retry on the failure card replaced it with
+     * "No saved payees" — the exact untrue statement the failure card had just been added to
+     * prevent — and then replaced that with the failure card again a moment later. Fixing only the
+     * first-load case would have left this half of the defect in place.
+     */
+    @Test
+    fun retryingAfterAFailureShowsTheWaitAndNotTheNoPayeesNotice() = runTest {
+        val beneficiaries =
+            failing(ScreenState.Error(RemoteException(NetworkError.Client.Forbidden(null))))
+        val vm = viewModel(beneficiaries = beneficiaries)
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+        assertTrue(content(vm).payeesFailed)
+
+        vm.trySendAction(SendMoneyAction.RetryPayees)
+        beneficiaries.emit(ScreenState.Loading)
+
+        val state = content(vm)
+        assertTrue(state.payeesLoading)
+        // The failure card is gone, and — the point — nothing has replaced it with a claim that the
+        // account has no payees. `hasBeneficiaries` is false here, so it is `payeesLoading` alone
+        // that stands between this state and the wrong notice.
+        assertFalse(state.payeesFailed)
+        assertFalse(state.hasBeneficiaries)
+    }
 }

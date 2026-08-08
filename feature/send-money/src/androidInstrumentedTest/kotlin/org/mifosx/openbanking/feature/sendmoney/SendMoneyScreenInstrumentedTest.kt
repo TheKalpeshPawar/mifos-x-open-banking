@@ -84,20 +84,24 @@ private fun formState(
     debtorAccountId: String? = CURRENT_ACCOUNT_ID,
     payerPickerExpanded: Boolean = false,
     payeesFailed: Boolean = false,
+    payeesLoading: Boolean = false,
 ): SendMoneyState = SendMoneyState(
     uiState = SendMoneyUiState.Content(
         step = SendMoneyStep.Form,
         rail = rail,
         debtorAccounts = listOf(currentAccount()),
         debtorRows = debtorRows(),
+        // A read that has not answered carries no list, exactly as a refused one does — `content()`
+        // takes the list off `ScreenState.Content` and every other state yields an empty one.
         beneficiaries = when {
-            payeesFailed -> emptyList()
+            payeesFailed || payeesLoading -> emptyList()
             rail == PaymentRail.Domestic -> domesticPayees()
             else -> internationalPayees()
         },
         debtorAccountId = debtorAccountId,
         payerPickerExpanded = payerPickerExpanded,
         payeesFailed = payeesFailed,
+        payeesLoading = payeesLoading,
         availableBalanceLabel = if (debtorAccountId == null) "" else "£21,530.92",
         offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
         debtorCurrency = if (debtorAccountId == null) "" else "GBP",
@@ -151,6 +155,31 @@ class SendMoneyScreenInstrumentedTest {
         composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_RETRY_BUTTON).performScrollTo().performClick()
 
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.RetryPayees), actions)
+    }
+
+    /**
+     * On a real device too: a read still running shimmers rather than claiming there are none.
+     *
+     * Worth a device test despite the JVM suites covering the same states, because the shimmer is
+     * an infinite animation and a real device is where "the screen never settles" would actually
+     * bite — the test rule waits for idle before it can assert anything at all.
+     */
+    @Test
+    fun aPayeeReadStillRunningShowsPlaceholdersRatherThanNoPayees() {
+        render(formState(payeesLoading = true))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
+    }
+
+    /** The domestic rail names sterling in the box the international rail opens a menu from. */
+    @Test
+    fun theDomesticRailShowsAStaticCurrencyBoxInThePickersPlace() {
+        render(formState())
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.STATIC_CURRENCY_BOX).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
     }
 
     /** On a real device too: the options are behind a menu, so the field is opened first. */

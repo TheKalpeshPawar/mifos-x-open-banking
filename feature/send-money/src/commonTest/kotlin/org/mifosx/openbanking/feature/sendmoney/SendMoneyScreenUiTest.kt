@@ -270,13 +270,17 @@ class SendMoneyScreenUiTest {
     }
 
     /**
-     * One currency control, on the amount, and only on the rail that can use it.
+     * One currency control, and it is on the amount.
      *
      * The "Recipient receives" selector that used to sit below the amount is gone: with the transfer
      * currency derived from the instructed one, a second menu asked the same question twice.
+     *
+     * It no longer claims the domestic rail has no control at all — that rail now names sterling in
+     * a box of the same shape, which [theDomesticRailStatesSterlingWithoutOfferingAChoice] covers.
+     * What is still true, and what this asserts, is that only one control anywhere is a *choice*.
      */
     @Test
-    fun theAmountCarriesTheOnlyCurrencyControlAndDomesticHasNone() = runComposeUiTest {
+    fun theAmountCarriesTheOnlyCurrencyChoiceAndNothingRestatesIt() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.formState(rail = PaymentRail.International),
@@ -288,12 +292,35 @@ class SendMoneyScreenUiTest {
         onNodeWithText("Recipient receives").assertDoesNotExist()
     }
 
+    /**
+     * The domestic rail names its currency without offering a choice about it.
+     *
+     * It used to do neither: no control at all, which left `250.00` on screen with nothing saying
+     * sterling. Both halves are asserted because either one alone is the old bug or a new one — a
+     * box that opens a menu of one option, or a rail that still will not say what it is sending.
+     */
     @Test
-    fun theDomesticRailOffersNoCurrencyControl() = runComposeUiTest {
+    fun theDomesticRailStatesSterlingWithoutOfferingAChoice() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
         }
+        onNodeWithTag(SendMoneyTestTags.STATIC_CURRENCY_BOX).performScrollTo().assertIsDisplayed()
+        onNodeWithText("£").assertExists()
         onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
+    }
+
+    /** And the international rail swaps the one for the other, in the same place. */
+    @Test
+    fun theInternationalRailSwapsTheStaticBoxForThePicker() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.STATIC_CURRENCY_BOX).assertDoesNotExist()
     }
 
     /**
@@ -398,6 +425,7 @@ class SendMoneyScreenUiTest {
         onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
         onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).assertDoesNotExist()
     }
 
     /** And it is not a dead end: retry, and the only route to a payment without a list. */
@@ -415,7 +443,57 @@ class SendMoneyScreenUiTest {
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.RetryPayees), actions)
     }
 
-    /** A list that loaded and happens to be empty still says the other thing. */
+    /**
+     * A read still running says so, rather than answering for the bank before it has replied.
+     *
+     * This is the rendered half of the defect: `payeesLoading` is what keeps the shimmer in, and
+     * asserting the absence of NO_SAVED_PAYEES is what keeps the old behaviour out. Both notices
+     * are checked absent, because "still asking" is neither a claim about the account nor a
+     * complaint about the bank.
+     */
+    @Test
+    fun aPayeeReadStillRunningShowsPlaceholdersRatherThanTheNoPayeesNotice() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(payeesLoading = true), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertDoesNotExist()
+    }
+
+    /**
+     * And waiting does not cost the customer the one route that never needed the list.
+     *
+     * "Add new" is the first item of the avatar row, which is rendered above the notice rather than
+     * inside it — so the wait must not be able to take it away, any more than a failure can.
+     */
+    @Test
+    fun aPayeeReadStillRunningKeepsAddNewAvailable() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(payeesLoading = true), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
+    }
+
+    /**
+     * With no payer the notice explains itself; it does not also shimmer.
+     *
+     * The rendered mirror of the ViewModel's gate. Two states describing the same empty row at once
+     * would be the screen contradicting itself, and this is the ordering inside `PayeeSection`'s
+     * `when` that stops it — "no payer" first, because with no payer nothing is in flight.
+     */
+    @Test
+    fun noPayerChosenDoesNotAlsoRenderAsLoading() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).assertDoesNotExist()
+    }
+
+    /** A list that loaded and happens to be empty still says the other thing — and does not shimmer. */
     @Test
     fun anEmptyPayeeListIsNotReportedAsAFailure() = runComposeUiTest {
         setContent {
@@ -423,6 +501,7 @@ class SendMoneyScreenUiTest {
         }
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYEES_LOADING).assertDoesNotExist()
     }
 
     /** With no payer of our own the row says so, rather than rendering as an empty field. */

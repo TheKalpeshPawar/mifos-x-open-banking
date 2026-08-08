@@ -85,6 +85,20 @@ class FakeBeneficiariesRepository(
         requestedAccountIds += accountId
         return ScreenDataStream(state = states, refreshTrigger = refreshes)
     }
+
+    /**
+     * Moves the stream to its next state, so a test can watch one read change its mind.
+     *
+     * The constructor's [states] alone can only pose a stream that was born in one state and stays
+     * there, which is enough for a read that succeeds or a read that has already failed — but the
+     * two cases this exists for are transitions. `Loading` then `Content` is the first fetch after
+     * a payer is chosen; `Error` then `Loading` is Retry, where the real `ScreenDataStream` has no
+     * cached content to preserve and so genuinely goes back through `Loading`. Neither can be
+     * expressed by a starting value.
+     */
+    fun emit(state: ScreenState<List<BeneficiaryItem>>) {
+        states.value = state
+    }
 }
 
 /**

@@ -108,6 +108,19 @@ class SendMoneyScreenScreenshotTest {
         capture("form_payees_failed", SendMoneyFixtures.formState(payeesFailed = true))
 
     /**
+     * The payee read in flight, which is the state no assertion can judge.
+     *
+     * A tag proves the shimmer is mounted. Only the image shows whether the placeholders are shaped
+     * like the row that replaces them and whether the area is tall enough that the amount card
+     * below does not jump when the real payees land — the reason the state was given a minimum
+     * height at all. It also sits directly beside `form_no_payees`, which is the golden it must not
+     * be mistakable for.
+     */
+    @Test
+    fun payeeLoadInFlightGolden() =
+        capture("form_payees_loading", SendMoneyFixtures.formState(payeesLoading = true))
+
+    /**
      * An unpayable amount, where the message takes the balance line rather than being added below it.
      *
      * Worth a golden because the card must not grow taller as someone types — a card that reflows

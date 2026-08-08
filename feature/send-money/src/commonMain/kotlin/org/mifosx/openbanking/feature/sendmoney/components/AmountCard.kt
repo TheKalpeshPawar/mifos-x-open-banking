@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +39,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.feature.sendmoney.CardBorder
 import org.mifosx.openbanking.feature.sendmoney.CardCorner
 import org.mifosx.openbanking.feature.sendmoney.CardPadding
-import org.mifosx.openbanking.feature.sendmoney.HeadingGap
+import org.mifosx.openbanking.feature.sendmoney.RowGap
 import org.mifosx.openbanking.feature.sendmoney.SectionGap
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyTestTags
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
@@ -48,8 +48,21 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_placeholder
 import template.core.base.designsystem.theme.KptTheme
 
-/** Keeps the figure's row a stable height whether or not the trailing control is there. */
+/** Keeps the figure's row a stable height, and is the height the currency box is cut to. */
 private val FigureRowMinHeight = 48.dp
+
+/**
+ * How the row is divided between the currency and the figure.
+ *
+ * Weights rather than a fixed width for the box: the proportion then holds on a phone, on a desktop
+ * window several times its width, and at `FormMaxWidth` in between. A fixed width would be a fifth
+ * of the row on one of those and a third on another.
+ *
+ * They are declared here, in the one component that lays the row out, rather than passed in — that
+ * is what makes the figure start at the same x-position whichever control the rail supplies.
+ */
+private const val CURRENCY_WEIGHT = 0.22f
+private const val FIGURE_WEIGHT = 0.78f
 
 /**
  * The amount, as the card the reference leads with: the figure, a hairline, and the available
@@ -62,8 +75,8 @@ private val FigureRowMinHeight = 48.dp
  *
  * **No currency mark inside the field.** A symbol on the figure and a currency control beside it
  * stated the same thing twice, and the symbol was the half that could not be changed. The unit is
- * now said once, by the control at the row's trailing edge; the balance line beneath keeps its own
- * symbol because it reads in the *account's* currency, which is the one place the two can differ.
+ * now said once, by the [leading] control; the balance line beneath keeps its own symbol because it
+ * reads in the *account's* currency, which is the one place the two can differ.
  *
  * **Major units.** `250` and `250.00` both mean £250. The field was labelled "Amount in pence" and
  * parsed minor units, so someone typing 250 for £250 sent £2.50. Nothing on screen mentions pence
@@ -74,9 +87,16 @@ private val FigureRowMinHeight = 48.dp
  * [errorMessage] takes that line rather than being added below it, so the card cannot grow taller
  * as the customer types.
  *
- * [trailing] sits at the row's trailing edge as a peer of the field rather than glued to the digits.
- * The international rail passes the currency control through it; the domestic rail passes nothing,
- * because sterling is the only option there and a dead control invites a tap that does nothing.
+ * [leading] is the currency, and it is the row's FIRST child. It sat at the trailing edge, where a
+ * control that names the unit of the figure read as an afterthought bolted on after the number; and
+ * it was omitted entirely on the domestic rail, which left `250.00` with nothing on screen naming
+ * sterling at all.
+ *
+ * It has no default and both rails must supply one — the domestic rail a static `£`, the
+ * international rail its dropdown. That is not ceremony: the slot's width is fixed here, so a rail
+ * passing nothing would leave a fifth of the row blank and, worse, only appear to hold the figure's
+ * position. Requiring it is what makes "the field starts in the same place on both rails" true by
+ * construction rather than by two call sites agreeing.
  */
 @Composable
 internal fun SendMoneyAmountCard(
@@ -85,7 +105,7 @@ internal fun SendMoneyAmountCard(
     errorMessage: String?,
     onAmountChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    trailing: @Composable RowScope.() -> Unit = {},
+    leading: @Composable () -> Unit,
 ) {
     val amountLabel = stringResource(Res.string.feature_send_money_amount_label)
     Column(
@@ -110,18 +130,24 @@ internal fun SendMoneyAmountCard(
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = FigureRowMinHeight),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(HeadingGap),
+            horizontalArrangement = Arrangement.spacedBy(RowGap),
         ) {
+            // A definite height rather than fillMaxHeight: this row sits inside a vertical scroll,
+            // so its own height constraint is unbounded and fillMaxHeight would silently do
+            // nothing. Cutting the box to the figure row's height is what makes the two look like
+            // one control split in half rather than a small thing parked beside a big one.
+            Box(
+                modifier = Modifier.weight(CURRENCY_WEIGHT).height(FigureRowMinHeight),
+                contentAlignment = Alignment.Center,
+            ) {
+                leading()
+            }
             AmountField(
                 amount = amount,
                 contentDescription = amountLabel,
                 onAmountChange = onAmountChange,
-                // Takes what is left so the control lands hard right rather than trailing the
-                // digits. With the symbol gone there is nothing on the left for a centred,
-                // intrinsically sized field to stay next to.
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(FIGURE_WEIGHT),
             )
-            trailing()
         }
 
         // Only when there is something under it. With no payer there is no balance to state and no
@@ -158,10 +184,9 @@ private fun AmountFooter(balanceLabel: String, errorMessage: String?) {
  * The placeholder is drawn behind the field rather than substituted into it, so an empty card still
  * shows the shape of what is wanted without anyone having to delete a zero to type over it.
  *
- * Left-aligned and given the row's spare width. It was centred inside an intrinsic width, which
- * existed only to stop the currency mark being marooned to the left of its own amount; with no mark
- * there is nothing to stay beside, and a figure floating in the middle of the card would leave the
- * balance line beneath it starting somewhere else.
+ * Left-aligned and weighted rather than centred inside an intrinsic width. Centring it would leave
+ * a gap between the currency box and the figure it qualifies, and would start the figure somewhere
+ * other than where the balance line beneath it starts.
  */
 @Composable
 private fun AmountField(

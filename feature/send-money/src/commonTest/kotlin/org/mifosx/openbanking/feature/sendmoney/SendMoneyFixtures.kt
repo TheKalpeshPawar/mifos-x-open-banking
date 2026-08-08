@@ -266,6 +266,7 @@ object SendMoneyFixtures {
         debtorCurrency: String = "GBP",
         instructedCurrency: String = "GBP",
         payeesFailed: Boolean = false,
+        payeesLoading: Boolean = false,
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Form,
@@ -275,13 +276,22 @@ object SendMoneyFixtures {
             offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
             instructedCurrency = instructedCurrency,
             payeesFailed = payeesFailed,
+            payeesLoading = payeesLoading,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
-            // Payees are account-scoped, so with no payer the ViewModel emits none — and a failed
-            // read has none either, because every non-Content state flattens to an empty list.
-            // Handing a list to either would depict a state production cannot reach, and a golden of
-            // it would document the wrong screen.
-            beneficiaries = if (debtorAccountId == null || payeesFailed) emptyList() else beneficiaries,
+            // Payees are account-scoped, so with no payer the ViewModel emits none — and neither a
+            // failed read nor one still in flight has any either, because `content()` reads the
+            // list off `ScreenState.Content` and every other state yields an empty one. Handing a
+            // list to any of the three would depict a state production cannot reach, and a golden
+            // of it would document the wrong screen.
+            //
+            // The `payeesLoading` term is the one that could not be written before: the fixture
+            // modelled two outcomes, a list or no list, and had no way to say "not yet".
+            beneficiaries = if (debtorAccountId == null || payeesFailed || payeesLoading) {
+                emptyList()
+            } else {
+                beneficiaries
+            },
             debtorAccountId = debtorAccountId,
             payerPickerExpanded = payerPickerExpanded,
             letBankChoosePayer = letBankChoosePayer,

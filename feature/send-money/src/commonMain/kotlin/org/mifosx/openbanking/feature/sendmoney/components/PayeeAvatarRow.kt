@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +40,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry_a11y
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_add_new
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
+import template.core.base.designsystem.component.KptShimmerLoadingBox
 import template.core.base.designsystem.theme.KptTheme
 
 /** The ring is drawn in reserved space, so selecting cannot resize an avatar and reflow the row. */
@@ -63,6 +68,24 @@ private val CaptionWidth = SlotSize + 8.dp
 
 private const val DASH_ON = 6f
 private const val DASH_OFF = 5f
+
+/** As many placeholders as the fixture account has payees, which is what the row usually returns. */
+private const val PLACEHOLDER_COUNT = 3
+
+/** A caption's own height, so the loading area can reserve one without measuring text. */
+private val CaptionHeight = 14.dp
+
+/**
+ * One avatar row, floor to ceiling.
+ *
+ * The loading area is held to this so the section cannot collapse to nothing and then spring open
+ * when the payees land, bouncing the amount field — the thing the customer is actually aiming at —
+ * down the screen under their finger.
+ *
+ * `SendMoneySkeleton`'s `CreditorListHeight` is NOT the figure to reuse: that is the old
+ * vertical-list block, and it is more than twice this.
+ */
+private val PayeeRowHeight = SlotSize + HeadingGap + CaptionHeight
 
 /**
  * The payees, as a horizontal row of avatars.
@@ -83,15 +106,30 @@ internal fun SendMoneyPayeeAvatarRow(
     onSelect: (String) -> Unit,
     onAddNew: () -> Unit,
     modifier: Modifier = Modifier,
+    loading: Boolean = false,
+    loadingContentDescription: String = "",
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
+            .heightIn(min = PayeeRowHeight)
             .padding(vertical = HeadingGap),
         horizontalArrangement = Arrangement.spacedBy(AvatarGap),
     ) {
         AddNewAvatar(onClick = onAddNew)
+
+        // Placeholders sit INSIDE this row, after "Add new", rather than in a row of their own.
+        // Under it they occupied a second line, so the form stood ~115dp taller while loading and
+        // everything below it jumped up the moment the payees landed — the exact collapse the
+        // minimum height above exists to prevent.
+        if (loading) {
+            SendMoneyPayeeLoadingRow(
+                contentDescription = loadingContentDescription,
+                modifier = Modifier.testTag(SendMoneyTestTags.PAYEES_LOADING),
+            )
+        }
+
         payees.forEach { payee ->
             PayeeAvatar(
                 payee = payee,
@@ -100,6 +138,57 @@ internal fun SendMoneyPayeeAvatarRow(
                 onClick = { onSelect(payee.id) },
                 modifier = Modifier.testTag(SendMoneyTestTags.creditorRow(payee.id)),
             )
+        }
+    }
+}
+
+/**
+ * The saved payees are still being read: placeholders shaped like the row that is coming.
+ *
+ * A shimmer and not a spinner, and the reason is written down in `SendMoneySkeleton`'s KDoc — "a
+ * spinner here would be the one screen that loads differently from the rest". This screen already
+ * shimmers while its accounts load; shimmering for its payees too is the same screen keeping its
+ * word.
+ *
+ * Emitted INSIDE [SendMoneyPayeeAvatarRow], immediately after "Add new" — which is why it neither
+ * replaces that row nor adds a second one. Replacing it would take away the only route to paying
+ * someone unsaved for exactly as long as the customer is waiting to learn whether they need it;
+ * sitting under it made the section a line taller while loading, so the form collapsed upward the
+ * moment the payees arrived.
+ *
+ * @param contentDescription Resolved by the caller and applied here, because a shimmer has no text
+ *   of its own: without this the whole state is silent to a screen reader, which is the same lie in
+ *   a different medium.
+ */
+@Composable
+internal fun SendMoneyPayeeLoadingRow(
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .semantics { this.contentDescription = contentDescription },
+        horizontalArrangement = Arrangement.spacedBy(AvatarGap),
+    ) {
+        repeat(PLACEHOLDER_COUNT) {
+            Column(
+                modifier = Modifier.width(CaptionWidth),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(HeadingGap),
+            ) {
+                Box(
+                    modifier = Modifier.size(SlotSize),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    KptShimmerLoadingBox(
+                        modifier = Modifier.size(AvatarSize),
+                        shape = CircleShape,
+                    )
+                }
+                KptShimmerLoadingBox(
+                    modifier = Modifier.fillMaxWidth().height(CaptionHeight),
+                )
+            }
         }
     }
 }

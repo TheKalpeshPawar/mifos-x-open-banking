@@ -43,6 +43,13 @@ internal object SendMoneyTestTags {
      * none — asserting one where the other belongs is the defect these two tags exist to separate.
      */
     const val PAYEES_FAILED = "sendMoney:payeesFailed"
+
+    /**
+     * The payee read is still in flight — a third thing again, and the one that used to render as
+     * [NO_SAVED_PAYEES]. Every assertion on this tag is worth double: that it is there while the
+     * read is running, and that it is GONE on all four of the outcomes that end the read.
+     */
+    const val PAYEES_LOADING = "sendMoney:payeesLoading"
     const val PAYEES_RETRY_BUTTON = "sendMoney:payeesRetryButton"
     const val MANUAL_ENTRY_BUTTON = "sendMoney:manualEntryButton"
     const val MANUAL_SORT_CODE = "sendMoney:manualSortCode"
@@ -58,13 +65,22 @@ internal object SendMoneyTestTags {
     const val CHARGE_BEARER_PICKER = "sendMoney:chargeBearerPicker"
 
     /**
-     * The currency, at the trailing edge of the amount row. International only.
+     * The currency, in the box at the LEADING edge of the amount row. International only.
      *
      * The form's only currency control. `CURRENCY_MISMATCH` and the separate transfer-currency
      * picker are gone with the second selector — a tag with nothing behind it would send the next
      * reader looking for a field that no longer exists.
      */
     const val INSTRUCTED_CURRENCY_PICKER = "sendMoney:instructedCurrencyPicker"
+
+    /**
+     * The domestic rail's `£`, in the same box and at the same place, with nothing to open.
+     *
+     * Its own tag rather than sharing [INSTRUCTED_CURRENCY_PICKER], because the two are the same
+     * shape and the difference between them is exactly what wants asserting: the domestic rail must
+     * name its currency AND must not offer a menu, and one tag could not say both.
+     */
+    const val STATIC_CURRENCY_BOX = "sendMoney:staticCurrencyBox"
     const val REVIEW_BUTTON = "sendMoney:reviewButton"
 
     const val REVIEW_LEAD = "sendMoney:reviewLead"
