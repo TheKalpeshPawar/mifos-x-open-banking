@@ -16,13 +16,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
+import org.mifosx.openbanking.core.ui.scaffold.rememberKptPullToRefreshState
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_screen_title
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
+import org.mifosx.openbanking.feature.paymentstatus.ui.isReading
 
+/**
+ * One submitted payment as the bank currently reports it.
+ *
+ * Pull-to-refresh is wired at the scaffold so the gesture also works from the error page, which is
+ * exactly where someone reaches for it. It dispatches the same `RefreshStatus` the Refresh button
+ * does, so both share one path through the view model — and the button stays, because the gesture
+ * is undiscoverable on desktop and web where this screen also runs.
+ */
 @Composable
 internal fun PaymentStatusScreen(
     onBack: () -> Unit,
@@ -36,6 +46,11 @@ internal fun PaymentStatusScreen(
         showNavigationIcon = true,
         onNavigationIconClick = onBack,
         title = stringResource(Res.string.feature_payment_status_screen_title),
+        pullToRefreshState = rememberKptPullToRefreshState(
+            isEnabled = true,
+            isRefreshing = state.uiState.isReading,
+            onRefresh = { viewModel.trySendAction(PaymentStatusAction.RefreshStatus) },
+        ),
         modifier = modifier,
     ) {
         PaymentStatusScreenContent(

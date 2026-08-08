@@ -161,6 +161,38 @@ class PaymentAuthRepositoryImplTest {
 
     // endregion
 
+    // region — a stale callback is not a security event
+
+    /**
+     * The split that used to be one branch.
+     *
+     * `discardAuthorisation()` clears the session the moment a payment finishes, so a callback for a
+     * payment that already went through — a restored browser tab, a tapped history entry — arrives
+     * with nothing pending. That is the ordinary way to reach this, and calling it a SecurityError
+     * accused the customer of tampering for reopening their own link.
+     */
+    @Test
+    fun aCallbackWithNothingInFlightIsReportedAsNoPending() = runTest {
+        val result = repository().validateCallback("https://cb/?code=abc&state=$STATE")
+
+        assertEquals(PaymentAuthValidation.NoPending, result)
+    }
+
+    /**
+     * The other half of the split, and the one that really is a replay signal: a `state` was issued
+     * for an authorisation in flight, and the one that came back is not it.
+     */
+    @Test
+    fun aCallbackCarryingTheWrongStateIsStillASecurityError() = runTest {
+        val repository = repository(pendingSession())
+
+        val result = repository.validateCallback("https://cb/?code=abc&state=someone-elses-state")
+
+        assertEquals(PaymentAuthValidation.SecurityError, result)
+    }
+
+    // endregion
+
     // region — discarding the authorisation
 
     /**

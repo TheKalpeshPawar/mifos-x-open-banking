@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
@@ -43,6 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.paymentstatus.components.PaymentTimeline
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_completed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_accc
@@ -66,6 +68,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference_empty
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_refresh
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_refresh_failed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_settled
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_status_changed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_submitted
@@ -112,8 +115,18 @@ internal fun PaymentStatusContent(
     ) {
         SummaryCard(state)
 
+        // A refresh that failed has not invalidated anything below it — the answer on screen is
+        // still the bank's, only older than asked for. Said once, above the content it qualifies.
+        if (state.refreshFailure != null) {
+            RefreshFailureNote()
+        }
+
         if (state.inProgress) {
             InProgressNote()
+        }
+
+        if (state.timeline.isNotEmpty()) {
+            PaymentTimeline(entries = state.timeline)
         }
 
         DetailsSection(state)
@@ -239,6 +252,38 @@ private fun StatusChip(disposition: PaymentDisposition) {
     }
 }
 
+/**
+ * The read failed; what is already on screen stays.
+ *
+ * Error-container coloured so it is not mistaken for the payment having gone wrong — the payment is
+ * fine, the refresh is what did not land, which is why this sits above the status rather than
+ * replacing it.
+ */
+@Composable
+private fun RefreshFailureNote() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(NoteShape)
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(NotePadding)
+            .testTag(PaymentStatusTestTags.REFRESH_FAILURE),
+        horizontalArrangement = Arrangement.spacedBy(NoteGap),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.CloudOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(NoteIconSize),
+        )
+        Text(
+            text = stringResource(Res.string.feature_payment_status_refresh_failed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    }
+}
+
 @Composable
 private fun InProgressNote() {
     Row(
@@ -321,12 +366,14 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
 
             // Only what the bank charged. No row at all when it charged nothing — "£0.00" would be
             // a claim, and this screen is the first place in the journey entitled to make one.
-            state.charges.forEach { charge ->
+            // Indexed: one tag repeated across every charge row made `onNodeWithTag` ambiguous the
+            // moment a payment carried two, which the single-charge fixture never showed.
+            state.charges.forEachIndexed { index, charge ->
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_fee, charge.typeLabel),
                     value = charge.amountLabel,
-                    tag = PaymentStatusTestTags.DETAIL_FEE,
+                    tag = PaymentStatusTestTags.detailFee(index),
                 )
             }
 

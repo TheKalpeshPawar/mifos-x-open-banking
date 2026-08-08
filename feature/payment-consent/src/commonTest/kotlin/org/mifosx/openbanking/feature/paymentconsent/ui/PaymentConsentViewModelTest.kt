@@ -13,6 +13,7 @@ import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -132,6 +133,107 @@ class PaymentConsentViewModelTest {
         assertEquals(1, repository.discardCount)
     }
 
+    /**
+     * The approved panel is the only positive thing this screen ever shows — a submitted payment
+     * leaves immediately for its receipt — so the flow must actually pass through it rather than
+     * jumping from "waiting for your bank" to "checking the money is available".
+     *
+     * Observed at the one instant it is visible: the staged draft is read after the state is set and
+     * before the funds check replaces it. The consent is parked in Checking first so the ViewModel
+     * exists to be observed by the time the hook fires.
+     */
+    @Test
+    fun anAuthorisedConsentIsShownAsApprovedBeforeTheFundsCheckStarts() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("AWAU"))
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(repository, payments)
+        val seen = mutableListOf<PaymentConsentUiState>()
+        payments.onStagedDraft = { seen += vm.stateFlow.value.uiState }
+
+        repository.statusReturns(NetworkResult.Success("AUTH"))
+        vm.trySendAction(PaymentConsentAction.CheckAgain)
+        advanceUntilIdle()
+
+        assertEquals(listOf<PaymentConsentUiState>(PaymentConsentUiState.Approved), seen)
+    }
+
+    /**
+     * `COND` means the bank already created the payment. The regression this pins is the copy.
+     *
+     * Before this case existed the status fell through to the poll, ran the wait out and reported
+     * `AuthorisationTimedOut` — whose panel says "No money has been moved" about a payment the bank
+     * has already taken. Asserting the state is really asserting that the app stops saying that.
+     */
+    @Test
+    fun aConsumedConsentIsReportedAsAlreadySubmittedRatherThanTimingOut() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("COND"))
+
+        val vm = viewModel(repository)
+
+        assertEquals(PaymentConsentUiState.AlreadySubmitted, vm.stateFlow.value.uiState)
+    }
+
+    /** It is terminal on the first look: polling a consumed consent cannot improve on it. */
+    @Test
+    fun aConsumedConsentStopsOnTheFirstLook() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("COND"))
+
+        viewModel(repository)
+
+        assertEquals(1, repository.statusChecks.size)
+    }
+
+    /**
+     * A payment the bank created must not be filed as a failure.
+     *
+     * Writing a failed row here would put a successful payment into history as a failed one, and the
+     * customer would then meet the same payment twice — once wrongly.
+     */
+    @Test
+    fun aConsumedConsentRecordsNoFailureButStillClearsTheSession() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("COND"))
+        val history = FakePaymentHistoryRepository()
+
+        viewModel(repository, history = history)
+
+        assertTrue(history.failures.isEmpty())
+        assertEquals(1, repository.discardCount)
+    }
+
+    /** Nothing is submitted off a consumed consent — the payment it refers to already exists. */
+    @Test
+    fun aConsumedConsentSubmitsNothingFurther() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("COND"))
+        val payments = FakePaymentInitiationRepository()
+
+        viewModel(repository, payments)
+
+        assertTrue(payments.submittedDrafts.isEmpty())
+        assertTrue(payments.fundsChecks.isEmpty())
+    }
+
+    /**
+     * `RJCT` is the PSU declining at the bank, observed through the status read rather than through
+     * the callback's `error` parameter. Both routes must reach the same declined outcome; this one
+     * used to report a timeout instead.
+     */
+    @Test
+    fun aRejectedConsentReadsAsDeclinedRatherThanTimingOut() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("RJCT"))
+
+        val vm = viewModel(repository)
+
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.ConsentRejected, state.kind)
+        assertEquals(1, repository.statusChecks.size)
+    }
+
     /** HSBC reports it as `AUTH`; some responses spell it out. Both mean authorised. */
     @Test
     fun acceptsEitherSpellingOfAnAuthorisedConsent() = runTest {
@@ -194,6 +296,48 @@ class PaymentConsentViewModelTest {
         assertEquals(PaymentConsentErrorKind.SubmissionFailed, state.kind)
     }
 
+    /**
+     * A dropped connection *during* the submission says nothing about whether the payment was
+     * taken, so it must not be reported as one of the outcomes that promises no money moved. This is
+     * the case the old hardcoded `SubmissionFailed` got right by accident and a naive widening would
+     * get wrong.
+     */
+    @Test
+    fun aSubmissionThatLostTheConnectionStillReadsAsSubmissionFailed() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        payments.submissionReturns(
+            NetworkResult.Error(NetworkError.Network(cause = RuntimeException("offline"))),
+        )
+
+        val vm = viewModel(payments = payments)
+
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.SubmissionFailed, state.kind)
+    }
+
+    /** A credential the bank rejected outright never reached processing, so it is a clean failure. */
+    @Test
+    fun aSubmissionRefusedOnAnExpiredTokenReadsAsExpired() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        payments.submissionReturns(NetworkResult.Error(NetworkError.Client.Unauthorized(null)))
+
+        val vm = viewModel(payments = payments)
+
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.CodeExpired, state.kind)
+    }
+
+    @Test
+    fun aSubmissionForbiddenByTheBankReadsAsDeclined() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        payments.submissionReturns(NetworkResult.Error(NetworkError.Client.Forbidden(null)))
+
+        val vm = viewModel(payments = payments)
+
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.ConsentRejected, state.kind)
+    }
+
     // endregion
 
     // region — the poll gate
@@ -226,6 +370,61 @@ class PaymentConsentViewModelTest {
         assertEquals(1, payments.submittedDrafts.size)
     }
 
+    /**
+     * The producer `AuthorisationTimedOut` never had.
+     *
+     * The wait is bounded: three unproductive reads mean the authorisation did not complete at the
+     * bank, and a fourth look cannot change that. Saying so beats an endless Check again button that
+     * hides a dead authorisation behind a spinner.
+     */
+    @Test
+    fun aConsentThatNeverAuthorisesEventuallyTimesOut() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("AWAU"))
+        val vm = viewModel(repository)
+
+        vm.trySendAction(PaymentConsentAction.CheckAgain)
+        advanceUntilIdle()
+        vm.trySendAction(PaymentConsentAction.CheckAgain)
+        advanceUntilIdle()
+
+        assertEquals(3, repository.statusChecks.size)
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.AuthorisationTimedOut, state.kind)
+    }
+
+    /** Nothing was submitted on the way to the timeout, which is what makes the outcome clean. */
+    @Test
+    fun aTimedOutAuthorisationSubmitsNothingAndClearsTheSession() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("AWAU"))
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(repository, payments)
+
+        repeat(2) {
+            vm.trySendAction(PaymentConsentAction.CheckAgain)
+            advanceUntilIdle()
+        }
+
+        assertTrue(payments.submittedDrafts.isEmpty())
+        assertTrue(payments.fundsChecks.isEmpty())
+        assertEquals(1, repository.discardCount)
+    }
+
+    /** The last look before the limit still offers another, so the bound is not off by one. */
+    @Test
+    fun theLookBeforeTheLimitStillOffersCheckAgain() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Success("AWAU"))
+        val vm = viewModel(repository)
+
+        vm.trySendAction(PaymentConsentAction.CheckAgain)
+        advanceUntilIdle()
+
+        val state = assertIs<PaymentConsentUiState.Checking>(vm.stateFlow.value.uiState)
+        assertTrue(state.canCheckAgain)
+    }
+
     // endregion
 
     // region — replay and refusal
@@ -245,6 +444,63 @@ class PaymentConsentViewModelTest {
         assertEquals(PaymentConsentErrorKind.StateMismatch, state.kind)
         assertTrue(repository.exchangedCodes.isEmpty())
         assertTrue(repository.statusChecks.isEmpty())
+    }
+
+    /**
+     * A callback with nothing pending is not the same event as one whose `state` does not match, and
+     * the two used to share `SecurityError`.
+     *
+     * The session is cleared the moment a payment finishes, so the ordinary way to land here is
+     * re-opening a link for a payment that already went through. Accusing that of tampering is both
+     * wrong and alarming; it gets the benign copy instead.
+     */
+    @Test
+    fun aCallbackWithNothingPendingIsBenignRatherThanASecurityEvent() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.validationReturns(PaymentAuthValidation.NoPending)
+
+        val vm = viewModel(repository)
+
+        val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.NoPendingAuthorisation, state.kind)
+        assertTrue(repository.exchangedCodes.isEmpty())
+        assertTrue(repository.statusChecks.isEmpty())
+    }
+
+    /**
+     * A consent the bank cannot find reads as expiry, not as "nothing was pending".
+     *
+     * The two are different events and must not share a state: "nothing was pending" describes an
+     * app with no session and is a dead end, whereas a bank that has lost track of a consent
+     * mid-flow is a failure the customer can and should start again from. Conflating them would
+     * strand a live failure on a panel with no way forward.
+     */
+    @Test
+    fun aConsentTheBankCannotFindReadsAsExpiredRatherThanNothingPending() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Error(NetworkError.Client.NotFound(null)))
+
+        val state = assertIs<PaymentConsentUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.CodeExpired, state.kind)
+    }
+
+    /** The bank answered, just not usefully or in time — a timeout, not a connection failure. */
+    @Test
+    fun aRateLimitedStatusReadReadsAsATimeout() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.statusReturns(NetworkResult.Error(NetworkError.Client.RateLimited(null)))
+
+        val state = assertIs<PaymentConsentUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.AuthorisationTimedOut, state.kind)
+    }
+
+    @Test
+    fun aBankSideFailureDuringTheExchangeReadsAsATimeout() = runTest {
+        val repository = FakePaymentAuthRepository()
+        repository.exchangeReturns(NetworkResult.Error(NetworkError.Server(statusCode = 503)))
+
+        val state = assertIs<PaymentConsentUiState.Error>(viewModel(repository).stateFlow.value.uiState)
+        assertEquals(PaymentConsentErrorKind.AuthorisationTimedOut, state.kind)
     }
 
     @Test

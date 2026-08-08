@@ -15,9 +15,11 @@ import template.core.base.network.NetworkError
 /**
  * Why an authorisation return failed.
  *
- * [StateMismatch] and [NoPendingAuthorisation] are both replay signals: a callback arriving with no
- * matching pending authorisation is not something to retry through, it is something that must not be
- * trusted at all.
+ * [StateMismatch] and [NoPendingAuthorisation] used to be one signal and are deliberately no longer.
+ * A callback whose `state` does not match the one this app issued is a replay signal and must not be
+ * trusted at all. A callback with *nothing* pending is not: there is simply no authorisation left to
+ * check it against. Both are terminal, but only the first is a security event, and saying so of the
+ * second would accuse the customer of an attack for something they did not do.
  */
 enum class PaymentConsentErrorKind {
     StateMismatch,
@@ -29,8 +31,12 @@ enum class PaymentConsentErrorKind {
 
     /**
      * The authorisation succeeded but the staged instruction is not in storage, so there is nothing
-     * to submit. Terminal, and not offered a retry: resubmitting would mean rebuilding an
-     * `Initiation` the consent was not granted against.
+     * to submit.
+     *
+     * Terminal for *this* consent: it is never re-submitted against, because rebuilding an
+     * `Initiation` here would send one the consent was not granted for. Starting a fresh payment is
+     * a different thing and is still offered — that stages a new consent under new keys, and it is
+     * what this kind's own copy tells the customer to do.
      */
     NoStagedPayment,
 
@@ -61,6 +67,11 @@ internal fun PaymentConsentErrorKind.description(): String = when (this) {
  * running. A payment that appears to hang is otherwise indistinguishable from one that has already
  * failed — and this screen now runs the whole tail of the journey, from validating the redirect
  * through to the bank accepting the payment, which is several seconds of waiting to account for.
+ *
+ * Deliberately **rail-agnostic**: nothing here names a domestic payment, an international one or a
+ * consent type. Every rail that ends in a redirect back from the bank — scheduled payments, standing
+ * orders, VRP — returns through the same states, so a new rail should need a new producer, not a new
+ * state model.
  */
 sealed interface PaymentConsentUiState {
 
@@ -71,13 +82,40 @@ sealed interface PaymentConsentUiState {
     data object Exchanging : PaymentConsentUiState
 
     /**
-     * Polling until the consent reports `Authorised`.
+     * Polling until the consent reports `AUTH`.
      *
-     * Load-bearing, not cosmetic: submitting against a consent that has not reached `AUTH` returns
-     * `400 U009`, so the submission is gated on this. It offers Check again rather than spinning
-     * indefinitely, because a bank that is slow to authorise is a normal outcome.
+     * Load-bearing, not cosmetic: the bank refuses a submission against a consent that has not
+     * reached `AUTH`, so the submission is gated on this. No OBIE error code is named — the one
+     * this comment used to cite appears in no captured response. It offers Check again rather than
+     * spinning indefinitely, because a bank that is slow to authorise is a normal outcome.
      */
     data class Checking(val canCheckAgain: Boolean = false) : PaymentConsentUiState
+
+    /**
+     * The bank has authorised the consent.
+     *
+     * Short-lived by design — the funds check starts immediately after — but it is the one moment
+     * the customer learns their approval landed, and it is the only positive outcome this screen
+     * ever shows, since a submitted payment leaves for the receipt. Without it the screen goes from
+     * "waiting for your bank" straight to "checking the money is available" and never confirms that
+     * the thing the customer just did at the bank actually worked.
+     */
+    data object Approved : PaymentConsentUiState
+
+    /**
+     * The bank reports the consent as already consumed — it has created the payment.
+     *
+     * Modelled as its own state rather than as an [Error] because it is not one: the payment exists.
+     * It is reached when the app loses the thread after a submission the bank accepted — the process
+     * dies between the submission returning and the session being cleared, and the redirect is
+     * re-validated on restore.
+     *
+     * The whole point of naming it is that the alternative was silence: with no case for this
+     * status the poll simply ran out and reported a timeout, whose copy promises no money has been
+     * moved. Saying that about a payment the bank has already created is the one claim on this
+     * screen that must never be wrong.
+     */
+    data object AlreadySubmitted : PaymentConsentUiState
 
     /** Asking the bank whether the debtor account can cover the staged amount. */
     data object ConfirmingFunds : PaymentConsentUiState
@@ -116,9 +154,50 @@ sealed interface PaymentConsentEvent {
     data object Abandoned : PaymentConsentEvent
 }
 
+/**
+ * Classifies a failure on the authorisation leg — the code exchange, the consent read, the funds
+ * check. Everything up to, but not including, the submission.
+ *
+ * Every outcome here is one where the payment provably has not left, which is what lets all of them
+ * carry the "no money has been moved" reassurance:
+ *  - `401` — the code or the PSU token is spent, so the exchange never happened.
+ *  - `403` — the bank refused the consent outright.
+ *  - `404` — the bank does not recognise the consent. Reported as expiry, not as
+ *    [PaymentConsentErrorKind.NoPendingAuthorisation]: from this side a consent the bank has lost
+ *    track of is indistinguishable from one that aged out, and the two must not share a state.
+ *    "Nothing was waiting" describes an app with no session, which is a different event and — unlike
+ *    this one — is a dead end rather than something to start again from.
+ *  - `429` and `5xx` — the bank did not answer in a usable time. Read as a timeout rather than a
+ *    connection failure, because the request did reach it.
+ *
+ * Anything else, including transport failures, is reported as a connection failure.
+ *
+ * The submission has its own, more conservative classifier: see [classifySubmissionError].
+ */
 internal fun classifyPaymentConsentError(throwable: Throwable): PaymentConsentErrorKind =
     when ((throwable as? RemoteException)?.networkError) {
         is NetworkError.Client.Unauthorized -> PaymentConsentErrorKind.CodeExpired
         is NetworkError.Client.Forbidden -> PaymentConsentErrorKind.ConsentRejected
+        is NetworkError.Client.NotFound -> PaymentConsentErrorKind.CodeExpired
+        is NetworkError.Client.RateLimited -> PaymentConsentErrorKind.AuthorisationTimedOut
+        is NetworkError.Server -> PaymentConsentErrorKind.AuthorisationTimedOut
         else -> PaymentConsentErrorKind.NetworkError
+    }
+
+/**
+ * Classifies a failure of the submission itself, which cannot use [classifyPaymentConsentError].
+ *
+ * The difference is what may be promised afterwards. Once the instruction is with the bank, a
+ * timeout or a dropped connection says nothing about whether the payment was taken — so those keep
+ * [PaymentConsentErrorKind.SubmissionFailed], whose copy asks the customer to check their recent
+ * transactions rather than telling them nothing happened.
+ *
+ * Only a credential the bank rejected before it could process anything — `401` or `403` — is safe to
+ * report as a clean failure.
+ */
+internal fun classifySubmissionError(throwable: Throwable): PaymentConsentErrorKind =
+    when ((throwable as? RemoteException)?.networkError) {
+        is NetworkError.Client.Unauthorized -> PaymentConsentErrorKind.CodeExpired
+        is NetworkError.Client.Forbidden -> PaymentConsentErrorKind.ConsentRejected
+        else -> PaymentConsentErrorKind.SubmissionFailed
     }

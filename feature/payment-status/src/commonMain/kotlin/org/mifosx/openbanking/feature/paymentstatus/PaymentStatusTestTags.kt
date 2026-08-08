@@ -9,6 +9,9 @@
  */
 package org.mifosx.openbanking.feature.paymentstatus
 
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
+
 /** Stable tags the UI suites drive this screen by. Append-only. */
 internal object PaymentStatusTestTags {
     const val SKELETON = "paymentStatus:skeleton"
@@ -24,10 +27,28 @@ internal object PaymentStatusTestTags {
     const val STATUS_DETAIL = "paymentStatus:statusDetail"
     const val DETAIL_SETTLED = "paymentStatus:detailSettled"
     const val DETAIL_STATUS_CHANGED = "paymentStatus:detailStatusChanged"
-    const val DETAIL_FEE = "paymentStatus:detailFee"
     const val LAST_CHECKED = "paymentStatus:lastChecked"
     const val REFRESH_BUTTON = "paymentStatus:refreshButton"
     const val NEW_PAYMENT_BUTTON = "paymentStatus:newPaymentButton"
     const val ERROR_STATE = "paymentStatus:errorState"
     const val RETRY_BUTTON = "paymentStatus:retryButton"
+    const val TIMELINE = "paymentStatus:timeline"
+    const val REFRESH_FAILURE = "paymentStatus:refreshFailure"
+
+    /**
+     * Indexed because the bank may apply more than one charge, and a tag repeated across siblings
+     * makes `onNodeWithTag` ambiguous — it matched the single-charge fixture and would have failed
+     * the first time a real payment carried two.
+     */
+    fun detailFee(index: Int): String = "paymentStatus:detailFee:$index"
+
+    /** The row for one stage, whatever state it is in. */
+    fun timelineStep(step: PaymentTimelineStep): String = "paymentStatus:timelineStep:${step.name}"
+
+    /**
+     * The marker beside a stage, carrying the state in the tag so a suite can assert that a
+     * rejected payment's fourth stage reads as failed rather than merely present.
+     */
+    fun timelineState(step: PaymentTimelineStep, state: PaymentStepState): String =
+        "paymentStatus:timelineState:${step.name}:${state.name}"
 }

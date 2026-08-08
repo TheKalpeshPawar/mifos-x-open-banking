@@ -20,6 +20,25 @@ sealed interface PaymentAuthValidation {
     /** `state` or `nonce` did not match what was issued — treat as hostile, never as a retry. */
     data object SecurityError : PaymentAuthValidation
 
+    /**
+     * Nothing was waiting to be authorised.
+     *
+     * Deliberately not a [SecurityError]. Absence of a session is not evidence of tampering — it is
+     * absence of evidence either way, and there is nothing here that a replay would have had to
+     * forge. The tampering signal is a `state` that is present and *wrong*, which stays
+     * [SecurityError].
+     *
+     * Note what this is **not**: re-opening the callback link of a payment that already succeeded
+     * does not reach here through the redirect bus, because [isPaymentRedirect] answers false with
+     * no pending consent and the host routes such a redirect to the sign-in leg instead. What does
+     * reach here is a re-validation against a session that has since been cleared — most plausibly
+     * a navigation restore after process death, where the redirect URL survives in saved state and
+     * is checked again. Direct callers of [validateCallback] can produce it too.
+     *
+     * Terminal all the same: with no pending authorisation there is nothing to carry on with.
+     */
+    data object NoPending : PaymentAuthValidation
+
     /** The PSU declined at the bank. Not an error; the payment simply does not proceed. */
     data object AccessDenied : PaymentAuthValidation
 
@@ -71,8 +90,10 @@ interface PaymentAuthRepository {
     /**
      * Reads the consent's status back after authorisation.
      *
-     * Load-bearing rather than cosmetic: submitting against a consent that is not `Authorised`
-     * returns `400 U009`, so this is how the flow knows it may proceed.
+     * Load-bearing rather than cosmetic: the bank refuses a submission against a consent that has
+     * not reached `AUTH`, so this is how the flow knows it may proceed. No specific OBIE error code
+     * is cited here on purpose — the one previously named appears in no captured response, only in
+     * a secondary note, and gating on an unobserved code would be guessing dressed as evidence.
      */
     suspend fun consentStatus(consentId: String): NetworkResult<String, NetworkError>
 

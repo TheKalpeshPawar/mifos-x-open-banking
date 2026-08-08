@@ -22,5 +22,11 @@ import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
  * overridden in tests, not to be injected in production.
  */
 val PaymentStatusModule = module {
-    viewModel { PaymentStatusViewModel(savedStateHandle = get(), repository = get()) }
+    viewModel {
+        PaymentStatusViewModel(
+            savedStateHandle = get(),
+            repository = get(),
+            paymentHistoryRepository = get(),
+        )
+    }
 }

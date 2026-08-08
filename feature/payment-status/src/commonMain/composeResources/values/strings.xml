@@ -31,6 +31,19 @@
     <string name="feature_payment_status_detail_rjct">Rejected by your bank</string>
     <string name="feature_payment_status_detail_unknown">Your bank reported a status this app does not recognise</string>
 
+    <!-- The four stages, newest first. "Completed" becomes "Rejected" when the bank refused the
+         payment, so the last row never claims a completion that did not happen. -->
+    <string name="feature_payment_status_timeline">Progress</string>
+    <string name="feature_payment_status_step_request_created">Request created</string>
+    <string name="feature_payment_status_step_approved">Approved at your bank</string>
+    <string name="feature_payment_status_step_submitted">Submitted to your bank</string>
+    <string name="feature_payment_status_step_completed">Completed</string>
+    <string name="feature_payment_status_step_rejected">Rejected</string>
+    <string name="feature_payment_status_step_waiting">Waiting on your bank</string>
+    <string name="feature_payment_status_step_settling">Settling now</string>
+
+    <string name="feature_payment_status_refresh_failed">Could not refresh just now. This is your bank’s last answer.</string>
+
     <string name="feature_payment_status_details">Details</string>
     <string name="feature_payment_status_reference">Reference</string>
     <string name="feature_payment_status_reference_empty">None</string>

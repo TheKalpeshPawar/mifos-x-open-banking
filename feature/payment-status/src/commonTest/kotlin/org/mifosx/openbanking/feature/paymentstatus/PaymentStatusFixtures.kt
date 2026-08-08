@@ -9,16 +9,25 @@
  */
 package org.mifosx.openbanking.feature.paymentstatus
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineEntry
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
 import template.core.base.network.NetworkError
 import template.core.base.network.NetworkResult
 
@@ -63,6 +72,42 @@ object PaymentStatusFixtures {
         settlementDateTime = "2026-08-04T09:00:00+00:00",
     )
 
+    /** What the local row recorded for this payment's two unreported stages. */
+    fun stages(): PaymentStageTimestamps = PaymentStageTimestamps(
+        approvedAt = "2026-08-03T14:20:00Z",
+        submittedAt = "2026-08-03T14:22:00Z",
+    )
+
+    /**
+     * The timeline as the view model builds it for an in-flight payment: three stages done, the
+     * fourth still with the bank and therefore undated — and the first undated too, because nothing
+     * records when the consent was staged.
+     *
+     * [completedAt] must be given the same value the caller gives [contentState]'s `settledAt` (on
+     * a success) or `statusChangedAt` (on a rejection) — the view model derives the fourth stage
+     * from those very fields, so a fixture where they disagree depicts a state the app cannot
+     * produce, and a golden of it would be reviewed as if it could.
+     */
+    fun timeline(
+        completedState: PaymentStepState = PaymentStepState.Current,
+        completedAt: String = "",
+    ): List<PaymentTimelineEntry> = listOf(
+        PaymentTimelineEntry(PaymentTimelineStep.Completed, completedState, completedAt),
+        PaymentTimelineEntry(
+            PaymentTimelineStep.Submitted,
+            PaymentStepState.Done,
+            "3 Aug 2026, 14:22",
+        ),
+        PaymentTimelineEntry(
+            PaymentTimelineStep.ApprovedAtBank,
+            PaymentStepState.Done,
+            "3 Aug 2026, 14:20",
+        ),
+        // Undated on purpose: nothing records when the consent was staged, and the receipt's
+        // CreationDateTime means submission, not request.
+        PaymentTimelineEntry(PaymentTimelineStep.RequestCreated, PaymentStepState.Done),
+    )
+
     fun contentState(
         disposition: PaymentDisposition = PaymentDisposition.InProgress,
         reference: String = "RENT-FLAT12",
@@ -77,6 +122,9 @@ object PaymentStatusFixtures {
             ),
         ),
         lastCheckedAt: String = "14:25",
+        refreshFailure: PaymentStatusErrorKind? = null,
+        statusChangedAt: String = "3 Aug 2026, 14:22",
+        timeline: List<PaymentTimelineEntry> = timeline(),
     ): PaymentStatusState = PaymentStatusState(
         paymentId = PAYMENT_ID,
         uiState = PaymentStatusUiState.Content(
@@ -89,11 +137,19 @@ object PaymentStatusFixtures {
             debtorLabel = "40-05-15 12345678",
             submittedAt = "3 Aug 2026, 14:22",
             settledAt = settledAt,
-            statusChangedAt = "3 Aug 2026, 14:22",
+            statusChangedAt = statusChangedAt,
             charges = charges,
             lastCheckedAt = lastCheckedAt,
             refreshing = refreshing,
+            refreshFailure = refreshFailure,
+            timeline = timeline,
         ),
+    )
+
+    /** Two charges, the case a single `DETAIL_FEE` tag could not address. */
+    fun twoCharges(): List<PaymentCharge> = listOf(
+        PaymentCharge(bearer = "BorneByDebtor", typeLabel = "UK.OBIE.CHAPSOut", amountLabel = "£0.05"),
+        PaymentCharge(bearer = "BorneByDebtor", typeLabel = "UK.OBIE.FX", amountLabel = "£1.20"),
     )
 
     fun loadingState(): PaymentStatusState =
@@ -146,4 +202,35 @@ class FakePaymentInitiationRepository(
     fun receiptReturns(receipt: PaymentReceipt) {
         statusResult = NetworkResult.Success(receipt)
     }
+}
+
+/**
+ * Only [stageTimestampsOf] is exercised: this screen reads the two stage times the bank never
+ * reports and writes nothing back.
+ *
+ * A null [stages] is the real case of a payment made on another device, or one the five-row cap has
+ * since evicted — the timeline must draw those stages undated rather than borrow a timestamp.
+ */
+class FakePaymentHistoryRepository(
+    private val stages: PaymentStageTimestamps? = PaymentStatusFixtures.stages(),
+) : PaymentHistoryRepository {
+
+    val stageReads = mutableListOf<String>()
+
+    override fun observeRecent(): Flow<List<PaymentHistoryItem>> = flowOf(emptyList())
+
+    override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) =
+        error("payment-status never writes history")
+
+    override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) =
+        error("payment-status never writes history")
+
+    override suspend fun railOf(paymentId: String): PaymentRail? = PaymentRail.Domestic
+
+    override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? {
+        stageReads += paymentId
+        return stages
+    }
+
+    override suspend fun refreshStatuses() = error("payment-status never refreshes the whole hub")
 }

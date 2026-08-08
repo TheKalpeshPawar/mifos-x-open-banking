@@ -37,8 +37,12 @@ internal class PaymentAuthRepositoryImpl(
 
     /**
      * Order matters, and mirrors the sign-in leg:
-     *  - `state` is checked first, against the value held for the authorisation in flight. No
-     *    pending authorisation means nothing authentic to check against — a hard SecurityError.
+     *  - "is anything in flight at all?" is asked first, and answered as
+     *    [PaymentAuthValidation.NoPending]. A callback arriving against a cleared session has
+     *    nothing to be checked against, which is not the same as failing a check — see that type
+     *    for what does and does not reach it.
+     *  - `state` is checked next, against the value held for the authorisation in flight. A `state`
+     *    that is present but does not match is the tampering signal, and stays a hard SecurityError.
      *  - Errors are classified BEFORE the nonce check, because HSBC returns no `id_token` when the
      *    PSU declines; checking the nonce first would report a plain refusal as a SecurityError.
      */
@@ -47,7 +51,8 @@ internal class PaymentAuthRepositoryImpl(
         val params = parseCallbackUrl(redirectUrl)
 
         val consentId = paymentAuthSession.pendingConsentId()
-        if (consentId.isNullOrBlank() || !paymentAuthSession.matchesPendingState(params.state)) {
+        if (consentId.isNullOrBlank()) return PaymentAuthValidation.NoPending
+        if (!paymentAuthSession.matchesPendingState(params.state)) {
             return PaymentAuthValidation.SecurityError
         }
 

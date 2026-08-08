@@ -26,6 +26,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.api.OAuth
@@ -74,6 +75,15 @@ internal class PaymentHistoryRepositoryImpl(
     /** Null when no row exists, so a caller cannot mistake "unknown" for "domestic". */
     override suspend fun railOf(paymentId: String): PaymentRail? =
         dao.observeById(paymentId).first()?.let { it.paymentType.toPaymentRail() }
+
+    /**
+     * Null when no row exists, and null columns within it when the stage was never observed — the
+     * detail timeline draws an undated stage rather than filling the gap with a nearby timestamp.
+     */
+    override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? =
+        dao.observeById(paymentId).first()?.let {
+            PaymentStageTimestamps(approvedAt = it.approvedAt, submittedAt = it.submittedAt)
+        }
 
     /**
      * Refreshes every in-flight submitted payment.

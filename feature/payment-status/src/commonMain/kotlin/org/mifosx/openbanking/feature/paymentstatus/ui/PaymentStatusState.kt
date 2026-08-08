@@ -28,6 +28,46 @@ enum class PaymentStatusErrorKind {
     NetworkError,
 }
 
+/**
+ * The four stages a payment passes through, in the order they happen.
+ *
+ * Rendered newest-first, so the stage someone is waiting on sits at the top rather than at the
+ * bottom of a list they have to scroll to reach.
+ */
+enum class PaymentTimelineStep {
+    RequestCreated,
+    ApprovedAtBank,
+    Submitted,
+    Completed,
+}
+
+/**
+ * How far a stage got.
+ *
+ * [Pending] and [Current] are a real distinction, not decoration: the bank having merely received an
+ * instruction (`RCVD`, `PDNG`) is not the same claim as it actively settling one (`ACSP`), and only
+ * the second justifies telling someone their money is on the way.
+ */
+enum class PaymentStepState {
+    Done,
+    Current,
+    Pending,
+    Failed,
+}
+
+/**
+ * One stage of the timeline.
+ *
+ * @property timestamp Formatted, or empty when nothing observed this stage. Empty draws the stage
+ *   undated — a payment made on another device has no local approval time, and borrowing a nearby
+ *   timestamp to fill the gap would be a fabricated claim about when someone approved a payment.
+ */
+data class PaymentTimelineEntry(
+    val step: PaymentTimelineStep,
+    val state: PaymentStepState,
+    val timestamp: String = "",
+)
+
 sealed interface PaymentStatusUiState {
 
     data object Loading : PaymentStatusUiState
@@ -50,6 +90,11 @@ sealed interface PaymentStatusUiState {
      *   unchanged status reads as "checked, no change yet" instead of a dead button.
      * @property refreshing Whether a manual re-read is running. Distinct from [Loading]: the current
      *   status stays on screen while it refreshes rather than collapsing back to a skeleton.
+     * @property refreshFailure Why the last re-read failed, or null when the last one succeeded. A
+     *   refresh that fails must not take the answer already on screen with it — what is displayed is
+     *   still true, only older than the user asked for, and that is a notice rather than an error
+     *   page.
+     * @property timeline The four stages, newest first. Empty only for a state built by hand.
      */
     data class Content(
         val paymentId: String,
@@ -65,6 +110,8 @@ sealed interface PaymentStatusUiState {
         val charges: List<PaymentCharge> = emptyList(),
         val lastCheckedAt: String = "",
         val refreshing: Boolean = false,
+        val refreshFailure: PaymentStatusErrorKind? = null,
+        val timeline: List<PaymentTimelineEntry> = emptyList(),
     ) : PaymentStatusUiState {
 
         val inProgress: Boolean
@@ -73,6 +120,17 @@ sealed interface PaymentStatusUiState {
 
     data class Error(val kind: PaymentStatusErrorKind) : PaymentStatusUiState
 }
+
+/**
+ * Whether a read is running, as the pull-to-refresh indicator sees it.
+ *
+ * Covers both the first load and a manual refresh, so the gesture spins for either. The error page
+ * is deliberately not "reading": nothing is in flight there until the pull dispatches one, and that
+ * is exactly where someone reaches for the gesture.
+ */
+val PaymentStatusUiState.isReading: Boolean
+    get() = this is PaymentStatusUiState.Loading ||
+        (this is PaymentStatusUiState.Content && refreshing)
 
 data class PaymentStatusState(
     val paymentId: String,

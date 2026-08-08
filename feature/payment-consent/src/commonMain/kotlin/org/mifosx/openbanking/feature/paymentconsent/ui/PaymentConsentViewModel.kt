@@ -21,8 +21,35 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
 
-/** OBIE reports an authorised consent as `AUTH`; some responses spell it out. */
+/**
+ * The consent statuses HSBC actually returns, all four of them, in the short form they arrive in.
+ *
+ * Captured traffic shows only `AWAU`, `AUTH`, `COND` and `RJCT`. The long spellings are accepted
+ * defensively — they cost nothing and a bank changing its mind about verbosity should not break the
+ * happy path — but they have never been observed on the wire, so nothing is inferred from them.
+ */
 private val AUTHORISED_STATUSES = setOf("AUTH", "AUTHORISED", "AUTHORIZED")
+
+/**
+ * Consumed: the consent has been spent and the payment resource created.
+ *
+ * A *success* signal, not a stall, which is why it is handled rather than left to the poll. See
+ * [PaymentConsentUiState.AlreadySubmitted].
+ */
+private const val STATUS_CONSUMED = "COND"
+
+/** Rejected: the PSU declined at the bank. Terminal, and nothing was created. */
+private const val STATUS_REJECTED = "RJCT"
+
+/**
+ * How many times the consent is read back before the wait is called off.
+ *
+ * The first read happens automatically on return from the bank; the remaining two are the customer
+ * tapping Check again. Bounded rather than open-ended because a consent that is still not authorised
+ * after three looks is not one the customer can unstick by looking a fourth time — the authorisation
+ * did not complete at the bank, and starting again is the only thing that helps.
+ */
+private const val MAX_STATUS_CHECKS = 3
 
 /**
  * The return leg of a payment authorisation, and the screen that completes the payment.
@@ -52,6 +79,9 @@ class PaymentConsentViewModel(
 
     private var authorizationCode: String = ""
 
+    /** Unproductive consent reads so far — the ones that came back not yet authorised. */
+    private var unauthorisedStatusChecks: Int = 0
+
     init {
         validate()
     }
@@ -68,6 +98,11 @@ class PaymentConsentViewModel(
      * `state`/`nonce` are checked before anything else and a mismatch is terminal — there is no
      * retry offered for it, because a callback that does not match the authorisation this app
      * launched is not a transient fault.
+     *
+     * A callback with *nothing* pending is separated out on purpose. It is usually a link the
+     * customer already used successfully — the session is cleared on submission — so it gets the
+     * benign "there was no payment waiting" copy rather than the security one. Still terminal:
+     * there is no authorisation left to carry on with either way.
      */
     private fun validate() {
         when (val result = repository.validateCallback(redirectUrl)) {
@@ -77,6 +112,7 @@ class PaymentConsentViewModel(
                 exchange()
             }
 
+            PaymentAuthValidation.NoPending -> fail(PaymentConsentErrorKind.NoPendingAuthorisation)
             PaymentAuthValidation.SecurityError -> fail(PaymentConsentErrorKind.StateMismatch)
             PaymentAuthValidation.AccessDenied -> fail(PaymentConsentErrorKind.ConsentRejected)
             PaymentAuthValidation.MissingCode -> fail(PaymentConsentErrorKind.CodeExpired)
@@ -96,29 +132,66 @@ class PaymentConsentViewModel(
     }
 
     /**
-     * A consent that has not reached `AUTH` yet is not a failure — banks take a moment. So this
-     * stays in [PaymentConsentUiState.Checking] and offers Check again rather than timing out into
-     * an error the customer cannot act on. Reaching `AUTH` is what releases the submission.
+     * All four statuses the bank returns are answered here, and only `AWAU` means keep waiting.
+     *
+     * Leaving `COND` and `RJCT` to fall through to the poll was a real defect, not an omission of
+     * polish. Both are terminal, so both ran the wait out and reported
+     * [PaymentConsentErrorKind.AuthorisationTimedOut] — which tells the customer no money has been
+     * moved. For `RJCT` that happens to be true but says the wrong thing; for `COND` it is false,
+     * because the bank has already created the payment.
      */
     private fun checkConsentStatus() {
         updateState { copy(uiState = PaymentConsentUiState.Checking()) }
         viewModelScope.launch {
             when (val result = repository.consentStatus(state.consentId)) {
-                is NetworkResult.Success ->
-                    if (result.data.trim().uppercase() in AUTHORISED_STATUSES) {
-                        // Stamped before submitting, so the timeline records approval at the moment
-                        // it was observed rather than at whatever time the submission happens to land.
-                        repository.recordApproved()
-                        completePayment()
-                    } else {
-                        updateState {
-                            copy(uiState = PaymentConsentUiState.Checking(canCheckAgain = true))
-                        }
-                    }
+                is NetworkResult.Success -> when (result.data.trim().uppercase()) {
+                    in AUTHORISED_STATUSES -> authoriseAndSubmit()
+                    STATUS_CONSUMED -> concludeAsAlreadySubmitted()
+                    STATUS_REJECTED -> fail(PaymentConsentErrorKind.ConsentRejected)
+                    // `AWAU`, and anything unrecognised: waiting is the conservative default.
+                    else -> keepWaitingOrGiveUp()
+                }
 
                 is NetworkResult.Error ->
                     fail(classifyPaymentConsentError(result.error.toThrowable()))
             }
+        }
+    }
+
+    private suspend fun authoriseAndSubmit() {
+        // Stamped before submitting, so the timeline records approval at the moment it was observed
+        // rather than at whatever time the submission happens to land.
+        repository.recordApproved()
+        updateState { copy(uiState = PaymentConsentUiState.Approved) }
+        completePayment()
+    }
+
+    /**
+     * Ends the journey without writing a failure row.
+     *
+     * `COND` means the bank created the payment, so recording a failure would file a payment that
+     * succeeded as one that did not — and the customer would then meet it twice in their history,
+     * once wrongly. The session is still cleared, because this authorisation is spent either way.
+     */
+    private fun concludeAsAlreadySubmitted() {
+        repository.discardAuthorisation()
+        updateState { copy(uiState = PaymentConsentUiState.AlreadySubmitted) }
+    }
+
+    /**
+     * The producer for [PaymentConsentErrorKind.AuthorisationTimedOut].
+     *
+     * The wait is bounded rather than endless. A consent that is still not authorised after
+     * [MAX_STATUS_CHECKS] looks did not complete at the bank, and leaving the customer to tap Check
+     * again forever hides that behind a spinner. Timing out says so, and offers the two exits that
+     * actually help. Nothing has been submitted at this point, so the outcome is clean.
+     */
+    private fun keepWaitingOrGiveUp() {
+        unauthorisedStatusChecks++
+        if (unauthorisedStatusChecks >= MAX_STATUS_CHECKS) {
+            fail(PaymentConsentErrorKind.AuthorisationTimedOut)
+        } else {
+            updateState { copy(uiState = PaymentConsentUiState.Checking(canCheckAgain = true)) }
         }
     }
 
@@ -156,7 +229,7 @@ class PaymentConsentViewModel(
                 sendEvent(PaymentConsentEvent.PaymentSubmitted(result.data.domesticPaymentId))
             }
 
-            is NetworkResult.Error -> fail(PaymentConsentErrorKind.SubmissionFailed)
+            is NetworkResult.Error -> fail(classifySubmissionError(result.error.toThrowable()))
         }
     }
 

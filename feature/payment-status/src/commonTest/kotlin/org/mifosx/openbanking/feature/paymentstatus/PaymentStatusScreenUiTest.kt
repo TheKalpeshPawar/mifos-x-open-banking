@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.paymentstatus
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,9 +19,17 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
+// Kept identical to the field the view model derives the fourth stage from, so no fixture here
+// depicts a timeline the app could not actually produce.
+private const val SETTLED_AT = "4 Aug 2026, 09:00"
+private const val REJECTED_AT = "3 Aug 2026, 16:40"
 
 @OptIn(ExperimentalTestApi::class)
 class PaymentStatusScreenUiTest {
@@ -140,4 +149,147 @@ class PaymentStatusScreenUiTest {
 
         assertEquals<List<PaymentStatusAction>>(listOf(PaymentStatusAction.RefreshStatus), actions)
     }
+
+    /**
+     * One tag across every charge row made `onNodeWithTag` ambiguous the moment a payment carried
+     * two — which the single-charge fixture never showed and a real international payment would.
+     */
+    @Test
+    fun everyChargeGetsItsOwnAddressableRow() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(charges = PaymentStatusFixtures.twoCharges()),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(PaymentStatusTestTags.detailFee(0)).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(PaymentStatusTestTags.detailFee(1)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun aPaymentWithNoChargesDrawsNoFeeRow() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(charges = emptyList()),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(PaymentStatusTestTags.detailFee(0)).assertDoesNotExist()
+    }
+
+    // region — the four-stage timeline
+
+    @Test
+    fun contentRendersEveryTimelineStage() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {}, {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.TIMELINE).performScrollTo().assertIsDisplayed()
+        PaymentTimelineStep.entries.forEach { step ->
+            onNodeWithTag(PaymentStatusTestTags.timelineStep(step)).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun anInFlightPaymentMarksItsFinalStageCurrentAndTheRestDone() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {}, {})
+        }
+        assertStageState(PaymentTimelineStep.RequestCreated, PaymentStepState.Done)
+        assertStageState(PaymentTimelineStep.ApprovedAtBank, PaymentStepState.Done)
+        assertStageState(PaymentTimelineStep.Submitted, PaymentStepState.Done)
+        assertStageState(PaymentTimelineStep.Completed, PaymentStepState.Current)
+    }
+
+    @Test
+    fun aPaymentTheBankHasOnlyReceivedMarksItsFinalStagePending() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(
+                    timeline = PaymentStatusFixtures.timeline(completedState = PaymentStepState.Pending),
+                ),
+                {},
+                {},
+            )
+        }
+        assertStageState(PaymentTimelineStep.Completed, PaymentStepState.Pending)
+    }
+
+    @Test
+    fun aSettledPaymentMarksEveryStageDone() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(
+                    disposition = PaymentDisposition.TerminalSuccess,
+                    settledAt = SETTLED_AT,
+                    timeline = PaymentStatusFixtures.timeline(
+                        completedState = PaymentStepState.Done,
+                        completedAt = SETTLED_AT,
+                    ),
+                ),
+                {},
+                {},
+            )
+        }
+        PaymentTimelineStep.entries.forEach { assertStageState(it, PaymentStepState.Done) }
+    }
+
+    /** Everything up to the bank's refusal did happen, so only the last stage reads as failed. */
+    @Test
+    fun aRejectedPaymentMarksOnlyItsFinalStageFailed() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(
+                    disposition = PaymentDisposition.TerminalFailure,
+                    settledAt = "",
+                    statusChangedAt = REJECTED_AT,
+                    timeline = PaymentStatusFixtures.timeline(
+                        completedState = PaymentStepState.Failed,
+                        completedAt = REJECTED_AT,
+                    ),
+                ),
+                {},
+                {},
+            )
+        }
+        assertStageState(PaymentTimelineStep.RequestCreated, PaymentStepState.Done)
+        assertStageState(PaymentTimelineStep.Submitted, PaymentStepState.Done)
+        assertStageState(PaymentTimelineStep.Completed, PaymentStepState.Failed)
+    }
+
+    // endregion
+
+    /** A failed refresh must not take the answer already on screen with it. */
+    @Test
+    fun aFailedRefreshShowsANoticeBesideTheStatusRatherThanReplacingIt() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(
+                PaymentStatusFixtures.contentState(
+                    refreshFailure = PaymentStatusErrorKind.NetworkError,
+                ),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_FAILURE).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertIsDisplayed()
+        onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSuccessfulReadShowsNoRefreshNotice() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {}, {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_FAILURE).assertDoesNotExist()
+    }
+}
+
+@OptIn(ExperimentalTestApi::class)
+private fun ComposeUiTest.assertStageState(step: PaymentTimelineStep, state: PaymentStepState) {
+    onNodeWithTag(PaymentStatusTestTags.timelineState(step, state))
+        .performScrollTo()
+        .assertIsDisplayed()
 }

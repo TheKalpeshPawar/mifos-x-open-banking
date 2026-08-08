@@ -22,6 +22,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorKind
@@ -47,6 +48,12 @@ object PaymentConsentFixtures {
         uiState = PaymentConsentUiState.Checking(canCheckAgain = canCheckAgain),
         consentId = CONSENT_ID,
     )
+
+    fun approvedState(): PaymentConsentState =
+        PaymentConsentState(uiState = PaymentConsentUiState.Approved, consentId = CONSENT_ID)
+
+    fun alreadySubmittedState(): PaymentConsentState =
+        PaymentConsentState(uiState = PaymentConsentUiState.AlreadySubmitted, consentId = CONSENT_ID)
 
     fun confirmingFundsState(): PaymentConsentState =
         PaymentConsentState(uiState = PaymentConsentUiState.ConfirmingFunds, consentId = CONSENT_ID)
@@ -166,6 +173,15 @@ class FakePaymentInitiationRepository(
     val submittedDrafts = mutableListOf<PaymentDraft>()
     val fundsChecks = mutableListOf<String>()
 
+    /**
+     * Runs at the moment the staged draft is read.
+     *
+     * That is the one observable instant between the consent being reported authorised and the funds
+     * check starting, which is what makes [PaymentConsentUiState.Approved] — a state the flow passes
+     * straight through — assertable at all.
+     */
+    var onStagedDraft: (() -> Unit)? = null
+
     override suspend fun stagePayment(draft: PaymentDraft): NetworkResult<StagedConsent, NetworkError> =
         throw UnsupportedOperationException("The callback leg never stages a payment")
 
@@ -182,7 +198,10 @@ class FakePaymentInitiationRepository(
         return submission
     }
 
-    override fun stagedDraft(): PaymentDraft? = staged
+    override fun stagedDraft(): PaymentDraft? {
+        onStagedDraft?.invoke()
+        return staged
+    }
 
     override suspend fun paymentStatus(
         domesticPaymentId: String,
@@ -231,4 +250,7 @@ class FakePaymentHistoryRepository : PaymentHistoryRepository {
 
     /** The callback leg never reads a rail back; it always has the draft in hand. */
     override suspend fun railOf(paymentId: String): PaymentRail? = null
+
+    /** This fake keeps no rows, so it has no stage times to report. */
+    override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
 }

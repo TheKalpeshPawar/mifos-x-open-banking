@@ -36,6 +36,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.network.api.OAuth
@@ -191,6 +192,7 @@ class PaymentInitiationRepositoryImplTest {
         override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {}
         override suspend fun refreshStatuses() {}
         override suspend fun railOf(paymentId: String): PaymentRail? = rail
+        override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
     }
 
     private fun sessionHoldingAPsuToken(): PaymentAuthSession =
