@@ -61,6 +61,7 @@ import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.loginRenewScreen
 import org.mifosx.openbanking.feature.paymentshub.paymentsHubGraph
 import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
+import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import org.mifosx.openbanking.feature.product.ProductRoute
 import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
@@ -174,6 +175,16 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             sendMoneyGraph(
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
                 onNavigateToConsents = {},
+            )
+            // Registered here as well as at the root, because a route has to exist in the host that
+            // navigates to it. The root copy serves the authorisation return leg, which lands outside
+            // this NavHost entirely; this copy serves the hub, which is inside it. Without this,
+            // tapping a payment in the hub threw "Destination with route PaymentStatusRoute cannot be
+            // found in navigation graph" and killed the app — the two hosts cannot see each other's
+            // destinations in either direction.
+            paymentStatusScreen(
+                onBack = { navController.popBackStack() },
+                onStartNewPayment = { navController.navigate(SendMoneyRoute) },
             )
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },
