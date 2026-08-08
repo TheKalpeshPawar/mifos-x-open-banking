@@ -28,6 +28,7 @@ fun AccountEntity.toBankAccount(): BankAccount = BankAccount(
     sortCode = sortCode,
     accountNumber = accountNumber,
     rawIdentification = rawIdentification,
+    description = description,
 )
 
 fun BankAccount.toAccountEntity(): AccountEntity = AccountEntity(
@@ -38,6 +39,7 @@ fun BankAccount.toAccountEntity(): AccountEntity = AccountEntity(
     sortCode = sortCode,
     accountNumber = accountNumber,
     rawIdentification = rawIdentification,
+    description = description,
 )
 
 fun TransactionEntity.toTransactionItem(): TransactionItem = TransactionItem(

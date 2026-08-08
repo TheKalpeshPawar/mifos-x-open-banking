@@ -217,9 +217,9 @@ object SendMoneyFixtures {
     )
 
     private fun creditorRows(): List<SendMoneyPickerRow> = listOf(
-        SendMoneyPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310"),
-        SendMoneyPickerRow(SHARMA_ID, "JS", "John Sharma", "Sort Code · 23-05-80 11223344"),
-        SendMoneyPickerRow(EDF_ID, "EE", "EDF Energy", "Sort Code · 60-00-01 99887766"),
+        SendMoneyPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310", "Jameson L."),
+        SendMoneyPickerRow(SHARMA_ID, "JS", "John Sharma", "Sort Code · 23-05-80 11223344", "John S."),
+        SendMoneyPickerRow(EDF_ID, "EE", "EDF Energy", "Sort Code · 60-00-01 99887766", "EDF E."),
     )
 
     /**
@@ -230,8 +230,8 @@ object SendMoneyFixtures {
      * document the wrong thing.
      */
     private fun internationalCreditorRows(): List<SendMoneyPickerRow> = listOf(
-        SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00"),
-        SendMoneyPickerRow(DUPONT_ID, "MD", "Marie Dupont", "IBAN · FR14 2004 1010 0505 0001 3M02 606"),
+        SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
+        SendMoneyPickerRow(DUPONT_ID, "MD", "Marie Dupont", "IBAN · FR14 2004 1010 0505 0001 3M02 606", "Marie D."),
     )
 
     /** Whichever scheme the rail lists. */
@@ -254,11 +254,12 @@ object SendMoneyFixtures {
         manualEntryVisible: Boolean = false,
         creditor: CreditorSelection? = null,
         creditorLabel: String = "",
-        amountMinorUnits: String = "",
+        amountInput: String = "",
         amountLabel: String = "",
         reference: String = "",
         problem: SendMoneyAmountProblem? = null,
         debtorAccountId: String? = CURRENT_ACCOUNT_ID,
+        payerPickerExpanded: Boolean = false,
         letBankChoosePayer: Boolean = false,
         debtorCurrency: String = "GBP",
     ): SendMoneyState = SendMoneyState(
@@ -273,29 +274,35 @@ object SendMoneyFixtures {
             currencyOfTransfer = if (rail == PaymentRail.International) "USD" else "GBP",
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
-            beneficiaries = beneficiaries,
+            // Payees are account-scoped, so with no payer the ViewModel emits none. Handing a list
+            // to a payer-less form would depict a state production cannot reach, and a golden of it
+            // would document the wrong screen.
+            beneficiaries = if (debtorAccountId == null) emptyList() else beneficiaries,
             debtorAccountId = debtorAccountId,
+            payerPickerExpanded = payerPickerExpanded,
             letBankChoosePayer = letBankChoosePayer,
             debtorCurrency = debtorCurrency,
             creditor = creditor,
             creditorLabel = creditorLabel,
             manualEntryVisible = manualEntryVisible,
-            amountMinorUnits = amountMinorUnits,
+            // Major units, as the amount card now reads them: 850 means £850, not £8.50.
+            amountInput = amountInput,
             amountLabel = amountLabel,
             reference = reference,
             amountProblem = problem,
             availableBalanceMinorUnits = 2_153_092L,
+            availableBalanceLabel = if (debtorAccountId == null) "" else "£21,530.92",
         ),
     )
 
     /** The form with everything filled in, so `canReview` is true unless [problem] says otherwise. */
     fun filledFormState(
-        amountMinorUnits: String = "85000",
+        amountInput: String = "850",
         problem: SendMoneyAmountProblem? = null,
     ): SendMoneyState = formState(
         creditor = jamesonSelection(),
         creditorLabel = "Jameson Lettings",
-        amountMinorUnits = amountMinorUnits,
+        amountInput = amountInput,
         amountLabel = "£850.00",
         reference = "RENT-FLAT12",
         problem = problem,
@@ -329,10 +336,11 @@ object SendMoneyFixtures {
             creditor = jamesonSelection(),
             creditorLabel = "Jameson Lettings",
             creditorSupporting = "Sort Code · 40-12-09 65872310",
-            amountMinorUnits = "85000",
+            amountInput = "850",
             amountLabel = "£850.00",
             reference = reference,
             availableBalanceMinorUnits = 2_153_092L,
+            availableBalanceLabel = "£21,530.92",
         ),
     )
 

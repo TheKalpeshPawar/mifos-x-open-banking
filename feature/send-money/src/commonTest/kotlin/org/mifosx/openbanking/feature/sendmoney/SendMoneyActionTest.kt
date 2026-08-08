@@ -54,10 +54,29 @@ class SendMoneyActionTest {
         return actions
     }
 
+    /** The collapsed summary is the toggle. Nothing else on it is tappable. */
+    @Test
+    fun tappingTheCollapsedPayerOpensThePicker() {
+        val actions = captureActions(SendMoneyFixtures.formState(), SendMoneyTestTags.PAYER_PICKER)
+
+        assertEquals(listOf(SendMoneyAction.TogglePayerPicker), actions)
+    }
+
+    /** And again while open — one action, toggling both ways, rather than two that can disagree. */
+    @Test
+    fun tappingTheExpandedPayerClosesThePicker() {
+        val actions = captureActions(
+            SendMoneyFixtures.formState(payerPickerExpanded = true),
+            SendMoneyTestTags.PAYER_PICKER,
+        )
+
+        assertEquals(listOf(SendMoneyAction.TogglePayerPicker), actions)
+    }
+
     @Test
     fun tappingAnAccountRowSelectsThatPayer() {
         val actions = captureActions(
-            SendMoneyFixtures.formState(),
+            SendMoneyFixtures.formState(payerPickerExpanded = true),
             SendMoneyTestTags.debtorRow(SendMoneyFixtures.SAVINGS_ACCOUNT_ID),
         )
 
@@ -65,6 +84,23 @@ class SendMoneyActionTest {
             listOf(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.SAVINGS_ACCOUNT_ID)),
             actions,
         )
+    }
+
+    /**
+     * The bank choice moved inside the picker, and must still dispatch from there.
+     *
+     * It is the only way a credit card or a Global Money wallet can fund a payment — neither is
+     * offered as a named payer, because the bank refuses both — so losing it is losing a capability,
+     * not a control.
+     */
+    @Test
+    fun tappingChooseAtMyBankInsideThePickerDispatchesTheBankChoice() {
+        val actions = captureActions(
+            SendMoneyFixtures.formState(debtorAccountId = null, payerPickerExpanded = true),
+            SendMoneyTestTags.PAYER_BANK_CHOICE,
+        )
+
+        assertEquals(listOf(SendMoneyAction.LetBankChoosePayer), actions)
     }
 
     @Test
@@ -77,10 +113,22 @@ class SendMoneyActionTest {
         assertEquals(listOf(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID)), actions)
     }
 
+    /** The "Add new" avatar, which replaced the text button and kept its contract. */
     @Test
-    fun tappingManualEntryOpensTheFields() {
+    fun tappingAddNewOpensTheManualFields() {
         val actions = captureActions(
             SendMoneyFixtures.formState(),
+            SendMoneyTestTags.MANUAL_ENTRY_BUTTON,
+        )
+
+        assertEquals(listOf(SendMoneyAction.ShowManualCreditorEntry), actions)
+    }
+
+    /** Add new is reachable with no payees at all — that is the case it exists for. */
+    @Test
+    fun addNewIsStillTappableWithNoSavedPayees() {
+        val actions = captureActions(
+            SendMoneyFixtures.formState(beneficiaries = emptyList()),
             SendMoneyTestTags.MANUAL_ENTRY_BUTTON,
         )
 

@@ -21,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyState
 import org.robolectric.RobolectricTestRunner
@@ -71,10 +72,41 @@ class SendMoneyScreenScreenshotTest {
     fun internationalFormGolden() =
         capture("form_international", SendMoneyFixtures.formState(rail = PaymentRail.International))
 
-    /** The payer question open: the bank-choice row and the payee notice both showing. */
+    /** The payer question open: nothing chosen, the picker inviting a choice, no payees to list. */
     @Test
     fun noPayerChosenGolden() =
         capture("form_no_payer", SendMoneyFixtures.formState(debtorAccountId = null))
+
+    /**
+     * The picker expanded, which is the state no assertion can describe.
+     *
+     * A tag count proves the rows exist; only the image proves the collapsed card actually collapses
+     * and that the accounts and the bank choice sit inside one bordered surface rather than three.
+     */
+    @Test
+    fun expandedPayerPickerGolden() =
+        capture("form_payer_expanded", SendMoneyFixtures.formState(payerPickerExpanded = true))
+
+    /** A payee selected, so the ring and the check badge on the avatar row are in a golden. */
+    @Test
+    fun selectedPayeeGolden() = capture("form_payee_selected", SendMoneyFixtures.filledFormState())
+
+    /** No saved payees: the avatar row survives, carrying only "Add new". */
+    @Test
+    fun noSavedPayeesGolden() =
+        capture("form_no_payees", SendMoneyFixtures.formState(beneficiaries = emptyList()))
+
+    /**
+     * An unpayable amount, where the message takes the balance line rather than being added below it.
+     *
+     * Worth a golden because the card must not grow taller as someone types — a card that reflows
+     * under the caret is the sort of thing a tag assertion cannot see.
+     */
+    @Test
+    fun amountProblemGolden() = capture(
+        "form_amount_problem",
+        SendMoneyFixtures.filledFormState(problem = SendMoneyAmountProblem.ExceedsAvailableBalance),
+    )
 
     @Test
     fun nonSterlingPayerGolden() =

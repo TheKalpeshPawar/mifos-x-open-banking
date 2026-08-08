@@ -52,8 +52,10 @@ class AppDatabaseTest {
     fun databaseVersionIsCurrent() {
         // Update this constant when bumping AppDatabase.VERSION so the guardrail stays meaningful.
         // 4 added payment_history; 5 renamed its id column and added the timeline and international
-        // fields — and is the first version reached by a real migration rather than a table drop.
-        assertEquals(5, AppDatabase.VERSION)
+        // fields — and is the first version reached by a real migration rather than a table drop;
+        // 6 added accounts.description, without which a Global Money wallet reads back as a plain
+        // current account and is offered as a payer the bank refuses.
+        assertEquals(6, AppDatabase.VERSION)
     }
 
     /**

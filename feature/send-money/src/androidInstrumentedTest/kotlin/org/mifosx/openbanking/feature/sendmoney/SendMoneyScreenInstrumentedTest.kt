@@ -62,16 +62,17 @@ private fun debtorRows(): List<SendMoneyAccountRow> = listOf(
 )
 
 private fun domesticPayees(): List<SendMoneyPickerRow> = listOf(
-    SendMoneyPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310"),
+    SendMoneyPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310", "Jameson L."),
 )
 
 private fun internationalPayees(): List<SendMoneyPickerRow> = listOf(
-    SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00"),
+    SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
 )
 
 private fun formState(
     rail: PaymentRail = PaymentRail.Domestic,
     debtorAccountId: String? = CURRENT_ACCOUNT_ID,
+    payerPickerExpanded: Boolean = false,
 ): SendMoneyState = SendMoneyState(
     uiState = SendMoneyUiState.Content(
         step = SendMoneyStep.Form,
@@ -80,6 +81,8 @@ private fun formState(
         debtorRows = debtorRows(),
         beneficiaries = if (rail == PaymentRail.Domestic) domesticPayees() else internationalPayees(),
         debtorAccountId = debtorAccountId,
+        payerPickerExpanded = payerPickerExpanded,
+        availableBalanceLabel = if (debtorAccountId == null) "" else "£21,530.92",
         transferCurrencies = if (rail == PaymentRail.International) listOf("USD", "EUR") else emptyList(),
         currencyOfTransfer = if (rail == PaymentRail.International) "USD" else "GBP",
         availableBalanceMinorUnits = 2_153_092L,
@@ -106,7 +109,8 @@ class SendMoneyScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertIsDisplayed()
-        composeRule.onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.FORM_ACTIONS).assertIsDisplayed()
     }
 
@@ -131,9 +135,20 @@ class SendMoneyScreenInstrumentedTest {
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectChargeBearer(ChargeBearer.Shared)), actions)
     }
 
+    /** On a real device too: the accounts fold away until the summary is tapped. */
+    @Test
+    fun tappingTheCollapsedPickerRoutesTheToggle() {
+        render(formState())
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.TogglePayerPicker), actions)
+    }
+
     @Test
     fun tappingChooseAtMyBankRoutesTheAction() {
-        render(formState(debtorAccountId = null))
+        render(formState(debtorAccountId = null, payerPickerExpanded = true))
 
         composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).performScrollTo().performClick()
 

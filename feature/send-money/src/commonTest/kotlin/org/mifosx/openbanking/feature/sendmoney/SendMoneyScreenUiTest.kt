@@ -39,20 +39,53 @@ class SendMoneyScreenUiTest {
             SendMoneyScreenContent(SendMoneyFixtures.loadingState(), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertDoesNotExist()
     }
 
-    /** TC-SEND-001. */
+    /**
+     * TC-SEND-001, restated for the collapsed picker.
+     *
+     * The payer is one row until it is asked to open, so the accounts are NOT on screen — that is
+     * the whole point of the change, and asserting their absence is what stops the permanently
+     * expanded list creeping back.
+     */
     @Test
-    fun theFormPageRendersBothPickersAndTheManualEntryAffordance() = runComposeUiTest {
+    fun theFormPageRendersTheCollapsedPayerAndThePayeeRow() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
         }
-        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.debtorRow(SendMoneyFixtures.CURRENT_ACCOUNT_ID)).assertDoesNotExist()
         onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.debtorRow(SendMoneyFixtures.CURRENT_ACCOUNT_ID)).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID)).assertIsDisplayed()
+    }
+
+    /** Expanded, the accounts and the bank choice are both there — and the bank choice is inside. */
+    @Test
+    fun expandingThePayerRevealsTheAccountsAndTheBankChoice() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(payerPickerExpanded = true), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.debtorRow(SendMoneyFixtures.CURRENT_ACCOUNT_ID)).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.debtorRow(SendMoneyFixtures.SAVINGS_ACCOUNT_ID)).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).assertIsDisplayed()
+    }
+
+    /**
+     * "Choose at my bank" is the only route by which a credit card or a Global Money wallet can fund
+     * a payment — both are filtered out of the account list — so it must not be reachable ONLY while
+     * the picker happens to be open by accident. Collapsed, it is genuinely absent; expanded, present.
+     */
+    @Test
+    fun theBankChoiceIsInsideThePickerRatherThanBesideIt() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).assertDoesNotExist()
     }
 
     /**
@@ -68,7 +101,8 @@ class SendMoneyScreenUiTest {
         }
         onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.AMOUNT_CARD).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.AMOUNT_FIELD).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
     }
@@ -85,15 +119,19 @@ class SendMoneyScreenUiTest {
             SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID)).assertDoesNotExist()
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
     }
 
-    /** Sending no payer is something to choose, not something left undone. */
+    /** Sending no payer is something to choose, not something left undone — offered among the accounts. */
     @Test
-    fun theBankChoiceIsOfferedAlongsideTheAccounts() = runComposeUiTest {
+    fun theBankChoiceIsOfferedAmongTheAccounts() = runComposeUiTest {
         setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.formState(debtorAccountId = null), {}, {})
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(debtorAccountId = null, payerPickerExpanded = true),
+                {},
+                {},
+            )
         }
         onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).assertIsDisplayed()
@@ -279,8 +317,11 @@ class SendMoneyScreenUiTest {
             SendMoneyScreenContent(SendMoneyFixtures.formState(beneficiaries = emptyList()), {}, {})
         }
         onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
+        // The row survives an empty list on purpose: its first item is the only way to pay someone
+        // who is not saved, so dropping it would take the escape away exactly when it is needed.
+        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID)).assertDoesNotExist()
     }
 
     /** The manual fields sit below the payee list, so they need scrolling to before asserting. */

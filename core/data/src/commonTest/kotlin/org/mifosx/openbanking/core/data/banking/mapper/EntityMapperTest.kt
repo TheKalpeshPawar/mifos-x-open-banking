@@ -95,4 +95,31 @@ class EntityMapperTest {
         assertEquals("GBP", domain.currency)
         assertTrue(domain.isCredit)
     }
+
+    /**
+     * The description must survive the database, because it is the only thing distinguishing a Global
+     * Money wallet from a current account — HSBC reports both as `CACC`.
+     *
+     * `accountsStore` is one of the two stores with a Room source of truth, so the UI reads accounts
+     * back out of the database rather than from the network response. When this field was added to
+     * the model and the network mapper but not to [AccountEntity], the round trip silently blanked it
+     * and the wallet was offered as a payer that the bank then refused with `U002`. A round trip is
+     * asserted here rather than one direction, because either half dropping it reproduces that.
+     */
+    @Test
+    fun accountDescriptionSurvivesTheRoundTripThroughTheDatabase() {
+        val wallet = BankAccount(
+            accountId = "1123456843",
+            nickname = "",
+            accountSubType = "CACC",
+            currency = "GBP",
+            sortCode = "801197",
+            accountNumber = "70009652",
+            rawIdentification = "80119770009652",
+            description = "GLOBAL MONEY ACCOUNT",
+        )
+
+        assertEquals(wallet, wallet.toAccountEntity().toBankAccount())
+        assertEquals("GLOBAL MONEY ACCOUNT", wallet.toAccountEntity().toBankAccount().description)
+    }
 }

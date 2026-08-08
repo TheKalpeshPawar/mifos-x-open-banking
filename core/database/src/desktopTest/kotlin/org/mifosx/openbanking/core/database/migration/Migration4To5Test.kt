@@ -17,7 +17,6 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -160,6 +159,11 @@ class Migration4To5Test {
     fun declaresTheVersionsItMovesBetween() {
         assertEquals(4, MIGRATION_4_5.startVersion)
         assertEquals(5, MIGRATION_4_5.endVersion)
-        assertNull(ALL_MIGRATIONS.firstOrNull { it.startVersion == 5 })
+
+        // This used to also assert that nothing migrated *from* 5 — a way of saying "5 is the newest
+        // version". That is a fact about the moment it was written, not about this migration, and it
+        // became false the day 6 arrived. Whether the chain is contiguous and reaches the current
+        // version is asserted once, in AppDatabaseTest, where it belongs.
+        assertEquals(1, ALL_MIGRATIONS.count { it.startVersion == 4 })
     }
 }

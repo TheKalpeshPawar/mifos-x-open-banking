@@ -20,18 +20,27 @@
 
     <string name="feature_send_money_payer_bank_choice">Choose at my bank</string>
     <string name="feature_send_money_payer_bank_choice_supporting">Your bank will ask which account to pay from</string>
+    <!-- The collapsed picker before anything has been chosen. An invitation, not a blank row: the
+         payer is deliberately not preselected, so the empty state has to ask for a decision. -->
+    <string name="feature_send_money_payer_unchosen">Choose an account</string>
+    <string name="feature_send_money_payer_unchosen_supporting">Tap to pick where the money comes from</string>
+    <string name="feature_send_money_payer_expand_a11y">Show the accounts you can pay from</string>
+    <string name="feature_send_money_payer_collapse_a11y">Hide the accounts you can pay from</string>
     <string name="feature_send_money_payee_needs_payer">Choose an account to pay from to see its saved payees.</string>
     <!-- InstructedAmount is always GBP, so a non-sterling payer means the bank converts. -->
     <string name="feature_send_money_non_gbp_notice">This payment is instructed in pounds. Your bank will convert from this account and may charge for it.</string>
 
     <string name="feature_send_money_balance_available">%1$s available</string>
-    <string name="feature_send_money_debtor_heading">Choose the account to pay from</string>
-    <string name="feature_send_money_creditor_heading">Choose who to pay</string>
+    <!-- Trailing the collapsed picker, where the label has to name what the figure is. -->
+    <string name="feature_send_money_balance_available_prefixed">Available: %1$s</string>
+    <string name="feature_send_money_debtor_heading">Pay from</string>
+    <string name="feature_send_money_creditor_heading">Pay to</string>
     <string name="feature_send_money_selected_a11y">Selected</string>
     <string name="feature_send_money_no_saved_payees_title">No saved payees</string>
     <string name="feature_send_money_no_saved_payees_body">You can still pay someone by entering their account details.</string>
 
-    <string name="feature_send_money_manual_entry">Enter account details instead</string>
+    <!-- The caption under the dashed avatar that opens the manual fields. -->
+    <string name="feature_send_money_payee_add_new">Add new</string>
     <string name="feature_send_money_manual_entry_a11y">Enter a sort code and account number for someone who is not a saved payee</string>
     <string name="feature_send_money_manual_name">Name on the account</string>
     <string name="feature_send_money_manual_sort_code">Sort code</string>
@@ -40,9 +49,14 @@
     <string name="feature_send_money_manual_account_number_error">Enter an 8-digit account number</string>
     <string name="feature_send_money_manual_confirm">Use these details</string>
 
-    <string name="feature_send_money_amount_heading">How much are you sending?</string>
-    <string name="feature_send_money_amount_label">Amount in pence</string>
-    <string name="feature_send_money_amount_error_not_a_number">Enter an amount in whole pence</string>
+    <!-- Pounds, not pence. The field used to be labelled "Amount in pence" and parsed minor units,
+         so someone typing 250 meaning £250 sent £2.50. The wire format is unchanged — the draft
+         still carries minor units — but nothing on screen asks for them any more. -->
+    <string name="feature_send_money_amount_label">Amount to send</string>
+    <string name="feature_send_money_amount_placeholder">0.00</string>
+    <string name="feature_send_money_amount_available">You have %1$s available</string>
+    <string name="feature_send_money_amount_error_not_a_number">Enter an amount like 250 or 250.00</string>
+    <string name="feature_send_money_amount_error_too_many_decimals">Amounts go to two decimal places, like 250.99</string>
     <string name="feature_send_money_amount_error_not_positive">Enter an amount greater than zero</string>
     <string name="feature_send_money_amount_error_exceeds_balance">That is more than the balance available on this account</string>
     <!-- International only. Only BorneByCreditor is exercised by HSBC's own samples. -->
@@ -61,7 +75,7 @@
 
     <string name="feature_send_money_reference_label">Reference (optional)</string>
     <string name="feature_send_money_reference_helper">Max 35 characters</string>
-    <string name="feature_send_money_review_button">Review payment</string>
+    <string name="feature_send_money_review_button">Review &amp; pay</string>
 
     <string name="feature_send_money_review_heading">Check this before you send it</string>
     <string name="feature_send_money_review_from_bank_choice">You’ll choose at your bank</string>

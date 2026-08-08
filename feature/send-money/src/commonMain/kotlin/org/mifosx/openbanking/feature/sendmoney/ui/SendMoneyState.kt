@@ -131,16 +131,30 @@ data class SendMoneyFieldErrors(
 /** Why the entered amount is not yet payable. */
 enum class SendMoneyAmountProblem {
     NotANumber,
+
+    /**
+     * More than two decimal places, e.g. `250.999`.
+     *
+     * Its own problem rather than [NotANumber] because it IS a number, and rounding it silently
+     * would send an amount nobody typed — the parser truncates, so `250.999` would leave as £250.99.
+     */
+    TooManyDecimals,
     NotPositive,
     ExceedsAvailableBalance,
 }
 
-/** One selectable payee row. Its name comes from the bank and needs no resolving. */
+/**
+ * One selectable payee row. Its name comes from the bank and needs no resolving.
+ *
+ * @property shortName The name as the avatar caption carries it — "John S." — because a 56dp circle
+ *   has room for two words at most. Shortened in the ViewModel, like every other display string.
+ */
 data class SendMoneyPickerRow(
     val id: String,
     val initials: String,
     val headline: String,
     val supporting: String,
+    val shortName: String = "",
 )
 
 /**
@@ -171,6 +185,12 @@ sealed interface SendMoneyUiState {
      *
      * @property availableBalanceMinorUnits Advisory only. The binding check is the bank's funds
      *   confirmation, which can refuse a payment this comparison allows.
+     * @property amountInput What the customer typed, in MAJOR units — `250` or `250.00` meaning
+     *   £250. The draft still carries minor units; the conversion happens on the way in, once.
+     * @property payerPickerExpanded Whether the payer picker is showing its accounts. Presentation
+     *   state carried on the rendered state rather than inside the loaded data, the same way
+     *   `feature/home` keeps `accountSelectorVisible` on `HomeState`: a stream emission must not be
+     *   able to open or close it.
      */
     data class Content(
         val step: SendMoneyStep,
@@ -179,6 +199,7 @@ sealed interface SendMoneyUiState {
         val beneficiaries: List<SendMoneyPickerRow>,
         val debtorRows: List<SendMoneyAccountRow>,
         val debtorAccountId: String? = null,
+        val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
@@ -189,14 +210,18 @@ sealed interface SendMoneyUiState {
         val manualAccountNumber: String = "",
         val manualIban: String = "",
         val manualName: String = "",
-        val amountMinorUnits: String = "",
+        val amountInput: String = "",
         val amountLabel: String = "",
+        /** `InstructedAmount.Currency`. Always sterling; see `SendMoneyViewModel.buildDraft`. */
+        val instructedCurrency: String = "GBP",
         val currencyOfTransfer: String = "GBP",
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
         val fieldErrors: SendMoneyFieldErrors = SendMoneyFieldErrors(),
         val availableBalanceMinorUnits: Long? = null,
+        /** The same figure, formatted. Blank when no payer is chosen, which hides the balance line. */
+        val availableBalanceLabel: String = "",
         val debtorCurrency: String = "",
         /** What the recipient may be paid in. Empty on the domestic rail. */
         val transferCurrencies: List<String> = emptyList(),
@@ -212,7 +237,7 @@ sealed interface SendMoneyUiState {
          */
         val canReview: Boolean
             get() = amountProblem == null &&
-                amountMinorUnits.isNotBlank() &&
+                amountInput.isNotBlank() &&
                 creditor != null &&
                 !payerUndecided
 
@@ -271,6 +296,14 @@ sealed interface SendMoneyAction {
     data class SelectRail(val rail: PaymentRail) : SendMoneyAction
     data class SelectDebtorAccount(val accountId: String) : SendMoneyAction
 
+    /**
+     * Opens or closes the payer picker.
+     *
+     * Only the expansion — choosing an account is [SelectDebtorAccount], which closes the picker as
+     * a consequence of the choice rather than needing a second action from the composable.
+     */
+    data object TogglePayerPicker : SendMoneyAction
+
     /** Send no `DebtorAccount` and let the PSU pick the account at their bank. */
     data object LetBankChoosePayer : SendMoneyAction
     data class SelectCreditor(val beneficiaryId: String) : SendMoneyAction
@@ -280,7 +313,9 @@ sealed interface SendMoneyAction {
     data class EnterManualIban(val iban: String) : SendMoneyAction
     data class EnterManualName(val name: String) : SendMoneyAction
     data object ConfirmManualCreditor : SendMoneyAction
-    data class EnterAmount(val minorUnits: String) : SendMoneyAction
+
+    /** @param amount In MAJOR units, as typed: `250` and `250.00` both mean £250. */
+    data class EnterAmount(val amount: String) : SendMoneyAction
     data class SelectCurrencyOfTransfer(val currency: String) : SendMoneyAction
     data class SelectChargeBearer(val bearer: ChargeBearer) : SendMoneyAction
     data class EnterReference(val reference: String) : SendMoneyAction

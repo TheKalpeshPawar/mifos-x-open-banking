@@ -45,8 +45,23 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/**
+ * Adds the account description, which decides whether a wallet may fund a payment.
+ *
+ * `accounts` is a re-fetchable cache, so the destructive fallback would have been survivable here.
+ * A real migration is still the right call: the column defaults to empty, and an empty description is
+ * indistinguishable from "this account is not a Global Money wallet". Dropping the table would blank
+ * every row until the next successful accounts fetch, and until then the wallet would again be
+ * offered as a payer. Adding the column keeps the rows and lets the next fetch fill it in.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 /** Every migration the database knows about, in the order Room should consider them. */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_4_5)
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6)
 
 /**
  * Registers every migration on a builder.

@@ -67,10 +67,10 @@ class SendMoneyViewModelTest {
         assertIs<SendMoneyUiState.Content>(vm.stateFlow.value.uiState)
 
     /** Walks the form to the review page, which every submission test needs first. */
-    private fun SendMoneyViewModel.completeForm(amountMinorUnits: String = "85000") {
+    private fun SendMoneyViewModel.completeForm(amount: String = "850") {
         trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
-        trySendAction(SendMoneyAction.EnterAmount(amountMinorUnits))
+        trySendAction(SendMoneyAction.EnterAmount(amount))
         trySendAction(SendMoneyAction.ReviewPayment)
     }
 
@@ -207,7 +207,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.EnterManualSortCode("401209"))
         vm.trySendAction(SendMoneyAction.EnterManualAccountNumber("65872310"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
         vm.trySendAction(SendMoneyAction.ReviewPayment)
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
@@ -232,13 +232,96 @@ class SendMoneyViewModelTest {
         val vm = viewModel()
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
         assertTrue(content(vm).canReview)
 
         vm.trySendAction(SendMoneyAction.ChangePayer)
 
         assertFalse(content(vm).canReview)
     }
+
+    // endregion
+
+    // region — the payer picker
+
+    /** Shut on arrival: the collapsed row is what keeps the amount above the fold. */
+    @Test
+    fun thePayerPickerStartsCollapsed() = runTest {
+        assertFalse(content(viewModel()).payerPickerExpanded)
+    }
+
+    @Test
+    fun togglingOpensAndClosesThePayerPicker() = runTest {
+        val vm = viewModel()
+
+        vm.trySendAction(SendMoneyAction.TogglePayerPicker)
+        assertTrue(content(vm).payerPickerExpanded)
+
+        vm.trySendAction(SendMoneyAction.TogglePayerPicker)
+        assertFalse(content(vm).payerPickerExpanded)
+    }
+
+    /**
+     * Choosing shuts it. Leaving it open would put four accounts between the decision and the
+     * amount, which is the thing collapsing the list was for.
+     */
+    @Test
+    fun choosingAnAccountCollapsesThePicker() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.TogglePayerPicker)
+
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        val state = content(vm)
+        assertFalse(state.payerPickerExpanded)
+        assertEquals(SendMoneyFixtures.CURRENT_ACCOUNT_ID, state.debtorAccountId)
+    }
+
+    /** The bank choice lives inside the picker now, so it has to close it too. */
+    @Test
+    fun choosingAtTheBankCollapsesThePicker() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.TogglePayerPicker)
+
+        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
+
+        val state = content(vm)
+        assertFalse(state.payerPickerExpanded)
+        assertTrue(state.letBankChoosePayer)
+    }
+
+    /**
+     * Presentation state, not loaded data.
+     *
+     * The picker is open because someone opened it; an account stream landing underneath must not be
+     * able to shut it. This is the reason expansion lives beside the entered form rather than inside
+     * the accounts, mirroring `feature/home`'s `accountSelectorVisible`.
+     */
+    @Test
+    fun aRefreshDoesNotCloseAnOpenPayerPicker() = runTest {
+        val accounts = FakeAccountsOverviewRepository()
+        val vm = viewModel(accounts = accounts)
+        vm.trySendAction(SendMoneyAction.TogglePayerPicker)
+
+        accounts.states.value = ScreenState.Content(SendMoneyFixtures.accounts(), DataFreshness.FRESH)
+
+        assertTrue(content(vm).payerPickerExpanded)
+    }
+
+    /** The balance line under the amount only exists once there is an account to state one for. */
+    @Test
+    fun theAvailableBalanceLabelAppearsOnlyWithAPayer() = runTest {
+        val vm = viewModel()
+        assertEquals("", content(vm).availableBalanceLabel)
+
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        assertEquals("£21,530.92", content(vm).availableBalanceLabel)
+    }
+
+    // endregion
+
+    // region — refresh and selection
 
     /** A later refresh must not move a selection the PSU has made. */
     @Test
@@ -365,7 +448,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.SAVINGS_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
 
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
 
         val state = content(vm)
         assertEquals(SendMoneyAmountProblem.ExceedsAvailableBalance, state.amountProblem)
@@ -400,12 +483,73 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
 
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
 
         val state = content(vm)
         assertNull(state.amountProblem)
         assertTrue(state.canReview)
         assertEquals("£850.00", state.amountLabel)
+    }
+
+    /**
+     * The correctness bug this rebuild exists to fix.
+     *
+     * The field was labelled "Amount in pence" and `EnterAmount` parsed minor units, so 250 typed by
+     * someone meaning £250 staged 250 pence — £2.50, a hundredfold under. Major units in, minor
+     * units on the wire, and the draft is the only place that can prove which was sent.
+     */
+    @Test
+    fun aWholePoundAmountIsStagedAsMinorUnits() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+        vm.completeForm(amount = "250")
+
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        assertEquals(25_000L, payments.stagedDrafts.single().amountMinorUnits)
+    }
+
+    /** The same amount written out, which must not become a different payment. */
+    @Test
+    fun anAmountWithPenceIsStagedAsTheSameMinorUnits() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+        vm.completeForm(amount = "250.00")
+
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
+
+        assertEquals(25_000L, payments.stagedDrafts.single().amountMinorUnits)
+    }
+
+    @Test
+    fun aPenceFractionIsCarriedThrough() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
+
+        vm.trySendAction(SendMoneyAction.EnterAmount("250.99"))
+
+        val state = content(vm)
+        assertNull(state.amountProblem)
+        assertEquals("£250.99", state.amountLabel)
+    }
+
+    /**
+     * Refused rather than rounded.
+     *
+     * `parseMinorUnits` truncates, so `250.999` would have left as £250.99 — an amount nobody typed.
+     * Its own problem, not "not a number", because it IS a number and the message has to say what
+     * to correct.
+     */
+    @Test
+    fun refusesMoreThanTwoDecimalPlaces() = runTest {
+        val vm = viewModel()
+        vm.trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
+
+        vm.trySendAction(SendMoneyAction.EnterAmount("250.999"))
+
+        val state = content(vm)
+        assertEquals(SendMoneyAmountProblem.TooManyDecimals, state.amountProblem)
+        assertFalse(state.canReview)
     }
 
     // endregion
@@ -435,7 +579,7 @@ class SendMoneyViewModelTest {
         vm.trySendAction(SendMoneyAction.EnterManualSortCode("801225"))
         vm.trySendAction(SendMoneyAction.EnterManualAccountNumber("90953695"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
-        vm.trySendAction(SendMoneyAction.EnterAmount("1000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("10"))
         vm.trySendAction(SendMoneyAction.ReviewPayment)
 
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)

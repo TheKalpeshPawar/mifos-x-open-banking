@@ -85,6 +85,21 @@ private fun String.isPlausibleIban(): Boolean = normaliseIban().let { candidate 
 /** `InstructedAmount.Currency`. GBP on both rails; see [SendMoneyViewModel.buildDraft]. */
 private const val INSTRUCTED_CURRENCY = "GBP"
 
+/** What a sterling amount may carry after the point. More than this is refused, never rounded. */
+private const val MAX_DECIMAL_PLACES = 2
+
+/**
+ * How many words an avatar caption keeps before the rest becomes an initial.
+ *
+ * "John Sharma" reads as "John S." under a 56dp circle; the full name would either wrap to three
+ * lines or be truncated mid-word, and neither says who is being paid.
+ */
+private const val SHORT_NAME_WORDS = 1
+
+/** The decimal places typed, or `null` when there is no point at all. */
+private fun String.decimalPlaces(): Int? =
+    substringAfter('.', missingDelimiterValue = "").takeIf { '.' in this }?.length
+
 /**
  * Drives the payment form up to the point the customer leaves for their bank.
  *
@@ -119,6 +134,14 @@ class SendMoneyViewModel(
         val step: SendMoneyStep = SendMoneyStep.Form,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccountId: String? = null,
+        /**
+         * Presentation state, held beside the entered data rather than inside the loaded accounts.
+         *
+         * Same reason `feature/home` keeps `accountSelectorVisible` on `HomeState`: the picker is
+         * open or shut because of something the customer did, and an account stream refreshing
+         * underneath must not be able to change that.
+         */
+        val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val manualEntryVisible: Boolean = false,
@@ -126,7 +149,7 @@ class SendMoneyViewModel(
         val manualAccountNumber: String = "",
         val manualIban: String = "",
         val manualName: String = "",
-        val amountMinorUnits: String = "",
+        val amountInput: String = "",
         val currencyOfTransfer: String = "GBP",
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
@@ -208,6 +231,8 @@ class SendMoneyViewModel(
         when (action) {
             is SendMoneyAction.SelectRail -> selectRail(action.rail)
             is SendMoneyAction.SelectDebtorAccount -> selectDebtor(action.accountId)
+            SendMoneyAction.TogglePayerPicker ->
+                form.value = form.value.copy(payerPickerExpanded = !form.value.payerPickerExpanded)
             SendMoneyAction.LetBankChoosePayer -> letBankChoosePayer()
             is SendMoneyAction.SelectCreditor -> selectCreditor(action.beneficiaryId)
             SendMoneyAction.ShowManualCreditorEntry -> form.value = form.value.copy(manualEntryVisible = true)
@@ -216,7 +241,7 @@ class SendMoneyViewModel(
             is SendMoneyAction.EnterManualIban -> enterIban(action.iban)
             is SendMoneyAction.EnterManualName -> form.value = form.value.copy(manualName = action.name)
             SendMoneyAction.ConfirmManualCreditor -> confirmManualCreditor()
-            is SendMoneyAction.EnterAmount -> enterAmount(action.minorUnits)
+            is SendMoneyAction.EnterAmount -> enterAmount(action.amount)
             is SendMoneyAction.SelectCurrencyOfTransfer ->
                 form.value =
                     form.value.copy(currencyOfTransfer = action.currency)
@@ -233,11 +258,17 @@ class SendMoneyViewModel(
         }
     }
 
-    /** Changing the payer re-keys the payee list: counterparties are saved per account, not per customer. */
+    /**
+     * Changing the payer re-keys the payee list: counterparties are saved per account, not per customer.
+     *
+     * Choosing also shuts the picker. Leaving it open would keep four accounts between the choice
+     * and the amount, which is the thing collapsing it was for.
+     */
     private fun selectDebtor(accountId: String) {
         selectedAccountId.value = accountId
         form.value = form.value.copy(
             debtorAccountId = accountId,
+            payerPickerExpanded = false,
             letBankChoosePayer = false,
             creditor = null,
         )
@@ -254,6 +285,7 @@ class SendMoneyViewModel(
         selectedAccountId.value = ""
         form.value = form.value.copy(
             debtorAccountId = null,
+            payerPickerExpanded = false,
             letBankChoosePayer = true,
             creditor = null,
         )
@@ -401,23 +433,43 @@ class SendMoneyViewModel(
     }
 
     /**
-     * The validation ladder, in order: parseable, positive, within the account's available balance.
+     * The validation ladder, in order: parseable, two decimal places at most, positive, within the
+     * account's available balance.
+     *
+     * The amount is read in MAJOR units — `250` and `250.00` both mean £250 — and converted here,
+     * once. It used to be parsed as minor units behind a field labelled "Amount in pence", so
+     * someone typing 250 for £250 sent £2.50. `PaymentDraft.amountMinorUnits` is unchanged: the wire
+     * still carries pence, and [amountMinorUnits] is the only place that conversion happens.
+     *
+     * The decimal-places rung comes before the sign check because [parseMinorUnits] truncates rather
+     * than refusing — `250.999` would otherwise become £250.99, an amount nobody typed.
      *
      * The balance rung is advisory only — it never replaces the bank's funds confirmation, which can
      * refuse a payment this comparison allows.
      */
-    private fun enterAmount(minorUnits: String) {
+    private fun enterAmount(amount: String) {
         val available = availableBalanceMinorUnits()
-        val parsed = minorUnits.takeIf { it.isNotBlank() }?.toLongOrNull()
+        val places = amount.decimalPlaces()
+        val parsed = amountMinorUnits(amount)
         val problem = when {
-            minorUnits.isBlank() -> null
+            amount.isBlank() -> null
             parsed == null -> SendMoneyAmountProblem.NotANumber
+            places != null && places > MAX_DECIMAL_PLACES -> SendMoneyAmountProblem.TooManyDecimals
             parsed <= 0L -> SendMoneyAmountProblem.NotPositive
             available != null && parsed > available -> SendMoneyAmountProblem.ExceedsAvailableBalance
             else -> null
         }
-        form.value = form.value.copy(amountMinorUnits = minorUnits, amountProblem = problem)
+        form.value = form.value.copy(amountInput = amount, amountProblem = problem)
     }
+
+    /**
+     * The typed major-unit amount as minor units, or `null` when it is not an amount at all.
+     *
+     * A negative figure is not rejected here — `parseMinorUnits` accepts a leading `-` — because the
+     * positivity rung above says so with a message about the amount rather than about its shape.
+     */
+    private fun amountMinorUnits(amount: String): Long? =
+        amount.takeIf { it.isNotBlank() }?.let(::parseMinorUnits)
 
     private fun enterReference(reference: String) {
         form.value = form.value.copy(reference = reference)
@@ -493,7 +545,9 @@ class SendMoneyViewModel(
     private fun buildDraft(): PaymentDraft? {
         val current = form.value
         val creditor = current.creditor ?: return null
-        val amount = current.amountMinorUnits.toLongOrNull() ?: return null
+        // Major units in, minor units on the wire. The one conversion point, so a draft can never
+        // disagree with what the amount card showed.
+        val amount = amountMinorUnits(current.amountInput) ?: return null
         val hex = Uuid.generateV4().toHexString()
         val isInternational = current.rail == PaymentRail.International
         return PaymentDraft(
@@ -557,6 +611,7 @@ class SendMoneyViewModel(
             }
         }
         val selected = accounts.firstOrNull { it.account.accountId == entered.debtorAccountId }
+        val availableMinorUnits = availableBalanceMinorUnits()
         return SendMoneyUiState.Content(
             step = entered.step,
             rail = entered.rail,
@@ -564,6 +619,7 @@ class SendMoneyViewModel(
             debtorRows = accounts.map { it.toAccountRow() },
             beneficiaries = filteredPayees.map { it.toPickerRow() },
             debtorAccountId = entered.debtorAccountId,
+            payerPickerExpanded = entered.payerPickerExpanded,
             letBankChoosePayer = entered.letBankChoosePayer,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
@@ -575,8 +631,9 @@ class SendMoneyViewModel(
             manualAccountNumber = entered.manualAccountNumber,
             manualIban = entered.manualIban,
             manualName = entered.manualName,
-            amountMinorUnits = entered.amountMinorUnits,
+            amountInput = entered.amountInput,
             amountLabel = amountLabel(entered),
+            instructedCurrency = INSTRUCTED_CURRENCY,
             currencyOfTransfer = entered.currencyOfTransfer,
             transferCurrencies = if (entered.rail == PaymentRail.International) {
                 TRANSFER_CURRENCIES
@@ -587,13 +644,18 @@ class SendMoneyViewModel(
             reference = entered.reference,
             amountProblem = entered.amountProblem,
             fieldErrors = entered.fieldErrors,
-            availableBalanceMinorUnits = availableBalanceMinorUnits(),
+            availableBalanceMinorUnits = availableMinorUnits,
+            // Blank when no payer is chosen, which is what hides the balance line under the amount:
+            // there is no account to state a balance for, and £0.00 would be a claim about one.
+            availableBalanceLabel = availableMinorUnits
+                ?.let { formatMinorUnits(it, selected?.balance?.currency ?: INSTRUCTED_CURRENCY) }
+                .orEmpty(),
         )
     }
 
     /** Always in the instructed currency — the amount is not the payer account's own currency. */
     private fun amountLabel(entered: Form): String {
-        val minor = entered.amountMinorUnits.toLongOrNull() ?: return ""
+        val minor = amountMinorUnits(entered.amountInput) ?: return ""
         return formatMinorUnits(minor, INSTRUCTED_CURRENCY)
     }
 
@@ -668,7 +730,20 @@ private fun BeneficiaryItem.toPickerRow(): SendMoneyPickerRow = SendMoneyPickerR
     initials = initialsOf(creditorName),
     headline = creditorName,
     supporting = schemeLabelFor(scheme, identification),
+    shortName = shortNameOf(creditorName),
 )
+
+/**
+ * "John Sharma" as "John S." — the caption an avatar can carry.
+ *
+ * A single-word name is left whole: "Vodafone" has nothing to abbreviate, and "V." names nobody.
+ */
+internal fun shortNameOf(name: String): String {
+    val words = name.trim().split(' ').filter { it.isNotBlank() }
+    if (words.size <= SHORT_NAME_WORDS) return words.joinToString(" ")
+    val kept = words.take(SHORT_NAME_WORDS).joinToString(" ")
+    return "$kept ${words[SHORT_NAME_WORDS].first().uppercase()}."
+}
 
 private fun schemeLabel(creditor: CreditorSelection): String =
     schemeLabelFor(creditor.scheme, creditor.identification)

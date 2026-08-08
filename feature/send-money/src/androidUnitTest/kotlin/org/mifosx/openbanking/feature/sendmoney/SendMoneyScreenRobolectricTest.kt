@@ -55,9 +55,9 @@ class SendMoneyScreenRobolectricTest {
 
         composeRule.onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertIsDisplayed()
-        composeRule.onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertExists()
-        composeRule.onNodeWithTag(SendMoneyTestTags.AMOUNT_FIELD).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.AMOUNT_CARD).performScrollTo().assertIsDisplayed()
     }
 
     /** Pinned below the scroll, so it does not need scrolling to. */
@@ -78,11 +78,31 @@ class SendMoneyScreenRobolectricTest {
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.ReviewPayment), actions)
     }
 
+    /** Collapsed, the accounts are genuinely off the page — the point of the picker. */
+    @Test
+    fun theCollapsedPickerHidesTheAccountsUntilItIsOpened() {
+        render(SendMoneyFixtures.formState())
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.DEBTOR_LIST).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheCollapsedPickerRoutesTheToggle() {
+        render(SendMoneyFixtures.formState())
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.TogglePayerPicker), actions)
+    }
+
+    /** "Choose at my bank" moved inside the picker and must still be reachable there. */
     @Test
     fun tappingChooseAtMyBankRoutesTheAction() {
-        render(SendMoneyFixtures.formState(debtorAccountId = null))
+        render(SendMoneyFixtures.formState(debtorAccountId = null, payerPickerExpanded = true))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYER_BANK_CHOICE).performScrollTo().performClick()
 
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.LetBankChoosePayer), actions)
     }
@@ -148,7 +168,8 @@ class SendMoneyScreenRobolectricTest {
         render(SendMoneyFixtures.formState(debtorAccountId = null))
 
         composeRule.onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.creditorRow(SendMoneyFixtures.JAMESON_ID))
+            .assertDoesNotExist()
     }
 
     @Test

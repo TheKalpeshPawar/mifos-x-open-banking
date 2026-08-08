@@ -25,8 +25,14 @@ internal object SendMoneyTestTags {
     const val FORM_ACTIONS = "sendMoney:formActions"
     const val FORM_TRUST_NOTE = "sendMoney:formTrustNote"
 
+    /** The always-present collapsed summary. Tapping it toggles [DEBTOR_LIST] in and out. */
+    const val PAYER_PICKER = "sendMoney:payerPicker"
+
+    /** The expanded half of the picker. Absent entirely while it is collapsed. */
     const val DEBTOR_LIST = "sendMoney:debtorList"
     const val PAYER_BANK_CHOICE = "sendMoney:payerBankChoice"
+    const val AMOUNT_CARD = "sendMoney:amountCard"
+    const val AMOUNT_BALANCE = "sendMoney:amountBalance"
     const val PAYEE_NEEDS_PAYER = "sendMoney:payeeNeedsPayer"
     const val NON_GBP_NOTICE = "sendMoney:nonGbpNotice"
     const val CREDITOR_LIST = "sendMoney:creditorList"

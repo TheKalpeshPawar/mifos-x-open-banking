@@ -68,7 +68,7 @@ class SendMoneyRailTest {
     private fun SendMoneyViewModel.completeForm() {
         trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         trySendAction(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID))
-        trySendAction(SendMoneyAction.EnterAmount("85000"))
+        trySendAction(SendMoneyAction.EnterAmount("850"))
         trySendAction(SendMoneyAction.ReviewPayment)
     }
 
@@ -101,11 +101,11 @@ class SendMoneyRailTest {
     fun switchingRailsKeepsTheAmount() = runTest {
         val vm = viewModel()
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
 
         vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
 
-        assertEquals("85000", content(vm).amountMinorUnits)
+        assertEquals("850", content(vm).amountInput)
     }
 
     /**
@@ -136,7 +136,7 @@ class SendMoneyRailTest {
         vm.trySendAction(SendMoneyAction.EnterManualName("Klara Weiss"))
         vm.trySendAction(SendMoneyAction.EnterManualIban("DE89 3704 0044 0532 0130 00"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
-        vm.trySendAction(SendMoneyAction.EnterAmount("85000"))
+        vm.trySendAction(SendMoneyAction.EnterAmount("850"))
         vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("EUR"))
         vm.trySendAction(SendMoneyAction.SelectChargeBearer(ChargeBearer.Shared))
         vm.trySendAction(SendMoneyAction.ReviewPayment)
