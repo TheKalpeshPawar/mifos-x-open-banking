@@ -33,17 +33,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.feature.sendmoney.components.chargeBearerLabel
+import org.mifosx.openbanking.feature.sendmoney.components.currencyName
 import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charge_bearer_creditor
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charge_bearer_debtor
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charge_bearer_service_level
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charge_bearer_shared
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_confirm
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_payment
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_auth_notice
@@ -151,12 +148,12 @@ internal fun SendMoneyReviewPage(
                 // sterling figure and say nothing about what the recipient actually gets.
                 ReviewRow(
                     label = stringResource(Res.string.feature_send_money_review_currency_of_transfer),
-                    value = state.currencyOfTransfer,
+                    value = currencyName(state.currencyOfTransfer),
                     tag = SendMoneyTestTags.REVIEW_CURRENCY,
                 )
                 ReviewRow(
                     label = stringResource(Res.string.feature_send_money_review_charge_bearer),
-                    value = stringResource(state.chargeBearer.reviewLabel()),
+                    value = chargeBearerLabel(state.chargeBearer),
                     tag = SendMoneyTestTags.REVIEW_CHARGE_BEARER,
                 )
             }
@@ -320,12 +317,4 @@ private fun ReviewRow(
 private fun PaymentRail.sentViaLabel(): StringResource = when (this) {
     PaymentRail.Domestic -> Res.string.feature_send_money_review_sent_via_domestic
     PaymentRail.International -> Res.string.feature_send_money_review_sent_via_international
-}
-
-/** The same four labels the picker offers, so the review repeats the customer's own words. */
-private fun ChargeBearer.reviewLabel(): StringResource = when (this) {
-    ChargeBearer.BorneByCreditor -> Res.string.feature_send_money_charge_bearer_creditor
-    ChargeBearer.BorneByDebtor -> Res.string.feature_send_money_charge_bearer_debtor
-    ChargeBearer.Shared -> Res.string.feature_send_money_charge_bearer_shared
-    ChargeBearer.FollowingServiceLevel -> Res.string.feature_send_money_charge_bearer_service_level
 }

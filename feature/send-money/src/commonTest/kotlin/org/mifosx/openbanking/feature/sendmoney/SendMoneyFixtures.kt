@@ -20,6 +20,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CURRENCIES
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
@@ -262,16 +263,17 @@ object SendMoneyFixtures {
         payerPickerExpanded: Boolean = false,
         letBankChoosePayer: Boolean = false,
         debtorCurrency: String = "GBP",
+        instructedCurrency: String = "GBP",
+        currencyOfTransfer: String = if (rail == PaymentRail.International) "USD" else "GBP",
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Form,
             rail = rail,
-            transferCurrencies = if (rail == PaymentRail.International) {
-                listOf("USD", "EUR")
-            } else {
-                emptyList()
-            },
-            currencyOfTransfer = if (rail == PaymentRail.International) "USD" else "GBP",
+            // The production list, not a hand-written pair. A fixture that carried its own two-value
+            // list is what let the picker's "only USD and EUR" claim survive being disproved.
+            offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
+            instructedCurrency = instructedCurrency,
+            currencyOfTransfer = currencyOfTransfer,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
             // Payees are account-scoped, so with no payer the ViewModel emits none. Handing a list
@@ -281,7 +283,10 @@ object SendMoneyFixtures {
             debtorAccountId = debtorAccountId,
             payerPickerExpanded = payerPickerExpanded,
             letBankChoosePayer = letBankChoosePayer,
-            debtorCurrency = debtorCurrency,
+            // Blank without a payer, as the ViewModel derives it: there is no account to read a
+            // currency off, and a fixture that named one would make the forbidden-combination check
+            // pass on evidence production does not have.
+            debtorCurrency = if (debtorAccountId == null) "" else debtorCurrency,
             creditor = creditor,
             creditorLabel = creditorLabel,
             manualEntryVisible = manualEntryVisible,
@@ -308,12 +313,39 @@ object SendMoneyFixtures {
         problem = problem,
     )
 
+    /**
+     * The international form, filled in, so the only thing that can block review is the currencies.
+     *
+     * An IBAN payee and no reference, because that is the only shape the international rail
+     * produces — a sort-code payee here would depict a form the app cannot reach.
+     */
+    fun filledInternationalFormState(
+        instructedCurrency: String = "GBP",
+        currencyOfTransfer: String = "USD",
+    ): SendMoneyState = formState(
+        rail = PaymentRail.International,
+        creditor = weissSelection(),
+        creditorLabel = "Klara Weiss",
+        amountInput = "850",
+        amountLabel = "£850.00",
+        instructedCurrency = instructedCurrency,
+        currencyOfTransfer = currencyOfTransfer,
+    )
+
     /** The chosen payee, as the form and review carry it forward. */
     fun jamesonSelection(): CreditorSelection = CreditorSelection(
         name = "Jameson Lettings",
         scheme = BeneficiaryScheme.SortCode,
         identification = "40120965872310",
         beneficiaryId = JAMESON_ID,
+    )
+
+    /** The international rail's payee, identified by IBAN as that rail requires. */
+    fun weissSelection(): CreditorSelection = CreditorSelection(
+        name = "Klara Weiss",
+        scheme = BeneficiaryScheme.Iban,
+        identification = "DE89370400440532013000",
+        beneficiaryId = WEISS_ID,
     )
 
     fun reviewState(
@@ -326,6 +358,7 @@ object SendMoneyFixtures {
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Review,
             rail = rail,
+            offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
             currencyOfTransfer = currencyOfTransfer,
             chargeBearer = chargeBearer,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
@@ -333,9 +366,17 @@ object SendMoneyFixtures {
             beneficiaries = payeesFor(rail),
             debtorAccountId = if (debtorAccountRow == null) null else CURRENT_ACCOUNT_ID,
             debtorAccountRow = debtorAccountRow,
-            creditor = jamesonSelection(),
-            creditorLabel = "Jameson Lettings",
-            creditorSupporting = "Sort Code · 40-12-09 65872310",
+            // The payee follows the rail, as the payee LIST already did. It did not, so the
+            // international review golden showed a sort-code payee under "International payment" —
+            // a screen the app cannot produce, because the ViewModel filters the two schemes apart
+            // and refuses each other's with U027.
+            creditor = if (rail == PaymentRail.International) weissSelection() else jamesonSelection(),
+            creditorLabel = if (rail == PaymentRail.International) "Klara Weiss" else "Jameson Lettings",
+            creditorSupporting = if (rail == PaymentRail.International) {
+                "IBAN · DE89 3704 0044 0532 0130 00"
+            } else {
+                "Sort Code · 40-12-09 65872310"
+            },
             amountInput = "850",
             amountLabel = "£850.00",
             reference = reference,

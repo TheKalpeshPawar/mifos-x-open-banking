@@ -27,8 +27,9 @@
     <string name="feature_send_money_payer_expand_a11y">Show the accounts you can pay from</string>
     <string name="feature_send_money_payer_collapse_a11y">Hide the accounts you can pay from</string>
     <string name="feature_send_money_payee_needs_payer">Choose an account to pay from to see its saved payees.</string>
-    <!-- InstructedAmount is always GBP, so a non-sterling payer means the bank converts. -->
-    <string name="feature_send_money_non_gbp_notice">This payment is instructed in pounds. Your bank will convert from this account and may charge for it.</string>
+    <!-- The payer account holds one currency and the amount is instructed in another, so the bank
+         converts. %1$s is the instructed currency's code — it is no longer always GBP. -->
+    <string name="feature_send_money_non_gbp_notice">This payment is instructed in %1$s. Your bank will convert from this account and may charge for it.</string>
 
     <string name="feature_send_money_balance_available">%1$s available</string>
     <!-- Trailing the collapsed picker, where the label has to name what the figure is. -->
@@ -59,16 +60,43 @@
     <string name="feature_send_money_amount_error_too_many_decimals">Amounts go to two decimal places, like 250.99</string>
     <string name="feature_send_money_amount_error_not_positive">Enter an amount greater than zero</string>
     <string name="feature_send_money_amount_error_exceeds_balance">That is more than the balance available on this account</string>
-    <!-- International only. Only BorneByCreditor is exercised by HSBC's own samples. -->
-    <string name="feature_send_money_charges_heading">Who pays the charges</string>
-    <string name="feature_send_money_charge_bearer_creditor">Recipient pays</string>
-    <string name="feature_send_money_charge_bearer_debtor">I pay</string>
+    <!-- International only. The OBIE terms verbatim, not a gloss: "Recipient pays" / "I pay" were
+         this app's invention, and neither OBIE nor HSBC documents any customer-facing wording, so
+         paraphrasing was asserting a meaning nobody had defined. FollowingServiceLevel has no string
+         because it is not offered — HSBC refuses it with UK.OBIE.Field.Invalid. -->
+    <string name="feature_send_money_charges_heading">Charges</string>
+    <string name="feature_send_money_charge_bearer_creditor">Borne by creditor</string>
+    <string name="feature_send_money_charge_bearer_debtor">Borne by debtor</string>
     <string name="feature_send_money_charge_bearer_shared">Shared</string>
-    <string name="feature_send_money_charge_bearer_service_level">Whatever the scheme decides</string>
 
     <string name="feature_send_money_currency_heading">Recipient receives</string>
-    <string name="feature_send_money_currency_usd">US dollars (USD)</string>
-    <string name="feature_send_money_currency_eur">Euros (EUR)</string>
+    <!-- HSBC's documented routing currencies. Resolved through a code-keyed map that falls back to
+         the code itself, so an unlisted currency renders as itself rather than as another one. -->
+    <string name="feature_send_money_currency_gbp">British Pound (GBP)</string>
+    <string name="feature_send_money_currency_eur">Euro (EUR)</string>
+    <string name="feature_send_money_currency_usd">US Dollar (USD)</string>
+    <string name="feature_send_money_currency_aud">Australian Dollar (AUD)</string>
+    <string name="feature_send_money_currency_cad">Canadian Dollar (CAD)</string>
+    <string name="feature_send_money_currency_chf">Swiss Franc (CHF)</string>
+    <string name="feature_send_money_currency_cny">Chinese Yuan (CNY)</string>
+    <string name="feature_send_money_currency_hkd">Hong Kong Dollar (HKD)</string>
+    <string name="feature_send_money_currency_sgd">Singapore Dollar (SGD)</string>
+    <string name="feature_send_money_currency_nzd">New Zealand Dollar (NZD)</string>
+    <string name="feature_send_money_currency_aed">UAE Dirham (AED)</string>
+    <string name="feature_send_money_currency_czk">Czech Koruna (CZK)</string>
+    <string name="feature_send_money_currency_dkk">Danish Krone (DKK)</string>
+    <string name="feature_send_money_currency_nok">Norwegian Krone (NOK)</string>
+    <string name="feature_send_money_currency_pln">Polish Zloty (PLN)</string>
+    <string name="feature_send_money_currency_sar">Saudi Riyal (SAR)</string>
+    <string name="feature_send_money_currency_sek">Swedish Krona (SEK)</string>
+    <string name="feature_send_money_currency_zar">South African Rand (ZAR)</string>
+    <string name="feature_send_money_currency_thb">Thai Baht (THB)</string>
+
+    <!-- The combination HSBC refuses outright: InstructedAmount.Currency must equal either the
+         debtor account's currency or the currency of transfer. Stated as the two codes that would
+         work, because "invalid combination" tells nobody what to change. -->
+    <string name="feature_send_money_currency_mismatch">The amount must be in %1$s or %2$s — your bank accepts no other currency here.</string>
+    <string name="feature_send_money_currency_mismatch_bank_choice">The amount must be in %1$s while your bank chooses the account to pay from.</string>
 
     <string name="feature_send_money_manual_iban">IBAN</string>
     <string name="feature_send_money_manual_iban_error">Enter a valid IBAN</string>

@@ -112,6 +112,41 @@ class SendMoneyScreenScreenshotTest {
     fun nonSterlingPayerGolden() =
         capture("form_non_sterling_payer", SendMoneyFixtures.formState(debtorCurrency = "USD"))
 
+    /**
+     * The amount instructed in a currency that is not the payer's, which is the whole point of the
+     * inline control: the symbol on the figure has to be `$`, the balance beneath still `£`, and the
+     * conversion notice has to be the one that names the instructed currency.
+     */
+    @Test
+    fun instructedInAnotherCurrencyGolden() = capture(
+        "form_instructed_currency",
+        SendMoneyFixtures.filledInternationalFormState(
+            instructedCurrency = "USD",
+            currencyOfTransfer = "USD",
+        ),
+    )
+
+    /**
+     * The combination the bank refuses.
+     *
+     * Worth an image because the message has to sit under the field it names and the action below it
+     * has to be visibly dead — a warning that looks like a hint beside a button that still invites a
+     * tap is the failure mode this replaces.
+     */
+    @Test
+    fun forbiddenCurrencyCombinationGolden() = capture(
+        "form_currency_mismatch",
+        SendMoneyFixtures.filledInternationalFormState(
+            instructedCurrency = "USD",
+            currencyOfTransfer = "EUR",
+        ),
+    )
+
+    /** The international review, whose two extra rows now read in official terms. */
+    @Test
+    fun internationalReviewGolden() =
+        capture("review_international", SendMoneyFixtures.reviewState(rail = PaymentRail.International))
+
     @Test
     fun manualIbanEntryGolden() = capture(
         "form_manual_iban",

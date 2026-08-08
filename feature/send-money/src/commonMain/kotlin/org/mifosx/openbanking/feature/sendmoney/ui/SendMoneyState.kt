@@ -212,7 +212,14 @@ sealed interface SendMoneyUiState {
         val manualName: String = "",
         val amountInput: String = "",
         val amountLabel: String = "",
-        /** `InstructedAmount.Currency`. Always sterling; see `SendMoneyViewModel.buildDraft`. */
+        /**
+         * `InstructedAmount.Currency` — what leaves the account, and the symbol on the amount card.
+         *
+         * Sterling on the domestic rail and selectable on the international one, where it was a
+         * constant until the amount card grew a control for it. It is not free: the bank requires it
+         * to equal either the debtor account's currency or [currencyOfTransfer], which is what
+         * [instructedCurrencyValid] tests.
+         */
         val instructedCurrency: String = "GBP",
         val currencyOfTransfer: String = "GBP",
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
@@ -223,23 +230,47 @@ sealed interface SendMoneyUiState {
         /** The same figure, formatted. Blank when no payer is chosen, which hides the balance line. */
         val availableBalanceLabel: String = "",
         val debtorCurrency: String = "",
-        /** What the recipient may be paid in. Empty on the domestic rail. */
-        val transferCurrencies: List<String> = emptyList(),
+        /**
+         * What both currency selectors offer. Empty on the domestic rail, which has neither.
+         *
+         * One list rather than two because they are the same list: HSBC documents one set of routing
+         * currencies, and the two fields choose from it for different purposes.
+         */
+        val offeredCurrencies: List<String> = emptyList(),
     ) : SendMoneyUiState {
 
         /**
-         * Review is reachable only once the amount is payable, a payee is chosen, and the payer
-         * question has been answered one way or the other.
+         * Review is reachable only once the amount is payable, a payee is chosen, the payer question
+         * has been answered one way or the other, and the two currencies are a combination the bank
+         * accepts.
          *
          * The payer clause matters because "no account chosen" and "the bank will choose" look the
          * same in the draft — both send no `DebtorAccount`. Without it someone could reach a review
          * saying "you'll choose at your bank" for a decision they never made.
+         *
+         * The currency clause is a gate and not a warning on purpose. Two independent selectors make
+         * a combination reachable that one control could not, and nothing downstream would catch it:
+         * the review would read perfectly, and the bank would answer `400`.
          */
         val canReview: Boolean
             get() = amountProblem == null &&
                 amountInput.isNotBlank() &&
                 creditor != null &&
-                !payerUndecided
+                !payerUndecided &&
+                instructedCurrencyValid
+
+        /**
+         * Whether the bank will accept instructing in [instructedCurrency].
+         *
+         * Always true domestically, where everything is sterling. See
+         * [instructedCurrencyIsAcceptable] for the rule and why it is enforced rather than corrected.
+         */
+        val instructedCurrencyValid: Boolean
+            get() = instructedCurrencyIsAcceptable(
+                instructedCurrency = instructedCurrency,
+                debtorCurrency = debtorCurrency,
+                currencyOfTransfer = currencyOfTransfer,
+            )
 
         /** Neither an account picked nor the bank asked to pick one. */
         val payerUndecided: Boolean
@@ -256,13 +287,21 @@ sealed interface SendMoneyUiState {
             get() = debtorAccountId == null
 
         /**
-         * Whether to warn that the payer is not a sterling account.
+         * Whether to warn that the bank will convert on the way out.
          *
-         * `InstructedAmount` is always GBP, so a non-GBP payer means the bank converts — and this
-         * app cannot say at what rate, because no consent exists yet to quote one.
+         * The comparison is against [instructedCurrency] rather than against a hardcoded `"GBP"`,
+         * which is what it tested while the instructed currency was a constant. Once that became
+         * selectable the old test was wrong in both directions: it stayed silent on a sterling
+         * account instructed in dollars, which does convert, and warned on a dollar account
+         * instructed in dollars, which does not.
+         *
+         * This app cannot say at what rate — no consent exists yet to quote one, and
+         * `ExchangeRateInformation` is refused `U005` — so the notice states that a conversion will
+         * happen and stops there.
          */
-        val showsNonGbpAdvisory: Boolean
-            get() = debtorCurrency.isNotBlank() && !debtorCurrency.equals("GBP", ignoreCase = true)
+        val showsConversionAdvisory: Boolean
+            get() = debtorCurrency.isNotBlank() &&
+                !debtorCurrency.equals(instructedCurrency, ignoreCase = true)
 
         val hasBeneficiaries: Boolean
             get() = beneficiaries.isNotEmpty()
@@ -316,6 +355,15 @@ sealed interface SendMoneyAction {
 
     /** @param amount In MAJOR units, as typed: `250` and `250.00` both mean £250. */
     data class EnterAmount(val amount: String) : SendMoneyAction
+
+    /**
+     * `InstructedAmount.Currency` — what the amount is denominated in.
+     *
+     * Separate from [SelectCurrencyOfTransfer] because they are separate OBIE fields with separate
+     * meanings: one is what leaves the account, the other is what arrives. One control driving both
+     * would have hidden the field the bank validates the pair against.
+     */
+    data class SelectInstructedCurrency(val currency: String) : SendMoneyAction
     data class SelectCurrencyOfTransfer(val currency: String) : SendMoneyAction
     data class SelectChargeBearer(val bearer: ChargeBearer) : SendMoneyAction
     data class EnterReference(val reference: String) : SendMoneyAction

@@ -69,6 +69,16 @@ private fun internationalPayees(): List<SendMoneyPickerRow> = listOf(
     SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
 )
 
+/**
+ * HSBC's documented routing currencies, copied because instrumented tests cannot see commonMain's
+ * `OFFERED_CURRENCIES`. Only the first few are asserted on; the rest are here so the menu this suite
+ * opens is the length the real one is.
+ */
+private val OFFERED_CURRENCIES = listOf(
+    "GBP", "EUR", "USD", "AUD", "CAD", "CHF", "CNY", "HKD", "SGD", "NZD",
+    "AED", "CZK", "DKK", "NOK", "PLN", "SAR", "SEK", "ZAR", "THB",
+)
+
 private fun formState(
     rail: PaymentRail = PaymentRail.Domestic,
     debtorAccountId: String? = CURRENT_ACCOUNT_ID,
@@ -83,8 +93,8 @@ private fun formState(
         debtorAccountId = debtorAccountId,
         payerPickerExpanded = payerPickerExpanded,
         availableBalanceLabel = if (debtorAccountId == null) "" else "£21,530.92",
-        transferCurrencies = if (rail == PaymentRail.International) listOf("USD", "EUR") else emptyList(),
-        currencyOfTransfer = if (rail == PaymentRail.International) "USD" else "GBP",
+        offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
+        debtorCurrency = if (debtorAccountId == null) "" else "GBP",
         availableBalanceMinorUnits = 2_153_092L,
     ),
 )
@@ -124,15 +134,28 @@ class SendMoneyScreenInstrumentedTest {
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
     }
 
+    /** On a real device too: the options are behind a menu, so the field is opened first. */
     @Test
-    fun tappingAChargeBearerChipRoutesTheChoice() {
+    fun choosingAChargeBearerFromTheMenuRoutesTheChoice() {
         render(formState(rail = PaymentRail.International))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.chargeBearerChip(ChargeBearer.Shared))
-            .performScrollTo()
-            .performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.chargeBearerOption(ChargeBearer.Shared)).performClick()
 
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectChargeBearer(ChargeBearer.Shared)), actions)
+    }
+
+    /** Nineteen options render in a real popup window, which is the thing a device can disprove. */
+    @Test
+    fun theInstructedCurrencyMenuOpensOnTheAmountCard() {
+        render(formState(rail = PaymentRail.International))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
+            .performScrollTo()
+            .performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.instructedCurrencyOption("USD")).performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectInstructedCurrency("USD")), actions)
     }
 
     /** On a real device too: the accounts fold away until the summary is tapped. */

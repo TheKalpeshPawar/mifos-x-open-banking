@@ -58,14 +58,6 @@ private const val IBAN_MIN_LENGTH = 15
 private const val IBAN_MAX_LENGTH = 34
 private const val IBAN_COUNTRY_PREFIX_LENGTH = 2
 
-/**
- * What the recipient can be paid in.
- *
- * Global Money accepts only these two, and the sandbox refuses anything else on that path with
- * `U002`. The first is the default when the rail is switched.
- */
-private val TRANSFER_CURRENCIES = listOf("USD", "EUR")
-
 /** Written-down IBANs carry spaces and are often lower case; OBIE wants neither. */
 private fun String.normaliseIban(): String = filterNot { it.isWhitespace() }.uppercase()
 
@@ -82,11 +74,13 @@ private fun String.isPlausibleIban(): Boolean = normaliseIban().let { candidate 
         candidate.take(IBAN_COUNTRY_PREFIX_LENGTH).all { it.isLetter() }
 }
 
-/** `InstructedAmount.Currency`. GBP on both rails; see [SendMoneyViewModel.buildDraft]. */
-private const val INSTRUCTED_CURRENCY = "GBP"
-
-/** What a sterling amount may carry after the point. More than this is refused, never rounded. */
-private const val MAX_DECIMAL_PLACES = 2
+/**
+ * The currency the domestic rail instructs and transfers in.
+ *
+ * Sterling is not a default here, it is the whole of the domestic rail: Faster Payments moves pounds,
+ * so neither currency is offered and both are normalised back to this whenever the rail is chosen.
+ */
+private const val DOMESTIC_CURRENCY = "GBP"
 
 /**
  * How many words an avatar caption keeps before the rest becomes an initial.
@@ -95,10 +89,6 @@ private const val MAX_DECIMAL_PLACES = 2
  * lines or be truncated mid-word, and neither says who is being paid.
  */
 private const val SHORT_NAME_WORDS = 1
-
-/** The decimal places typed, or `null` when there is no point at all. */
-private fun String.decimalPlaces(): Int? =
-    substringAfter('.', missingDelimiterValue = "").takeIf { '.' in this }?.length
 
 /**
  * Drives the payment form up to the point the customer leaves for their bank.
@@ -150,7 +140,9 @@ class SendMoneyViewModel(
         val manualIban: String = "",
         val manualName: String = "",
         val amountInput: String = "",
-        val currencyOfTransfer: String = "GBP",
+        /** `InstructedAmount.Currency`. Selectable internationally; forced to GBP domestically. */
+        val instructedCurrency: String = DOMESTIC_CURRENCY,
+        val currencyOfTransfer: String = DOMESTIC_CURRENCY,
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
@@ -242,6 +234,8 @@ class SendMoneyViewModel(
             is SendMoneyAction.EnterManualName -> form.value = form.value.copy(manualName = action.name)
             SendMoneyAction.ConfirmManualCreditor -> confirmManualCreditor()
             is SendMoneyAction.EnterAmount -> enterAmount(action.amount)
+            is SendMoneyAction.SelectInstructedCurrency ->
+                form.value = form.value.copy(instructedCurrency = action.currency).revalidated()
             is SendMoneyAction.SelectCurrencyOfTransfer ->
                 form.value =
                     form.value.copy(currencyOfTransfer = action.currency)
@@ -266,12 +260,15 @@ class SendMoneyViewModel(
      */
     private fun selectDebtor(accountId: String) {
         selectedAccountId.value = accountId
+        // Revalidated because the balance rung reads the account that just changed: moving to a
+        // poorer account has to flag an amount that was payable from the previous one, and moving to
+        // an account in another currency has to withdraw a comparison that no longer means anything.
         form.value = form.value.copy(
             debtorAccountId = accountId,
             payerPickerExpanded = false,
             letBankChoosePayer = false,
             creditor = null,
-        )
+        ).revalidated()
     }
 
     /**
@@ -288,7 +285,7 @@ class SendMoneyViewModel(
             payerPickerExpanded = false,
             letBankChoosePayer = true,
             creditor = null,
-        )
+        ).revalidated()
     }
 
     /**
@@ -299,12 +296,18 @@ class SendMoneyViewModel(
      * wrong scheme would be carried into a request that cannot accept them. The **amount survives**
      * on purpose: it means the same thing on both rails, and re-typing it is a cost with no reason.
      *
-     * The transfer currency is normalised because it defaults to GBP, which the international rail
-     * never offers. Leaving it would stage `CurrencyOfTransfer: GBP` with nothing on screen having
-     * said so.
+     * **Both currencies are normalised back to sterling on the domestic rail**, which offers neither
+     * control. Anything else would stage a currency the customer was never shown — the same reason
+     * this normalisation existed before, now applied to both fields because both are selectable.
+     *
+     * Neither is normalised in the other direction. Sterling is a valid international choice on both
+     * fields: `CurrencyOfTransfer: GBP` stages `201`/`AWAU` (INT-04). The two-value USD/EUR list this
+     * replaced forced the transfer currency off GBP on the way in, which silently changed a decision
+     * the customer had not made.
      */
     private fun selectRail(rail: PaymentRail) {
         val current = form.value
+        val domestic = rail == PaymentRail.Domestic
         form.value = current.copy(
             rail = rail,
             creditor = null,
@@ -313,14 +316,9 @@ class SendMoneyViewModel(
             manualAccountNumber = "",
             manualIban = "",
             fieldErrors = SendMoneyFieldErrors(),
-            currencyOfTransfer = when (rail) {
-                PaymentRail.Domestic -> INSTRUCTED_CURRENCY
-                PaymentRail.International ->
-                    current.currencyOfTransfer
-                        .takeIf { it in TRANSFER_CURRENCIES }
-                        ?: TRANSFER_CURRENCIES.first()
-            },
-        )
+            instructedCurrency = if (domestic) DOMESTIC_CURRENCY else current.instructedCurrency,
+            currencyOfTransfer = if (domestic) DOMESTIC_CURRENCY else current.currencyOfTransfer,
+        ).revalidated()
     }
 
     private fun enterIban(raw: String) {
@@ -432,44 +430,35 @@ class SendMoneyViewModel(
         )
     }
 
-    /**
-     * The validation ladder, in order: parseable, two decimal places at most, positive, within the
-     * account's available balance.
-     *
-     * The amount is read in MAJOR units — `250` and `250.00` both mean £250 — and converted here,
-     * once. It used to be parsed as minor units behind a field labelled "Amount in pence", so
-     * someone typing 250 for £250 sent £2.50. `PaymentDraft.amountMinorUnits` is unchanged: the wire
-     * still carries pence, and [amountMinorUnits] is the only place that conversion happens.
-     *
-     * The decimal-places rung comes before the sign check because [parseMinorUnits] truncates rather
-     * than refusing — `250.999` would otherwise become £250.99, an amount nobody typed.
-     *
-     * The balance rung is advisory only — it never replaces the bank's funds confirmation, which can
-     * refuse a payment this comparison allows.
-     */
     private fun enterAmount(amount: String) {
-        val available = availableBalanceMinorUnits()
-        val places = amount.decimalPlaces()
-        val parsed = amountMinorUnits(amount)
-        val problem = when {
-            amount.isBlank() -> null
-            parsed == null -> SendMoneyAmountProblem.NotANumber
-            places != null && places > MAX_DECIMAL_PLACES -> SendMoneyAmountProblem.TooManyDecimals
-            parsed <= 0L -> SendMoneyAmountProblem.NotPositive
-            available != null && parsed > available -> SendMoneyAmountProblem.ExceedsAvailableBalance
-            else -> null
-        }
-        form.value = form.value.copy(amountInput = amount, amountProblem = problem)
+        form.value = form.value.copy(amountInput = amount).revalidated()
     }
 
     /**
-     * The typed major-unit amount as minor units, or `null` when it is not an amount at all.
+     * Re-runs the amount ladder against the form as it now stands.
      *
-     * A negative figure is not rejected here — `parseMinorUnits` accepts a leading `-` — because the
-     * positivity rung above says so with a message about the amount rather than about its shape.
+     * Called by everything that can change an input the ladder reads — the amount itself, the payer,
+     * the instructed currency, the rail — because the amount is the only field whose validity
+     * depends on three others. See [amountProblemOf] for the ladder.
      */
-    private fun amountMinorUnits(amount: String): Long? =
-        amount.takeIf { it.isNotBlank() }?.let(::parseMinorUnits)
+    private fun Form.revalidated(): Form = copy(amountProblem = amountProblemOf(amountInput, comparableBalance()))
+
+    /**
+     * The payer's available balance, but **only when the amount is denominated in the same currency**.
+     *
+     * `null` — no comparison at all — when the payer is unknown or holds another currency. Comparing
+     * 250 USD against a sterling balance is not a smaller mistake than not comparing: at 1.27 it
+     * refuses payments the account covers twice over, and in the other direction it would pass ones
+     * it cannot. The bank's funds confirmation is binding either way; this rung was always advisory,
+     * and an advisory check that is wrong is worse than one that is absent.
+     */
+    private fun Form.comparableBalance(): Long? =
+        accounts()
+            .firstOrNull { it.account.accountId == debtorAccountId }
+            ?.takeIf { it.account.currency.equals(instructedCurrency, ignoreCase = true) }
+            ?.balance
+            ?.availableAmount
+            ?.let(::parseMinorUnits)
 
     private fun enterReference(reference: String) {
         form.value = form.value.copy(reference = reference)
@@ -555,10 +544,11 @@ class SendMoneyViewModel(
             debtorAccount = debtorAccount(),
             creditor = creditor,
             amountMinorUnits = amount,
-            // Always GBP. HSBC instructs in sterling on both rails and converts at their end, so
-            // reading this off the payer would send whatever a foreign-currency account happens to
-            // hold. What the recipient receives is CurrencyOfTransfer, which is a separate field.
-            currency = INSTRUCTED_CURRENCY,
+            // What the customer chose, not what the payer account holds. HSBC accepts an instructed
+            // currency equal to either the debtor account's or CurrencyOfTransfer, and canReview has
+            // already refused every combination outside that. Reading it off the payer instead would
+            // send whatever a foreign-currency account happens to hold, which is neither.
+            currency = current.instructedCurrency,
             reference = current.reference.takeIf { it.isNotBlank() && !isInternational },
             instructionIdentification = INSTRUCTION_ID_PREFIX + hex,
             endToEndIdentification = END_TO_END_ID_PREFIX + hex,
@@ -633,10 +623,10 @@ class SendMoneyViewModel(
             manualName = entered.manualName,
             amountInput = entered.amountInput,
             amountLabel = amountLabel(entered),
-            instructedCurrency = INSTRUCTED_CURRENCY,
+            instructedCurrency = entered.instructedCurrency,
             currencyOfTransfer = entered.currencyOfTransfer,
-            transferCurrencies = if (entered.rail == PaymentRail.International) {
-                TRANSFER_CURRENCIES
+            offeredCurrencies = if (entered.rail == PaymentRail.International) {
+                OFFERED_CURRENCIES
             } else {
                 emptyList()
             },
@@ -648,15 +638,18 @@ class SendMoneyViewModel(
             // Blank when no payer is chosen, which is what hides the balance line under the amount:
             // there is no account to state a balance for, and £0.00 would be a claim about one.
             availableBalanceLabel = availableMinorUnits
-                ?.let { formatMinorUnits(it, selected?.balance?.currency ?: INSTRUCTED_CURRENCY) }
+                // The account's own currency, which is not necessarily the instructed one. Stating
+                // a sterling balance as dollars because the amount is in dollars would misreport
+                // what is in the account by whatever the rate happens to be.
+                ?.let { formatMinorUnits(it, selected?.balance?.currency ?: DOMESTIC_CURRENCY) }
                 .orEmpty(),
         )
     }
 
-    /** Always in the instructed currency — the amount is not the payer account's own currency. */
+    /** In the instructed currency — the amount is not the payer account's own currency. */
     private fun amountLabel(entered: Form): String {
         val minor = amountMinorUnits(entered.amountInput) ?: return ""
-        return formatMinorUnits(minor, INSTRUCTED_CURRENCY)
+        return formatMinorUnits(minor, entered.instructedCurrency)
     }
 
     private fun accounts(): List<AccountWithBalance> =

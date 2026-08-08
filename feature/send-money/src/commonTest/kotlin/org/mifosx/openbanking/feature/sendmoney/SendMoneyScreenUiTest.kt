@@ -11,13 +11,16 @@ package org.mifosx.openbanking.feature.sendmoney
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStage
@@ -199,9 +202,9 @@ class SendMoneyScreenUiTest {
         onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
     }
 
-    /** All four OBIE values are offered, even though only one is exercised by HSBC's samples. */
+    /** Three of the four OBIE values are offered. */
     @Test
-    fun everyChargeBearerIsOffered() = runComposeUiTest {
+    fun everyAcceptedChargeBearerIsOffered() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.formState(rail = PaymentRail.International),
@@ -209,14 +212,22 @@ class SendMoneyScreenUiTest {
                 {},
             )
         }
-        ChargeBearer.entries.forEach { bearer ->
-            onNodeWithTag(SendMoneyTestTags.chargeBearerChip(bearer)).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().performClick()
+
+        OFFERED_CHARGE_BEARERS.forEach { bearer ->
+            onNodeWithTag(SendMoneyTestTags.chargeBearerOption(bearer), useUnmergedTree = true).assertExists()
         }
     }
 
-    /** Only the two currencies Global Money accepts. */
+    /**
+     * The regression that matters: `FollowingServiceLevel` must not be offered.
+     *
+     * HSBC's implementation guide restricts ChargeBearer to three values and refuses the fourth with
+     * `400 UK.OBIE.Field.Invalid`. It stays in the enum — that is the OBIE codeset, and `fromWire`
+     * has to parse it — so nothing about the model stops it reappearing in the picker except this.
+     */
     @Test
-    fun onlyTheAcceptedTransferCurrenciesAreOffered() = runComposeUiTest {
+    fun followingServiceLevelIsNotOffered() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.formState(rail = PaymentRail.International),
@@ -224,9 +235,97 @@ class SendMoneyScreenUiTest {
                 {},
             )
         }
-        onNodeWithTag(SendMoneyTestTags.currencyChip("USD")).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.currencyChip("EUR")).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.currencyChip("GBP")).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().performClick()
+
+        onNodeWithTag(
+            SendMoneyTestTags.chargeBearerOption(ChargeBearer.FollowingServiceLevel),
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
+    }
+
+    /**
+     * HSBC's nineteen documented routing currencies, sterling included.
+     *
+     * GBP used to be asserted absent, on the belief that Global Money accepts only USD and EUR. INT-04
+     * disproves it: `CurrencyOfTransfer: GBP` stages `201`/`AWAU`, so excluding it withheld a
+     * currency the bank accepts.
+     */
+    @Test
+    fun theTransferCurrencyOffersHsbcsRoutingListIncludingSterling() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().performClick()
+
+        listOf("GBP", "USD", "EUR", "THB").forEach { code ->
+            onNodeWithTag(SendMoneyTestTags.transferCurrencyOption(code), useUnmergedTree = true).assertExists()
+        }
+    }
+
+    /** The amount card's own control, which only exists on the rail that can use it. */
+    @Test
+    fun theInstructedCurrencyIsSelectableInternationallyAndFixedDomestically() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).performScrollTo().performClick()
+
+        onNodeWithTag(SendMoneyTestTags.instructedCurrencyOption("USD"), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun theDomesticRailOffersNoInstructedCurrencyControl() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
+    }
+
+    /**
+     * The combination HSBC refuses, blocked in the UI rather than sent and refused.
+     *
+     * Two independent selectors make it reachable: 250 USD out of a sterling account arriving as
+     * euros is three currencies with no relationship between them, and the bank answers `400`.
+     */
+    @Test
+    fun aForbiddenCurrencyCombinationBlocksTheReview() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.filledInternationalFormState(
+                    instructedCurrency = "USD",
+                    currencyOfTransfer = "EUR",
+                ),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsNotEnabled()
+    }
+
+    /** Instructing in the currency the recipient receives is one of the two the bank accepts. */
+    @Test
+    fun instructingInTheTransferCurrencyIsAllowed() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.filledInternationalFormState(
+                    instructedCurrency = "USD",
+                    currencyOfTransfer = "USD",
+                ),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsEnabled()
     }
 
     /** Each rail identifies a creditor its own way, and refuses the other's scheme with `U027`. */

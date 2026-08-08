@@ -70,6 +70,12 @@ private val FieldMinWidth = 96.dp
  * account there is no balance to state, and a printed £0.00 would be a claim about one. An
  * [errorMessage] takes that line rather than being added below it, so the card cannot grow taller
  * as the customer types.
+ *
+ * [trailing] sits inside the figure's own row, not at the card's edge. The international rail passes
+ * the instructed-currency control through it, and that control qualifies the amount: separating them
+ * across the width of the card would put the unit an inch from the number it applies to, which is
+ * the same defect the intrinsic width in [AmountField] exists to prevent. It defaults to empty, so
+ * the domestic card is exactly what it was.
  */
 @Composable
 internal fun SendMoneyAmountCard(
@@ -79,6 +85,7 @@ internal fun SendMoneyAmountCard(
     errorMessage: String?,
     onAmountChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit = {},
 ) {
     val amountLabel = stringResource(Res.string.feature_send_money_amount_label)
     Column(
@@ -115,6 +122,7 @@ internal fun SendMoneyAmountCard(
                 contentDescription = amountLabel,
                 onAmountChange = onAmountChange,
             )
+            trailing()
         }
 
         // Only when there is something under it. With no payer there is no balance to state and no

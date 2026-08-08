@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.sendmoney
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -127,24 +128,65 @@ class SendMoneyScreenRobolectricTest {
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
     }
 
+    /** Two taps now, not one: the options live in a menu that has to be opened first. */
     @Test
-    fun tappingAChargeBearerChipRoutesTheChoice() {
+    fun choosingAChargeBearerFromTheMenuRoutesTheChoice() {
         render(SendMoneyFixtures.formState(rail = PaymentRail.International))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.chargeBearerChip(ChargeBearer.Shared))
-            .performScrollTo()
-            .performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.chargeBearerOption(ChargeBearer.Shared)).performClick()
 
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectChargeBearer(ChargeBearer.Shared)), actions)
     }
 
+    /** The value HSBC refuses is not in the menu, which is the whole point of the offered list. */
     @Test
-    fun tappingACurrencyChipRoutesTheChoice() {
+    fun theChargeBearerMenuOmitsFollowingServiceLevel() {
         render(SendMoneyFixtures.formState(rail = PaymentRail.International))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.currencyChip("EUR")).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().performClick()
+
+        composeRule.onNodeWithTag(
+            SendMoneyTestTags.chargeBearerOption(ChargeBearer.FollowingServiceLevel),
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun choosingATransferCurrencyFromTheMenuRoutesTheChoice() {
+        render(SendMoneyFixtures.formState(rail = PaymentRail.International))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.transferCurrencyOption("EUR")).performClick()
 
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectCurrencyOfTransfer("EUR")), actions)
+    }
+
+    /** The amount card's own control, which is what makes the symbol on the figure follow a choice. */
+    @Test
+    fun choosingAnInstructedCurrencyFromTheMenuRoutesTheChoice() {
+        render(SendMoneyFixtures.formState(rail = PaymentRail.International))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
+            .performScrollTo()
+            .performClick()
+        composeRule.onNodeWithTag(SendMoneyTestTags.instructedCurrencyOption("USD")).performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectInstructedCurrency("USD")), actions)
+    }
+
+    /** The combination the bank refuses, refused here instead. */
+    @Test
+    fun aForbiddenCurrencyCombinationDisablesTheReviewButton() {
+        render(
+            SendMoneyFixtures.filledInternationalFormState(
+                instructedCurrency = "USD",
+                currencyOfTransfer = "EUR",
+            ),
+        )
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsNotEnabled()
     }
 
     /** Each rail identifies a creditor its own way and refuses the other's scheme with `U027`. */

@@ -214,9 +214,15 @@ class SendMoneyViewModelTest {
         assertNull(payments.stagedDrafts.single().debtorAccount)
     }
 
-    /** The amount is instructed in sterling whether or not a payer has been chosen. */
+    /**
+     * The domestic rail instructs in sterling, and offers no way to say otherwise.
+     *
+     * This used to hold on both rails, because the instructed currency was a constant. It is now a
+     * statement about the domestic rail only — see `SendMoneyRailTest` for the international case,
+     * where it follows the customer's own selection.
+     */
     @Test
-    fun stagesInSterlingRegardlessOfThePayersOwnCurrency() = runTest {
+    fun aDomesticPaymentStagesInSterling() = runTest {
         val payments = FakePaymentInitiationRepository()
         val vm = viewModel(payments = payments)
 

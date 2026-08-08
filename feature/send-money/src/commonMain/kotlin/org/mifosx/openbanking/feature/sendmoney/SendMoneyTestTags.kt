@@ -50,6 +50,12 @@ internal object SendMoneyTestTags {
     const val MANUAL_IBAN_ERROR = "sendMoney:manualIbanError"
     const val CURRENCY_PICKER = "sendMoney:currencyPicker"
     const val CHARGE_BEARER_PICKER = "sendMoney:chargeBearerPicker"
+
+    /** The instructed currency, inline on the amount card. International only. */
+    const val INSTRUCTED_CURRENCY_PICKER = "sendMoney:instructedCurrencyPicker"
+
+    /** The combination HSBC refuses. Present exactly when the review is blocked by it. */
+    const val CURRENCY_MISMATCH = "sendMoney:currencyMismatch"
     const val REVIEW_BUTTON = "sendMoney:reviewButton"
 
     const val REVIEW_LEAD = "sendMoney:reviewLead"
@@ -93,11 +99,25 @@ internal object SendMoneyTestTags {
         PaymentRail.International -> "international"
     }
 
-    /** One recipient-currency chip. */
-    fun currencyChip(code: String): String = "sendMoney:currency:$code"
+    /**
+     * One option inside a menu, not a chip on the page.
+     *
+     * The three renamed from `*Chip` when the chip rows became dropdowns: a tag that still said chip
+     * would have sent the next reader looking for a control that is no longer there. Absent from the
+     * tree entirely while the menu is shut, so every assertion on one has to open it first.
+     */
+    fun transferCurrencyOption(code: String): String = "sendMoney:transferCurrency:$code"
 
-    /** One charge-bearer chip. */
-    fun chargeBearerChip(bearer: ChargeBearer): String = "sendMoney:chargeBearer:" + bearer.name
+    /**
+     * One option in the instructed-currency menu.
+     *
+     * Kept apart from [transferCurrencyOption] because both menus offer the same nineteen codes, and
+     * a shared tag could not say which of the two a tap had landed in.
+     */
+    fun instructedCurrencyOption(code: String): String = "sendMoney:instructedCurrency:$code"
+
+    /** One charge-bearer option. */
+    fun chargeBearerOption(bearer: ChargeBearer): String = "sendMoney:chargeBearer:" + bearer.name
 
     /** One debtor row, keyed by OBIE `AccountId`. */
     fun debtorRow(accountId: String): String = "sendMoney:debtorRow:$accountId"

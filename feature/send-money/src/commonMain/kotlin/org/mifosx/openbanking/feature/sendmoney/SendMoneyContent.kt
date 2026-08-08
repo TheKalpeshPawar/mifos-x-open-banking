@@ -39,12 +39,14 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
-import org.mifosx.openbanking.feature.sendmoney.components.ChargeBearerPicker
 import org.mifosx.openbanking.feature.sendmoney.components.RailToggle
-import org.mifosx.openbanking.feature.sendmoney.components.RecipientCurrencyPicker
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAmountCard
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownChip
+import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownField
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPayeeAvatarRow
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyPayerPicker
+import org.mifosx.openbanking.feature.sendmoney.components.chargeBearerLabel
+import org.mifosx.openbanking.feature.sendmoney.components.currencyName
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_exceeds_balance
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_not_a_number
@@ -53,6 +55,8 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charges_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_heading
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_mismatch
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_mismatch_bank_choice
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_form_trust_note
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number
@@ -71,6 +75,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
+import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
@@ -158,15 +163,15 @@ private fun PayerSection(
             onSelect = { onAction(SendMoneyAction.SelectDebtorAccount(it)) },
             onLetBankChoose = { onAction(SendMoneyAction.LetBankChoosePayer) },
         )
-        if (state.showsNonGbpAdvisory) {
-            NonGbpPayerNotice()
+        if (state.showsConversionAdvisory) {
+            ConversionNotice(instructedCurrency = state.instructedCurrency)
         }
     }
 }
 
-/** The amount is instructed in sterling whatever the payer holds, so say so before it is entered. */
+/** The account holds one currency and the amount is instructed in another, so say so up front. */
 @Composable
-private fun NonGbpPayerNotice() {
+private fun ConversionNotice(instructedCurrency: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -184,7 +189,7 @@ private fun NonGbpPayerNotice() {
             modifier = Modifier.size(NoticeIconSize),
         )
         Text(
-            text = stringResource(Res.string.feature_send_money_non_gbp_notice),
+            text = stringResource(Res.string.feature_send_money_non_gbp_notice, instructedCurrency),
             style = KptTheme.typography.bodySmall,
             color = KptTheme.colorScheme.onSurfaceVariant,
         )
@@ -363,7 +368,12 @@ private fun AmountSection(
             balanceLabel = state.availableBalanceLabel,
             errorMessage = state.amountProblem?.let { stringResource(it.messageResource()) },
             onAmountChange = { onAction(SendMoneyAction.EnterAmount(it)) },
-        )
+        ) {
+            // Domestic instructs in sterling and offers no choice, so the card is unchanged there.
+            if (state.rail == PaymentRail.International) {
+                InstructedCurrencyControl(state, onAction)
+            }
+        }
 
         // Domestic only. International refuses RemittanceInformation outright with U005, so showing
         // the field there would invite someone to type a reference the recipient never sees.
@@ -381,20 +391,113 @@ private fun AmountSection(
         // International only, and both required there: ChargeBearer is refused on domestic and
         // missing on international earns U004.
         if (state.rail == PaymentRail.International) {
-            SectionHeading(stringResource(Res.string.feature_send_money_currency_heading))
-            RecipientCurrencyPicker(
-                selected = state.currencyOfTransfer,
-                currencies = state.transferCurrencies,
-                onSelect = { onAction(SendMoneyAction.SelectCurrencyOfTransfer(it)) },
-            )
+            InternationalFields(state, onAction)
+        }
+    }
+}
 
+/**
+ * The instructed currency, inline with the figure it denominates.
+ *
+ * The code alone on the control and the currency spelled out in the menu: beside a 36sp amount the
+ * unit is read as part of the number, so "US Dollar (USD)" there would compete with the figure — but
+ * a menu of nineteen bare codes would ask the customer to already know them.
+ */
+@Composable
+private fun InstructedCurrencyControl(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    SendMoneyDropdownChip(
+        label = state.instructedCurrency,
+        selected = state.instructedCurrency,
+        options = state.offeredCurrencies,
+        optionLabel = { currencyName(it) },
+        optionTestTag = SendMoneyTestTags::instructedCurrencyOption,
+        onSelect = { onAction(SendMoneyAction.SelectInstructedCurrency(it)) },
+        // Lifted off the baseline by the same amount as the currency symbol on the other side of the
+        // figure, so the two sit level rather than the chip hanging below the digits.
+        modifier = Modifier
+            .testTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
+            .padding(bottom = HeadingGap),
+    )
+}
+
+/**
+ * The two fields only an international payment carries, as two dropdowns.
+ *
+ * They were two rows of `FilterChip`s. Nineteen currencies cannot be chips at all, and the four
+ * charge chips wrapped onto a second row that left one option stranded by itself.
+ *
+ * There is deliberately no "recipient receives" figure anywhere near this. Charges are deducted
+ * downstream and `ExchangeRateInformation` is refused `U005`, so no rate can be quoted before
+ * authorisation — the currency is named, and no amount is claimed in it.
+ */
+@Composable
+private fun InternationalFields(
+    state: SendMoneyUiState.Content,
+    onAction: (SendMoneyAction) -> Unit,
+) {
+    // One Column rather than two siblings: a composable emitting from more than one root leaves its
+    // caller deciding the gap between the halves, and the two headed blocks below want the section
+    // spacing the rest of the form uses.
+    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+        Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+            SectionHeading(stringResource(Res.string.feature_send_money_currency_heading))
+            SendMoneyDropdownField(
+                label = currencyName(state.currencyOfTransfer),
+                selected = state.currencyOfTransfer,
+                options = state.offeredCurrencies,
+                optionLabel = { currencyName(it) },
+                optionTestTag = SendMoneyTestTags::transferCurrencyOption,
+                onSelect = { onAction(SendMoneyAction.SelectCurrencyOfTransfer(it)) },
+                modifier = Modifier.testTag(SendMoneyTestTags.CURRENCY_PICKER),
+            )
+            if (!state.instructedCurrencyValid) {
+                CurrencyMismatchNotice(state)
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
             SectionHeading(stringResource(Res.string.feature_send_money_charges_heading))
-            ChargeBearerPicker(
+            SendMoneyDropdownField(
+                label = chargeBearerLabel(state.chargeBearer),
                 selected = state.chargeBearer,
+                options = OFFERED_CHARGE_BEARERS,
+                optionLabel = { chargeBearerLabel(it) },
+                optionTestTag = SendMoneyTestTags::chargeBearerOption,
                 onSelect = { onAction(SendMoneyAction.SelectChargeBearer(it)) },
+                modifier = Modifier.testTag(SendMoneyTestTags.CHARGE_BEARER_PICKER),
             )
         }
     }
+}
+
+/**
+ * The combination the bank refuses, named in the codes that would work.
+ *
+ * Sits under the transfer currency rather than under the amount because both of those are things the
+ * customer can change to resolve it, and the message says so. It is not a correction: a currency
+ * somebody chose must not be swapped out from under them, so this blocks the review instead.
+ */
+@Composable
+private fun CurrencyMismatchNotice(state: SendMoneyUiState.Content) {
+    Text(
+        text = if (state.debtorCurrency.isBlank()) {
+            stringResource(
+                Res.string.feature_send_money_currency_mismatch_bank_choice,
+                state.currencyOfTransfer,
+            )
+        } else {
+            stringResource(
+                Res.string.feature_send_money_currency_mismatch,
+                state.debtorCurrency,
+                state.currencyOfTransfer,
+            )
+        },
+        style = KptTheme.typography.bodySmall,
+        color = KptTheme.colorScheme.error,
+        modifier = Modifier.testTag(SendMoneyTestTags.CURRENCY_MISMATCH),
+    )
 }
 
 /**
