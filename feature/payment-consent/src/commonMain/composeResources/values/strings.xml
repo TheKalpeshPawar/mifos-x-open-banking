@@ -64,4 +64,12 @@
     <!-- The exit shown where offering "Authorise again" would invite a second payment. "Cancel this
          payment" is wrong there too: there is nothing in flight to cancel. -->
     <string name="feature_payment_consent_done">Done</string>
+
+    <string name="feature_payment_consent_rejected_title">Your bank did not accept this payment</string>
+    <string name="feature_payment_consent_error_request_rejected">Your bank refused the request. Nothing was sent, so you can start again with the details corrected.</string>
+
+    <string name="feature_payment_consent_unreadable_title">We could not read your bank\'s reply</string>
+    <string name="feature_payment_consent_error_response_unreadable">Your bank answered, but this app could not understand the response. Nothing was submitted.</string>
+
+    <string name="feature_payment_consent_error_submission_unconfirmed">Your bank accepted the payment, but this app could not read the confirmation. Check your recent payments before sending it again.</string>
 </resources>

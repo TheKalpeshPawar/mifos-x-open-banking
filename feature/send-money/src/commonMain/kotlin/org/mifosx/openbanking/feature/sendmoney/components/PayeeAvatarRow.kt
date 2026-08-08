@@ -97,6 +97,11 @@ private val PayeeRowHeight = SlotSize + HeadingGap + CaptionHeight
  * "Add new" leads rather than trailing, so the escape from an empty list is the first thing under
  * the heading rather than the last thing after a scroll. It opens the same manual-entry fields the
  * text button used to, and carries that button's test tag because it is the same affordance.
+ *
+ * When [loading], the placeholders are emitted here — inside this row, after "Add new" — and not as
+ * a row of their own. Beneath it they took a second line, so the section stood taller while the read
+ * was in flight and everything below jumped upward the moment the payees landed, which is the very
+ * collapse the row's minimum height exists to prevent.
  */
 @Composable
 internal fun SendMoneyPayeeAvatarRow(
@@ -119,10 +124,6 @@ internal fun SendMoneyPayeeAvatarRow(
     ) {
         AddNewAvatar(onClick = onAddNew)
 
-        // Placeholders sit INSIDE this row, after "Add new", rather than in a row of their own.
-        // Under it they occupied a second line, so the form stood ~115dp taller while loading and
-        // everything below it jumped up the moment the payees landed — the exact collapse the
-        // minimum height above exists to prevent.
         if (loading) {
             SendMoneyPayeeLoadingRow(
                 contentDescription = loadingContentDescription,

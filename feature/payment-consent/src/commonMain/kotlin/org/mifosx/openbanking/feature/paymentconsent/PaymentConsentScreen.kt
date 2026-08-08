@@ -66,8 +66,11 @@ import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_no_pending
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_no_staged_payment
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_rejected
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_request_rejected
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_response_unreadable
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_state_mismatch
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_submission_failed
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_submission_unconfirmed
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_timed_out
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_error_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_exchanging
@@ -75,13 +78,16 @@ import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_no_connection_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_no_money_moved
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_nothing_pending_title
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_rejected_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_restart
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_screen_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_submitting
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_submitting_warning
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_unconfirmed_title
+import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_unreadable_title
 import org.mifosx.openbanking.feature.paymentconsent.generated.resources.feature_payment_consent_validating
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentAction
+import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorDetail
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorKind
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentEvent
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentState
@@ -184,6 +190,7 @@ internal fun PaymentConsentScreenContent(
 
         is PaymentConsentUiState.Error -> OutcomeState(
             kind = current.kind,
+            detail = current.detail,
             onRestart = { onAction(PaymentConsentAction.RetryAuthorisation) },
             onAbandon = { onAction(PaymentConsentAction.AbandonPayment) },
             modifier = modifier,
@@ -406,6 +413,7 @@ private fun OutcomeState(
     onRestart: () -> Unit,
     onAbandon: () -> Unit,
     modifier: Modifier = Modifier,
+    detail: PaymentConsentErrorDetail? = null,
 ) {
     val visual = kind.visual()
     val title = stringResource(visual.title)
@@ -439,7 +447,7 @@ private fun OutcomeState(
             modifier = Modifier.testTag(PaymentConsentTestTags.OUTCOME_TITLE),
         )
         Text(
-            text = stringResource(visual.body),
+            text = detail?.message ?: stringResource(visual.body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -447,6 +455,17 @@ private fun OutcomeState(
                 .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.OUTCOME_BODY),
         )
+        detail?.reference()?.let { reference ->
+            Text(
+                text = reference,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .widthIn(max = BodyMaxWidth)
+                    .testTag(PaymentConsentTestTags.OUTCOME_DETAIL),
+            )
+        }
         if (visual.reassures) {
             Text(
                 text = stringResource(Res.string.feature_payment_consent_no_money_moved),
@@ -606,4 +625,39 @@ private fun PaymentConsentErrorKind.visual(): OutcomeVisual = when (this) {
         reassures = false,
         retryable = false,
     )
+
+    PaymentConsentErrorKind.RequestRejected -> OutcomeVisual(
+        stateTag = PaymentConsentTestTags.ERROR_STATE,
+        icon = Icons.Filled.ErrorOutline,
+        title = Res.string.feature_payment_consent_rejected_title,
+        body = Res.string.feature_payment_consent_error_request_rejected,
+        retryable = false,
+    )
+
+    PaymentConsentErrorKind.ResponseUnreadable -> OutcomeVisual(
+        stateTag = PaymentConsentTestTags.ERROR_STATE,
+        icon = Icons.Filled.ErrorOutline,
+        title = Res.string.feature_payment_consent_unreadable_title,
+        body = Res.string.feature_payment_consent_error_response_unreadable,
+        blameworthy = false,
+        retryable = false,
+    )
+
+    PaymentConsentErrorKind.SubmissionUnconfirmed -> OutcomeVisual(
+        stateTag = PaymentConsentTestTags.ERROR_STATE,
+        icon = Icons.Filled.ErrorOutline,
+        title = Res.string.feature_payment_consent_unconfirmed_title,
+        body = Res.string.feature_payment_consent_error_submission_unconfirmed,
+        reassures = false,
+        retryable = false,
+    )
 }
+
+/**
+ * The bank's code and its own support reference, on one line under the message.
+ *
+ * Shown rather than only logged: while this integration is being proven a code like `U027` is the
+ * fastest route to the cause, and the reference is the only thing a support call can quote.
+ */
+private fun PaymentConsentErrorDetail.reference(): String? =
+    listOfNotNull(code, supportReference).takeIf { it.isNotEmpty() }?.joinToString(" · ")

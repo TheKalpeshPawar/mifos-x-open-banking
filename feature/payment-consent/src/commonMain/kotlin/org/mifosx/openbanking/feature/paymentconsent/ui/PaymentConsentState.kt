@@ -10,6 +10,9 @@
 package org.mifosx.openbanking.feature.paymentconsent.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.data.util.obieErrorCode
+import org.mifosx.openbanking.core.data.util.obieMessage
+import org.mifosx.openbanking.core.data.util.obieSupportReference
 import template.core.base.network.NetworkError
 import template.core.base.ui.viewmodel.BackgroundEvent
 
@@ -49,6 +52,55 @@ enum class PaymentConsentErrorKind {
 
     /** The submission itself was refused. The consent is spent either way. */
     SubmissionFailed,
+
+    /**
+     * The bank refused the request outright — a `400`, with an OBIE code saying which field it
+     * objected to.
+     *
+     * Kept apart from [NetworkError] because the two need opposite advice. A connection failure is
+     * worth retrying; a refusal is not, and will be refused identically for as long as the request
+     * says the same thing. This also catches the synthetic `BadRequest("no ConsentId")` the
+     * repository manufactures when a `201` arrives without one.
+     */
+    RequestRejected,
+
+    /**
+     * The bank answered, and the app could not read the answer.
+     *
+     * Nothing had been submitted at this point, so the money is provably still where it was. It is
+     * not a network failure — the request and the response both completed — and it is not the bank's
+     * refusal either; it is ours. Retrying cannot help: the same reply would fail to decode again.
+     */
+    ResponseUnreadable,
+
+    /**
+     * The submission returned success and the app could not read the reply.
+     *
+     * The dangerous one. A `2xx` here means the bank almost certainly created the payment and we
+     * merely lost the identifier, so this must never claim the money has not moved — unlike
+     * [ResponseUnreadable], which sits before the submission and can say so honestly. Its copy sends
+     * the customer to check their recent payments rather than reassuring them or inviting a retry
+     * that could pay twice.
+     */
+    SubmissionUnconfirmed,
+}
+
+/**
+ * What the bank said about a failure, as opposed to what this app decided to call it.
+ *
+ * Carried separately from [PaymentConsentErrorKind] because the kind chooses the panel while these
+ * describe the individual failure. All three are already parsed by `ObieErrorCodes`; before this they
+ * were read off the wire and thrown away, so a refused payment left nothing to diagnose it with.
+ */
+data class PaymentConsentErrorDetail(
+    /** The bank's own explanation. Preferred to app-authored copy — it knows why it refused. */
+    val message: String? = null,
+    /** The OBIE code, e.g. `U005`. */
+    val code: String? = null,
+    /** The envelope's `Id`, which is what makes a support call traceable. */
+    val supportReference: String? = null,
+) {
+    val isEmpty: Boolean get() = message == null && code == null && supportReference == null
 }
 
 internal fun PaymentConsentErrorKind.description(): String = when (this) {
@@ -61,7 +113,24 @@ internal fun PaymentConsentErrorKind.description(): String = when (this) {
     PaymentConsentErrorKind.NoStagedPayment -> "Payment instruction lost"
     PaymentConsentErrorKind.InsufficientFunds -> "Insufficient funds"
     PaymentConsentErrorKind.SubmissionFailed -> "Payment refused by HSBC"
+    PaymentConsentErrorKind.RequestRejected -> "Request rejected by HSBC"
+    PaymentConsentErrorKind.ResponseUnreadable -> "Could not read the bank's reply"
+    PaymentConsentErrorKind.SubmissionUnconfirmed -> "Submission not confirmed"
 }
+
+/**
+ * What gets written to payment history.
+ *
+ * The bank's code and message are appended rather than replaced, because the two answer different
+ * questions later: the kind says what the app did about it, the code and message say what the bank
+ * objected to. Recording only the first left every rejected payment looking alike.
+ */
+internal fun PaymentConsentErrorKind.description(detail: PaymentConsentErrorDetail?): String =
+    listOfNotNull(
+        description(),
+        detail?.code?.let { "[$it]" },
+        detail?.message,
+    ).joinToString(" ")
 
 /**
  * The progress states are separate rather than one `loading` so the copy can say which stage is
@@ -129,7 +198,14 @@ sealed interface PaymentConsentUiState {
      */
     data object Submitting : PaymentConsentUiState
 
-    data class Error(val kind: PaymentConsentErrorKind) : PaymentConsentUiState
+    /**
+     * [detail] is what the bank said, when it said anything. Null for failures the app decided by
+     * itself — a `state` mismatch, a missing staged draft — which have no bank response behind them.
+     */
+    data class Error(
+        val kind: PaymentConsentErrorKind,
+        val detail: PaymentConsentErrorDetail? = null,
+    ) : PaymentConsentUiState
 }
 
 data class PaymentConsentState(
@@ -189,6 +265,11 @@ sealed interface PaymentConsentEvent : BackgroundEvent {
  *  - `429` and `5xx` — the bank did not answer in a usable time. Read as a timeout rather than a
  *    connection failure, because the request did reach it.
  *
+ * A `400` and a decode failure are named rather than left to fall through. Both used to land on
+ * [PaymentConsentErrorKind.NetworkError], so a refusal the bank explained and a reply the app could
+ * not read were each reported as "Connection failed", under a Retry that could never have worked.
+ * `send-money` had already been corrected for exactly this; this leg never was.
+ *
  * Anything else, including transport failures, is reported as a connection failure.
  *
  * The submission has its own, more conservative classifier: see [classifySubmissionError].
@@ -200,8 +281,23 @@ internal fun classifyPaymentConsentError(throwable: Throwable): PaymentConsentEr
         is NetworkError.Client.NotFound -> PaymentConsentErrorKind.CodeExpired
         is NetworkError.Client.RateLimited -> PaymentConsentErrorKind.AuthorisationTimedOut
         is NetworkError.Server -> PaymentConsentErrorKind.AuthorisationTimedOut
+        is NetworkError.Client.BadRequest -> PaymentConsentErrorKind.RequestRejected
+        is NetworkError.Serialization -> PaymentConsentErrorKind.ResponseUnreadable
         else -> PaymentConsentErrorKind.NetworkError
     }
+
+/**
+ * The bank's own account of a failure, or null when it gave none.
+ *
+ * Every one of these is already parsed by `ObieErrorCodes` and was being discarded. Returns null
+ * rather than an empty object so callers can tell "the bank said nothing" from "the bank said this".
+ */
+internal fun errorDetailOf(throwable: Throwable): PaymentConsentErrorDetail? =
+    PaymentConsentErrorDetail(
+        message = throwable.obieMessage(),
+        code = throwable.obieErrorCode(),
+        supportReference = throwable.obieSupportReference(),
+    ).takeUnless { it.isEmpty }
 
 /**
  * Classifies a failure of the submission itself, which cannot use [classifyPaymentConsentError].
@@ -212,11 +308,20 @@ internal fun classifyPaymentConsentError(throwable: Throwable): PaymentConsentEr
  * transactions rather than telling them nothing happened.
  *
  * Only a credential the bank rejected before it could process anything — `401` or `403` — is safe to
- * report as a clean failure.
+ * report as a clean failure. A `400` joins them: the bank declined to create the payment, so nothing
+ * was created and the reassurance still holds.
+ *
+ * A decode failure is the one case that must never reassure, and the reason this classifier cannot
+ * share [classifyPaymentConsentError]'s answer for it. A `2xx` the app could not read means the bank
+ * accepted the instruction and only the identifier was lost, so the money may well have gone.
+ * Reporting it as [PaymentConsentErrorKind.ResponseUnreadable] — which promises nothing has moved —
+ * would be the most expensive wrong answer this screen is capable of.
  */
 internal fun classifySubmissionError(throwable: Throwable): PaymentConsentErrorKind =
     when ((throwable as? RemoteException)?.networkError) {
         is NetworkError.Client.Unauthorized -> PaymentConsentErrorKind.CodeExpired
         is NetworkError.Client.Forbidden -> PaymentConsentErrorKind.ConsentRejected
+        is NetworkError.Client.BadRequest -> PaymentConsentErrorKind.RequestRejected
+        is NetworkError.Serialization -> PaymentConsentErrorKind.SubmissionUnconfirmed
         else -> PaymentConsentErrorKind.SubmissionFailed
     }

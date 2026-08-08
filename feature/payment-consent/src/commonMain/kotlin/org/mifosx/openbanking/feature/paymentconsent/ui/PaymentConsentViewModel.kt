@@ -126,7 +126,7 @@ class PaymentConsentViewModel(
             when (val result = repository.exchangeCode(authorizationCode)) {
                 is NetworkResult.Success -> checkConsentStatus()
                 is NetworkResult.Error ->
-                    fail(classifyPaymentConsentError(result.error.toThrowable()))
+                    failFromResponse(result.error.toThrowable())
             }
         }
     }
@@ -153,7 +153,7 @@ class PaymentConsentViewModel(
                 }
 
                 is NetworkResult.Error ->
-                    fail(classifyPaymentConsentError(result.error.toThrowable()))
+                    failFromResponse(result.error.toThrowable())
             }
         }
     }
@@ -216,7 +216,7 @@ class PaymentConsentViewModel(
                     fail(PaymentConsentErrorKind.InsufficientFunds)
                 }
 
-            is NetworkResult.Error -> fail(classifyPaymentConsentError(funds.error.toThrowable()))
+            is NetworkResult.Error -> failFromResponse(funds.error.toThrowable())
         }
     }
 
@@ -229,7 +229,7 @@ class PaymentConsentViewModel(
                 sendEvent(PaymentConsentEvent.PaymentSubmitted(result.data.domesticPaymentId))
             }
 
-            is NetworkResult.Error -> fail(classifySubmissionError(result.error.toThrowable()))
+            is NetworkResult.Error -> failFromSubmission(result.error.toThrowable())
         }
     }
 
@@ -251,8 +251,12 @@ class PaymentConsentViewModel(
      * Every failure is terminal for this authorisation, so the session goes with it. Leaving the
      * PSU token behind would let a later payment submit on a credential its own authorisation never
      * issued.
+     *
+     * [detail] is written to history alongside the kind. The bank's code and message were parsed off
+     * the wire and dropped before this, which left every rejected payment looking identical after
+     * the fact.
      */
-    private fun fail(kind: PaymentConsentErrorKind) {
+    private fun fail(kind: PaymentConsentErrorKind, detail: PaymentConsentErrorDetail? = null) {
         // Read the draft before discarding the session — discard clears the stored draft.
         val draft = paymentInitiationRepository.stagedDraft()
         repository.discardAuthorisation()
@@ -262,13 +266,27 @@ class PaymentConsentViewModel(
                 paymentHistoryRepository.saveFailed(
                     draft = draft,
                     errorKind = kind.name,
-                    errorDescription = kind.description(),
+                    errorDescription = kind.description(detail),
                 )
             }
         }
 
-        updateState { copy(uiState = PaymentConsentUiState.Error(kind)) }
+        updateState { copy(uiState = PaymentConsentUiState.Error(kind, detail)) }
     }
+
+    /**
+     * Fails on the authorisation leg, keeping whatever the bank said about it.
+     *
+     * The throwable is classified and mined in one place so the two cannot drift apart — a kind that
+     * says "the bank refused this" beside a panel that shows none of its reasons is the state this
+     * whole change exists to remove.
+     */
+    private fun failFromResponse(throwable: Throwable) =
+        fail(classifyPaymentConsentError(throwable), errorDetailOf(throwable))
+
+    /** As [failFromResponse], for the submission — where a decode failure means something else. */
+    private fun failFromSubmission(throwable: Throwable) =
+        fail(classifySubmissionError(throwable), errorDetailOf(throwable))
 
     companion object {
         /** Must match the `PaymentConsentRoute` property name — type-safe nav uses it as the key. */

@@ -284,8 +284,14 @@ class PaymentConsentViewModelTest {
         assertEquals(PaymentConsentErrorKind.NoStagedPayment, state.kind)
     }
 
+    /**
+     * A `400` on the submission is the bank declining to create the payment, so it is a rejection
+     * rather than the catch-all failure. It used to share [PaymentConsentErrorKind.SubmissionFailed]
+     * with a dropped connection, which meant a refusal the bank had explained was described with
+     * copy written for an outcome nobody could explain.
+     */
     @Test
-    fun aRefusedSubmissionSurfacesAsSubmissionFailed() = runTest {
+    fun aRefusedSubmissionSurfacesAsARejection() = runTest {
         val payments = FakePaymentInitiationRepository()
         payments.submissionReturns(
             NetworkResult.Error(NetworkError.Client.BadRequest("U008")),
@@ -294,7 +300,7 @@ class PaymentConsentViewModelTest {
         val vm = viewModel(payments = payments)
 
         val state = assertIs<PaymentConsentUiState.Error>(vm.stateFlow.value.uiState)
-        assertEquals(PaymentConsentErrorKind.SubmissionFailed, state.kind)
+        assertEquals(PaymentConsentErrorKind.RequestRejected, state.kind)
     }
 
     /**

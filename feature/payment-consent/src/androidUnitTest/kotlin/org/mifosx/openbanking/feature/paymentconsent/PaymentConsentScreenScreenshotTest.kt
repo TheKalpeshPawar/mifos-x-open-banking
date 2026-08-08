@@ -121,6 +121,24 @@ class PaymentConsentScreenScreenshotTest {
     fun insufficientFundsGolden() =
         captureOutcome("insufficient_funds", PaymentConsentErrorKind.InsufficientFunds)
 
+    /** A refusal the bank explained, which used to wear the connection-failure panel. */
+    @Test
+    fun requestRejectedGolden() =
+        captureOutcome("request_rejected", PaymentConsentErrorKind.RequestRejected)
+
+    /** A reply the app could not read, before anything was submitted. Still reassures. */
+    @Test
+    fun responseUnreadableGolden() =
+        captureOutcome("response_unreadable", PaymentConsentErrorKind.ResponseUnreadable)
+
+    /**
+     * The one new panel that must NOT reassure — the bank accepted the payment and only the reply
+     * was lost. A golden is the only place that absence is visible.
+     */
+    @Test
+    fun submissionUnconfirmedGolden() =
+        captureOutcome("submission_unconfirmed", PaymentConsentErrorKind.SubmissionUnconfirmed)
+
     /** The one panel with no reassurance line — worth being able to see that it is still absent. */
     @Test
     fun submissionFailedGolden() =

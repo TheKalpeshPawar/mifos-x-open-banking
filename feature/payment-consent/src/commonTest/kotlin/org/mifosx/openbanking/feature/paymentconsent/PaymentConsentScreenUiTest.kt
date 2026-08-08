@@ -175,7 +175,11 @@ class PaymentConsentScreenUiTest {
      */
     @Test
     fun everyOutcomeThatCanPromiseItSaysNoMoneyHasMoved() {
-        val reassuring = PaymentConsentErrorKind.entries - PaymentConsentErrorKind.SubmissionFailed
+        val reassuring = PaymentConsentErrorKind.entries -
+            setOf(
+                PaymentConsentErrorKind.SubmissionFailed,
+                PaymentConsentErrorKind.SubmissionUnconfirmed,
+            )
         reassuring.forEach { kind ->
             runComposeUiTest {
                 setContent {
@@ -184,6 +188,25 @@ class PaymentConsentScreenUiTest {
                 onNodeWithTag(PaymentConsentTestTags.NO_MONEY_MOVED).assertIsDisplayed()
             }
         }
+    }
+
+    /**
+     * The second outcome that must not make the promise, and the less obvious one.
+     *
+     * Here the bank returned success and only the reply was unreadable, so the payment almost
+     * certainly exists. It is the case most likely to be "tidied up" into the reassuring branch by
+     * someone reading the kind's name and assuming an unreadable response means nothing happened.
+     */
+    @Test
+    fun anUnconfirmedSubmissionDoesNotPromiseThatNothingMoved() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.errorState(PaymentConsentErrorKind.SubmissionUnconfirmed),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.OUTCOME_BODY).assertIsDisplayed()
+        onNodeWithTag(PaymentConsentTestTags.NO_MONEY_MOVED).assertDoesNotExist()
     }
 
     /**
@@ -312,6 +335,9 @@ class PaymentConsentScreenUiTest {
             setOf(
                 PaymentConsentErrorKind.SubmissionFailed,
                 PaymentConsentErrorKind.NoPendingAuthorisation,
+                PaymentConsentErrorKind.RequestRejected,
+                PaymentConsentErrorKind.ResponseUnreadable,
+                PaymentConsentErrorKind.SubmissionUnconfirmed,
             )
         retryable.forEach { kind ->
             runComposeUiTest {

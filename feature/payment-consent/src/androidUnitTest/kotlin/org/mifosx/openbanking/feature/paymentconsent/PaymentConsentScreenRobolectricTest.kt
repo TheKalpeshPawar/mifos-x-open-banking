@@ -209,7 +209,12 @@ class PaymentConsentScreenRobolectricTest {
             )
         }
 
-        (PaymentConsentErrorKind.entries - PaymentConsentErrorKind.SubmissionFailed).forEach {
+        val reassuring = PaymentConsentErrorKind.entries -
+            setOf(
+                PaymentConsentErrorKind.SubmissionFailed,
+                PaymentConsentErrorKind.SubmissionUnconfirmed,
+            )
+        reassuring.forEach {
             kind.value = it
             composeRule.waitForIdle()
             composeRule.onNodeWithTag(PaymentConsentTestTags.NO_MONEY_MOVED).assertIsDisplayed()

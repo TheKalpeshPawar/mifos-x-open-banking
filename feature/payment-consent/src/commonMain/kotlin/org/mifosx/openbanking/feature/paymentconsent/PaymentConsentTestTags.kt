@@ -49,4 +49,7 @@ internal object PaymentConsentTestTags {
 
     /** The "No money has been moved" reassurance. Load-bearing copy, so it is asserted directly. */
     const val NO_MONEY_MOVED = "paymentConsent:noMoneyMoved"
+
+    /** The bank's own code and support reference, shown under the message when it gave any. */
+    const val OUTCOME_DETAIL = "paymentConsent:outcomeDetail"
 }

@@ -236,8 +236,6 @@ private fun PayeeSection(
             onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
             onAddNew = { onAction(SendMoneyAction.ShowManualCreditorEntry) },
             modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
-            // The placeholders belong in this row, not under it: a second line made the section
-            // taller while loading, so everything below jumped when the payees landed.
             loading = state.payeesLoading,
             loadingContentDescription = stringResource(Res.string.feature_send_money_payees_loading_a11y),
         )
