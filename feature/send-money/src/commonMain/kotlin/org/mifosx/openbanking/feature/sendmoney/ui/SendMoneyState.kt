@@ -213,15 +213,15 @@ sealed interface SendMoneyUiState {
         val amountInput: String = "",
         val amountLabel: String = "",
         /**
-         * `InstructedAmount.Currency` — what leaves the account, and the symbol on the amount card.
+         * `InstructedAmount.Currency` — what the amount is denominated in, and the only currency
+         * the form asks for.
          *
-         * Sterling on the domestic rail and selectable on the international one, where it was a
-         * constant until the amount card grew a control for it. It is not free: the bank requires it
-         * to equal either the debtor account's currency or [currencyOfTransfer], which is what
-         * [instructedCurrencyValid] tests.
+         * Sterling on the domestic rail, which offers no control at all, and selectable on the
+         * international one. `CurrencyOfTransfer` is derived from it rather than chosen separately:
+         * HSBC requires the instructed currency to equal the debtor account's currency **or** the
+         * currency of transfer, so deriving one from the other satisfies the rule by construction.
          */
         val instructedCurrency: String = "GBP",
-        val currencyOfTransfer: String = "GBP",
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
@@ -230,47 +230,37 @@ sealed interface SendMoneyUiState {
         /** The same figure, formatted. Blank when no payer is chosen, which hides the balance line. */
         val availableBalanceLabel: String = "",
         val debtorCurrency: String = "",
-        /**
-         * What both currency selectors offer. Empty on the domestic rail, which has neither.
-         *
-         * One list rather than two because they are the same list: HSBC documents one set of routing
-         * currencies, and the two fields choose from it for different purposes.
-         */
+        /** What the amount's currency control offers. Empty on the domestic rail, which has none. */
         val offeredCurrencies: List<String> = emptyList(),
+        /**
+         * The saved-payee read failed, as opposed to succeeding with nothing saved.
+         *
+         * Its own flag rather than an empty list because the two want different words and different
+         * offers: "you have no saved payees" is a statement about the account, and rendering it over
+         * a refused read told the customer something untrue about their own bank. Observed live —
+         * HSBC answered `403` on `beneficiaries` for every account while every other AIS read
+         * returned `200` on the same token.
+         */
+        val payeesFailed: Boolean = false,
     ) : SendMoneyUiState {
 
         /**
-         * Review is reachable only once the amount is payable, a payee is chosen, the payer question
-         * has been answered one way or the other, and the two currencies are a combination the bank
-         * accepts.
+         * Review is reachable only once the amount is payable, a payee is chosen and the payer
+         * question has been answered one way or the other.
          *
          * The payer clause matters because "no account chosen" and "the bank will choose" look the
          * same in the draft — both send no `DebtorAccount`. Without it someone could reach a review
          * saying "you'll choose at your bank" for a decision they never made.
          *
-         * The currency clause is a gate and not a warning on purpose. Two independent selectors make
-         * a combination reachable that one control could not, and nothing downstream would catch it:
-         * the review would read perfectly, and the bank would answer `400`.
+         * There is no currency clause any more. HSBC requires the instructed currency to equal the
+         * debtor account's currency or the currency of transfer; with one selector the second holds
+         * by construction, so the combination the bank refuses is no longer reachable to gate.
          */
         val canReview: Boolean
             get() = amountProblem == null &&
                 amountInput.isNotBlank() &&
                 creditor != null &&
-                !payerUndecided &&
-                instructedCurrencyValid
-
-        /**
-         * Whether the bank will accept instructing in [instructedCurrency].
-         *
-         * Always true domestically, where everything is sterling. See
-         * [instructedCurrencyIsAcceptable] for the rule and why it is enforced rather than corrected.
-         */
-        val instructedCurrencyValid: Boolean
-            get() = instructedCurrencyIsAcceptable(
-                instructedCurrency = instructedCurrency,
-                debtorCurrency = debtorCurrency,
-                currencyOfTransfer = currencyOfTransfer,
-            )
+                !payerUndecided
 
         /** Neither an account picked nor the bank asked to pick one. */
         val payerUndecided: Boolean
@@ -357,14 +347,14 @@ sealed interface SendMoneyAction {
     data class EnterAmount(val amount: String) : SendMoneyAction
 
     /**
-     * `InstructedAmount.Currency` — what the amount is denominated in.
+     * `InstructedAmount.Currency` — what the amount is denominated in, and the form's only currency
+     * decision.
      *
-     * Separate from [SelectCurrencyOfTransfer] because they are separate OBIE fields with separate
-     * meanings: one is what leaves the account, the other is what arrives. One control driving both
-     * would have hidden the field the bank validates the pair against.
+     * There was a second action for `CurrencyOfTransfer`. Two selectors made a combination the bank
+     * refuses reachable, and stated the currency twice for a customer who was making one decision;
+     * the transfer currency is now derived from this one.
      */
     data class SelectInstructedCurrency(val currency: String) : SendMoneyAction
-    data class SelectCurrencyOfTransfer(val currency: String) : SendMoneyAction
     data class SelectChargeBearer(val bearer: ChargeBearer) : SendMoneyAction
     data class EnterReference(val reference: String) : SendMoneyAction
     data object ReviewPayment : SendMoneyAction
@@ -377,6 +367,16 @@ sealed interface SendMoneyAction {
     data object ChangePayer : SendMoneyAction
     data object BackStep : SendMoneyAction
     data object RetryLoad : SendMoneyAction
+
+    /**
+     * Re-reads the saved payees for the chosen payer.
+     *
+     * Separate from [RetryLoad], which refreshes the accounts. The two streams fail independently —
+     * the failure this exists for was `403` on beneficiaries while accounts returned `200` — so one
+     * button retrying both would re-fetch something that never failed and still leave the payee row
+     * with no way back.
+     */
+    data object RetryPayees : SendMoneyAction
 }
 
 /**

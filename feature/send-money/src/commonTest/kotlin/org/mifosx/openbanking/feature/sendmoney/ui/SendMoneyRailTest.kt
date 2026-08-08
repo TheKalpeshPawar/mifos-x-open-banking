@@ -111,38 +111,34 @@ class SendMoneyRailTest {
     /**
      * Sterling survives the switch, and the currencies offered are HSBC's whole routing list.
      *
-     * This asserted the opposite — that switching moved the transfer currency off GBP onto USD —
-     * because the currency list was believed to be a two-value Global Money allowlist. INT-04
-     * disproves it: `CurrencyOfTransfer: GBP` stages `201`/`AWAU`. So GBP is a legitimate
-     * international choice, and rewriting it on the way in changed a decision nobody made.
+     * This asserted the opposite — that switching moved the currency off GBP onto USD — because the
+     * list was believed to be a two-value Global Money allowlist. INT-04 disproves it:
+     * `CurrencyOfTransfer: GBP` stages `201`/`AWAU`. So GBP is a legitimate international choice,
+     * and rewriting it on the way in changed a decision nobody made.
      */
     @Test
     fun switchingToInternationalKeepsSterlingAndOffersTheWholeRoutingList() = runTest {
         val vm = viewModel()
-        assertEquals("GBP", content(vm).currencyOfTransfer)
 
         vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
 
         val state = content(vm)
-        assertEquals("GBP", state.currencyOfTransfer)
         assertEquals("GBP", state.instructedCurrency)
         assertContentEquals(OFFERED_CURRENCIES, state.offeredCurrencies)
         assertEquals(19, state.offeredCurrencies.size)
     }
 
-    /** Neither currency is offered domestically, so both are put back before the rail is shown. */
+    /** No currency is offered domestically, so it is put back before the rail is shown. */
     @Test
-    fun switchingBackToDomesticNormalisesBothCurrenciesToSterling() = runTest {
+    fun switchingBackToDomesticNormalisesTheCurrencyToSterling() = runTest {
         val vm = viewModel()
         vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("USD"))
         vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("USD"))
 
         vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.Domestic))
 
         val state = content(vm)
         assertEquals("GBP", state.instructedCurrency)
-        assertEquals("GBP", state.currencyOfTransfer)
         assertTrue(state.offeredCurrencies.isEmpty())
     }
 
@@ -163,7 +159,6 @@ class SendMoneyRailTest {
         vm.trySendAction(SendMoneyAction.EnterManualIban("DE89 3704 0044 0532 0130 00"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
         vm.trySendAction(SendMoneyAction.EnterAmount("250"))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("USD"))
         vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("USD"))
         vm.trySendAction(SendMoneyAction.ReviewPayment)
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
@@ -172,66 +167,52 @@ class SendMoneyRailTest {
     }
 
     /**
-     * The combination HSBC refuses gates the review rather than warning beside it.
+     * `CurrencyOfTransfer` follows the amount's currency rather than being chosen beside it.
      *
-     * `InstructedAmount.Currency` must equal the debtor account's currency or the currency of
-     * transfer. A sterling account, dollars instructed, euros received is neither, and the only thing
-     * between the customer and a `400` is this.
+     * This is the assertion that replaces the deleted forbidden-combination test. HSBC requires the
+     * instructed currency to equal the debtor account's **or** the currency of transfer; with one
+     * selector feeding both, the second clause holds by construction and there is no combination
+     * left to refuse.
      */
     @Test
-    fun aCurrencyCombinationTheBankRefusesBlocksTheReview() = runTest {
-        val vm = viewModel()
+    fun anInternationalDraftsTransferCurrencyEqualsItsInstructedCurrency() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
+
         vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
         vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
         vm.trySendAction(SendMoneyAction.EnterManualName("Klara Weiss"))
         vm.trySendAction(SendMoneyAction.EnterManualIban("DE89 3704 0044 0532 0130 00"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
         vm.trySendAction(SendMoneyAction.EnterAmount("250"))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("EUR"))
-
         vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("USD"))
+        vm.trySendAction(SendMoneyAction.ReviewPayment)
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        val refused = content(vm)
-        assertFalse(refused.instructedCurrencyValid)
-        assertFalse(refused.canReview)
-
-        // Matching either side of the pair is enough; here it is the currency of transfer.
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("USD"))
-
-        val accepted = content(vm)
-        assertTrue(accepted.instructedCurrencyValid)
-        assertTrue(accepted.canReview)
-    }
-
-    /** The other of the two clauses: instructing in the payer account's own currency. */
-    @Test
-    fun instructingInThePayerAccountsCurrencyIsAccepted() = runTest {
-        val vm = viewModel()
-        vm.trySendAction(SendMoneyAction.SelectDebtorAccount(SendMoneyFixtures.CURRENT_ACCOUNT_ID))
-        vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("EUR"))
-
-        assertTrue(content(vm).instructedCurrencyValid)
+        val draft = payments.stagedDrafts.single()
+        assertEquals("USD", draft.currency)
+        assertEquals(draft.currency, draft.currencyOfTransfer)
     }
 
     /**
-     * With no payer there is no debtor currency, so only the transfer clause can hold.
+     * And it stays **null** domestically, which is not a formatting detail.
      *
-     * A blank debtor currency must not be treated as matching anything — that would let the one
-     * combination the bank refuses through on the rail where the customer has told us least.
+     * `PaymentInitiationRepositoryImpl.isInternational()` routes staging and submission on this
+     * field being non-null, and `PaymentHistoryMapper.paymentType()` persists the same test so the
+     * status read-back hits the matching endpoint. Deriving it from the instructed currency without
+     * this guard would send every domestic payment down the international rail.
      */
     @Test
-    fun withNoPayerOnlyTheTransferCurrencyCanJustifyTheAmountsCurrency() = runTest {
-        val vm = viewModel()
-        vm.trySendAction(SendMoneyAction.LetBankChoosePayer)
-        vm.trySendAction(SendMoneyAction.SelectRail(PaymentRail.International))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("EUR"))
+    fun aDomesticDraftCarriesNoCurrencyOfTransferEvenThoughItHasACurrency() = runTest {
+        val payments = FakePaymentInitiationRepository()
+        val vm = viewModel(payments = payments)
 
-        vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("GBP"))
-        assertFalse(content(vm).instructedCurrencyValid)
+        vm.completeForm()
+        vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)
 
-        vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("EUR"))
-        assertTrue(content(vm).instructedCurrencyValid)
+        val draft = payments.stagedDrafts.single()
+        assertEquals("GBP", draft.currency)
+        assertNull(draft.currencyOfTransfer)
     }
 
     /**
@@ -280,7 +261,7 @@ class SendMoneyRailTest {
         vm.trySendAction(SendMoneyAction.EnterManualIban("DE89 3704 0044 0532 0130 00"))
         vm.trySendAction(SendMoneyAction.ConfirmManualCreditor)
         vm.trySendAction(SendMoneyAction.EnterAmount("850"))
-        vm.trySendAction(SendMoneyAction.SelectCurrencyOfTransfer("EUR"))
+        vm.trySendAction(SendMoneyAction.SelectInstructedCurrency("EUR"))
         vm.trySendAction(SendMoneyAction.SelectChargeBearer(ChargeBearer.Shared))
         vm.trySendAction(SendMoneyAction.ReviewPayment)
         vm.trySendAction(SendMoneyAction.ConfirmAndStageConsent)

@@ -369,7 +369,12 @@ class SendMoneyViewModelTest {
         assertEquals(JAMESON_IDENTIFICATION, state.creditor?.identification)
     }
 
-    /** TC-SEND-013: an empty payee list is never a dead end — manual entry still works. */
+    /**
+     * TC-SEND-013: an empty payee list is never a dead end — manual entry still works.
+     *
+     * A payee read that *failed* is a different case with a different notice; it lives in
+     * [SendMoneyPayeeLoadTest], which was split out for the same reason [SendMoneyRailTest] was.
+     */
     @Test
     fun anEmptyPayeeListStillAllowsAManualPayee() = runTest {
         val beneficiaries = FakeBeneficiariesRepository(

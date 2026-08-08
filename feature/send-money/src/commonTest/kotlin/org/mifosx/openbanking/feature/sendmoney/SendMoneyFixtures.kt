@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.sendmoney
 
+import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -264,7 +265,7 @@ object SendMoneyFixtures {
         letBankChoosePayer: Boolean = false,
         debtorCurrency: String = "GBP",
         instructedCurrency: String = "GBP",
-        currencyOfTransfer: String = if (rail == PaymentRail.International) "USD" else "GBP",
+        payeesFailed: Boolean = false,
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Form,
@@ -273,13 +274,14 @@ object SendMoneyFixtures {
             // list is what let the picker's "only USD and EUR" claim survive being disproved.
             offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
             instructedCurrency = instructedCurrency,
-            currencyOfTransfer = currencyOfTransfer,
+            payeesFailed = payeesFailed,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
-            // Payees are account-scoped, so with no payer the ViewModel emits none. Handing a list
-            // to a payer-less form would depict a state production cannot reach, and a golden of it
-            // would document the wrong screen.
-            beneficiaries = if (debtorAccountId == null) emptyList() else beneficiaries,
+            // Payees are account-scoped, so with no payer the ViewModel emits none — and a failed
+            // read has none either, because every non-Content state flattens to an empty list.
+            // Handing a list to either would depict a state production cannot reach, and a golden of
+            // it would document the wrong screen.
+            beneficiaries = if (debtorAccountId == null || payeesFailed) emptyList() else beneficiaries,
             debtorAccountId = debtorAccountId,
             payerPickerExpanded = payerPickerExpanded,
             letBankChoosePayer = letBankChoosePayer,
@@ -314,22 +316,24 @@ object SendMoneyFixtures {
     )
 
     /**
-     * The international form, filled in, so the only thing that can block review is the currencies.
+     * The international form, filled in.
      *
      * An IBAN payee and no reference, because that is the only shape the international rail
      * produces — a sort-code payee here would depict a form the app cannot reach.
+     *
+     * [amountLabel] follows [instructedCurrency], as `amountLabel` in the ViewModel does: the label
+     * is formatted in the currency the amount is instructed in, so a `$` figure under a `USD`
+     * control is what the screen actually shows.
      */
     fun filledInternationalFormState(
         instructedCurrency: String = "GBP",
-        currencyOfTransfer: String = "USD",
     ): SendMoneyState = formState(
         rail = PaymentRail.International,
         creditor = weissSelection(),
         creditorLabel = "Klara Weiss",
         amountInput = "850",
-        amountLabel = "£850.00",
+        amountLabel = formatMinorUnits(85_000L, instructedCurrency),
         instructedCurrency = instructedCurrency,
-        currencyOfTransfer = currencyOfTransfer,
     )
 
     /** The chosen payee, as the form and review carry it forward. */
@@ -352,14 +356,14 @@ object SendMoneyFixtures {
         reference: String = "RENT-FLAT12",
         rail: PaymentRail = PaymentRail.Domestic,
         debtorAccountRow: SendMoneyAccountRow? = debtorRows().first(),
-        currencyOfTransfer: String = "USD",
+        instructedCurrency: String = "GBP",
         chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
     ): SendMoneyState = SendMoneyState(
         uiState = SendMoneyUiState.Content(
             step = SendMoneyStep.Review,
             rail = rail,
             offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
-            currencyOfTransfer = currencyOfTransfer,
+            instructedCurrency = instructedCurrency,
             chargeBearer = chargeBearer,
             debtorAccounts = listOf(currentAccount(), savingsAccount()),
             debtorRows = debtorRows(),
@@ -378,7 +382,10 @@ object SendMoneyFixtures {
                 "Sort Code · 40-12-09 65872310"
             },
             amountInput = "850",
-            amountLabel = "£850.00",
+            // In the instructed currency, as the ViewModel formats it — the review's hero figure and
+            // its total are the only place the currency is now stated, so a fixture that always said
+            // "£850.00" would hide whether the amount follows the selector at all.
+            amountLabel = formatMinorUnits(85_000L, instructedCurrency),
             reference = reference,
             availableBalanceMinorUnits = 2_153_092L,
             availableBalanceLabel = "£21,530.92",

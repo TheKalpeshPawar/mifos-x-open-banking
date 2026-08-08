@@ -39,6 +39,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
+import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.sendmoney.components.RailToggle
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyAmountCard
 import org.mifosx.openbanking.feature.sendmoney.components.SendMoneyDropdownChip
@@ -54,9 +55,6 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_amount_error_too_many_decimals
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_charges_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_creditor_heading
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_heading
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_mismatch
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_currency_mismatch_bank_choice
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_debtor_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_form_trust_note
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_account_number
@@ -71,8 +69,11 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_no_saved_payees_title
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_non_gbp_notice
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_needs_payer
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payees_failed_body
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payees_failed_title
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_helper
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_retry
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_selected_a11y
 import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
@@ -201,8 +202,11 @@ private fun ConversionNotice(instructedCurrency: String) {
  *
  * The avatar row is rendered in every case, including when there are none to show, because its first
  * item is "Add new" — the only route to paying an unsaved account. Dropping the row when the list is
- * empty would take that away exactly when it is needed. The two empty cases still say which they
- * are: no payer chosen yet, or a payer with nothing saved against it.
+ * empty would take that away exactly when it is needed.
+ *
+ * Three empty cases, and they are not interchangeable: no payer chosen yet, a read that failed, or a
+ * payer with nothing saved against it. The middle one used to render as the last, so a bank refusing
+ * the beneficiaries endpoint read as the customer having no payees.
  */
 @Composable
 private fun PayeeSection(
@@ -227,6 +231,7 @@ private fun PayeeSection(
             // Beneficiaries are saved per account, so without one there is no list to read.
             // Saying so beats showing someone else's payees or an empty row that looks broken.
             state.payeesUnavailable -> ChoosePayerFirstNotice()
+            state.payeesFailed -> PayeesFailedNotice(onAction)
             !state.hasBeneficiaries -> NoSavedPayees()
         }
 
@@ -364,12 +369,12 @@ private fun AmountSection(
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
         SendMoneyAmountCard(
             amount = state.amountInput,
-            instructedCurrency = state.instructedCurrency,
             balanceLabel = state.availableBalanceLabel,
             errorMessage = state.amountProblem?.let { stringResource(it.messageResource()) },
             onAmountChange = { onAction(SendMoneyAction.EnterAmount(it)) },
         ) {
-            // Domestic instructs in sterling and offers no choice, so the card is unchanged there.
+            // Hidden domestically rather than shown and disabled: sterling is the only option on
+            // that rail, and a dead control invites a tap that does nothing.
             if (state.rail == PaymentRail.International) {
                 InstructedCurrencyControl(state, onAction)
             }
@@ -388,20 +393,24 @@ private fun AmountSection(
             )
         }
 
-        // International only, and both required there: ChargeBearer is refused on domestic and
-        // missing on international earns U004.
+        // International only, and required there: ChargeBearer is refused on the domestic rail, and
+        // omitting it on the international one earns U004.
         if (state.rail == PaymentRail.International) {
-            InternationalFields(state, onAction)
+            ChargesSection(state, onAction)
         }
     }
 }
 
 /**
- * The instructed currency, inline with the figure it denominates.
+ * The currency, at the amount row's trailing edge.
  *
- * The code alone on the control and the currency spelled out in the menu: beside a 36sp amount the
- * unit is read as part of the number, so "US Dollar (USD)" there would compete with the figure — but
- * a menu of nineteen bare codes would ask the customer to already know them.
+ * The code alone on the control and the currency spelled out in the menu: beside a 36sp figure the
+ * unit is read as part of the number, so "US Dollar (USD)" there would compete with it — but a menu
+ * of nineteen bare codes would ask the customer to already know them.
+ *
+ * This is now the form's ONLY currency control. There was a second, "Recipient receives", choosing
+ * `CurrencyOfTransfer` independently; two selectors made a combination the bank refuses reachable
+ * and asked one decision twice, so the transfer currency is derived from this one.
  */
 @Composable
 private fun InstructedCurrencyControl(
@@ -415,89 +424,75 @@ private fun InstructedCurrencyControl(
         optionLabel = { currencyName(it) },
         optionTestTag = SendMoneyTestTags::instructedCurrencyOption,
         onSelect = { onAction(SendMoneyAction.SelectInstructedCurrency(it)) },
-        // Lifted off the baseline by the same amount as the currency symbol on the other side of the
-        // figure, so the two sit level rather than the chip hanging below the digits.
-        modifier = Modifier
-            .testTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
-            .padding(bottom = HeadingGap),
+        modifier = Modifier.testTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER),
     )
 }
 
 /**
- * The two fields only an international payment carries, as two dropdowns.
+ * Who pays the charges — the one field an international payment carries that the amount row cannot.
  *
- * They were two rows of `FilterChip`s. Nineteen currencies cannot be chips at all, and the four
- * charge chips wrapped onto a second row that left one option stranded by itself.
+ * It was a row of `FilterChip`s that wrapped onto a second line and left one option stranded, and it
+ * had a currency dropdown for company until that decision moved onto the amount itself.
  *
  * There is deliberately no "recipient receives" figure anywhere near this. Charges are deducted
  * downstream and `ExchangeRateInformation` is refused `U005`, so no rate can be quoted before
- * authorisation — the currency is named, and no amount is claimed in it.
+ * authorisation — and with one currency there is no second one to name.
  */
 @Composable
-private fun InternationalFields(
+private fun ChargesSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    // One Column rather than two siblings: a composable emitting from more than one root leaves its
-    // caller deciding the gap between the halves, and the two headed blocks below want the section
-    // spacing the rest of the form uses.
-    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
-        Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
-            SectionHeading(stringResource(Res.string.feature_send_money_currency_heading))
-            SendMoneyDropdownField(
-                label = currencyName(state.currencyOfTransfer),
-                selected = state.currencyOfTransfer,
-                options = state.offeredCurrencies,
-                optionLabel = { currencyName(it) },
-                optionTestTag = SendMoneyTestTags::transferCurrencyOption,
-                onSelect = { onAction(SendMoneyAction.SelectCurrencyOfTransfer(it)) },
-                modifier = Modifier.testTag(SendMoneyTestTags.CURRENCY_PICKER),
-            )
-            if (!state.instructedCurrencyValid) {
-                CurrencyMismatchNotice(state)
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
-            SectionHeading(stringResource(Res.string.feature_send_money_charges_heading))
-            SendMoneyDropdownField(
-                label = chargeBearerLabel(state.chargeBearer),
-                selected = state.chargeBearer,
-                options = OFFERED_CHARGE_BEARERS,
-                optionLabel = { chargeBearerLabel(it) },
-                optionTestTag = SendMoneyTestTags::chargeBearerOption,
-                onSelect = { onAction(SendMoneyAction.SelectChargeBearer(it)) },
-                modifier = Modifier.testTag(SendMoneyTestTags.CHARGE_BEARER_PICKER),
-            )
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+        SectionHeading(stringResource(Res.string.feature_send_money_charges_heading))
+        SendMoneyDropdownField(
+            label = chargeBearerLabel(state.chargeBearer),
+            selected = state.chargeBearer,
+            options = OFFERED_CHARGE_BEARERS,
+            optionLabel = { chargeBearerLabel(it) },
+            optionTestTag = SendMoneyTestTags::chargeBearerOption,
+            onSelect = { onAction(SendMoneyAction.SelectChargeBearer(it)) },
+            modifier = Modifier.testTag(SendMoneyTestTags.CHARGE_BEARER_PICKER),
+        )
     }
 }
 
 /**
- * The combination the bank refuses, named in the codes that would work.
+ * The saved payees could not be read, which is not the same as there being none.
  *
- * Sits under the transfer currency rather than under the amount because both of those are things the
- * customer can change to resolve it, and the message says so. It is not a correction: a currency
- * somebody chose must not be swapped out from under them, so this blocks the review instead.
+ * Says the read failed and offers to run it again, and leaves "Add new" above it untouched — with no
+ * list, hand-keying the details is the only route to a payment, so it must survive the failure that
+ * makes it necessary. The cause is deliberately not named: `403` here is indistinguishable from an
+ * expired token by the time it reaches this state, and guessing at the bank's reason would put words
+ * in its mouth.
  */
 @Composable
-private fun CurrencyMismatchNotice(state: SendMoneyUiState.Content) {
-    Text(
-        text = if (state.debtorCurrency.isBlank()) {
-            stringResource(
-                Res.string.feature_send_money_currency_mismatch_bank_choice,
-                state.currencyOfTransfer,
-            )
-        } else {
-            stringResource(
-                Res.string.feature_send_money_currency_mismatch,
-                state.debtorCurrency,
-                state.currencyOfTransfer,
-            )
-        },
-        style = KptTheme.typography.bodySmall,
-        color = KptTheme.colorScheme.error,
-        modifier = Modifier.testTag(SendMoneyTestTags.CURRENCY_MISMATCH),
-    )
+private fun PayeesFailedNotice(onAction: (SendMoneyAction) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SendMoneyTestTags.PAYEES_FAILED)
+            .clip(RoundedCornerShape(NoticeCorner))
+            .background(KptTheme.colorScheme.surfaceContainer)
+            .padding(NoticePadding),
+        verticalArrangement = Arrangement.spacedBy(HeadingGap),
+    ) {
+        Text(
+            text = stringResource(Res.string.feature_send_money_payees_failed_title),
+            style = KptTheme.typography.titleSmall,
+            color = KptTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(Res.string.feature_send_money_payees_failed_body),
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        MifosTonalPillButton(
+            label = stringResource(Res.string.feature_send_money_retry),
+            onClick = { onAction(SendMoneyAction.RetryPayees) },
+            testTag = SendMoneyTestTags.PAYEES_RETRY_BUTTON,
+        )
+    }
 }
 
 /**

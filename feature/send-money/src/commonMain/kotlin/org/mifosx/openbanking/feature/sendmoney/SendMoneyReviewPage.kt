@@ -38,14 +38,12 @@ import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.sendmoney.components.chargeBearerLabel
-import org.mifosx.openbanking.feature.sendmoney.components.currencyName
 import org.mifosx.openbanking.feature.sendmoney.components.initialsOf
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_confirm
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_edit_payment
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_auth_notice
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_charge_bearer
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_currency_of_transfer
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_details_heading
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_from
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_from_bank_choice
@@ -143,14 +141,11 @@ internal fun SendMoneyReviewPage(
                     tag = SendMoneyTestTags.REVIEW_REFERENCE,
                 )
             } else {
-                // The amount above is what leaves the account; this is what arrives, and the two are
-                // different currencies. Reviewing an international payment without it would show a
-                // sterling figure and say nothing about what the recipient actually gets.
-                ReviewRow(
-                    label = stringResource(Res.string.feature_send_money_review_currency_of_transfer),
-                    value = currencyName(state.currencyOfTransfer),
-                    tag = SendMoneyTestTags.REVIEW_CURRENCY,
-                )
+                // No "Recipient receives" row. It existed because the instructed currency and the
+                // currency of transfer could differ; they no longer can — the transfer currency is
+                // derived from the amount's — so the row restated the currency already carried by
+                // the figure beside it. `formatMinorUnits` renders GBP, EUR and USD as £/€/$ and
+                // every other code as the code itself, so the amount names its own currency.
                 ReviewRow(
                     label = stringResource(Res.string.feature_send_money_review_charge_bearer),
                     value = chargeBearerLabel(state.chargeBearer),

@@ -12,7 +12,7 @@ package org.mifosx.openbanking.feature.sendmoney.ui
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 
 /**
- * The currencies either selector offers: HSBC's own routing list, nineteen of them.
+ * The currencies the amount's control offers: HSBC's own routing list, nineteen of them.
  *
  * Not a Global Money allowlist — the two-value `USD`/`EUR` list this replaced was one, and it was
  * wrong twice over. `CurrencyOfTransfer: GBP` stages `201`/`AWAU` (INT-04), and no allowlist is
@@ -46,21 +46,3 @@ internal val OFFERED_CHARGE_BEARERS: List<ChargeBearer> = listOf(
     ChargeBearer.BorneByDebtor,
     ChargeBearer.Shared,
 )
-
-/**
- * Whether `InstructedAmount.Currency` is one the bank will accept for this instruction.
- *
- * HSBC requires it to equal **either** the debtor account's currency **or** the currency of
- * transfer. Two independent selectors make the failing combination reachable — 250 USD out of a GBP
- * account arriving as EUR is three currencies and no relationship between them — so this is the only
- * thing standing between the PSU and a `400`, and it gates the review rather than warning beside it.
- *
- * [debtorCurrency] is blank when the PSU asked the bank to choose the account. There is no known
- * debtor currency in that case, so only the currency-of-transfer clause can hold.
- */
-internal fun instructedCurrencyIsAcceptable(
-    instructedCurrency: String,
-    debtorCurrency: String,
-    currencyOfTransfer: String,
-): Boolean = (debtorCurrency.isNotBlank() && instructedCurrency.equals(debtorCurrency, ignoreCase = true)) ||
-    instructedCurrency.equals(currencyOfTransfer, ignoreCase = true)

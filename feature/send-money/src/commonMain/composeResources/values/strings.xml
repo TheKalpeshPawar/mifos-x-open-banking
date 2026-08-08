@@ -39,6 +39,12 @@
     <string name="feature_send_money_selected_a11y">Selected</string>
     <string name="feature_send_money_no_saved_payees_title">No saved payees</string>
     <string name="feature_send_money_no_saved_payees_body">You can still pay someone by entering their account details.</string>
+    <!-- The read failed, which is a different statement from "you have no saved payees" — and the
+         one the app used to make on a 403. The cause is not named: by the time it reaches the UI a
+         refused permission and an expired token are the same state, and guessing would put words in
+         the bank's mouth. Curly apostrophe, not \' — Compose Multiplatform renders the escape. -->
+    <string name="feature_send_money_payees_failed_title">Couldn’t load your saved payees</string>
+    <string name="feature_send_money_payees_failed_body">Your bank did not return them this time. You can try again, or pay someone by entering their account details.</string>
 
     <!-- The caption under the dashed avatar that opens the manual fields. -->
     <string name="feature_send_money_payee_add_new">Add new</string>
@@ -69,7 +75,6 @@
     <string name="feature_send_money_charge_bearer_debtor">Borne by debtor</string>
     <string name="feature_send_money_charge_bearer_shared">Shared</string>
 
-    <string name="feature_send_money_currency_heading">Recipient receives</string>
     <!-- HSBC's documented routing currencies. Resolved through a code-keyed map that falls back to
          the code itself, so an unlisted currency renders as itself rather than as another one. -->
     <string name="feature_send_money_currency_gbp">British Pound (GBP)</string>
@@ -92,11 +97,10 @@
     <string name="feature_send_money_currency_zar">South African Rand (ZAR)</string>
     <string name="feature_send_money_currency_thb">Thai Baht (THB)</string>
 
-    <!-- The combination HSBC refuses outright: InstructedAmount.Currency must equal either the
-         debtor account's currency or the currency of transfer. Stated as the two codes that would
-         work, because "invalid combination" tells nobody what to change. -->
-    <string name="feature_send_money_currency_mismatch">The amount must be in %1$s or %2$s — your bank accepts no other currency here.</string>
-    <string name="feature_send_money_currency_mismatch_bank_choice">The amount must be in %1$s while your bank chooses the account to pay from.</string>
+    <!-- There were two strings here for the combination HSBC refuses: InstructedAmount.Currency
+         must equal either the debtor account's currency or the currency of transfer. With one
+         selector the second clause holds by construction, so the state they described is
+         unreachable and a message for it could never be shown. -->
 
     <string name="feature_send_money_manual_iban">IBAN</string>
     <string name="feature_send_money_manual_iban_error">Enter a valid IBAN</string>
@@ -107,7 +111,8 @@
 
     <string name="feature_send_money_review_heading">Check this before you send it</string>
     <string name="feature_send_money_review_from_bank_choice">You’ll choose at your bank</string>
-    <string name="feature_send_money_review_currency_of_transfer">Recipient receives</string>
+    <!-- No "Recipient receives" row on the review any more: the amount above it is already in the
+         currency the recipient receives, so the row restated it. -->
     <string name="feature_send_money_review_charge_bearer">Charges</string>
     <string name="feature_send_money_review_from">From</string>
     <string name="feature_send_money_review_to">To</string>

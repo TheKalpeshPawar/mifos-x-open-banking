@@ -14,7 +14,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -44,6 +43,7 @@ import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineContent
 import template.core.base.network.NetworkResult
+import template.core.base.store.screen.ScreenDataStream
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -140,9 +140,13 @@ class SendMoneyViewModel(
         val manualIban: String = "",
         val manualName: String = "",
         val amountInput: String = "",
-        /** `InstructedAmount.Currency`. Selectable internationally; forced to GBP domestically. */
+        /**
+         * `InstructedAmount.Currency`. Selectable internationally; forced to GBP domestically.
+         *
+         * The form's only currency. `CurrencyOfTransfer` was a second field here and is now derived
+         * from this one in [buildDraft].
+         */
         val instructedCurrency: String = DOMESTIC_CURRENCY,
-        val currencyOfTransfer: String = DOMESTIC_CURRENCY,
         val chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
         val reference: String = "",
         val amountProblem: SendMoneyAmountProblem? = null,
@@ -172,6 +176,14 @@ class SendMoneyViewModel(
     private val selectedAccountId = MutableStateFlow("")
 
     /**
+     * The payee stream currently in flight, held so [SendMoneyAction.RetryPayees] can refresh it.
+     *
+     * A `var` because it is rebuilt whenever the payer changes — a payee list is keyed by account —
+     * and `null` while there is no payer, when there is nothing to re-read.
+     */
+    private var payeesStream: ScreenDataStream<List<BeneficiaryItem>>? = null
+
+    /**
      * Payees for the chosen payer, re-fetched whenever that changes.
      *
      * A blank id emits an empty list rather than being filtered out. Filtering meant de-selecting an
@@ -185,9 +197,12 @@ class SendMoneyViewModel(
         selectedAccountId
             .flatMapLatest { accountId ->
                 if (accountId.isBlank()) {
+                    payeesStream = null
                     flowOf(ScreenState.Content(emptyList(), DataFreshness.FRESH))
                 } else {
-                    beneficiariesRepository.beneficiariesStream(accountId, viewModelScope).state
+                    beneficiariesRepository.beneficiariesStream(accountId, viewModelScope)
+                        .also { payeesStream = it }
+                        .state
                 }
             }
 
@@ -236,9 +251,6 @@ class SendMoneyViewModel(
             is SendMoneyAction.EnterAmount -> enterAmount(action.amount)
             is SendMoneyAction.SelectInstructedCurrency ->
                 form.value = form.value.copy(instructedCurrency = action.currency).revalidated()
-            is SendMoneyAction.SelectCurrencyOfTransfer ->
-                form.value =
-                    form.value.copy(currencyOfTransfer = action.currency)
             is SendMoneyAction.SelectChargeBearer ->
                 form.value =
                     form.value.copy(chargeBearer = action.bearer)
@@ -249,6 +261,7 @@ class SendMoneyViewModel(
             SendMoneyAction.ChangePayer -> changePayer()
             SendMoneyAction.BackStep -> backStep()
             SendMoneyAction.RetryLoad -> accountsOverviewRepository.refresh()
+            SendMoneyAction.RetryPayees -> payeesStream?.refresh()
         }
     }
 
@@ -296,14 +309,13 @@ class SendMoneyViewModel(
      * wrong scheme would be carried into a request that cannot accept them. The **amount survives**
      * on purpose: it means the same thing on both rails, and re-typing it is a cost with no reason.
      *
-     * **Both currencies are normalised back to sterling on the domestic rail**, which offers neither
-     * control. Anything else would stage a currency the customer was never shown — the same reason
-     * this normalisation existed before, now applied to both fields because both are selectable.
+     * **The currency is normalised back to sterling on the domestic rail**, which offers no control
+     * for it. Anything else would stage a currency the customer was never shown.
      *
-     * Neither is normalised in the other direction. Sterling is a valid international choice on both
-     * fields: `CurrencyOfTransfer: GBP` stages `201`/`AWAU` (INT-04). The two-value USD/EUR list this
-     * replaced forced the transfer currency off GBP on the way in, which silently changed a decision
-     * the customer had not made.
+     * It is not normalised in the other direction. Sterling is a valid international choice:
+     * `CurrencyOfTransfer: GBP` stages `201`/`AWAU` (INT-04). The two-value USD/EUR list this
+     * replaced forced the currency off GBP on the way in, which silently changed a decision the
+     * customer had not made.
      */
     private fun selectRail(rail: PaymentRail) {
         val current = form.value
@@ -317,7 +329,6 @@ class SendMoneyViewModel(
             manualIban = "",
             fieldErrors = SendMoneyFieldErrors(),
             instructedCurrency = if (domestic) DOMESTIC_CURRENCY else current.instructedCurrency,
-            currencyOfTransfer = if (domestic) DOMESTIC_CURRENCY else current.currencyOfTransfer,
         ).revalidated()
     }
 
@@ -544,17 +555,22 @@ class SendMoneyViewModel(
             debtorAccount = debtorAccount(),
             creditor = creditor,
             amountMinorUnits = amount,
-            // What the customer chose, not what the payer account holds. HSBC accepts an instructed
-            // currency equal to either the debtor account's or CurrencyOfTransfer, and canReview has
-            // already refused every combination outside that. Reading it off the payer instead would
-            // send whatever a foreign-currency account happens to hold, which is neither.
+            // What the customer chose, not what the payer account holds. Reading it off the payer
+            // instead would send whatever a foreign-currency account happens to hold, which is not
+            // what the amount on screen says.
             currency = current.instructedCurrency,
             reference = current.reference.takeIf { it.isNotBlank() && !isInternational },
             instructionIdentification = INSTRUCTION_ID_PREFIX + hex,
             endToEndIdentification = END_TO_END_ID_PREFIX + hex,
             consentIdempotencyKey = Uuid.generateV4().toString(),
             paymentIdempotencyKey = Uuid.generateV4().toString(),
-            currencyOfTransfer = if (isInternational) current.currencyOfTransfer else null,
+            // Derived from the instructed currency now that there is one selector, and **still null
+            // on the domestic rail**. That nullness is the rail discriminator in two places —
+            // `PaymentInitiationRepositoryImpl.isInternational()` routes staging and submission by
+            // it, and `PaymentHistoryMapper.paymentType()` persists it so the status read-back hits
+            // the right endpoint — so filling it in unconditionally would silently send every
+            // domestic payment down the international rail.
+            currencyOfTransfer = if (isInternational) current.instructedCurrency else null,
             chargeBearer = if (isInternational) current.chargeBearer else null,
         )
     }
@@ -593,6 +609,9 @@ class SendMoneyViewModel(
         payees: ScreenState<List<BeneficiaryItem>>,
         entered: Form,
     ): SendMoneyUiState.Content {
+        // Every non-Content state used to flatten to an empty list here, and renderForm switches
+        // only on the accounts stream — so a refused beneficiaries read rendered as "no saved
+        // payees" and nothing on screen ever said the bank had said no.
         val payeeList = (payees as? ScreenState.Content)?.data.orEmpty()
         val filteredPayees = payeeList.filter { payee ->
             when (entered.rail) {
@@ -624,7 +643,7 @@ class SendMoneyViewModel(
             amountInput = entered.amountInput,
             amountLabel = amountLabel(entered),
             instructedCurrency = entered.instructedCurrency,
-            currencyOfTransfer = entered.currencyOfTransfer,
+            payeesFailed = payees.isFailure(),
             offeredCurrencies = if (entered.rail == PaymentRail.International) {
                 OFFERED_CURRENCIES
             } else {
@@ -674,6 +693,32 @@ class SendMoneyViewModel(
         if (digits.isEmpty()) return false
         return accounts().any { (it.account.sortCode + it.account.accountNumber) == digits }
     }
+}
+
+/**
+ * Whether a payee read came back as a failure rather than as an answer.
+ *
+ * `Loading` is not one — it is the read still in progress, and a notice under a list that is about
+ * to arrive would flash on every payer change. `Empty` is not one either: it is the bank saying
+ * there are none.
+ *
+ * **`Unauthenticated` is treated as a payee failure and deliberately NOT escalated** to the
+ * full-screen `TokenExpired` the accounts stream raises. Three reasons, in order of weight:
+ *  - The evidence says the token is fine. The failure this exists for was `403` on `beneficiaries`
+ *    for every account while `accounts`, `balances` and `transactions` all returned `200` on that
+ *    same token. Telling the customer their authorisation had expired would be false, and the
+ *    recovery it offers — a browser round-trip to re-authorise — would not fix it.
+ *  - It cannot be told apart from an expiry anyway. `ErrorCategory.categorize` folds both `401` and
+ *    `403` into `Auth`, so this state cannot distinguish "consent no longer covers beneficiaries"
+ *    from "token expired", and the more alarming of the two readings must not be the one asserted.
+ *  - A real expiry escalates on its own. The accounts stream runs on the same credential and would
+ *    reach `Unauthenticated` too, and `renderForm` turns that into the full-screen `TokenExpired`.
+ *    Escalating here would only ever pre-empt that by taking away a form the PSU can still complete
+ *    by hand — manual entry needs no beneficiaries read at all.
+ */
+private fun ScreenState<*>.isFailure(): Boolean = when (this) {
+    is ScreenState.Error, is ScreenState.NoNetwork, ScreenState.Unauthenticated -> true
+    is ScreenState.Content, ScreenState.Empty, ScreenState.Loading -> false
 }
 
 /**

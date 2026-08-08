@@ -13,6 +13,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,10 +22,12 @@ import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStage
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * Renders each state through the stateless [SendMoneyScreenContent] on the desktop runner.
@@ -185,7 +188,7 @@ class SendMoneyScreenUiTest {
         }
         onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).assertDoesNotExist()
-        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
     }
 
     @Test
@@ -197,7 +200,7 @@ class SendMoneyScreenUiTest {
                 {},
             )
         }
-        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
     }
@@ -244,31 +247,14 @@ class SendMoneyScreenUiTest {
     }
 
     /**
-     * HSBC's nineteen documented routing currencies, sterling included.
+     * HSBC's nineteen documented routing currencies, sterling included, in the form's ONE menu.
      *
      * GBP used to be asserted absent, on the belief that Global Money accepts only USD and EUR. INT-04
      * disproves it: `CurrencyOfTransfer: GBP` stages `201`/`AWAU`, so excluding it withheld a
      * currency the bank accepts.
      */
     @Test
-    fun theTransferCurrencyOffersHsbcsRoutingListIncludingSterling() = runComposeUiTest {
-        setContent {
-            SendMoneyScreenContent(
-                SendMoneyFixtures.formState(rail = PaymentRail.International),
-                {},
-                {},
-            )
-        }
-        onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().performClick()
-
-        listOf("GBP", "USD", "EUR", "THB").forEach { code ->
-            onNodeWithTag(SendMoneyTestTags.transferCurrencyOption(code), useUnmergedTree = true).assertExists()
-        }
-    }
-
-    /** The amount card's own control, which only exists on the rail that can use it. */
-    @Test
-    fun theInstructedCurrencyIsSelectableInternationallyAndFixedDomestically() = runComposeUiTest {
+    fun theCurrencyControlOffersHsbcsRoutingListIncludingSterling() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.formState(rail = PaymentRail.International),
@@ -278,11 +264,32 @@ class SendMoneyScreenUiTest {
         }
         onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).performScrollTo().performClick()
 
-        onNodeWithTag(SendMoneyTestTags.instructedCurrencyOption("USD"), useUnmergedTree = true).assertExists()
+        listOf("GBP", "USD", "EUR", "THB").forEach { code ->
+            onNodeWithTag(SendMoneyTestTags.instructedCurrencyOption(code), useUnmergedTree = true).assertExists()
+        }
+    }
+
+    /**
+     * One currency control, on the amount, and only on the rail that can use it.
+     *
+     * The "Recipient receives" selector that used to sit below the amount is gone: with the transfer
+     * currency derived from the instructed one, a second menu asked the same question twice.
+     */
+    @Test
+    fun theAmountCarriesTheOnlyCurrencyControlAndDomesticHasNone() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.formState(rail = PaymentRail.International),
+                {},
+                {},
+            )
+        }
+        onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        onNodeWithText("Recipient receives").assertDoesNotExist()
     }
 
     @Test
-    fun theDomesticRailOffersNoInstructedCurrencyControl() = runComposeUiTest {
+    fun theDomesticRailOffersNoCurrencyControl() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.formState(), {}, {})
         }
@@ -290,41 +297,20 @@ class SendMoneyScreenUiTest {
     }
 
     /**
-     * The combination HSBC refuses, blocked in the UI rather than sent and refused.
+     * Any currency the control offers reaches review, because there is no longer a pair to disagree.
      *
-     * Two independent selectors make it reachable: 250 USD out of a sterling account arriving as
-     * euros is three currencies with no relationship between them, and the bank answers `400`.
+     * This replaces a case asserting that USD instructed against EUR received blocked the review: two
+     * selectors could reach the combination HSBC refuses, one cannot.
      */
     @Test
-    fun aForbiddenCurrencyCombinationBlocksTheReview() = runComposeUiTest {
+    fun aNonSterlingAmountReachesReviewWithNothingToDisagreeWith() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
-                SendMoneyFixtures.filledInternationalFormState(
-                    instructedCurrency = "USD",
-                    currencyOfTransfer = "EUR",
-                ),
+                SendMoneyFixtures.filledInternationalFormState(instructedCurrency = "USD"),
                 {},
                 {},
             )
         }
-        onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).performScrollTo().assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsNotEnabled()
-    }
-
-    /** Instructing in the currency the recipient receives is one of the two the bank accepts. */
-    @Test
-    fun instructingInTheTransferCurrencyIsAllowed() = runComposeUiTest {
-        setContent {
-            SendMoneyScreenContent(
-                SendMoneyFixtures.filledInternationalFormState(
-                    instructedCurrency = "USD",
-                    currencyOfTransfer = "USD",
-                ),
-                {},
-                {},
-            )
-        }
-        onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).assertDoesNotExist()
         onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsEnabled()
     }
 
@@ -347,8 +333,8 @@ class SendMoneyScreenUiTest {
      * The review describes the rail it is actually reviewing.
      *
      * "Sent via" read "Faster Payments" on both rails, which is untrue of an international payment,
-     * and the two fields that rail turns on had no row at all — so a customer could approve a
-     * currency conversion and a charge arrangement neither of which the review mentioned.
+     * and the field that rail turns on had no row at all — so a customer could approve a charge
+     * arrangement the review never mentioned.
      */
     @Test
     fun theDomesticReviewNamesFasterPaymentsAndShowsTheReference() = runComposeUiTest {
@@ -357,12 +343,11 @@ class SendMoneyScreenUiTest {
         }
         onNodeWithTag(SendMoneyTestTags.REVIEW_REFERENCE).performScrollTo().assertIsDisplayed()
         onNodeWithText("Faster Payments").assertExists()
-        onNodeWithTag(SendMoneyTestTags.REVIEW_CURRENCY).assertDoesNotExist()
         onNodeWithTag(SendMoneyTestTags.REVIEW_CHARGE_BEARER).assertDoesNotExist()
     }
 
     @Test
-    fun theInternationalReviewShowsTheCurrencyAndChargesAndNoReference() = runComposeUiTest {
+    fun theInternationalReviewShowsTheChargesAndNoReference() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(
                 SendMoneyFixtures.reviewState(rail = PaymentRail.International),
@@ -370,10 +355,74 @@ class SendMoneyScreenUiTest {
                 {},
             )
         }
-        onNodeWithTag(SendMoneyTestTags.REVIEW_CURRENCY).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REVIEW_CHARGE_BEARER).performScrollTo().assertIsDisplayed()
         onNodeWithTag(SendMoneyTestTags.REVIEW_REFERENCE).assertDoesNotExist()
         onNodeWithText("Faster Payments").assertDoesNotExist()
+    }
+
+    /**
+     * The row that stated the currency a second time is gone, and the amount still states it once.
+     *
+     * "Recipient receives: US Dollar (USD)" earned its place only while the two currencies could
+     * differ. They cannot now, and `formatMinorUnits` renders USD as `$`, so the figure beside it
+     * already said everything the row did.
+     */
+    @Test
+    fun theInternationalReviewStatesTheCurrencyOnceThroughTheAmount() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(
+                SendMoneyFixtures.reviewState(rail = PaymentRail.International, instructedCurrency = "USD"),
+                {},
+                {},
+            )
+        }
+        onNodeWithText("Recipient receives").assertDoesNotExist()
+        onNodeWithText("US Dollar (USD)").assertDoesNotExist()
+        // By tag, not by text: "$850.00" is on the hero, the total and the confirm button, and
+        // onNodeWithText insists on exactly one match.
+        onNodeWithTag(SendMoneyTestTags.REVIEW_AMOUNT).assertTextEquals("$850.00")
+    }
+
+    /**
+     * A refused payee read says so, rather than claiming the customer has none.
+     *
+     * The live failure: HSBC answered `403` on `beneficiaries` for every account while every other
+     * AIS read returned `200`, and the screen rendered "No saved payees" — a statement about the
+     * customer's own bank that was not true.
+     */
+    @Test
+    fun aFailedPayeeReadIsNotReportedAsAnEmptyList() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(payeesFailed = true), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+        onNodeWithTag(SendMoneyTestTags.PAYEE_NEEDS_PAYER).assertDoesNotExist()
+    }
+
+    /** And it is not a dead end: retry, and the only route to a payment without a list. */
+    @Test
+    fun aFailedPayeeReadOffersRetryAndKeepsAddNew() = runComposeUiTest {
+        val actions = mutableListOf<SendMoneyAction>()
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(payeesFailed = true), { actions += it }, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.CREDITOR_LIST).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON).assertIsDisplayed()
+
+        onNodeWithTag(SendMoneyTestTags.PAYEES_RETRY_BUTTON).performScrollTo().performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.RetryPayees), actions)
+    }
+
+    /** A list that loaded and happens to be empty still says the other thing. */
+    @Test
+    fun anEmptyPayeeListIsNotReportedAsAFailure() = runComposeUiTest {
+        setContent {
+            SendMoneyScreenContent(SendMoneyFixtures.formState(beneficiaries = emptyList()), {}, {})
+        }
+        onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertIsDisplayed()
+        onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).assertDoesNotExist()
     }
 
     /** With no payer of our own the row says so, rather than rendering as an empty field. */

@@ -10,7 +10,6 @@
 package org.mifosx.openbanking.feature.sendmoney
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -115,7 +114,7 @@ class SendMoneyScreenRobolectricTest {
 
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).assertDoesNotExist()
-        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).assertDoesNotExist()
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER).assertDoesNotExist()
     }
 
     /** ChargeBearer is required internationally with `U004`, and refused domestically. */
@@ -123,7 +122,9 @@ class SendMoneyScreenRobolectricTest {
     fun theInternationalRailAsksForChargesAndCurrencyAndNoReference() {
         render(SendMoneyFixtures.formState(rail = PaymentRail.International))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
     }
@@ -152,19 +153,9 @@ class SendMoneyScreenRobolectricTest {
         ).assertDoesNotExist()
     }
 
+    /** The amount row's own control, and now the form's only one. */
     @Test
-    fun choosingATransferCurrencyFromTheMenuRoutesTheChoice() {
-        render(SendMoneyFixtures.formState(rail = PaymentRail.International))
-
-        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().performClick()
-        composeRule.onNodeWithTag(SendMoneyTestTags.transferCurrencyOption("EUR")).performClick()
-
-        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectCurrencyOfTransfer("EUR")), actions)
-    }
-
-    /** The amount card's own control, which is what makes the symbol on the figure follow a choice. */
-    @Test
-    fun choosingAnInstructedCurrencyFromTheMenuRoutesTheChoice() {
+    fun choosingACurrencyFromTheAmountsMenuRoutesTheChoice() {
         render(SendMoneyFixtures.formState(rail = PaymentRail.International))
 
         composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
@@ -175,18 +166,17 @@ class SendMoneyScreenRobolectricTest {
         assertEquals(listOf<SendMoneyAction>(SendMoneyAction.SelectInstructedCurrency("USD")), actions)
     }
 
-    /** The combination the bank refuses, refused here instead. */
+    /** A refused payee read is its own state, with its own way out. */
     @Test
-    fun aForbiddenCurrencyCombinationDisablesTheReviewButton() {
-        render(
-            SendMoneyFixtures.filledInternationalFormState(
-                instructedCurrency = "USD",
-                currencyOfTransfer = "EUR",
-            ),
-        )
+    fun aFailedPayeeReadOffersRetryRatherThanClaimingThereAreNone() {
+        render(SendMoneyFixtures.formState(payeesFailed = true))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_MISMATCH).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag(SendMoneyTestTags.REVIEW_BUTTON).assertIsNotEnabled()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.NO_SAVED_PAYEES).assertDoesNotExist()
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_RETRY_BUTTON).performScrollTo().performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.RetryPayees), actions)
     }
 
     /** Each rail identifies a creditor its own way and refuses the other's scheme with `U027`. */

@@ -37,6 +37,13 @@ internal object SendMoneyTestTags {
     const val NON_GBP_NOTICE = "sendMoney:nonGbpNotice"
     const val CREDITOR_LIST = "sendMoney:creditorList"
     const val NO_SAVED_PAYEES = "sendMoney:noSavedPayees"
+
+    /**
+     * The payee read failed. Distinct from [NO_SAVED_PAYEES], which is the bank saying there are
+     * none — asserting one where the other belongs is the defect these two tags exist to separate.
+     */
+    const val PAYEES_FAILED = "sendMoney:payeesFailed"
+    const val PAYEES_RETRY_BUTTON = "sendMoney:payeesRetryButton"
     const val MANUAL_ENTRY_BUTTON = "sendMoney:manualEntryButton"
     const val MANUAL_SORT_CODE = "sendMoney:manualSortCode"
     const val MANUAL_ACCOUNT_NUMBER = "sendMoney:manualAccountNumber"
@@ -48,14 +55,16 @@ internal object SendMoneyTestTags {
     const val REFERENCE_FIELD = "sendMoney:referenceField"
     const val MANUAL_IBAN = "sendMoney:manualIban"
     const val MANUAL_IBAN_ERROR = "sendMoney:manualIbanError"
-    const val CURRENCY_PICKER = "sendMoney:currencyPicker"
     const val CHARGE_BEARER_PICKER = "sendMoney:chargeBearerPicker"
 
-    /** The instructed currency, inline on the amount card. International only. */
+    /**
+     * The currency, at the trailing edge of the amount row. International only.
+     *
+     * The form's only currency control. `CURRENCY_MISMATCH` and the separate transfer-currency
+     * picker are gone with the second selector — a tag with nothing behind it would send the next
+     * reader looking for a field that no longer exists.
+     */
     const val INSTRUCTED_CURRENCY_PICKER = "sendMoney:instructedCurrencyPicker"
-
-    /** The combination HSBC refuses. Present exactly when the review is blocked by it. */
-    const val CURRENCY_MISMATCH = "sendMoney:currencyMismatch"
     const val REVIEW_BUTTON = "sendMoney:reviewButton"
 
     const val REVIEW_LEAD = "sendMoney:reviewLead"
@@ -69,7 +78,6 @@ internal object SendMoneyTestTags {
     const val REVIEW_HERO = "sendMoney:reviewHero"
     const val REVIEW_PAYEE_CHIP = "sendMoney:reviewPayeeChip"
     const val REVIEW_SENT_VIA = "sendMoney:reviewSentVia"
-    const val REVIEW_CURRENCY = "sendMoney:reviewCurrency"
     const val REVIEW_CHARGE_BEARER = "sendMoney:reviewChargeBearer"
     const val REVIEW_TOTAL = "sendMoney:reviewTotal"
     const val REVIEW_AUTH_NOTICE = "sendMoney:reviewAuthNotice"
@@ -100,19 +108,14 @@ internal object SendMoneyTestTags {
     }
 
     /**
-     * One option inside a menu, not a chip on the page.
+     * One option in the currency menu, not a chip on the page.
      *
-     * The three renamed from `*Chip` when the chip rows became dropdowns: a tag that still said chip
-     * would have sent the next reader looking for a control that is no longer there. Absent from the
-     * tree entirely while the menu is shut, so every assertion on one has to open it first.
-     */
-    fun transferCurrencyOption(code: String): String = "sendMoney:transferCurrency:$code"
-
-    /**
-     * One option in the instructed-currency menu.
+     * Renamed from `*Chip` when the chip rows became dropdowns: a tag that still said chip would
+     * have sent the next reader looking for a control that is no longer there. Absent from the tree
+     * entirely while the menu is shut, so every assertion on one has to open it first.
      *
-     * Kept apart from [transferCurrencyOption] because both menus offer the same nineteen codes, and
-     * a shared tag could not say which of the two a tap had landed in.
+     * There was a `transferCurrencyOption` beside this, for the second selector's identical
+     * nineteen-code menu; it went with the selector.
      */
     fun instructedCurrencyOption(code: String): String = "sendMoney:instructedCurrency:$code"
 

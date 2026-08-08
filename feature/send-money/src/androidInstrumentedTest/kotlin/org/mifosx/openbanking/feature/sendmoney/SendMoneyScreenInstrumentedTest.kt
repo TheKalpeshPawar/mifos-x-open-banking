@@ -83,15 +83,21 @@ private fun formState(
     rail: PaymentRail = PaymentRail.Domestic,
     debtorAccountId: String? = CURRENT_ACCOUNT_ID,
     payerPickerExpanded: Boolean = false,
+    payeesFailed: Boolean = false,
 ): SendMoneyState = SendMoneyState(
     uiState = SendMoneyUiState.Content(
         step = SendMoneyStep.Form,
         rail = rail,
         debtorAccounts = listOf(currentAccount()),
         debtorRows = debtorRows(),
-        beneficiaries = if (rail == PaymentRail.Domestic) domesticPayees() else internationalPayees(),
+        beneficiaries = when {
+            payeesFailed -> emptyList()
+            rail == PaymentRail.Domestic -> domesticPayees()
+            else -> internationalPayees()
+        },
         debtorAccountId = debtorAccountId,
         payerPickerExpanded = payerPickerExpanded,
+        payeesFailed = payeesFailed,
         availableBalanceLabel = if (debtorAccountId == null) "" else "£21,530.92",
         offeredCurrencies = if (rail == PaymentRail.International) OFFERED_CURRENCIES else emptyList(),
         debtorCurrency = if (debtorAccountId == null) "" else "GBP",
@@ -129,9 +135,22 @@ class SendMoneyScreenInstrumentedTest {
     fun theInternationalRailSwapsTheReferenceForChargesAndCurrency() {
         render(formState(rail = PaymentRail.International))
 
-        composeRule.onNodeWithTag(SendMoneyTestTags.CURRENCY_PICKER).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.INSTRUCTED_CURRENCY_PICKER)
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.CHARGE_BEARER_PICKER).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(SendMoneyTestTags.REFERENCE_FIELD).assertDoesNotExist()
+    }
+
+    /** On a real device too: a refused payee read is its own state, and its retry is tappable. */
+    @Test
+    fun aFailedPayeeReadOffersARetryThatRoutes() {
+        render(formState(payeesFailed = true))
+
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_FAILED).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SendMoneyTestTags.PAYEES_RETRY_BUTTON).performScrollTo().performClick()
+
+        assertEquals(listOf<SendMoneyAction>(SendMoneyAction.RetryPayees), actions)
     }
 
     /** On a real device too: the options are behind a menu, so the field is opened first. */

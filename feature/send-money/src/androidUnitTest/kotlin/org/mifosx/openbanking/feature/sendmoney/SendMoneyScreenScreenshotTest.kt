@@ -97,6 +97,17 @@ class SendMoneyScreenScreenshotTest {
         capture("form_no_payees", SendMoneyFixtures.formState(beneficiaries = emptyList()))
 
     /**
+     * The payee read that failed, which must not look like the golden above it.
+     *
+     * The two states are one boolean apart and were rendered identically, so the only way to check
+     * they now read differently — and that "Add new" survived the failure that makes it the only
+     * route to a payment — is to put both in an image and look at them side by side.
+     */
+    @Test
+    fun payeeLoadFailedGolden() =
+        capture("form_payees_failed", SendMoneyFixtures.formState(payeesFailed = true))
+
+    /**
      * An unpayable amount, where the message takes the balance line rather than being added below it.
      *
      * Worth a golden because the card must not grow taller as someone types — a card that reflows
@@ -113,36 +124,20 @@ class SendMoneyScreenScreenshotTest {
         capture("form_non_sterling_payer", SendMoneyFixtures.formState(debtorCurrency = "USD"))
 
     /**
-     * The amount instructed in a currency that is not the payer's, which is the whole point of the
-     * inline control: the symbol on the figure has to be `$`, the balance beneath still `£`, and the
-     * conversion notice has to be the one that names the instructed currency.
+     * The amount instructed in a currency that is not the payer's.
+     *
+     * The golden's purpose changed with the symbol. It existed to prove the mark on the figure was
+     * `$` while the balance beneath stayed `£`; there is no mark now, so what it proves instead is
+     * that the currency is stated **once**, by the control at the row's trailing edge, and that a
+     * bare `850` is still legible with the `£` balance line and the conversion notice around it.
      */
     @Test
     fun instructedInAnotherCurrencyGolden() = capture(
         "form_instructed_currency",
-        SendMoneyFixtures.filledInternationalFormState(
-            instructedCurrency = "USD",
-            currencyOfTransfer = "USD",
-        ),
+        SendMoneyFixtures.filledInternationalFormState(instructedCurrency = "USD"),
     )
 
-    /**
-     * The combination the bank refuses.
-     *
-     * Worth an image because the message has to sit under the field it names and the action below it
-     * has to be visibly dead — a warning that looks like a hint beside a button that still invites a
-     * tap is the failure mode this replaces.
-     */
-    @Test
-    fun forbiddenCurrencyCombinationGolden() = capture(
-        "form_currency_mismatch",
-        SendMoneyFixtures.filledInternationalFormState(
-            instructedCurrency = "USD",
-            currencyOfTransfer = "EUR",
-        ),
-    )
-
-    /** The international review, whose two extra rows now read in official terms. */
+    /** The international review, whose extra row now reads in official terms. */
     @Test
     fun internationalReviewGolden() =
         capture("review_international", SendMoneyFixtures.reviewState(rail = PaymentRail.International))

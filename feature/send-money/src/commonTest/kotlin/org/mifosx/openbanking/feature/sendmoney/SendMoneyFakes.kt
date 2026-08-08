@@ -70,6 +70,14 @@ class FakeBeneficiariesRepository(
      */
     private val refreshes = MutableSharedFlow<Unit>(replay = REFRESH_REPLAY)
 
+    /**
+     * How many times the screen asked for a re-read, counted off the replay buffer.
+     *
+     * `ScreenDataStream` is a final framework class, so `refresh()` cannot be intercepted; the
+     * buffer it emits into is the only observable record of the call.
+     */
+    val refreshCount: Int get() = refreshes.replayCache.size
+
     override fun beneficiariesStream(
         accountId: String,
         scope: CoroutineScope,
