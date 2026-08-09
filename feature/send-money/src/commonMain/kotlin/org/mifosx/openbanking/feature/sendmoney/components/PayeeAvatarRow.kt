@@ -27,8 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,7 +55,7 @@ import org.mifosx.openbanking.feature.sendmoney.HeadingGap
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyTestTags
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_manual_entry_a11y
-import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_add_new
+import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_payee_pay_new
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
 import template.core.base.designsystem.component.KptShimmerLoadingBox
 import template.core.base.designsystem.theme.KptTheme
@@ -94,11 +94,11 @@ private val PayeeRowHeight = SlotSize + HeadingGap + CaptionHeight
  * name in a glance, the list is short, and stacked rows pushed the amount — the thing the customer
  * actually came to type — off the screen. Scrolling sideways keeps the whole choice on one line.
  *
- * "Add new" leads rather than trailing, so the escape from an empty list is the first thing under
+ * "Pay new" leads rather than trailing, so the escape from an empty list is the first thing under
  * the heading rather than the last thing after a scroll. It opens the same manual-entry fields the
  * text button used to, and carries that button's test tag because it is the same affordance.
  *
- * When [loading], the placeholders are emitted here — inside this row, after "Add new" — and not as
+ * When [loading], the placeholders are emitted here — inside this row, after "Pay new" — and not as
  * a row of their own. Beneath it they took a second line, so the section stood taller while the read
  * was in flight and everything below jumped upward the moment the payees landed, which is the very
  * collapse the row's minimum height exists to prevent.
@@ -109,7 +109,7 @@ internal fun SendMoneyPayeeAvatarRow(
     selectedId: String?,
     selectedLabel: String,
     onSelect: (String) -> Unit,
-    onAddNew: () -> Unit,
+    onPayNew: () -> Unit,
     modifier: Modifier = Modifier,
     loading: Boolean = false,
     loadingContentDescription: String = "",
@@ -122,7 +122,7 @@ internal fun SendMoneyPayeeAvatarRow(
             .padding(vertical = HeadingGap),
         horizontalArrangement = Arrangement.spacedBy(AvatarGap),
     ) {
-        AddNewAvatar(onClick = onAddNew)
+        PayNewAvatar(onClick = onPayNew)
 
         if (loading) {
             SendMoneyPayeeLoadingRow(
@@ -151,7 +151,7 @@ internal fun SendMoneyPayeeAvatarRow(
  * shimmers while its accounts load; shimmering for its payees too is the same screen keeping its
  * word.
  *
- * Emitted INSIDE [SendMoneyPayeeAvatarRow], immediately after "Add new" — which is why it neither
+ * Emitted INSIDE [SendMoneyPayeeAvatarRow], immediately after "Pay new" — which is why it neither
  * replaces that row nor adds a second one. Replacing it would take away the only route to paying
  * someone unsaved for exactly as long as the customer is waiting to learn whether they need it;
  * sitting under it made the section a line taller while loading, so the form collapsed upward the
@@ -194,11 +194,20 @@ internal fun SendMoneyPayeeLoadingRow(
     }
 }
 
+/**
+ * The way in for a recipient who is not in the row.
+ *
+ * A person and not a plus, because a plus promises the recipient joins the row and nothing here saves
+ * them: the tap only reveals the manual creditor fields, and beneficiaries are a read-only resource
+ * with no write path anywhere in the app. The neighbours in this row are all people, so a faceless
+ * one inside the dashed ring reads as someone who is not among them yet — which is the whole of what
+ * this control does.
+ */
 @Composable
-private fun AddNewAvatar(onClick: () -> Unit) {
+private fun PayNewAvatar(onClick: () -> Unit) {
     val outline = KptTheme.colorScheme.outline
     AvatarColumn(
-        caption = stringResource(Res.string.feature_send_money_payee_add_new),
+        caption = stringResource(Res.string.feature_send_money_payee_pay_new),
         captionColor = KptTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .testTag(SendMoneyTestTags.MANUAL_ENTRY_BUTTON)
@@ -221,7 +230,7 @@ private fun AddNewAvatar(onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Add,
+                imageVector = Icons.Filled.Person,
                 contentDescription = stringResource(Res.string.feature_send_money_manual_entry_a11y),
                 tint = KptTheme.colorScheme.onSurfaceVariant,
             )

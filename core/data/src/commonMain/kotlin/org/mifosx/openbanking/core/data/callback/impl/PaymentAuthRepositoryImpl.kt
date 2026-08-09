@@ -9,10 +9,12 @@
  */
 package org.mifosx.openbanking.core.data.callback.impl
 
+import org.mifosx.openbanking.core.data.banking.mapper.intlStatusOrEmpty
 import org.mifosx.openbanking.core.data.banking.mapper.statusOrEmpty
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.network.api.ConsentCreationScope
 import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.api.Pisp
@@ -91,6 +93,13 @@ internal class PaymentAuthRepositoryImpl(
      * The PSU token from the authorisation leg authorises the *payment* — funds confirmation and
      * submission — and presenting it here returns `401`, which is what this did before, right after
      * an authorisation that had actually succeeded.
+     *
+     * Read from the endpoint that issued it. This was hardcoded to the domestic path, so every
+     * international consent was looked up where it does not exist and answered
+     * `400 U011 Resource cannot be found` — the return leg could never observe `AUTH`, and the
+     * payment could not complete. The same defect was corrected for the *payment* read-back in
+     * `90a7ee30`; the consent was missed, and `getInternationalPaymentConsent` had no production
+     * caller at all despite being proven correct by `PispTest`.
      */
     @Suppress("ReturnCount")
     override suspend fun consentStatus(consentId: String): NetworkResult<String, NetworkError> {
@@ -99,9 +108,23 @@ internal class PaymentAuthRepositoryImpl(
             is NetworkResult.Error -> return result
         }
 
-        return when (val result = pisp.getDomesticPaymentConsent(token, consentId)) {
-            is NetworkResult.Success -> NetworkResult.Success(result.data.statusOrEmpty())
-            is NetworkResult.Error -> result
+        val type = paymentAuthSession.pendingConsentType()
+            ?: return NetworkResult.Error(
+                NetworkError.Client.BadRequest("Unknown consent type — cannot choose an endpoint"),
+            )
+
+        return when (type) {
+            ConsentType.DomesticSinglePayment ->
+                when (val result = pisp.getDomesticPaymentConsent(token, consentId)) {
+                    is NetworkResult.Success -> NetworkResult.Success(result.data.statusOrEmpty())
+                    is NetworkResult.Error -> result
+                }
+
+            ConsentType.InternationalSinglePayment ->
+                when (val result = pisp.getInternationalPaymentConsent(token, consentId)) {
+                    is NetworkResult.Success -> NetworkResult.Success(result.data.intlStatusOrEmpty())
+                    is NetworkResult.Error -> result
+                }
         }
     }
 

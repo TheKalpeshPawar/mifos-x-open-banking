@@ -31,10 +31,10 @@ import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.callback.SettingsPaymentAuthSession
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
@@ -126,11 +126,20 @@ class PaymentInitiationRepositoryImplTest {
         paymentIdempotencyKey = PAYMENT_KEY,
     )
 
+    /**
+     * The same draft on the other rail.
+     *
+     * `CurrencyOfTransfer` is the only difference that matters here: it is the discriminator the app
+     * uses everywhere to tell the two rails apart, and setting it is what makes this draft
+     * international.
+     */
+    private fun intlDraft() = draft().copy(currencyOfTransfer = "USD")
+
     private suspend fun repository(
         session: PaymentAuthSession = SettingsPaymentAuthSession(MapSettings()),
         errorBody: String? = null,
         status: HttpStatusCode = HttpStatusCode.Created,
-        storedRail: PaymentRail? = null,
+        storedType: ConsentType? = null,
     ): PaymentInitiationRepositoryImpl {
         val client = HttpClient(
             MockEngine { request: HttpRequestData ->
@@ -175,7 +184,7 @@ class PaymentInitiationRepositoryImplTest {
             bankHost = "sandbox.test",
             authorizeHost = "authorize.sandbox.test",
             redirectUri = "https://cb/",
-            paymentHistoryRepository = FakePaymentHistoryRepo(storedRail),
+            paymentHistoryRepository = FakePaymentHistoryRepo(storedType),
         )
     }
 
@@ -184,19 +193,22 @@ class PaymentInitiationRepositoryImplTest {
      * no-stored-row case, which must fall back to domestic rather than failing to read at all.
      */
     private class FakePaymentHistoryRepo(
-        private val rail: PaymentRail? = null,
+        private val type: ConsentType? = null,
     ) : PaymentHistoryRepository {
         override fun observeRecent(): Flow<List<PaymentHistoryItem>> =
             MutableStateFlow(emptyList())
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {}
         override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {}
         override suspend fun refreshStatuses() {}
-        override suspend fun railOf(paymentId: String): PaymentRail? = rail
+        override suspend fun consentTypeOf(paymentId: String): ConsentType? = type
         override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
     }
 
-    private fun sessionHoldingAPsuToken(): PaymentAuthSession =
+    private fun sessionHoldingAPsuToken(
+        type: ConsentType = ConsentType.DomesticSinglePayment,
+    ): PaymentAuthSession =
         SettingsPaymentAuthSession(MapSettings()).apply {
+            savePending(consentId = CONSENT_ID, state = "s", nonce = "n", type = type)
             savePaymentToken(
                 PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300),
             )
@@ -226,7 +238,7 @@ class PaymentInitiationRepositoryImplTest {
     fun readingAPaymentBackPresentsTheClientCredentialsTokenNotThePsuOne() = runTest {
         val session = sessionHoldingAPsuToken()
 
-        repository(session).paymentStatus(PAYMENT_ID)
+        repository(session, storedType = ConsentType.DomesticSinglePayment).paymentStatus(PAYMENT_ID)
 
         val read = requestTo("domestic-payments/$PAYMENT_ID")
         assertEquals("Bearer $CLIENT_CREDENTIALS_TOKEN", read.authorization)
@@ -242,7 +254,7 @@ class PaymentInitiationRepositoryImplTest {
      */
     @Test
     fun readingAnInternationalPaymentUsesTheInternationalEndpoint() = runTest {
-        repository(storedRail = PaymentRail.International).paymentStatus(PAYMENT_ID)
+        repository(storedType = ConsentType.InternationalSinglePayment).paymentStatus(PAYMENT_ID)
 
         assertNotNull(
             captured.lastOrNull { it.path.contains("international-payments/$PAYMENT_ID") },
@@ -253,23 +265,30 @@ class PaymentInitiationRepositoryImplTest {
 
     @Test
     fun readingADomesticPaymentUsesTheDomesticEndpoint() = runTest {
-        repository(storedRail = PaymentRail.Domestic).paymentStatus(PAYMENT_ID)
+        repository(storedType = ConsentType.DomesticSinglePayment).paymentStatus(PAYMENT_ID)
 
         assertNotNull(captured.lastOrNull { it.path.contains("domestic-payments/$PAYMENT_ID") })
         assertNull(captured.firstOrNull { it.path.contains("international-payments/$PAYMENT_ID") })
     }
 
     /**
-     * With no stored row the rail is unknown, and domestic is the safe read.
+     * With no stored row the type is unknown, and the read fails rather than guessing.
      *
-     * Every id written before the rail was recorded was domestic in practice, so guessing the other
-     * way would break the rows most likely to hit this path.
+     * This reverses what the code used to do. Defaulting to domestic was defensible while single
+     * payments were the only product — every id predating the column really was domestic — but the
+     * moment a second product can be stored, the same default sends a standing order's id to
+     * `domestic-payments/{id}` and reports whatever comes back as the truth. A guess that is right
+     * for legacy rows and silently wrong for new ones is worse than an error.
      */
     @Test
-    fun readingAPaymentWithNoStoredRowFallsBackToDomestic() = runTest {
-        repository(storedRail = null).paymentStatus(PAYMENT_ID)
+    fun readingAPaymentWithNoStoredRowFailsRatherThanGuessingTheEndpoint() = runTest {
+        val result = repository(storedType = null).paymentStatus(PAYMENT_ID)
 
-        assertNotNull(captured.lastOrNull { it.path.contains("domestic-payments/$PAYMENT_ID") })
+        assertIs<NetworkResult.Error<*>>(result)
+        assertNull(
+            captured.lastOrNull { it.path.contains("-payments/$PAYMENT_ID") },
+            "an unknown type must not reach any payment endpoint",
+        )
     }
 
     /** Funds confirmation and submission are the two calls the PSU actually authorised. */
@@ -278,6 +297,65 @@ class PaymentInitiationRepositoryImplTest {
         repository(sessionHoldingAPsuToken()).confirmFunds(CONSENT_ID)
 
         assertEquals("Bearer $PSU_TOKEN", requestTo("funds-confirmation").authorization)
+    }
+
+    /**
+     * The second instance of the hardcoded-rail bug, alongside the consent read-back.
+     *
+     * Both rails' paths end in `funds-confirmation`, so the assertion above passes whichever endpoint
+     * is called — which is exactly why this went unnoticed. These two assert on the segment that
+     * differs.
+     *
+     * The draft is hoisted into a local because inside `apply` on the session a bare `draft()`
+     * resolves to the session's own accessor rather than this file's fixture.
+     */
+    @Test
+    fun confirmingFundsForAnInternationalConsentUsesTheInternationalEndpoint() = runTest {
+        val staged = intlDraft()
+        val session = sessionHoldingAPsuToken(ConsentType.InternationalSinglePayment).apply { saveDraft(staged) }
+
+        repository(session).confirmFunds(CONSENT_ID)
+
+        assertNotNull(captured.lastOrNull { "international-payment-consents" in it.path })
+        assertNull(
+            captured.lastOrNull { "/domestic-payment-consents" in it.path },
+            "an international funds check must never go to the domestic path",
+        )
+    }
+
+    @Test
+    fun confirmingFundsForADomesticConsentUsesTheDomesticEndpoint() = runTest {
+        val staged = draft()
+        val session = sessionHoldingAPsuToken().apply { saveDraft(staged) }
+
+        repository(session).confirmFunds(CONSENT_ID)
+
+        assertNotNull(captured.lastOrNull { "/domestic-payment-consents" in it.path })
+        assertNull(
+            captured.lastOrNull { "international-payment-consents" in it.path },
+            "a domestic funds check must never go to the international path",
+        )
+    }
+
+    /**
+     * A session that records no consent type cannot pick an endpoint, so the funds check fails.
+     *
+     * Previously this resolved to domestic. That is the trap this change removes: the same silent
+     * default would send a standing order's consent id to the single-payment funds endpoint.
+     */
+    @Test
+    fun confirmingFundsWithNoRecordedTypeFailsRatherThanGuessing() = runTest {
+        val session = SettingsPaymentAuthSession(MapSettings()).apply {
+            savePaymentToken(PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300))
+        }
+
+        val result = repository(session).confirmFunds(CONSENT_ID)
+
+        assertIs<NetworkResult.Error<*>>(result)
+        assertNull(
+            captured.lastOrNull { "funds-confirmation" in it.path },
+            "an unknown type must not reach any funds-confirmation endpoint",
+        )
     }
 
     @Test

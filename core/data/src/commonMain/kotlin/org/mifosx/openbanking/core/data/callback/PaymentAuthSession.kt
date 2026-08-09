@@ -11,6 +11,7 @@ package org.mifosx.openbanking.core.data.callback
 
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
 
@@ -33,8 +34,23 @@ import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
  */
 interface PaymentAuthSession {
 
-    /** Records the authorisation about to be launched, so the returning redirect can be checked. */
-    fun savePending(consentId: String, state: String, nonce: String)
+    /**
+     * Records the authorisation about to be launched, so the returning redirect can be checked.
+     *
+     * [type] is what the return leg dispatches on. It is recorded here, at the one moment it is
+     * known for certain, because nothing in the redirect names it — every consent family authorises
+     * through the same URL with the same scope, so the callback is indistinguishable and this
+     * session is the only thing that remembers.
+     */
+    fun savePending(consentId: String, state: String, nonce: String, type: ConsentType)
+
+    /**
+     * The consent family of the authorisation in flight, or null when it cannot be established.
+     *
+     * Null is not "domestic". It means this build cannot say, and a caller that guesses would send
+     * a consent id to an endpoint that never issued it.
+     */
+    fun pendingConsentType(): ConsentType?
 
     /** The consent id of the authorisation in flight, or null when none is. */
     fun pendingConsentId(): String?
@@ -86,11 +102,29 @@ class SettingsPaymentAuthSession(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override fun savePending(consentId: String, state: String, nonce: String) {
+    override fun savePending(consentId: String, state: String, nonce: String, type: ConsentType) {
         secureSettings.putString(KEY_CONSENT_ID, consentId)
         secureSettings.putString(KEY_STATE, state)
         secureSettings.putString(KEY_NONCE, nonce)
+        secureSettings.putString(KEY_CONSENT_TYPE, type.wireValue)
     }
+
+    /**
+     * Falls back to the staged draft only when no type was recorded.
+     *
+     * A session written before this key existed can only be a single payment — nothing else could
+     * stage one — so its draft still answers, and `CurrencyOfTransfer` gives the rail. With neither
+     * a type nor a draft there is nothing to reason from, and null says so.
+     */
+    override fun pendingConsentType(): ConsentType? =
+        ConsentType.fromWire(secureSettings.getStringOrNull(KEY_CONSENT_TYPE))
+            ?: draft()?.let {
+                if (it.currencyOfTransfer != null) {
+                    ConsentType.InternationalSinglePayment
+                } else {
+                    ConsentType.DomesticSinglePayment
+                }
+            }
 
     override fun pendingConsentId(): String? = secureSettings.getStringOrNull(KEY_CONSENT_ID)
 
@@ -135,6 +169,7 @@ class SettingsPaymentAuthSession(
         secureSettings.remove(KEY_PAYMENT_TOKENS)
         secureSettings.remove(KEY_DRAFT)
         secureSettings.remove(KEY_APPROVED_AT)
+        secureSettings.remove(KEY_CONSENT_TYPE)
     }
 
     private companion object {
@@ -144,5 +179,6 @@ class SettingsPaymentAuthSession(
         const val KEY_PAYMENT_TOKENS = "payment_auth_tokens"
         const val KEY_APPROVED_AT = "payment_auth_approved_at"
         const val KEY_DRAFT = "payment_auth_draft"
+        const val KEY_CONSENT_TYPE = "payment_auth_consent_type"
     }
 }

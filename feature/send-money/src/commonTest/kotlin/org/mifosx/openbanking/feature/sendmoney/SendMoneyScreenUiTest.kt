@@ -430,7 +430,7 @@ class SendMoneyScreenUiTest {
 
     /** And it is not a dead end: retry, and the only route to a payment without a list. */
     @Test
-    fun aFailedPayeeReadOffersRetryAndKeepsAddNew() = runComposeUiTest {
+    fun aFailedPayeeReadOffersRetryAndKeepsPayNew() = runComposeUiTest {
         val actions = mutableListOf<SendMoneyAction>()
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.formState(payeesFailed = true), { actions += it }, {})
@@ -465,11 +465,11 @@ class SendMoneyScreenUiTest {
     /**
      * And waiting does not cost the customer the one route that never needed the list.
      *
-     * "Add new" is the first item of the avatar row, which is rendered above the notice rather than
+     * "Pay new" is the first item of the avatar row, which is rendered above the notice rather than
      * inside it — so the wait must not be able to take it away, any more than a failure can.
      */
     @Test
-    fun aPayeeReadStillRunningKeepsAddNewAvailable() = runComposeUiTest {
+    fun aPayeeReadStillRunningKeepsPayNewAvailable() = runComposeUiTest {
         setContent {
             SendMoneyScreenContent(SendMoneyFixtures.formState(payeesLoading = true), {}, {})
         }

@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -225,7 +225,7 @@ class FakePaymentHistoryRepository(
     override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) =
         error("payment-status never writes history")
 
-    override suspend fun railOf(paymentId: String): PaymentRail? = PaymentRail.Domestic
+    override suspend fun consentTypeOf(paymentId: String): ConsentType? = ConsentType.DomesticSinglePayment
 
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? {
         stageReads += paymentId

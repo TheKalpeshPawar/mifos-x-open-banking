@@ -51,9 +51,14 @@
          next thing it announces is whatever the read turned out to be. -->
     <string name="feature_send_money_payees_loading_a11y">Loading your saved payees</string>
 
-    <!-- The caption under the dashed avatar that opens the manual fields. -->
-    <string name="feature_send_money_payee_add_new">Add new</string>
-    <string name="feature_send_money_manual_entry_a11y">Enter a sort code and account number for someone who is not a saved payee</string>
+    <!-- The caption under the dashed avatar that opens the manual fields. "Pay", not "Add": nothing
+         is saved here, so a label promising a new entry in the row would be describing an action the
+         app cannot perform. -->
+    <string name="feature_send_money_payee_pay_new">Pay new</string>
+    <!-- Rail-neutral on purpose. The fields behind this are a sort code and account number on the
+         domestic rail and an IBAN on the international one, so naming either one is wrong half the
+         time. -->
+    <string name="feature_send_money_manual_entry_a11y">Pay someone who is not a saved payee by entering their account details</string>
     <string name="feature_send_money_manual_name">Name on the account</string>
     <string name="feature_send_money_manual_sort_code">Sort code</string>
     <string name="feature_send_money_manual_sort_code_error">Enter a 6-digit sort code</string>

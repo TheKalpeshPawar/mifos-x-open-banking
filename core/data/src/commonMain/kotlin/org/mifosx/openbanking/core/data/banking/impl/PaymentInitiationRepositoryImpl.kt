@@ -25,8 +25,8 @@ import org.mifosx.openbanking.core.data.banking.mapper.toPaymentRequest
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.util.isDebtorAccountRefusal
 import org.mifosx.openbanking.core.data.util.toThrowable
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -89,7 +89,12 @@ internal class PaymentInitiationRepositoryImpl(
             nowEpochSeconds = Clock.System.now().epochSeconds,
         )
 
-        paymentAuthSession.savePending(consentId = consentId, state = auth.state, nonce = auth.nonce)
+        paymentAuthSession.savePending(
+            consentId = consentId,
+            state = auth.state,
+            nonce = auth.nonce,
+            type = draft.consentType(),
+        )
         paymentAuthSession.saveDraft(draft)
 
         return NetworkResult.Success(
@@ -141,12 +146,27 @@ internal class PaymentInitiationRepositoryImpl(
         }
     }
 
+    /**
+     * Two guards before the call, and each says something different: no PSU token means the consent
+     * was never authorised, while no recorded type means this build cannot tell which endpoint owns
+     * the consent. Collapsing them would report one as the other.
+     */
+    @Suppress("ReturnCount")
     override suspend fun confirmFunds(consentId: String): NetworkResult<Boolean, NetworkError> {
         val token = paymentAuthSession.paymentToken()?.accesstoken
             ?: return NetworkResult.Error(
                 NetworkError.Client.Unauthorized("No payments token — the consent is not authorised"),
             )
-        return when (val result = pisp.getFundsConfirmation(token, consentId)) {
+        val type = paymentAuthSession.pendingConsentType()
+            ?: return NetworkResult.Error(
+                NetworkError.Client.BadRequest("Unknown consent type — cannot choose an endpoint"),
+            )
+        val result = when (type) {
+            ConsentType.DomesticSinglePayment -> pisp.getFundsConfirmation(token, consentId)
+            ConsentType.InternationalSinglePayment ->
+                pisp.getInternationalFundsConfirmation(token, consentId)
+        }
+        return when (result) {
             is NetworkResult.Success ->
                 NetworkResult.Success(result.data.data?.fundsAvailableResult?.fundsAvailable == true)
             is NetworkResult.Error -> result
@@ -222,19 +242,34 @@ internal class PaymentInitiationRepositoryImpl(
             is NetworkResult.Success -> result.data.accessToken
             is NetworkResult.Error -> return result
         }
-        val rail = paymentHistoryRepository.railOf(domesticPaymentId) ?: PaymentRail.Domestic
-        return when (rail) {
-            PaymentRail.Domestic -> when (val r = pisp.getDomesticPayment(token, domesticPaymentId)) {
+        val type = paymentHistoryRepository.consentTypeOf(domesticPaymentId)
+            ?: return NetworkResult.Error(
+                NetworkError.Client.BadRequest("Unknown consent type — cannot choose an endpoint"),
+            )
+        return when (type) {
+            ConsentType.DomesticSinglePayment -> when (val r = pisp.getDomesticPayment(token, domesticPaymentId)) {
                 is NetworkResult.Success -> NetworkResult.Success(r.data.toPaymentReceipt())
                 is NetworkResult.Error -> r
             }
 
-            PaymentRail.International -> when (val r = pisp.getInternationalPayment(token, domesticPaymentId)) {
-                is NetworkResult.Success -> NetworkResult.Success(r.data.toIntlPaymentReceipt())
-                is NetworkResult.Error -> r
-            }
+            ConsentType.InternationalSinglePayment ->
+                when (val r = pisp.getInternationalPayment(token, domesticPaymentId)) {
+                    is NetworkResult.Success -> NetworkResult.Success(r.data.toIntlPaymentReceipt())
+                    is NetworkResult.Error -> r
+                }
         }
     }
 
     private fun PaymentDraft.isInternational(): Boolean = currencyOfTransfer != null
+
+    /**
+     * The consent family this draft stages. `CurrencyOfTransfer` is the rail; the product is single
+     * payment, because a [PaymentDraft] cannot express any other.
+     */
+    private fun PaymentDraft.consentType(): ConsentType =
+        if (isInternational()) {
+            ConsentType.InternationalSinglePayment
+        } else {
+            ConsentType.DomesticSinglePayment
+        }
 }

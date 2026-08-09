@@ -18,9 +18,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import kotlin.test.AfterTest
@@ -58,7 +58,7 @@ class FakePaymentHistoryRepository : PaymentHistoryRepository {
     }
 
     /** The hub reads rows straight from history, so it never has to ask which rail one came from. */
-    override suspend fun railOf(paymentId: String): PaymentRail? = null
+    override suspend fun consentTypeOf(paymentId: String): ConsentType? = null
 
     /** The hub lists payments; it never renders a timeline, so it records no stage times. */
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null

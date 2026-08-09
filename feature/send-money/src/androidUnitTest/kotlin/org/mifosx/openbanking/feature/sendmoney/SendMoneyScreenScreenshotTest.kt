@@ -91,7 +91,7 @@ class SendMoneyScreenScreenshotTest {
     @Test
     fun selectedPayeeGolden() = capture("form_payee_selected", SendMoneyFixtures.filledFormState())
 
-    /** No saved payees: the avatar row survives, carrying only "Add new". */
+    /** No saved payees: the avatar row survives, carrying only "Pay new". */
     @Test
     fun noSavedPayeesGolden() =
         capture("form_no_payees", SendMoneyFixtures.formState(beneficiaries = emptyList()))
@@ -100,7 +100,7 @@ class SendMoneyScreenScreenshotTest {
      * The payee read that failed, which must not look like the golden above it.
      *
      * The two states are one boolean apart and were rendered identically, so the only way to check
-     * they now read differently — and that "Add new" survived the failure that makes it the only
+     * they now read differently — and that "Pay new" survived the failure that makes it the only
      * route to a payment — is to put both in an image and look at them side by side.
      */
     @Test

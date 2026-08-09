@@ -24,6 +24,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.data.TestSigningKey
 import org.mifosx.openbanking.core.data.callback.impl.PaymentAuthRepositoryImpl
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.api.Pisp
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
@@ -97,10 +101,49 @@ class PaymentAuthRepositoryImplTest {
 
     private fun pendingSession(): PaymentAuthSession =
         SettingsPaymentAuthSession(MapSettings()).apply {
-            savePending(consentId = CONSENT_ID, state = STATE, nonce = NONCE)
+            savePending(consentId = CONSENT_ID, state = STATE, nonce = NONCE, type = ConsentType.DomesticSinglePayment)
             savePaymentToken(
                 PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300),
             )
+        }
+
+    /**
+     * A staged draft, which is what tells the return leg which rail it is on.
+     *
+     * `CurrencyOfTransfer` is the discriminator the rest of the app already uses: set on
+     * international drafts, absent on domestic ones.
+     */
+    private fun draft(currencyOfTransfer: String? = null): PaymentDraft = PaymentDraft(
+        debtorAccount = null,
+        creditor = CreditorSelection(
+            name = "Klara Weiss",
+            scheme = BeneficiaryScheme.Iban,
+            identification = "DE89370400440532013000",
+        ),
+        amountMinorUnits = 25_000L,
+        currency = "GBP",
+        reference = null,
+        instructionIdentification = "MFX-1",
+        endToEndIdentification = "E2E-1",
+        consentIdempotencyKey = "consent-key",
+        paymentIdempotencyKey = "payment-key",
+        currencyOfTransfer = currencyOfTransfer,
+    )
+
+    /**
+     * A session staged for one consent family, recorded the way production records it.
+     *
+     * The type is written explicitly rather than left to be inferred: that is the whole change, and
+     * a fixture that leaned on the draft would be testing the legacy fallback instead of the path
+     * every new authorisation actually takes.
+     */
+    private fun sessionStaging(type: ConsentType): PaymentAuthSession =
+        SettingsPaymentAuthSession(MapSettings()).apply {
+            savePending(consentId = CONSENT_ID, state = STATE, nonce = NONCE, type = type)
+            savePaymentToken(
+                PsuTokenResponse(accesstoken = PSU_TOKEN, tokentype = "Bearer", expiresin = 300),
+            )
+            saveDraft(draft(if (type == ConsentType.InternationalSinglePayment) "USD" else null))
         }
 
     // region — which credential reads the consent
@@ -126,6 +169,56 @@ class PaymentAuthRepositoryImplTest {
         val result = repository(pendingSession()).consentStatus(CONSENT_ID)
 
         assertEquals("Authorised", assertIs<NetworkResult.Success<String>>(result).data)
+    }
+
+    // endregion
+
+    // region — reading a consent from the endpoint that issued it
+
+    /**
+     * The regression that broke every international payment.
+     *
+     * The read was hardcoded to the domestic path, so an international consent was looked up where
+     * it does not exist and answered `400 U011 Resource cannot be found`. The return leg could never
+     * observe `AUTH`, and the payment could not complete. Captured live: consent `45282` was created
+     * at `international-payment-consents` and read back at `domestic-payment-consents/45282`.
+     *
+     * Asserted negatively as well as positively — the old code would satisfy "a request was made"
+     * and only fails on "and not to the other rail's path".
+     */
+    @Test
+    fun anInternationalConsentIsReadFromTheInternationalEndpoint() = runTest {
+        repository(sessionStaging(ConsentType.InternationalSinglePayment)).consentStatus(CONSENT_ID)
+
+        assertNotNull(captured.lastOrNull { "international-payment-consents" in it.path })
+        assertNull(
+            captured.lastOrNull { it.path.contains("/domestic-payment-consents") },
+            "an international consent must never be read at the domestic path",
+        )
+    }
+
+    @Test
+    fun aDomesticConsentIsReadFromTheDomesticEndpoint() = runTest {
+        repository(sessionStaging(ConsentType.DomesticSinglePayment)).consentStatus(CONSENT_ID)
+
+        assertNotNull(captured.lastOrNull { "/domestic-payment-consents" in it.path })
+        assertNull(
+            captured.lastOrNull { "international-payment-consents" in it.path },
+            "a domestic consent must never be read at the international path",
+        )
+    }
+
+    /**
+     * A session staged before the draft was persisted has no rail to read.
+     *
+     * Domestic is the safe default: it reproduces the behaviour such a session already had rather
+     * than failing, and it matches how an unknown rail is treated for payments.
+     */
+    @Test
+    fun aSessionWithNoStagedDraftFallsBackToDomestic() = runTest {
+        repository(pendingSession()).consentStatus(CONSENT_ID)
+
+        assertNotNull(captured.lastOrNull { "/domestic-payment-consents" in it.path })
     }
 
     // endregion

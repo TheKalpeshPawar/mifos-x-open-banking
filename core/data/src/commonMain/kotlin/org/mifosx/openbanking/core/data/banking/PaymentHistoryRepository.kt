@@ -10,9 +10,9 @@
 package org.mifosx.openbanking.core.data.banking
 
 import kotlinx.coroutines.flow.Flow
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 
@@ -43,12 +43,12 @@ interface PaymentHistoryRepository {
      * Returns null when nothing is stored for [paymentId], which the caller must decide about
      * rather than have guessed for it.
      */
-    suspend fun railOf(paymentId: String): PaymentRail?
+    suspend fun consentTypeOf(paymentId: String): ConsentType?
 
     /**
      * The two stage times this app recorded for a submitted payment, for the detail timeline.
      *
-     * The same single-row lookup [railOf] performs, and for the same reason: the bank returns one
+     * The same single-row lookup [consentTypeOf] performs, and for the same reason: the bank returns one
      * `CreationDateTime` and no stage history, so approval and submission can only come from the row
      * written when they were observed.
      *

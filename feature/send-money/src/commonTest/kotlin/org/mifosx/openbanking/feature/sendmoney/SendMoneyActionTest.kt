@@ -113,9 +113,9 @@ class SendMoneyActionTest {
         assertEquals(listOf(SendMoneyAction.SelectCreditor(SendMoneyFixtures.JAMESON_ID)), actions)
     }
 
-    /** The "Add new" avatar, which replaced the text button and kept its contract. */
+    /** The "Pay new" avatar, which replaced the text button and kept its contract. */
     @Test
-    fun tappingAddNewOpensTheManualFields() {
+    fun tappingPayNewOpensTheManualFields() {
         val actions = captureActions(
             SendMoneyFixtures.formState(),
             SendMoneyTestTags.MANUAL_ENTRY_BUTTON,
@@ -124,9 +124,9 @@ class SendMoneyActionTest {
         assertEquals(listOf(SendMoneyAction.ShowManualCreditorEntry), actions)
     }
 
-    /** Add new is reachable with no payees at all — that is the case it exists for. */
+    /** Pay new is reachable with no payees at all — that is the case it exists for. */
     @Test
-    fun addNewIsStillTappableWithNoSavedPayees() {
+    fun payNewIsStillTappableWithNoSavedPayees() {
         val actions = captureActions(
             SendMoneyFixtures.formState(beneficiaries = emptyList()),
             SendMoneyTestTags.MANUAL_ENTRY_BUTTON,

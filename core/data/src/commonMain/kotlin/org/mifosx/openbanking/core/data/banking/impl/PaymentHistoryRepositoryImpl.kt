@@ -13,18 +13,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
+import org.mifosx.openbanking.core.data.banking.mapper.toConsentType
 import org.mifosx.openbanking.core.data.banking.mapper.toEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toFailureEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toIntlPaymentReceipt
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentHistoryItem
-import org.mifosx.openbanking.core.data.banking.mapper.toPaymentRail
 import org.mifosx.openbanking.core.data.banking.mapper.toPaymentReceipt
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -73,8 +73,8 @@ internal class PaymentHistoryRepositoryImpl(
     }
 
     /** Null when no row exists, so a caller cannot mistake "unknown" for "domestic". */
-    override suspend fun railOf(paymentId: String): PaymentRail? =
-        dao.observeById(paymentId).first()?.let { it.paymentType.toPaymentRail() }
+    override suspend fun consentTypeOf(paymentId: String): ConsentType? =
+        dao.observeById(paymentId).first()?.let { it.paymentType.toConsentType() }
 
     /**
      * Null when no row exists, and null columns within it when the stage was never observed — the
@@ -108,7 +108,8 @@ internal class PaymentHistoryRepositoryImpl(
             }
             .forEach { entity ->
                 val now = Clock.System.now().toEpochMilliseconds().toString()
-                val receipt = fetchReceipt(token, entity.paymentId!!, entity.paymentType.toPaymentRail())
+                val type = entity.paymentType.toConsentType()
+                val receipt = type?.let { fetchReceipt(token, entity.paymentId!!, it) }
                 dao.upsert(
                     if (receipt == null) {
                         // Keep the last-known status; mark that we tried.
@@ -125,23 +126,26 @@ internal class PaymentHistoryRepositoryImpl(
     }
 
     /**
-     * Reads a payment's status from the endpoint belonging to its rail.
+     * Reads a payment's status from the endpoint belonging to its own consent family.
      *
-     * The two are not interchangeable: an id issued by one rail answers 404 against the other, so
+     * The endpoints are not interchangeable: an id issued by one answers 404 against another, so
      * every international payment used to fail its own status refresh. Null on any failure — a
      * refresh that cannot reach the bank leaves the stored status alone rather than overwriting it.
+     *
+     * A row whose stored type this build does not recognise never reaches here: the caller skips it
+     * rather than guessing an endpoint, which would report another product's answer as this one's.
      */
     private suspend fun fetchReceipt(
         token: String,
         paymentId: String,
-        rail: PaymentRail,
-    ): PaymentReceipt? = when (rail) {
-        PaymentRail.Domestic ->
+        type: ConsentType,
+    ): PaymentReceipt? = when (type) {
+        ConsentType.DomesticSinglePayment ->
             (pisp.getDomesticPayment(token, paymentId) as? NetworkResult.Success)
                 ?.data
                 ?.toPaymentReceipt()
 
-        PaymentRail.International ->
+        ConsentType.InternationalSinglePayment ->
             (pisp.getInternationalPayment(token, paymentId) as? NetworkResult.Success)
                 ?.data
                 ?.toIntlPaymentReceipt()

@@ -12,6 +12,7 @@ package org.mifosx.openbanking.core.data.callback
 import com.russhwolf.settings.MapSettings
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
@@ -65,7 +66,12 @@ class PaymentAuthSessionTest {
     fun holdsThePendingAuthorisationAcrossTheBrowserHop() {
         val (session, _) = session()
 
-        session.savePending(consentId = CONSENT_ID, state = PAYMENT_STATE, nonce = PAYMENT_NONCE)
+        session.savePending(
+            consentId = CONSENT_ID,
+            state = PAYMENT_STATE,
+            nonce = PAYMENT_NONCE,
+            type = ConsentType.DomesticSinglePayment,
+        )
 
         assertEquals(CONSENT_ID, session.pendingConsentId())
         assertEquals(PAYMENT_NONCE, session.pendingNonce())
@@ -101,7 +107,7 @@ class PaymentAuthSessionTest {
     @Test
     fun forgetsTheDraftWhenTheSessionIsCleared() {
         val (session, _) = session()
-        session.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE)
+        session.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE, type = ConsentType.DomesticSinglePayment)
         session.saveDraft(aDraft())
 
         session.clear()
@@ -113,7 +119,7 @@ class PaymentAuthSessionTest {
     @Test
     fun refusesAStateItDidNotIssue() {
         val (session, _) = session()
-        session.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE)
+        session.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE, type = ConsentType.DomesticSinglePayment)
 
         assertFalse(session.matchesPendingState("someone-elses-state"))
         assertFalse(session.matchesPendingState(null))
@@ -149,7 +155,7 @@ class PaymentAuthSessionTest {
         consentSession.saveConsentMeta(consentId = "ais-consent", expirationDateTime = "2026-12-01T00:00:00Z")
 
         val paymentSession = SettingsPaymentAuthSession(secureSettings = settings)
-        paymentSession.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE)
+        paymentSession.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE, type = ConsentType.DomesticSinglePayment)
         paymentSession.savePaymentToken(PsuTokenResponse(accesstoken = "payments-access"))
 
         assertEquals("ais-access", consentSession.tokens()?.accesstoken)
@@ -166,7 +172,7 @@ class PaymentAuthSessionTest {
         consentSession.saveConsentMeta("ais-consent", "2026-12-01T00:00:00Z")
 
         val paymentSession = SettingsPaymentAuthSession(secureSettings = settings)
-        paymentSession.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE)
+        paymentSession.savePending(CONSENT_ID, PAYMENT_STATE, PAYMENT_NONCE, type = ConsentType.DomesticSinglePayment)
         paymentSession.savePaymentToken(PsuTokenResponse(accesstoken = "payments-access"))
         paymentSession.clear()
 
@@ -174,5 +180,48 @@ class PaymentAuthSessionTest {
         assertEquals("ais-consent", consentSession.consentId())
         assertNull(paymentSession.paymentToken())
         assertNull(paymentSession.pendingConsentId())
+    }
+
+    /**
+     * A type this build does not recognise is not an invitation to guess.
+     *
+     * This is the case the whole change exists for. A row or session written by a build that knows
+     * standing orders would carry a type this one cannot resolve; answering "domestic single payment"
+     * would send that consent id to `domestic-payment-consents/{id}` and read another product's
+     * answer as its own. Null forces the caller to stop.
+     */
+    @Test
+    fun anUnrecognisedStoredTypeResolvesToNothingRatherThanDomestic() {
+        val settings = MapSettings()
+        val session = SettingsPaymentAuthSession(settings)
+        session.savePending(
+            consentId = "45300",
+            state = "s",
+            nonce = "n",
+            type = ConsentType.DomesticSinglePayment,
+        )
+        settings.putString("payment_auth_consent_type", "domestic_standing_order")
+
+        assertNull(session.pendingConsentType())
+    }
+
+    /**
+     * A session staged before the type was recorded still resolves, from its draft.
+     *
+     * Nothing but a single payment could have staged one, so the draft is a complete answer for
+     * exactly those sessions — and only those.
+     */
+    @Test
+    fun aSessionPredatingTheTypeStillResolvesFromItsDraft() {
+        val session = SettingsPaymentAuthSession(MapSettings())
+        session.saveDraft(aDraft().copy(currencyOfTransfer = "USD"))
+
+        assertEquals(ConsentType.InternationalSinglePayment, session.pendingConsentType())
+    }
+
+    /** With neither a type nor a draft there is nothing to reason from, and it says so. */
+    @Test
+    fun anEmptySessionHasNoConsentType() {
+        assertNull(SettingsPaymentAuthSession(MapSettings()).pendingConsentType())
     }
 }

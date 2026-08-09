@@ -17,10 +17,10 @@ import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.core.data.callback.PaymentAuthValidation
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -249,7 +249,7 @@ class FakePaymentHistoryRepository : PaymentHistoryRepository {
     }
 
     /** The callback leg never reads a rail back; it always has the draft in hand. */
-    override suspend fun railOf(paymentId: String): PaymentRail? = null
+    override suspend fun consentTypeOf(paymentId: String): ConsentType? = null
 
     /** This fake keeps no rows, so it has no stage times to report. */
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null

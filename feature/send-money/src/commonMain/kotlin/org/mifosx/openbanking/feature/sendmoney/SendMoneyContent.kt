@@ -205,7 +205,7 @@ private fun ConversionNotice(instructedCurrency: String) {
  * The payees, and the way in for someone who is not one.
  *
  * The avatar row is rendered in every case, including when there are none to show, because its first
- * item is "Add new" — the only route to paying an unsaved account. Dropping the row when the list is
+ * item is "Pay new" — the only route to paying an unsaved account. Dropping the row when the list is
  * empty would take that away exactly when it is needed.
  *
  * Four cases with no list to show, and they are not interchangeable: no payer chosen yet, a read
@@ -234,7 +234,7 @@ private fun PayeeSection(
             selectedId = state.creditor?.beneficiaryId,
             selectedLabel = stringResource(Res.string.feature_send_money_selected_a11y),
             onSelect = { onAction(SendMoneyAction.SelectCreditor(it)) },
-            onAddNew = { onAction(SendMoneyAction.ShowManualCreditorEntry) },
+            onPayNew = { onAction(SendMoneyAction.ShowManualCreditorEntry) },
             modifier = Modifier.testTag(SendMoneyTestTags.CREDITOR_LIST),
             loading = state.payeesLoading,
             loadingContentDescription = stringResource(Res.string.feature_send_money_payees_loading_a11y),
@@ -517,7 +517,7 @@ private fun ChargesSection(
 /**
  * The saved payees could not be read, which is not the same as there being none.
  *
- * Says the read failed and offers to run it again, and leaves "Add new" above it untouched — with no
+ * Says the read failed and offers to run it again, and leaves "Pay new" above it untouched — with no
  * list, hand-keying the details is the only route to a payment, so it must survive the failure that
  * makes it necessary. The cause is deliberately not named: `403` here is indistinguishable from an
  * expired token by the time it reaches this state, and guessing at the bank's reason would put words

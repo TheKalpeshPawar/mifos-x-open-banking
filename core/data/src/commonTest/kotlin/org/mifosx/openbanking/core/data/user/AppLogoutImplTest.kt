@@ -19,6 +19,7 @@ import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
 import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
@@ -181,6 +182,7 @@ private class RecordingConsentSession(
     override fun saveConsentMeta(consentId: String, expirationDateTime: String) = Unit
     override fun consentId(): String? = consentId
     override fun consentExpiration(): Instant? = null
+
     override fun clear() {
         tokenPresent = false
         consentId = null
@@ -235,10 +237,11 @@ private class RecordingStoreCacheManager : StoreCacheManager {
 }
 
 private class RecordingPaymentAuthSession : PaymentAuthSession {
+
     var cleared: Boolean = false
         private set
 
-    override fun savePending(consentId: String, state: String, nonce: String) = Unit
+    override fun savePending(consentId: String, state: String, nonce: String, type: ConsentType) = Unit
     override fun pendingConsentId(): String? = null
     override fun matchesPendingState(state: String?): Boolean = false
     override fun pendingNonce(): String? = null
@@ -248,6 +251,8 @@ private class RecordingPaymentAuthSession : PaymentAuthSession {
     override fun draft(): PaymentDraft? = null
     override fun saveApprovedAt(instant: String) = Unit
     override fun approvedAt(): String? = null
+
+    override fun pendingConsentType(): ConsentType? = ConsentType.DomesticSinglePayment
 
     override fun clear() {
         cleared = true

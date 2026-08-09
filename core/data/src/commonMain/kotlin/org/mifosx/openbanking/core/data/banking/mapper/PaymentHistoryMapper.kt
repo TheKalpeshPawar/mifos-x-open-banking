@@ -11,10 +11,10 @@ package org.mifosx.openbanking.core.data.banking.mapper
 
 import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
-import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import kotlin.uuid.ExperimentalUuidApi
@@ -54,8 +54,8 @@ private fun PaymentDraft.paymentType(): String =
  * labelled domestic regardless of the rail it actually used, so an unknown string is far more
  * likely to be an old domestic row than a new international one.
  */
-internal fun String?.toPaymentRail(): PaymentRail =
-    if (this == PAYMENT_TYPE_INTERNATIONAL) PaymentRail.International else PaymentRail.Domestic
+internal fun String?.toConsentType(): ConsentType? =
+    if (isNullOrBlank()) ConsentType.DomesticSinglePayment else ConsentType.fromWire(this)
 
 internal fun PaymentReceipt.toEntity(
     draft: PaymentDraft,
