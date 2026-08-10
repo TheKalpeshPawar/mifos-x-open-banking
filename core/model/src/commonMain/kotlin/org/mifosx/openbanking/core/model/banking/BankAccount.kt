@@ -27,6 +27,11 @@ import kotlinx.serialization.Serializable
  * @property rawIdentification The unflattened OBIE `Identification` value (e.g. a full card number
  *   or IBAN), preserved so the UI can render the card/IBAN form the sort-code split would lose.
  *   Empty string when the OBIE payload carried no identification.
+ * @property description OBIE `Description`, free text. Carried because it is the **only** signal
+ *   that distinguishes a Global Money wallet: HSBC reports its `AccountTypeCode` as `CACC`, exactly
+ *   as for an ordinary current account, and `HsbcProductType.resolve` matches on this string.
+ *   Without it a wallet cannot be recognised until the bank refuses the payment. Empty when absent,
+ *   and frequently filler in the sandbox, so it is a hint rather than a guarantee.
  */
 @Serializable
 data class BankAccount(
@@ -37,4 +42,5 @@ data class BankAccount(
     val sortCode: String,
     val accountNumber: String,
     val rawIdentification: String = "",
+    val description: String = "",
 )

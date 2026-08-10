@@ -48,6 +48,10 @@ kotlin {
             implementation(projects.feature.accountHolder)
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
+            implementation(projects.feature.sendMoney)
+            implementation(projects.feature.paymentStatus)
+            implementation(projects.feature.paymentConsent)
+            implementation(projects.feature.paymentsHub)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mifosx.openbanking.core.database.AppDatabase
+import org.mifosx.openbanking.core.database.migration.addAppMigrations
 import template.core.base.database.AppDatabaseFactory
 
 actual val platformModule: Module = module {
@@ -22,6 +23,9 @@ actual val platformModule: Module = module {
             .createDatabase<AppDatabase>(
                 databaseName = AppDatabase.DATABASE_NAME,
             )
+            // Real migrations first; the destructive fallback now only covers version gaps
+            // Migrations.kt does not. payment_history is the only table that cannot be re-fetched.
+            .addAppMigrations()
             .fallbackToDestructiveMigration(dropAllTables = true)
             .fallbackToDestructiveMigrationOnDowngrade(false)
             .setDriver(BundledSQLiteDriver())

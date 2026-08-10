@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_payments_hub_title">Payments</string>
+    <string name="feature_payments_hub_subtitle">Manage your transfers and payments</string>
+    <string name="feature_payments_hub_quick_actions">Quick actions</string>
+    <string name="feature_payments_hub_send_money">Send money</string>
+    <string name="feature_payments_hub_schedule">Schedule</string>
+    <string name="feature_payments_hub_standing_order">Standing order</string>
+    <string name="feature_payments_hub_international">International</string>
+    <string name="feature_payments_hub_vrp">VRP / Sweeping</string>
+    <string name="feature_payments_hub_check_funds">Check funds</string>
+    <string name="feature_payments_hub_recent_activity">In-flight &amp; Recent</string>
+    <string name="feature_payments_hub_empty_activity">No payments yet</string>
+    <string name="feature_payments_hub_empty_activity_body">Your payment activity will appear here after your first transfer.</string>
+    <string name="feature_payments_hub_error_title">Couldn\'t load payments</string>
+    <string name="feature_payments_hub_retry">Try again</string>
+</resources>

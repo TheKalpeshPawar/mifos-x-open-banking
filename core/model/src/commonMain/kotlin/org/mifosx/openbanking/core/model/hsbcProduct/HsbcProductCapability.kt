@@ -11,7 +11,13 @@ package org.mifosx.openbanking.core.model.hsbcProduct
 
 import kotlinx.serialization.Serializable
 
-/** The per-account AIS resources this app reads. */
+/**
+ * What an account can be used for.
+ *
+ * Mostly the per-account AIS resources this app reads, plus [PaymentDebtor], which is a PISP
+ * capability rather than a readable resource — an account either can fund a domestic payment or
+ * cannot, and the bank will not tell us which until we try.
+ */
 enum class AccountEndpoint {
     Balances,
     Transactions,
@@ -22,6 +28,9 @@ enum class AccountEndpoint {
     Statements,
     Product,
     Party,
+
+    /** Whether the account may appear as `DebtorAccount` on a domestic payment. */
+    PaymentDebtor,
 }
 
 /**
@@ -95,6 +104,29 @@ data class HsbcProductCapability(
             HsbcProductCapability(
                 AccountEndpoint.DirectDebits,
                 setOf(HsbcProductType.PersonalCurrentAccount),
+            ),
+
+            // Which products may FUND a domestic payment. Established empirically — the published
+            // matrix covers AIS reads only — by staging a real consent and reading the refusal:
+            //   400 U021 "the DebtorAccount.Identification value is incorrect for SchemeName
+            //             'UK.OBIE.SortCodeAccountNumber'"
+            //   Path: Data.Initiation.DebtorAccount.Identification
+            // A card has no sort code and account number, and PaymentMapper can only express that
+            // one scheme, so offering it as a payer guarantees a rejection.
+            //
+            // A Global Money wallet is refused the same way (400 U002, same path). It reports
+            // AccountTypeCode CACC, indistinguishable from a current account, so it is recognised
+            // only by its free-text Description — which HsbcProductType.resolve matches, and which
+            // BankAccount now carries. Excluded here rather than left to the bank: the runtime
+            // capability registry is in memory, so relying on it meant the same rejection on every
+            // launch. The registry still backs this up for products the matrix cannot predict.
+            //
+            // Deliberately still NOT a complete list. Savings and foreign-currency accounts stay
+            // payable — savings was confirmed accepted as a payer on both rails, and no non-GBP
+            // payer has ever been tested, so excluding one would be a guess.
+            HsbcProductCapability(
+                AccountEndpoint.PaymentDebtor,
+                ALL_PRODUCTS - HsbcProductType.CreditCard - HsbcProductType.GlobalMoney,
             ),
         )
 

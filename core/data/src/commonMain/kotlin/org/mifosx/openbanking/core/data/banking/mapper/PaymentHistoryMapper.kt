@@ -1,0 +1,144 @@
+/*
+ * Copyright 2026 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+ */
+package org.mifosx.openbanking.core.data.banking.mapper
+
+import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
+import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+private const val PAYMENT_TYPE_DOMESTIC = "domestic_payment"
+private const val PAYMENT_TYPE_INTERNATIONAL = "international_payment"
+
+private fun PaymentStatus.toLabel(): String = when (disposition) {
+    PaymentDisposition.TerminalSuccess -> "Sent"
+    PaymentDisposition.InProgress -> "Processing"
+    PaymentDisposition.TerminalFailure -> "Failed"
+}
+
+/**
+ * The payer's three columns, blank when the PSU left the account to the bank.
+ *
+ * The entity's debtor columns are non-null, so a draft with no debtor writes empty strings rather
+ * than widening the schema. Blank here means "not chosen by us" — for a submitted payment the bank's
+ * own choice is on the receipt's `debtorIdentification`, and that is what the detail screen reads.
+ */
+private fun BankAccount?.historyAccountId(): String = this?.accountId.orEmpty()
+
+private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
+
+private fun BankAccount?.historyIdentification(): String =
+    this?.let { it.rawIdentification.ifBlank { it.sortCode + it.accountNumber } }.orEmpty()
+
+/** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
+private fun PaymentDraft.paymentType(): String =
+    if (currencyOfTransfer != null) PAYMENT_TYPE_INTERNATIONAL else PAYMENT_TYPE_DOMESTIC
+
+/**
+ * The rail a stored row was sent on.
+ *
+ * Domestic is the fallback for an unrecognised value because every row written before v5 was
+ * labelled domestic regardless of the rail it actually used, so an unknown string is far more
+ * likely to be an old domestic row than a new international one.
+ */
+internal fun String?.toConsentType(): ConsentType? =
+    if (isNullOrBlank()) ConsentType.DomesticSinglePayment else ConsentType.fromWire(this)
+
+internal fun PaymentReceipt.toEntity(
+    draft: PaymentDraft,
+    approvedAt: String? = null,
+    submittedAt: String? = null,
+): PaymentHistoryEntity =
+    PaymentHistoryEntity(
+        id = domesticPaymentId,
+        paymentId = domesticPaymentId,
+        errorKind = null,
+        errorDescription = null,
+        status = status.name,
+        debtorAccountId = draft.debtorAccount.historyAccountId(),
+        debtorName = draft.debtorAccount.historyName(),
+        // The bank's chosen payer when we sent none, else the one the PSU picked.
+        debtorIdentification = debtorIdentification.ifBlank {
+            draft.debtorAccount.historyIdentification()
+        },
+        creditorName = draft.creditor.name,
+        creditorIdentification = draft.creditor.identification,
+        amountMinorUnits = draft.amountMinorUnits,
+        currency = draft.currency,
+        reference = draft.reference,
+        creationDateTime = creationDateTime,
+        approvedAt = approvedAt,
+        submittedAt = submittedAt,
+        settlementDateTime = settlementDateTime.takeIf { it.isNotBlank() },
+        chargeBearer = draft.chargeBearer?.wireValue,
+        currencyOfTransfer = draft.currencyOfTransfer,
+        // Derived, not assumed: the status read-back has to hit the matching rail's endpoint.
+        paymentType = draft.paymentType(),
+        syncedAt = null,
+    )
+
+internal fun PaymentDraft.toFailureEntity(
+    errorKind: String,
+    errorDescription: String,
+): PaymentHistoryEntity = PaymentHistoryEntity(
+    id = errorId(),
+    paymentId = null,
+    errorKind = errorKind,
+    errorDescription = errorDescription,
+    status = null,
+    debtorAccountId = debtorAccount.historyAccountId(),
+    debtorName = debtorAccount.historyName(),
+    debtorIdentification = debtorAccount.historyIdentification(),
+    creditorName = creditor.name,
+    creditorIdentification = creditor.identification,
+    amountMinorUnits = amountMinorUnits,
+    currency = currency,
+    reference = reference,
+    creationDateTime = "",
+    settlementDateTime = null,
+    chargeBearer = chargeBearer?.wireValue,
+    currencyOfTransfer = currencyOfTransfer,
+    paymentType = paymentType(),
+    syncedAt = null,
+)
+
+internal fun PaymentHistoryEntity.toPaymentHistoryItem(): PaymentHistoryItem {
+    val resolved = status?.let(PaymentStatus.Companion::fromWire)
+    return PaymentHistoryItem(
+        id = id,
+        domesticPaymentId = paymentId,
+        debtorName = debtorName,
+        creditorName = creditorName,
+        creditorIdentification = creditorIdentification,
+        amountMinorUnits = amountMinorUnits,
+        currency = currency,
+        creationDateTime = creationDateTime,
+        isFailure = errorKind != null ||
+            resolved?.disposition == PaymentDisposition.TerminalFailure,
+        isInFlight = resolved?.disposition == PaymentDisposition.InProgress,
+        statusLabel = resolved?.toLabel()
+            ?: errorDescription
+            ?: "Failed",
+        errorDescription = errorDescription,
+    )
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun errorId(): String = Uuid.random().toString()
+
+private fun org.mifosx.openbanking.core.model.banking.BankAccount.displayName(): String =
+    nickname.takeIf { it.isNotBlank() }
+        ?: accountSubType.ifBlank { "Account" }

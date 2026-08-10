@@ -40,6 +40,8 @@ import template.core.base.designsystem.theme.KptTheme
  * @param modifier Modifier applied to the button.
  * @param icon Optional leading icon rendered before [label].
  * @param testTag Optional UI-test tag applied to the button.
+ * @param enabled Whether the button accepts taps. A false value both greys the button and stops it
+ *   responding, so a control that cannot act never looks as though it can.
  */
 @Composable
 fun MifosTonalPillButton(
@@ -48,9 +50,11 @@ fun MifosTonalPillButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     testTag: String? = null,
+    enabled: Boolean = true,
 ) {
     FilledTonalButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .height(BUTTON_HEIGHT)

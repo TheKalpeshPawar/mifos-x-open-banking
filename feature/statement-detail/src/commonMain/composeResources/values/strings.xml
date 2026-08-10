@@ -35,7 +35,8 @@
     <string name="feature_statement_detail_download_pdf_a11y">Download statement as PDF</string>
     <string name="feature_statement_detail_downloading">Downloading statement PDF</string>
     <string name="feature_statement_detail_download_success">Statement PDF saved</string>
-    <string name="feature_statement_detail_download_error">Couldn\'t download the statement. Try again.</string>
+    <!-- Curly apostrophe, not \' — Compose Multiplatform renders the backslash literally. -->
+    <string name="feature_statement_detail_download_error">Couldn’t download the statement. Try again.</string>
 
     <string name="feature_statement_detail_error_title">Could not load statement</string>
     <string name="feature_statement_detail_error_a11y">Could not load statement</string>

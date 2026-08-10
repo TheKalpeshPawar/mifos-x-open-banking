@@ -74,12 +74,19 @@ private val RETRIED_AFTER_REFRESH = AttributeKey<Boolean>("hsbc-retried-after-re
 /**
  * True for an HSBC AIS resource read — the requests the PSU bearer is attached to. The token endpoint
  * (`client_assertion` auth) and `account-access-consents` (a per-call temporary token) are excluded.
+ *
+ * The whole `pisp/` prefix is excluded too. Every payment call supplies its own credential —
+ * client-credentials with `scope=payments` to stage, then the PSU token from the payments
+ * authorisation leg — and neither is the AIS bearer stored here. Without this exclusion
+ * [attachFreshPsuToken] would overwrite the `Authorization` header the caller just set, and the
+ * refresh-on-401 retry would replay a payment write against a token minted for a different scope.
  */
 private fun isAisResourceRequest(request: HttpRequestBuilder, bankHost: String): Boolean {
     val path = request.url.encodedPathSegments.joinToString("/")
     return request.url.host == bankHost &&
         "oauth2/token" !in path &&
-        "account-access-consents" !in path
+        "account-access-consents" !in path &&
+        "pisp/" !in path
 }
 
 /**

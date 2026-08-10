@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_send_money_screen_title">Send money</string>
+    <string name="feature_send_money_loading_a11y">Loading your accounts and payees</string>
+
+    <string name="feature_send_money_rail_domestic">Domestic</string>
+    <string name="feature_send_money_rail_international">International</string>
+
+    <!-- Sits under the sticky action bar; the form itself is long enough to scroll past a header. -->
+    <string name="feature_send_money_form_trust_note">Protected by UK Open Banking</string>
+
+    <string name="feature_send_money_payer_bank_choice">Choose at my bank</string>
+    <string name="feature_send_money_payer_bank_choice_supporting">Your bank will ask which account to pay from</string>
+    <!-- The collapsed picker before anything has been chosen. An invitation, not a blank row: the
+         payer is deliberately not preselected, so the empty state has to ask for a decision. -->
+    <string name="feature_send_money_payer_unchosen">Choose an account</string>
+    <string name="feature_send_money_payer_unchosen_supporting">Tap to pick where the money comes from</string>
+    <string name="feature_send_money_payer_expand_a11y">Show the accounts you can pay from</string>
+    <string name="feature_send_money_payer_collapse_a11y">Hide the accounts you can pay from</string>
+    <string name="feature_send_money_payee_needs_payer">Choose an account to pay from to see its saved payees.</string>
+    <!-- The payer account holds one currency and the amount is instructed in another, so the bank
+         converts. %1$s is the instructed currency's code — it is no longer always GBP. -->
+    <string name="feature_send_money_non_gbp_notice">This payment is instructed in %1$s. Your bank will convert from this account and may charge for it.</string>
+
+    <string name="feature_send_money_balance_available">%1$s available</string>
+    <!-- Trailing the collapsed picker, where the label has to name what the figure is. -->
+    <string name="feature_send_money_balance_available_prefixed">Available: %1$s</string>
+    <string name="feature_send_money_debtor_heading">Pay from</string>
+    <string name="feature_send_money_creditor_heading">Pay to</string>
+    <string name="feature_send_money_selected_a11y">Selected</string>
+    <string name="feature_send_money_no_saved_payees_title">No saved payees</string>
+    <string name="feature_send_money_no_saved_payees_body">You can still pay someone by entering their account details.</string>
+    <!-- The read failed, which is a different statement from "you have no saved payees" — and the
+         one the app used to make on a 403. The cause is not named: by the time it reaches the UI a
+         refused permission and an expired token are the same state, and guessing would put words in
+         the bank's mouth. Curly apostrophe, not \' — Compose Multiplatform renders the escape. -->
+    <string name="feature_send_money_payees_failed_title">Couldn’t load your saved payees</string>
+    <string name="feature_send_money_payees_failed_body">Your bank did not return them this time. You can try again, or pay someone by entering their account details.</string>
+
+    <!-- The payee read is still running. Spoken only: the state itself is a shimmer, which has no
+         text of its own, so without this a screen reader passes over the wait in silence and the
+         next thing it announces is whatever the read turned out to be. -->
+    <string name="feature_send_money_payees_loading_a11y">Loading your saved payees</string>
+
+    <!-- The caption under the dashed avatar that opens the manual fields. "Pay", not "Add": nothing
+         is saved here, so a label promising a new entry in the row would be describing an action the
+         app cannot perform. -->
+    <string name="feature_send_money_payee_pay_new">Pay new</string>
+    <!-- Rail-neutral on purpose. The fields behind this are a sort code and account number on the
+         domestic rail and an IBAN on the international one, so naming either one is wrong half the
+         time. -->
+    <string name="feature_send_money_manual_entry_a11y">Pay someone who is not a saved payee by entering their account details</string>
+    <string name="feature_send_money_manual_name">Name on the account</string>
+    <string name="feature_send_money_manual_sort_code">Sort code</string>
+    <string name="feature_send_money_manual_sort_code_error">Enter a 6-digit sort code</string>
+    <string name="feature_send_money_manual_account_number">Account number</string>
+    <string name="feature_send_money_manual_account_number_error">Enter an 8-digit account number</string>
+    <string name="feature_send_money_manual_confirm">Use these details</string>
+
+    <!-- Pounds, not pence. The field used to be labelled "Amount in pence" and parsed minor units,
+         so someone typing 250 meaning £250 sent £2.50. The wire format is unchanged — the draft
+         still carries minor units — but nothing on screen asks for them any more. -->
+    <string name="feature_send_money_amount_label">Amount to send</string>
+    <string name="feature_send_money_amount_placeholder">0.00</string>
+    <string name="feature_send_money_amount_available">You have %1$s available</string>
+    <string name="feature_send_money_amount_error_not_a_number">Enter an amount like 250 or 250.00</string>
+    <string name="feature_send_money_amount_error_too_many_decimals">Amounts go to two decimal places, like 250.99</string>
+    <string name="feature_send_money_amount_error_not_positive">Enter an amount greater than zero</string>
+    <string name="feature_send_money_amount_error_exceeds_balance">That is more than the balance available on this account</string>
+    <!-- International only. The OBIE terms verbatim, not a gloss: "Recipient pays" / "I pay" were
+         this app's invention, and neither OBIE nor HSBC documents any customer-facing wording, so
+         paraphrasing was asserting a meaning nobody had defined. FollowingServiceLevel has no string
+         because it is not offered — HSBC refuses it with UK.OBIE.Field.Invalid. -->
+    <string name="feature_send_money_charges_heading">Charges</string>
+    <string name="feature_send_money_charge_bearer_creditor">Borne by creditor</string>
+    <string name="feature_send_money_charge_bearer_debtor">Borne by debtor</string>
+    <string name="feature_send_money_charge_bearer_shared">Shared</string>
+
+    <!-- HSBC's documented routing currencies. Resolved through a code-keyed map that falls back to
+         the code itself, so an unlisted currency renders as itself rather than as another one. -->
+    <string name="feature_send_money_currency_gbp">British Pound (GBP)</string>
+    <string name="feature_send_money_currency_eur">Euro (EUR)</string>
+    <string name="feature_send_money_currency_usd">US Dollar (USD)</string>
+    <string name="feature_send_money_currency_aud">Australian Dollar (AUD)</string>
+    <string name="feature_send_money_currency_cad">Canadian Dollar (CAD)</string>
+    <string name="feature_send_money_currency_chf">Swiss Franc (CHF)</string>
+    <string name="feature_send_money_currency_cny">Chinese Yuan (CNY)</string>
+    <string name="feature_send_money_currency_hkd">Hong Kong Dollar (HKD)</string>
+    <string name="feature_send_money_currency_sgd">Singapore Dollar (SGD)</string>
+    <string name="feature_send_money_currency_nzd">New Zealand Dollar (NZD)</string>
+    <string name="feature_send_money_currency_aed">UAE Dirham (AED)</string>
+    <string name="feature_send_money_currency_czk">Czech Koruna (CZK)</string>
+    <string name="feature_send_money_currency_dkk">Danish Krone (DKK)</string>
+    <string name="feature_send_money_currency_nok">Norwegian Krone (NOK)</string>
+    <string name="feature_send_money_currency_pln">Polish Zloty (PLN)</string>
+    <string name="feature_send_money_currency_sar">Saudi Riyal (SAR)</string>
+    <string name="feature_send_money_currency_sek">Swedish Krona (SEK)</string>
+    <string name="feature_send_money_currency_zar">South African Rand (ZAR)</string>
+    <string name="feature_send_money_currency_thb">Thai Baht (THB)</string>
+
+    <!-- There were two strings here for the combination HSBC refuses: InstructedAmount.Currency
+         must equal either the debtor account's currency or the currency of transfer. With one
+         selector the second clause holds by construction, so the state they described is
+         unreachable and a message for it could never be shown. -->
+
+    <string name="feature_send_money_manual_iban">IBAN</string>
+    <string name="feature_send_money_manual_iban_error">Enter a valid IBAN</string>
+
+    <string name="feature_send_money_reference_label">Reference (optional)</string>
+    <string name="feature_send_money_reference_helper">Max 35 characters</string>
+    <string name="feature_send_money_review_button">Review &amp; pay</string>
+
+    <string name="feature_send_money_review_heading">Check this before you send it</string>
+    <string name="feature_send_money_review_from_bank_choice">You’ll choose at your bank</string>
+    <!-- No "Recipient receives" row on the review any more: the amount above it is already in the
+         currency the recipient receives, so the row restated it. -->
+    <string name="feature_send_money_review_charge_bearer">Charges</string>
+    <string name="feature_send_money_review_from">From</string>
+    <string name="feature_send_money_review_to">To</string>
+    <string name="feature_send_money_review_reference">Reference</string>
+    <string name="feature_send_money_review_reference_empty">None</string>
+    <string name="feature_send_money_review_hero_caption">to be sent</string>
+    <string name="feature_send_money_review_details_heading">Payment details</string>
+    <string name="feature_send_money_review_sent_via">Sent via</string>
+    <string name="feature_send_money_review_sent_via_domestic">Faster Payments</string>
+    <string name="feature_send_money_review_sent_via_international">International payment</string>
+    <string name="feature_send_money_review_total">Amount to send</string>
+    <!-- Curly apostrophe, not \' — Compose Multiplatform does not collapse Android's escape and
+         renders the backslash literally. Same trap as %% in a templated string. -->
+    <string name="feature_send_money_review_auth_notice">You’ll approve this with your bank before any money moves.</string>
+    <string name="feature_send_money_confirm">Confirm and send · %1$s</string>
+    <string name="feature_send_money_edit_payment">Edit payment</string>
+
+    <string name="feature_send_money_submitting_staging">Setting up your payment</string>
+    <string name="feature_send_money_submitting_awaiting">Waiting for you to authorise at your bank</string>
+    <string name="feature_send_money_submitting_amount">%1$s to %2$s</string>
+    <string name="feature_send_money_submitting_lock">Do not close the app until this finishes.</string>
+
+    <string name="feature_send_money_error_title">Payment could not be completed</string>
+    <string name="feature_send_money_error_signature_missing">This app could not sign the payment instruction. Nothing has been sent. Please report the reference below.</string>
+    <string name="feature_send_money_error_consent_not_authorised">The payment was not authorised at your bank. Authorise it to continue.</string>
+    <string name="feature_send_money_error_consent_mismatch">The payment changed after you approved it, so your bank refused it. Start again to send it.</string>
+    <string name="feature_send_money_error_outside_limits">This amount is outside your bank’s payment limits. Try a smaller amount.</string>
+    <!-- Deliberately not "check the details": the details are right, the account just can't send
+         payments. Applies to credit cards and Global Money wallets. -->
+    <string name="feature_send_money_error_payer_not_supported">This account can’t be used to send payments. Choose a different account to pay from.</string>
+    <string name="feature_send_money_change_payer">Choose another account</string>
+    <string name="feature_send_money_error_invalid_field">Your bank would not accept one of these details. Check them and try again.</string>
+    <string name="feature_send_money_error_consent_revoked">Access to this account was withdrawn, so the payment was refused.</string>
+    <string name="feature_send_money_error_token_expired">Your authorisation expired before the payment was sent. Authorise it again to continue.</string>
+    <string name="feature_send_money_error_rate_limited">Your bank is busy right now. Wait a moment and try again.</string>
+    <string name="feature_send_money_error_insufficient_funds">There is not enough money in this account to cover the payment. Nothing has been sent.</string>
+    <string name="feature_send_money_error_network">The payment could not be sent. Check your connection and try again.</string>
+    <string name="feature_send_money_error_reference">Reference %1$s</string>
+
+    <string name="feature_send_money_retry">Try again</string>
+    <string name="feature_send_money_reauthorise">Authorise again</string>
+    <string name="feature_send_money_view_consents">View consents</string>
+    <string name="feature_send_money_edit_amount">Change amount</string>
+</resources>

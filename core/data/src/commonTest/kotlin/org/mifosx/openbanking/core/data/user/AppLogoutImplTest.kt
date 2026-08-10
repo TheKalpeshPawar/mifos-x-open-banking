@@ -9,12 +9,18 @@
  */
 package org.mifosx.openbanking.core.data.user
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
+import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
+import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
+import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.core.model.user.LanguageConfig
 import org.mifosx.openbanking.core.model.user.ThemeBrand
@@ -42,7 +48,22 @@ class AppLogoutImplTest {
         session: RecordingConsentSession = RecordingConsentSession(consentId = "cn-1"),
         userData: RecordingUserDataRepository = RecordingUserDataRepository(),
         cache: RecordingStoreCacheManager = RecordingStoreCacheManager(),
-    ) = AppLogoutImpl(revoke, session, userData, cache)
+        paymentAuth: RecordingPaymentAuthSession = RecordingPaymentAuthSession(),
+    ) = AppLogoutImpl(revoke, session, paymentAuth, userData, cache, paymentHistoryDao = FakePaymentHistoryDao())
+
+    /**
+     * The payment session keeps its own keys precisely so that clearing one leg cannot disturb the
+     * other — which means signing out has to clear it explicitly, or a payments-scoped token outlives
+     * the session that authorised it.
+     */
+    @Test
+    fun signingOutAlsoDropsThePaymentAuthorisation() = runTest {
+        val paymentAuth = RecordingPaymentAuthSession()
+
+        logout(paymentAuth = paymentAuth).logOut()
+
+        assertTrue(paymentAuth.cleared)
+    }
 
     @Test
     fun theHappyPathRevokesForgetsAndClearsEverything() = runTest {
@@ -161,6 +182,7 @@ private class RecordingConsentSession(
     override fun saveConsentMeta(consentId: String, expirationDateTime: String) = Unit
     override fun consentId(): String? = consentId
     override fun consentExpiration(): Instant? = null
+
     override fun clear() {
         tokenPresent = false
         consentId = null
@@ -212,4 +234,43 @@ private class RecordingStoreCacheManager : StoreCacheManager {
     }
 
     override suspend fun pruneExpiredDrafts(maxAgeMs: Long) = Unit
+}
+
+private class RecordingPaymentAuthSession : PaymentAuthSession {
+
+    var cleared: Boolean = false
+        private set
+
+    override fun savePending(consentId: String, state: String, nonce: String, type: ConsentType) = Unit
+    override fun pendingConsentId(): String? = null
+    override fun matchesPendingState(state: String?): Boolean = false
+    override fun pendingNonce(): String? = null
+    override fun paymentToken(): PsuTokenResponse? = null
+    override fun savePaymentToken(tokens: PsuTokenResponse) = Unit
+    override fun saveDraft(draft: PaymentDraft) = Unit
+    override fun draft(): PaymentDraft? = null
+    override fun saveApprovedAt(instant: String) = Unit
+    override fun approvedAt(): String? = null
+
+    override fun pendingConsentType(): ConsentType? = ConsentType.DomesticSinglePayment
+
+    override fun clear() {
+        cleared = true
+    }
+}
+
+private class FakePaymentHistoryDao : PaymentHistoryDao {
+    var clearCallCount = 0
+
+    override fun observeRecent(): Flow<List<PaymentHistoryEntity>> =
+        MutableStateFlow(emptyList())
+
+    override fun observeById(paymentId: String): Flow<PaymentHistoryEntity?> =
+        MutableStateFlow(null)
+
+    override suspend fun upsert(entity: PaymentHistoryEntity) {}
+
+    override suspend fun clear() {
+        clearCallCount++
+    }
 }

@@ -29,8 +29,12 @@ import org.mifosx.openbanking.feature.consentlist.di.ConsentListModule
 import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
+import org.mifosx.openbanking.feature.paymentconsent.di.PaymentConsentModule
+import org.mifosx.openbanking.feature.paymentshub.di.PaymentsHubModule
+import org.mifosx.openbanking.feature.paymentstatus.di.PaymentStatusModule
 import org.mifosx.openbanking.feature.product.di.ProductModule
 import org.mifosx.openbanking.feature.scheduledpayments.di.ScheduledPaymentsModule
+import org.mifosx.openbanking.feature.sendmoney.di.SendMoneyModule
 import org.mifosx.openbanking.feature.settings.di.SettingsModule
 import org.mifosx.openbanking.feature.standingorders.di.StandingOrdersModule
 import org.mifosx.openbanking.feature.statementdetail.di.StatementDetailModule
@@ -80,6 +84,10 @@ object KoinModules {
             AccountHolderModule,
             LoginModule,
             ConsentCallbackModule,
+            SendMoneyModule,
+            PaymentStatusModule,
+            PaymentConsentModule,
+            PaymentsHubModule,
         )
 
         // App-layer binding for the statements feature's platform delivery seam; the impl is

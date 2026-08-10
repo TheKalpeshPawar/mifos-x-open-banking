@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_payment_consent_screen_title">Authorising payment</string>
+
+    <string name="feature_payment_consent_validating">Checking your authorisation…</string>
+    <string name="feature_payment_consent_exchanging">Confirming with your bank…</string>
+    <string name="feature_payment_consent_checking">Waiting for your bank to confirm…</string>
+    <string name="feature_payment_consent_checking_hint">Your bank has not confirmed this yet. It sometimes takes a moment.</string>
+    <string name="feature_payment_consent_check_again">Check again</string>
+
+    <string name="feature_payment_consent_confirming_funds">Checking the money is available…</string>
+    <string name="feature_payment_consent_submitting">Sending your payment…</string>
+    <!-- Curly apostrophe, not \' — Compose Multiplatform renders the backslash literally. -->
+    <string name="feature_payment_consent_submitting_warning">Don’t close this screen</string>
+
+    <!-- The approved panel: the one positive outcome this screen shows, since a submitted payment
+         leaves for its receipt. -->
+    <string name="feature_payment_consent_approved_title">Approved at your bank</string>
+    <string name="feature_payment_consent_approved_detail">Finishing your payment…</string>
+
+    <!-- Outcome titles. Declined, expired and connection-failed each get their own, because
+         "Authorisation could not be completed" describes none of them accurately. -->
+    <string name="feature_payment_consent_error_title">Authorisation could not be completed</string>
+    <string name="feature_payment_consent_declined_title">Payment declined</string>
+    <string name="feature_payment_consent_expired_title">Authorisation expired</string>
+    <string name="feature_payment_consent_no_connection_title">Could not reach your bank</string>
+    <!-- Not "could not be completed": nothing was ever in flight to complete. -->
+    <string name="feature_payment_consent_nothing_pending_title">Nothing to authorise</string>
+    <!-- Not "could not be completed" either: the bank may well have taken this payment. -->
+    <string name="feature_payment_consent_unconfirmed_title">Payment could not be confirmed</string>
+
+    <!-- The bank reports the consent consumed: it has already created the payment. Deliberately
+         carries no "no money has been moved" line — money very probably has. -->
+    <string name="feature_payment_consent_already_sent_title">Payment already sent</string>
+    <string name="feature_payment_consent_already_sent_body">Your bank has already received this payment. Check your recent payments before sending it again.</string>
+
+    <!-- Load-bearing on every outcome that can honestly claim it. Kept as its own line rather than
+         folded into each explanation, so it reads identically everywhere and can be asserted. -->
+    <string name="feature_payment_consent_no_money_moved">No money has been moved.</string>
+
+    <string name="feature_payment_consent_error_state_mismatch">This authorisation could not be verified, so it was not accepted. Start the payment again.</string>
+    <string name="feature_payment_consent_error_no_pending">There was no payment waiting to be authorised.</string>
+    <string name="feature_payment_consent_error_code_expired">The authorisation expired before it could be completed.</string>
+    <string name="feature_payment_consent_error_rejected">The payment was not approved at your bank.</string>
+    <string name="feature_payment_consent_error_timed_out">Your bank did not confirm the authorisation in time.</string>
+    <string name="feature_payment_consent_error_network">Could not reach your bank to finish authorising.</string>
+    <string name="feature_payment_consent_error_no_staged_payment">The payment details could not be found. Start the payment again.</string>
+    <string name="feature_payment_consent_error_insufficient_funds">Your bank says there is not enough money in the account to cover this payment.</string>
+    <!-- The one outcome with no reassurance line: once the instruction is with the bank, the app
+         cannot promise it was not taken, so this asks rather than reassures. -->
+    <string name="feature_payment_consent_error_submission_failed">Your bank could not process the payment. Check your recent transactions before trying again.</string>
+
+    <string name="feature_payment_consent_restart">Authorise again</string>
+    <string name="feature_payment_consent_abandon">Cancel this payment</string>
+    <!-- The exit shown where offering "Authorise again" would invite a second payment. "Cancel this
+         payment" is wrong there too: there is nothing in flight to cancel. -->
+    <string name="feature_payment_consent_done">Done</string>
+
+    <string name="feature_payment_consent_rejected_title">Your bank did not accept this payment</string>
+    <string name="feature_payment_consent_error_request_rejected">Your bank refused the request. Nothing was sent, so you can start again with the details corrected.</string>
+
+    <string name="feature_payment_consent_unreadable_title">We could not read your bank\'s reply</string>
+    <string name="feature_payment_consent_error_response_unreadable">Your bank answered, but this app could not understand the response. Nothing was submitted.</string>
+
+    <string name="feature_payment_consent_error_submission_unconfirmed">Your bank accepted the payment, but this app could not read the confirmation. Check your recent payments before sending it again.</string>
+</resources>

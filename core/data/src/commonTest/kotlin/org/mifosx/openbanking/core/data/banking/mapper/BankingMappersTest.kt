@@ -63,6 +63,39 @@ class BankingMappersTest {
         assertEquals("40051512345678", account.rawIdentification)
     }
 
+    /**
+     * The description is the only thing that identifies a Global Money wallet.
+     *
+     * HSBC reports its `AccountTypeCode` as `CACC`, exactly as for a current account, so dropping
+     * this field here would make the wallet unrecognisable everywhere downstream — which is what
+     * let it be offered as a payer until the bank refused the payment.
+     */
+    @Test
+    fun accountMapperCarriesTheDescriptionThroughForAGlobalMoneyWallet() {
+        val response = AccountsResponse(
+            data = AccountsData(
+                account = listOf(
+                    Account(
+                        accountId = "acc-gm",
+                        currency = "GBP",
+                        accountTypeCode = "CACC",
+                        description = "GLOBAL MONEY ACCOUNT",
+                        account = listOf(
+                            Account(
+                                schemeName = "UK.OBIE.SortCodeAccountNumber",
+                                identification = "80119770009652",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val account = response.toBankAccounts().single()
+
+        assertEquals("GLOBAL MONEY ACCOUNT", account.description)
+    }
+
     @Test
     fun accountMapperPreservesRawIdentificationForAnIban() {
         val response = AccountsResponse(

@@ -14,8 +14,10 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
 import org.mifosx.openbanking.core.database.banking.dao.AccountDao
+import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.database.banking.dao.TransactionDao
 import org.mifosx.openbanking.core.database.banking.entity.AccountEntity
+import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
 import org.mifosx.openbanking.core.database.banking.entity.TransactionEntity
 import org.mifosx.openbanking.core.database.infra.dao.BookkeeperDao
 import org.mifosx.openbanking.core.database.infra.dao.DraftDao
@@ -68,6 +70,7 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
         DraftEntity::class,
         AccountEntity::class,
         TransactionEntity::class,
+        PaymentHistoryEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
@@ -81,9 +84,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val draftDao: DraftDao
     abstract val accountDao: AccountDao
     abstract val transactionDao: TransactionDao
+    abstract val paymentHistoryDao: PaymentHistoryDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 6
         const val DATABASE_NAME = "mifos_database.db"
     }
 }

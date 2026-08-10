@@ -33,14 +33,20 @@ import cmp.navigation.splash.navigateToSplash
 import cmp.navigation.splash.splashDestination
 import cmp.navigation.ui.rememberKptNavController
 import cmp.navigation.utils.toObjectNavigationRoute
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.data.callback.ConsentRedirectBus
+import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
 import org.mifosx.openbanking.feature.consentcallback.ConsentCallbackRoute
 import org.mifosx.openbanking.feature.consentcallback.consentCallbackDestination
 import org.mifosx.openbanking.feature.consentcallback.navigateToConsentCallback
 import org.mifosx.openbanking.feature.login.AuthGraphRoute
 import org.mifosx.openbanking.feature.login.authGraph
 import org.mifosx.openbanking.feature.login.navigateToAuthGraph
+import org.mifosx.openbanking.feature.paymentconsent.PaymentConsentRoute
+import org.mifosx.openbanking.feature.paymentconsent.paymentConsentScreen
+import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
+import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -58,6 +64,7 @@ fun RootNavScreen(
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val previousStateReference = remember { AtomicReference(state) }
+    val paymentAuthRepository: PaymentAuthRepository = koinInject()
 
     val isNotSplashScreen = state != RootNavState.Splash
     LaunchedEffect(isNotSplashScreen) {
@@ -95,6 +102,20 @@ fun RootNavScreen(
     ) {
         splashDestination()
         authGraph(navController)
+        paymentConsentScreen(
+            // A submitted payment goes to its receipt; an abandoned or restarted one goes back into
+            // the app. Payment-status is registered here, at the root, rather than inside the navbar
+            // graph — the navbar hosts its own NavHost, which this navigator cannot reach into.
+            onPaymentSubmitted = { paymentId ->
+                navController.navigate(PaymentStatusRoute(paymentId), rootNavOptions())
+            },
+            onRestartAuthorisation = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+            onAbandoned = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+        )
+        paymentStatusScreen(
+            onBack = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+            onStartNewPayment = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+        )
         consentCallbackDestination(
             onNavigateToHome = {
                 navController.navigateToAuthenticatedGraph(rootNavOptions())
@@ -127,10 +148,24 @@ fun RootNavScreen(
         ConsentRedirectBus.redirects.collect { redirectUrl ->
             if (redirectUrl == lastRoutedRedirect) return@collect
             lastRoutedRedirect = redirectUrl
-            navController.navigateToConsentCallback(
-                route = ConsentCallbackRoute(redirectUrl = redirectUrl),
-                navOptions = rootNavOptions(),
-            )
+
+            // Sign-in and payment authorisations return through the same bus on the same registered
+            // redirect URI, so they must be told apart before either is processed. A payment return
+            // handled as a sign-in would exchange its code into the AIS session and overwrite the
+            // account bearer with a payments-scoped token, breaking every read in the app. The test
+            // matches the callback's `state` against the payment authorisation in flight — a value
+            // only that leg could have minted.
+            if (paymentAuthRepository.isPaymentRedirect(redirectUrl)) {
+                navController.navigate(
+                    PaymentConsentRoute(redirectUrl = redirectUrl),
+                    rootNavOptions(),
+                )
+            } else {
+                navController.navigateToConsentCallback(
+                    route = ConsentCallbackRoute(redirectUrl = redirectUrl),
+                    navOptions = rootNavOptions(),
+                )
+            }
         }
     }
 

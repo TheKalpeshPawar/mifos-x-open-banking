@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2026 Mifos Initiative
+
+    This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+    If a copy of the MPL was not distributed with this file,
+    You can obtain one at https://mozilla.org/MPL/2.0/.
+
+    See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
+-->
+<resources>
+    <string name="feature_payment_status_screen_title">Payment status</string>
+    <string name="feature_payment_status_loading_a11y">Reading payment status</string>
+    <string name="feature_payment_status_back_a11y">Back</string>
+
+    <string name="feature_payment_status_to">to %1$s</string>
+    <string name="feature_payment_status_in_progress">In progress</string>
+    <string name="feature_payment_status_completed">Completed</string>
+    <string name="feature_payment_status_failed">Failed</string>
+    <string name="feature_payment_status_in_progress_note">Your bank has accepted this payment. The money has not left your account yet.</string>
+
+    <!-- The bank's own OBIE status, shown under the chip. Several of these share one chip label,
+         so this is what distinguishes them. -->
+    <string name="feature_payment_status_detail_received">Received by your bank</string>
+    <string name="feature_payment_status_detail_pending">Pending at your bank</string>
+    <string name="feature_payment_status_detail_acsp">Accepted — settlement in process</string>
+    <string name="feature_payment_status_detail_actc">Accepted — technical validation passed</string>
+    <string name="feature_payment_status_detail_acsc">Accepted — settlement completed</string>
+    <string name="feature_payment_status_detail_accc">Accepted — credit settled</string>
+    <string name="feature_payment_status_detail_acwp">Accepted without posting</string>
+    <string name="feature_payment_status_detail_rjct">Rejected by your bank</string>
+    <string name="feature_payment_status_detail_unknown">Your bank reported a status this app does not recognise</string>
+
+    <!-- The four stages, newest first. "Completed" becomes "Rejected" when the bank refused the
+         payment, so the last row never claims a completion that did not happen. -->
+    <string name="feature_payment_status_timeline">Progress</string>
+    <string name="feature_payment_status_step_request_created">Request created</string>
+    <string name="feature_payment_status_step_approved">Approved at your bank</string>
+    <string name="feature_payment_status_step_submitted">Submitted to your bank</string>
+    <string name="feature_payment_status_step_completed">Completed</string>
+    <string name="feature_payment_status_step_rejected">Rejected</string>
+    <string name="feature_payment_status_step_waiting">Waiting on your bank</string>
+    <string name="feature_payment_status_step_settling">Settling now</string>
+
+    <string name="feature_payment_status_refresh_failed">Could not refresh just now. This is your bank’s last answer.</string>
+
+    <string name="feature_payment_status_details">Details</string>
+    <string name="feature_payment_status_reference">Reference</string>
+    <string name="feature_payment_status_reference_empty">None</string>
+    <string name="feature_payment_status_from">From</string>
+    <string name="feature_payment_status_submitted">Submitted</string>
+    <string name="feature_payment_status_settled">Settles</string>
+    <string name="feature_payment_status_status_changed">Status updated</string>
+    <string name="feature_payment_status_fee">Fee (%1$s)</string>
+    <string name="feature_payment_status_payment_id">Payment ID</string>
+
+    <string name="feature_payment_status_refresh">Refresh</string>
+    <string name="feature_payment_status_new_payment">Make another payment</string>
+    <string name="feature_payment_status_last_checked">Last checked · %1$s</string>
+
+    <string name="feature_payment_status_error_title">Could not load this payment</string>
+    <string name="feature_payment_status_error_not_found">This payment could not be found. It may have been made from another device.</string>
+    <string name="feature_payment_status_error_token_expired">Your session has expired. Sign in again to see this payment.</string>
+    <string name="feature_payment_status_error_consent_revoked">Access to this account was withdrawn, so this payment cannot be read.</string>
+    <string name="feature_payment_status_error_network">Could not reach your bank. Check your connection and try again.</string>
+    <string name="feature_payment_status_retry">Try again</string>
+</resources>

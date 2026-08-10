@@ -19,13 +19,21 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
+import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.di.BankingModule
+import org.mifosx.openbanking.core.data.banking.impl.PaymentHistoryRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.PaymentInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.callback.PendingAuthStore
 import org.mifosx.openbanking.core.data.callback.SettingsConsentSession
+import org.mifosx.openbanking.core.data.callback.SettingsPaymentAuthSession
 import org.mifosx.openbanking.core.data.callback.SettingsPendingAuthStore
 import org.mifosx.openbanking.core.data.callback.impl.ConsentCallbackRepositoryImpl
+import org.mifosx.openbanking.core.data.callback.impl.PaymentAuthRepositoryImpl
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.login.LoginRepository
@@ -80,6 +88,42 @@ val DataModule = module {
         )
     }
 
+    single<PaymentAuthSession> { SettingsPaymentAuthSession(secureSettings = get<Settings>(named("secure"))) }
+
+    single<PaymentAuthRepository> {
+        PaymentAuthRepositoryImpl(
+            oauth = get(),
+            pisp = get(),
+            paymentAuthSession = get(),
+            redirectUri = get(named("hsbcRedirectUri")),
+        )
+    }
+
+    single<PaymentInitiationRepository> {
+        PaymentInitiationRepositoryImpl(
+            pisp = get(),
+            oauth = get(),
+            paymentAuthSession = get(),
+            capabilityRegistry = get(),
+            signingKeyPem = get(named("hsbcSigningKey")),
+            clientId = get(named("hsbcClientId")),
+            kid = get(named("hsbcKid")),
+            bankHost = get(named("hsbcBankHost")),
+            authorizeHost = get(named("hsbcAuthorizeHost")),
+            redirectUri = get(named("hsbcRedirectUri")),
+            paymentHistoryRepository = get(),
+        )
+    }
+
+    single<PaymentHistoryRepository> {
+        PaymentHistoryRepositoryImpl(
+            dao = get(),
+            pisp = get(),
+            oauth = get(),
+            paymentAuthSession = get(),
+        )
+    }
+
     single<FetchedAtRepository> { RoomFetchedAtRepository(get<AppDatabase>().fetchedAtDao) }
 
     single { get<AppDatabase>().draftDao }
@@ -90,8 +134,10 @@ val DataModule = module {
         AppLogoutImpl(
             consentRevokeRepository = get(),
             consentSession = get(),
+            paymentAuthSession = get(),
             userDataRepository = get(),
             storeCacheManager = get(),
+            paymentHistoryDao = get(),
         )
     }
 

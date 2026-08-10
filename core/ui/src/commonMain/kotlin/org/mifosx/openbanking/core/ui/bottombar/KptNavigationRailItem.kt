@@ -9,19 +9,13 @@
  */
 package org.mifosx.openbanking.core.ui.bottombar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import template.core.base.designsystem.theme.KptTheme
@@ -42,23 +36,11 @@ fun ColumnScope.KptNavigationRailItem(
                 contentDescription = stringResource(contentDescriptionRes),
             )
         },
-        label = {
-            Spacer(
-                modifier = Modifier
-                    .height(4.dp)
-                    .width(10.dp)
-                    .background(
-                        color = KptTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(999.dp),
-                    ),
-            )
-        },
         selected = isSelected,
-        alwaysShowLabel = isSelected,
         onClick = onClick,
         colors = NavigationRailItemDefaults.colors(
-            selectedIconColor = KptTheme.colorScheme.primary,
-            unselectedIconColor = KptTheme.colorScheme.primary,
+            selectedIconColor = KptTheme.colorScheme.onPrimaryContainer,
+            unselectedIconColor = KptTheme.colorScheme.outline,
         ),
         modifier = modifier,
     )

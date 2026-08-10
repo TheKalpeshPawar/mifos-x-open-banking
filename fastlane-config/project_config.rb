@@ -32,16 +32,16 @@ module FastlaneConfig
 
       # Keystore configuration
       keystore: {
-        file: "release_keystore.keystore",
+        file: "upload.keystore",
         password: "Wizard@123",
-        key_alias: "kmp-project-template",
+        key_alias: "MifosXOpenBanking",
         key_password: "Wizard@123"
       },
 
       # Firebase App Distribution
       firebase: {
-        prod_app_id: "1:728434912738:android:3902eb3363b0938f1a1dbb",
-        demo_app_id: "1:728434912738:android:4e72c77e967965ce1a1dbb",
+        prod_app_id: "1:728434912738:android:f60d3ee530291c5c1a1dbb",
+        demo_app_id: "1:728434912738:android:f60d3ee530291c5c1a1dbb",
         groups: "mifos-mobile-apps"
       }
     }

@@ -72,6 +72,31 @@ class FreshPsuBearerTest {
         assertEquals(listOf<String?>(null, null), seen)
     }
 
+    /**
+     * Every PISP call supplies its own credential — client-credentials with `scope=payments` to
+     * stage, the PSU payments token to submit — so the interceptor must leave the header alone.
+     * Attaching the AIS bearer here would replace a correct token with one minted for a different
+     * scope, and the resulting 401 would read as an auth fault rather than a scope fault.
+     */
+    @Test
+    fun `never attaches the psu token to a pisp write`() = runTest {
+        val settings = MapSettings()
+        savePsuTokens(settings, PsuTokenResponse(accesstoken = "ais-access"))
+        val seen = mutableListOf<String?>()
+        val client = HttpClient(
+            MockEngine { request ->
+                seen += request.headers[HttpHeaders.Authorization]
+                respond("", HttpStatusCode.OK)
+            },
+        )
+        client.installFreshPsuBearer(settings, BANK_HOST) { null }
+
+        client.get("https://$BANK_HOST/v4.0/pisp/domestic-payment-consents")
+        client.get("https://$BANK_HOST/v4.0/pisp/domestic-payments")
+
+        assertEquals(listOf<String?>(null, null), seen)
+    }
+
     @Test
     fun `a 401 refreshes the token and retries the request once`() = runTest {
         val settings = MapSettings()

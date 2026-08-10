@@ -27,4 +27,15 @@ data class AccountEntity(
     val sortCode: String,
     val accountNumber: String,
     val rawIdentification: String = "",
+
+    /**
+     * HSBC's free-text `Description`, and the only signal that an account is a Global Money wallet.
+     *
+     * Persisted rather than derived because a wallet reports `AccountTypeCode: CACC` — identical to a
+     * current account — so dropping this column makes the two indistinguishable once the row has been
+     * read back out. That is not hypothetical: it is exactly what happened when the field was added to
+     * the model and the network mapper but not here, and the wallet was offered as a payer the bank
+     * then refused with `U002`.
+     */
+    val description: String = "",
 )

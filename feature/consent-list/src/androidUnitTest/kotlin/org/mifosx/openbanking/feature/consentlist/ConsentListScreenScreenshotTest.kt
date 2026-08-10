@@ -35,7 +35,7 @@ private const val FRAME_HEIGHT = 892
 
 /**
  * Golden-image coverage for [ConsentListScreenContent], captured with Roborazzi under Robolectric's
- * native graphics (no device). Goldens are committed under `src/androidUnitTest/screenshots/`;
+ * native graphics (no device). Goldens are written under `build/outputs/roborazzi/`;
  * `recordRoborazziDemoDebug` writes them and `verifyRoborazziDemoDebug` fails the build on drift.
  *
  * Six states: the four usual ones, plus the expired-session screen (which is deliberately toned
@@ -79,7 +79,7 @@ class ConsentListScreenScreenshotTest {
                 )
             }
         }
-        composeRule.onRoot().captureRoboImage("src/androidUnitTest/screenshots/consent_list_$state.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/consent_list_$state.png")
     }
 
     @Composable

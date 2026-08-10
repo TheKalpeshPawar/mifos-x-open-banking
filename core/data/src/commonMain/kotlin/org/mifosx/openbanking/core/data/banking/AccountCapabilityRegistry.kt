@@ -32,6 +32,15 @@ interface AccountCapabilityRegistry {
     /** Endpoints observed to be unsupported for [accountId]; emits again whenever one is added. */
     fun unsupportedStream(accountId: String): Flow<Set<AccountEndpoint>>
 
+    /**
+     * The same observation across every account at once, keyed by account id.
+     *
+     * For screens that reason about a LIST rather than one account — the payer picker has to drop a
+     * refused account from among several, and combining N per-account flows to do it would be a
+     * worse way to read a map that already exists.
+     */
+    fun unsupportedStream(): Flow<Map<String, Set<AccountEndpoint>>>
+
     /** Records that the bank refused [endpoint] for [accountId]. Idempotent. */
     fun markUnsupported(accountId: String, endpoint: AccountEndpoint)
 
@@ -53,6 +62,8 @@ class InMemoryAccountCapabilityRegistry : AccountCapabilityRegistry {
 
     override fun unsupportedStream(accountId: String): Flow<Set<AccountEndpoint>> =
         unsupported.map { it[accountId].orEmpty() }
+
+    override fun unsupportedStream(): Flow<Map<String, Set<AccountEndpoint>>> = unsupported
 
     override fun markUnsupported(accountId: String, endpoint: AccountEndpoint) {
         unsupported.update { current ->

@@ -34,14 +34,25 @@ internal suspend fun signPs256(
     val payloadBytes = payload.toString().encodeToByteArray()
     val signingInput = "${base64Url.encode(headerBytes)}.${base64Url.encode(payloadBytes)}"
 
+    return "$signingInput.${base64Url.encode(signPs256Bytes(signingInput, privateKeyPem))}"
+}
+
+/**
+ * Signs an already-assembled JWS signing input.
+ *
+ * Split out because the detached signature OBIE requires for payment bodies sets `b64: false`, which
+ * means the payload goes into the signing input raw rather than base64url-encoded — so it cannot use
+ * [signPs256], which encodes both segments. Both still share one key-decoding path.
+ */
+internal suspend fun signPs256Bytes(
+    signingInput: String,
+    privateKeyPem: String,
+): ByteArray {
     val privateKey = CryptographyProvider.Default.get(RSA.PSS)
         .privateKeyDecoder(digest = SHA256)
         .decodeFromByteArray(RSA.PrivateKey.Format.PEM.Generic, privateKeyPem.encodeToByteArray())
 
-    val signature = privateKey.signatureGenerator()
-        .generateSignature(signingInput.encodeToByteArray())
-
-    return "$signingInput.${base64Url.encode(signature)}"
+    return privateKey.signatureGenerator().generateSignature(signingInput.encodeToByteArray())
 }
 
 /**

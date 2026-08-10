@@ -35,6 +35,8 @@ class FakeAccountCapabilityRegistry : AccountCapabilityRegistry {
     override fun unsupportedStream(accountId: String): Flow<Set<AccountEndpoint>> =
         state.map { it[accountId].orEmpty() }
 
+    override fun unsupportedStream(): Flow<Map<String, Set<AccountEndpoint>>> = state
+
     override fun markUnsupported(accountId: String, endpoint: AccountEndpoint) {
         marked = marked + (accountId to endpoint)
         state.update { current ->

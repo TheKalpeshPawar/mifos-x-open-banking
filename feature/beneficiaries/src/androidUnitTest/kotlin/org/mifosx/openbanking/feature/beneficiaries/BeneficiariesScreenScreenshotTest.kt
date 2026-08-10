@@ -36,7 +36,7 @@ private const val FRAME_HEIGHT = 892
 
 /**
  * Golden-image coverage for [BeneficiariesScreenContent], captured with Roborazzi under Robolectric's
- * native graphics (no device). Goldens are committed under `src/androidUnitTest/screenshots/`;
+ * native graphics (no device). Goldens are written under `build/outputs/roborazzi/`;
  * `recordRoborazziDebug` writes them and `verifyRoborazziDebug` fails the build on any pixel drift.
  *
  * Six states rather than the usual four: this screen has two mutually exclusive error variants
@@ -80,7 +80,7 @@ class BeneficiariesScreenScreenshotTest {
                 )
             }
         }
-        composeRule.onRoot().captureRoboImage("src/androidUnitTest/screenshots/beneficiaries_$state.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/beneficiaries_$state.png")
     }
 
     @Composable

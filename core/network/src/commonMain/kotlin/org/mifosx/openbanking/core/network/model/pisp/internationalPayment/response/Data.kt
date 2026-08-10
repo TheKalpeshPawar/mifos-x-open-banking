@@ -26,4 +26,6 @@ data class Data(
     val initiation: Initiation? = null,
     @SerialName("InternationalPaymentId")
     val internationalPaymentId: String? = null,
+    @SerialName("Charges")
+    val charges: List<Charge>? = null,
 )

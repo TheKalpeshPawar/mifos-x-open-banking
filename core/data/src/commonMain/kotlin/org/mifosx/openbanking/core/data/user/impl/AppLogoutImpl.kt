@@ -11,8 +11,10 @@ package org.mifosx.openbanking.core.data.user.impl
 
 import org.mifosx.openbanking.core.data.banking.ConsentRevokeRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
+import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.data.user.AppLogout
 import org.mifosx.openbanking.core.data.user.UserDataRepository
+import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 
 /**
@@ -25,8 +27,10 @@ import org.mifosx.openbanking.core.store.infra.StoreCacheManager
 internal class AppLogoutImpl(
     private val consentRevokeRepository: ConsentRevokeRepository,
     private val consentSession: ConsentSession,
+    private val paymentAuthSession: PaymentAuthSession,
     private val userDataRepository: UserDataRepository,
     private val storeCacheManager: StoreCacheManager,
+    private val paymentHistoryDao: PaymentHistoryDao,
 ) : AppLogout {
 
     override suspend fun logOut() {
@@ -42,10 +46,18 @@ internal class AppLogoutImpl(
         //    tokens do not live there.
         consentSession.forgetAll()
 
+        // 2b. Drop any payment authorisation too. It keeps its own keys so that clearing one leg
+        //     never disturbs the other, which means signing out has to clear both explicitly — a
+        //     surviving payments token would outlive the session that authorised it.
+        paymentAuthSession.clear()
+
         // 3. Clear local data. clearUserData() writes the DataStore-backed UserData StateFlow the
         //    root navigator observes; that emission makes it re-read isActive() (now false) and route
         //    to the auth graph. Must run after step 2 so it reads the already-cleared token state.
         userDataRepository.clearUserData()
         storeCacheManager.clearAll()
+
+        // 4. Drop payment history snapshots — the next session's hub should start empty.
+        paymentHistoryDao.clear()
     }
 }

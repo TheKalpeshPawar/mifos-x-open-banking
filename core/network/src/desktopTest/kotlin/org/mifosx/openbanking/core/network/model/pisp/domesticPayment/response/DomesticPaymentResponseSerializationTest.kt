@@ -80,6 +80,58 @@ class DomesticPaymentResponseSerializationTest {
         ),
     )
 
+    /**
+     * The body HSBC actually returned for payment 19901, verbatim.
+     *
+     * `ExpectedExecutionDateTime`, `ExpectedSettlementDateTime` and `Charges` were all being sent by
+     * the bank and silently discarded, because the DTO did not declare them and the client is
+     * configured with `ignoreUnknownKeys`. That is the failure mode this case exists to prevent:
+     * a dropped field costs nothing at parse time and simply never reaches the screen.
+     *
+     * Note the charge type is `UK.OBIE.CHAPSOut` on a payment whose Initiation declared
+     * `LocalInstrument: UK.OBIE.FPS`, and that it is non-zero — which is why no fee may be shown
+     * before this response exists.
+     */
+    @Test
+    fun `the settled sandbox response keeps its settlement time and charges`() {
+        val body = """
+            {"Data":{"DomesticPaymentId":"19901","ConsentId":"45067",
+            "CreationDateTime":"2026-08-05T17:46:08+00:00","Status":"ACCC",
+            "StatusUpdateDateTime":"2026-08-05T17:46:08+00:00",
+            "ExpectedExecutionDateTime":"2026-08-05T17:46:08+00:00",
+            "ExpectedSettlementDateTime":"2026-08-05T17:46:08+00:00",
+            "Charges":[{"ChargeBearer":"BorneByDebtor","Type":"UK.OBIE.CHAPSOut",
+            "Amount":{"Amount":"0.05","Currency":"GBP"}}]}}
+        """.trimIndent().replace("\n", "")
+
+        val decoded = Json { ignoreUnknownKeys = true }
+            .decodeFromString(DomesticPaymentResponse.serializer(), body)
+        val data = decoded.data
+
+        assertEquals("19901", data?.domesticPaymentId)
+        assertEquals("ACCC", data?.status)
+        assertEquals("2026-08-05T17:46:08+00:00", data?.creationDateTime)
+        assertEquals("2026-08-05T17:46:08+00:00", data?.expectedSettlementDateTime)
+        assertEquals("2026-08-05T17:46:08+00:00", data?.expectedExecutionDateTime)
+
+        val charge = data?.charges?.single()
+        assertEquals("BorneByDebtor", charge?.chargeBearer)
+        assertEquals("UK.OBIE.CHAPSOut", charge?.type)
+        assertEquals("0.05", charge?.amount?.amount)
+        assertEquals("GBP", charge?.amount?.currency)
+    }
+
+    @Test
+    fun `a payment with no charges decodes to no charges rather than a zero one`() {
+        val body = """{"Data":{"DomesticPaymentId":"19902","Status":"ACSP"}}"""
+
+        val decoded = Json { ignoreUnknownKeys = true }
+            .decodeFromString(DomesticPaymentResponse.serializer(), body)
+
+        assertEquals(null, decoded.data?.charges)
+        assertEquals(null, decoded.data?.expectedSettlementDateTime)
+    }
+
     @Test
     fun `full domestic payment response round-trips through JSON`() {
         val original = sampleResponse()

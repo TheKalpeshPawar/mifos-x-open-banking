@@ -26,4 +26,8 @@ data class Initiation(
     val creditorAccount: CreditorAccount? = null,
     @SerialName("ChargeBearer")
     val chargeBearer: String? = null,
+    @SerialName("DebtorAccount")
+    val debtorAccount: DebtorAccount? = null,
+    @SerialName("CreditorAgent")
+    val creditorAgent: CreditorAgent? = null,
 )
