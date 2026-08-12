@@ -14,10 +14,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import org.mifosx.openbanking.core.common.formatDateTime
+import org.mifosx.openbanking.core.common.formatIsoDate
 import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.formatTimeOfDay
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
-import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
+import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
@@ -44,7 +45,7 @@ private const val SORT_CODE_DIGITS = 6
  */
 class PaymentStatusViewModel(
     savedStateHandle: SavedStateHandle,
-    private val repository: PaymentInitiationRepository,
+    private val repository: PaymentStatusRepository,
     private val paymentHistoryRepository: PaymentHistoryRepository,
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -123,6 +124,11 @@ class PaymentStatusViewModel(
             debtorLabel = debtorIdentification.toAccountLabel(),
             submittedAt = formatDateTime(creationDateTime, timeZone),
             settledAt = settled,
+            // Date only. The wire value is midnight UTC, so a date-and-time rendering would
+            // append a 00:00 the bank never promised — it does not commit to a time of day.
+            scheduledForAt = requestedExecutionDateTime.takeIf { it.isNotBlank() }
+                ?.let(::formatIsoDate)
+                .orEmpty(),
             // Guarded exactly as `settledAt` is. Unguarded, a blank wire value went through
             // `formatDateTime`, which returns its input unparsed — so a blank became a blank, and
             // whatever it returned drove the conditional row rather than the fact of the absence.

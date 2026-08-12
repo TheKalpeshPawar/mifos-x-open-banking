@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +51,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_acsp
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_actc
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_acwp
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_inco
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_pending
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_received
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_detail_rjct
@@ -62,6 +62,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_from
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress_note
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress_note_scheduled
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_last_checked
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_new_payment
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_id
@@ -69,6 +70,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference_empty
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_refresh
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_refresh_failed
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_scheduled_for
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_settled
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_status_changed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_submitted
@@ -122,7 +124,7 @@ internal fun PaymentStatusContent(
         }
 
         if (state.inProgress) {
-            InProgressNote()
+            InProgressNote(scheduled = state.scheduledForAt.isNotBlank())
         }
 
         if (state.timeline.isNotEmpty()) {
@@ -204,29 +206,41 @@ private fun SummaryCard(state: PaymentStatusUiState.Content) {
     }
 }
 
+/**
+ * The colours a disposition wears, in one place.
+ *
+ * The app bar spans the screen in these same colours, so a second mapping would be a second source
+ * of truth for what "failed" looks like — and the two would drift the first time either changed.
+ */
+internal data class DispositionColours(val container: Color, val onContainer: Color)
+
+@Composable
+internal fun dispositionColours(disposition: PaymentDisposition): DispositionColours = when (disposition) {
+    PaymentDisposition.InProgress -> DispositionColours(
+        MaterialTheme.colorScheme.secondaryContainer,
+        MaterialTheme.colorScheme.onSecondaryContainer,
+    )
+
+    PaymentDisposition.TerminalSuccess -> DispositionColours(
+        MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.onTertiaryContainer,
+    )
+
+    PaymentDisposition.TerminalFailure -> DispositionColours(
+        MaterialTheme.colorScheme.errorContainer,
+        MaterialTheme.colorScheme.onErrorContainer,
+    )
+}
+
 @Composable
 private fun StatusChip(disposition: PaymentDisposition) {
-    val container: Color
-    val onContainer: Color
-    val icon: ImageVector
-    when (disposition) {
-        PaymentDisposition.InProgress -> {
-            container = MaterialTheme.colorScheme.secondaryContainer
-            onContainer = MaterialTheme.colorScheme.onSecondaryContainer
-            icon = Icons.Filled.Schedule
-        }
-
-        PaymentDisposition.TerminalSuccess -> {
-            container = MaterialTheme.colorScheme.tertiaryContainer
-            onContainer = MaterialTheme.colorScheme.onTertiaryContainer
-            icon = Icons.Filled.CheckCircle
-        }
-
-        PaymentDisposition.TerminalFailure -> {
-            container = MaterialTheme.colorScheme.errorContainer
-            onContainer = MaterialTheme.colorScheme.onErrorContainer
-            icon = Icons.Filled.ErrorOutline
-        }
+    val colours = dispositionColours(disposition)
+    val container = colours.container
+    val onContainer = colours.onContainer
+    val icon = when (disposition) {
+        PaymentDisposition.InProgress -> Icons.Filled.Schedule
+        PaymentDisposition.TerminalSuccess -> Icons.Filled.CheckCircle
+        PaymentDisposition.TerminalFailure -> Icons.Filled.ErrorOutline
     }
 
     Row(
@@ -284,8 +298,19 @@ private fun RefreshFailureNote() {
     }
 }
 
+/**
+ * The banner under the chip, worded by whether the payment has a date to wait for.
+ *
+ * A scheduled payment is told to keep the account funded, because there is a day on which the money
+ * has to be there. An immediate payment has no such day — it is already on its way — so the same
+ * sentence would point at a date that does not exist.
+ *
+ * Keyed off [PaymentStatusUiState.Content.scheduledForAt] rather than the rail, because that field is
+ * populated from the requested execution date and so is non-blank exactly when there is a date to
+ * name.
+ */
 @Composable
-private fun InProgressNote() {
+private fun InProgressNote(scheduled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -302,7 +327,11 @@ private fun InProgressNote() {
             modifier = Modifier.size(NoteIconSize),
         )
         Text(
-            text = stringResource(Res.string.feature_payment_status_in_progress_note),
+            text = if (scheduled) {
+                stringResource(Res.string.feature_payment_status_in_progress_note_scheduled)
+            } else {
+                stringResource(Res.string.feature_payment_status_in_progress_note)
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -343,6 +372,18 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
                 value = state.submittedAt,
                 tag = PaymentStatusTestTags.DETAIL_SUBMITTED,
             )
+
+            // A scheduled payment states when it is due. The wording is deliberately future tense
+            // and never says paid or sent: nothing has moved, and on this rail nothing will until
+            // the date. The app also cannot confirm that it did — no per-execution status exists.
+            if (state.scheduledForAt.isNotBlank()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_scheduled_for),
+                    value = state.scheduledForAt,
+                    tag = PaymentStatusTestTags.DETAIL_SCHEDULED_FOR,
+                )
+            }
 
             // Omitted rather than drawn blank when the bank did not say — an empty value beside a
             // label reads as data we lost, not data we were never given.
@@ -411,7 +452,13 @@ private fun DetailRow(label: String, value: String, tag: String) {
     }
 }
 
-private fun PaymentDisposition.labelResource() = when (this) {
+/**
+ * The one place a disposition becomes words.
+ *
+ * Shared with the app bar rather than duplicated, so the title and the chip can never disagree about
+ * what state the payment is in.
+ */
+internal fun PaymentDisposition.labelResource() = when (this) {
     PaymentDisposition.InProgress -> Res.string.feature_payment_status_in_progress
     PaymentDisposition.TerminalSuccess -> Res.string.feature_payment_status_completed
     PaymentDisposition.TerminalFailure -> Res.string.feature_payment_status_failed
@@ -429,6 +476,7 @@ private fun PaymentStatus.detailResource() = when (this) {
     PaymentStatus.Pending -> Res.string.feature_payment_status_detail_pending
     PaymentStatus.AcceptedSettlementInProcess -> Res.string.feature_payment_status_detail_acsp
     PaymentStatus.AcceptedTechnicalValidation -> Res.string.feature_payment_status_detail_actc
+    PaymentStatus.InitiationCompleted -> Res.string.feature_payment_status_detail_inco
     PaymentStatus.AcceptedSettlementCompleted -> Res.string.feature_payment_status_detail_acsc
     PaymentStatus.AcceptedCreditSettlementCompleted -> Res.string.feature_payment_status_detail_accc
     PaymentStatus.AcceptedWithoutPosting -> Res.string.feature_payment_status_detail_acwp

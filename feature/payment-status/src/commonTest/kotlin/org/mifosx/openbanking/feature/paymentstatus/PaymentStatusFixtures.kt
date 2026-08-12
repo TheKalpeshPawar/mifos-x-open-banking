@@ -12,7 +12,7 @@ package org.mifosx.openbanking.feature.paymentstatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
-import org.mifosx.openbanking.core.data.banking.PaymentInitiationRepository
+import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
@@ -21,7 +21,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
-import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
@@ -64,6 +64,19 @@ object PaymentStatusFixtures {
             debtorIdentification = "40051512345678",
             charges = charges,
         )
+
+    /**
+     * A scheduled payment as the bank actually returns one, read back before its date.
+     *
+     * `INCO` is what both scheduled rails answer on a read-back. `settlementDateTime` carries the
+     * creation timestamp — which is what the bank really sends, and why the scheduled mappers drop it
+     * — while `requestedExecutionDateTime` carries the date the customer chose.
+     */
+    fun scheduledReceipt(): PaymentReceipt = receipt(status = PaymentStatus.InitiationCompleted).copy(
+        settlementDateTime = "",
+        requestedExecutionDateTime = "2026-08-14T00:00:00+00:00",
+        charges = emptyList(),
+    )
 
     /** An ASPSP that maintains the fields properly, so the three rows are proven independent. */
     fun receiptWithDistinctTimestamps(): PaymentReceipt = receipt().copy(
@@ -124,6 +137,7 @@ object PaymentStatusFixtures {
         lastCheckedAt: String = "14:25",
         refreshFailure: PaymentStatusErrorKind? = null,
         statusChangedAt: String = "3 Aug 2026, 14:22",
+        scheduledForAt: String = "",
         timeline: List<PaymentTimelineEntry> = timeline(),
     ): PaymentStatusState = PaymentStatusState(
         paymentId = PAYMENT_ID,
@@ -137,6 +151,7 @@ object PaymentStatusFixtures {
             debtorLabel = "40-05-15 12345678",
             submittedAt = "3 Aug 2026, 14:22",
             settledAt = settledAt,
+            scheduledForAt = scheduledForAt,
             statusChangedAt = statusChangedAt,
             charges = charges,
             lastCheckedAt = lastCheckedAt,
@@ -144,6 +159,29 @@ object PaymentStatusFixtures {
             refreshFailure = refreshFailure,
             timeline = timeline,
         ),
+    )
+
+    /**
+     * A scheduled payment, read back before its date.
+     *
+     * `settledAt` is blank and `scheduledForAt` carries the date instead. That pairing is the whole
+     * point: the scheduled rails return `ExpectedSettlementDateTime` equal to the creation timestamp,
+     * so the mapper drops it — a screen showing "Settles 6 Aug" for a payment due on the 14th would
+     * be reporting today as the settlement date of something that has not happened.
+     *
+     * The status is `InitiationCompleted` (`INCO`), which is what both scheduled rails actually
+     * return on a read-back, and it stays `InProgress` until the bank executes.
+     */
+    fun scheduledState(): PaymentStatusState = contentState(
+        status = PaymentStatus.InitiationCompleted,
+        settledAt = "",
+        scheduledForAt = "14 Aug 2026",
+        statusChangedAt = "",
+        charges = emptyList(),
+        // The final stage is Pending, not Current. `inFlightStepState` maps INCO that way in
+        // production, and the default fixture's "Settling now" would have this golden assert the
+        // opposite of what the app does — a payment that has not reached its date is not settling.
+        timeline = timeline(completedState = PaymentStepState.Pending),
     )
 
     /** Two charges, the case a single `DETAIL_FEE` tag could not address. */
@@ -162,35 +200,24 @@ object PaymentStatusFixtures {
 }
 
 /**
- * Only `paymentStatus` is exercised here — this screen never writes, which is the property that
- * lets it read on a client-credentials token after the PSU token has expired.
+ * The read-only half of the payment path.
+ *
+ * `PaymentStatusRepository` declares one method, which is the point: this screen never writes, and
+ * that is what lets it read on a client-credentials token after the PSU token has expired. The four
+ * write methods this fake used to stub out with `error(...)` went with the interface split.
  */
-class FakePaymentInitiationRepository(
+class FakePaymentStatusRepository(
     receipt: PaymentReceipt = PaymentStatusFixtures.receipt(),
     private var statusResult: NetworkResult<PaymentReceipt, NetworkError> =
         NetworkResult.Success(receipt),
-) : PaymentInitiationRepository {
+) : PaymentStatusRepository {
 
     val statusReads = mutableListOf<String>()
 
-    override suspend fun stagePayment(draft: PaymentDraft): NetworkResult<StagedConsent, NetworkError> =
-        error("send-money stages payments; payment-status never does")
-
-    override suspend fun confirmFunds(consentId: String): NetworkResult<Boolean, NetworkError> =
-        error("send-money confirms funds; payment-status never does")
-
-    override suspend fun submitPayment(
-        draft: PaymentDraft,
-        consentId: String,
-    ): NetworkResult<PaymentReceipt, NetworkError> =
-        error("the callback leg submits payments; payment-status never does")
-
-    override fun stagedDraft(): PaymentDraft? = null
-
     override suspend fun paymentStatus(
-        domesticPaymentId: String,
+        paymentId: String,
     ): NetworkResult<PaymentReceipt, NetworkError> {
-        statusReads += domesticPaymentId
+        statusReads += paymentId
         return statusResult
     }
 
@@ -224,6 +251,15 @@ class FakePaymentHistoryRepository(
 
     override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) =
         error("payment-status never writes history")
+
+    override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: ScheduledPaymentDraft) =
+        error("payment-status never writes history")
+
+    override suspend fun saveFailed(
+        draft: ScheduledPaymentDraft,
+        errorKind: String,
+        errorDescription: String,
+    ) = error("payment-status never writes history")
 
     override suspend fun consentTypeOf(paymentId: String): ConsentType? = ConsentType.DomesticSinglePayment
 
