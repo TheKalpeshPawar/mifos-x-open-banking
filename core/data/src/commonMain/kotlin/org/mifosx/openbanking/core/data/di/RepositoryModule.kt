@@ -23,11 +23,13 @@ import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
 import org.mifosx.openbanking.core.data.banking.ScheduledPaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.SinglePaymentInitiationRepository
+import org.mifosx.openbanking.core.data.banking.StandingOrderInitiationRepository
 import org.mifosx.openbanking.core.data.banking.di.BankingModule
 import org.mifosx.openbanking.core.data.banking.impl.PaymentHistoryRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.PaymentStatusRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.ScheduledPaymentInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.banking.impl.SinglePaymentInitiationRepositoryImpl
+import org.mifosx.openbanking.core.data.banking.impl.StandingOrderInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.ConsentCallbackRepository
 import org.mifosx.openbanking.core.data.callback.ConsentSession
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
@@ -48,6 +50,16 @@ import org.mifosx.openbanking.core.data.user.UserLogoutManager
 import org.mifosx.openbanking.core.data.user.impl.AppLogoutImpl
 import org.mifosx.openbanking.core.data.user.impl.UserDataRepositoryImpl
 import org.mifosx.openbanking.core.data.user.impl.UserLogoutManagerImpl
+import org.mifosx.openbanking.core.data.vrp.SettingsVrpAuthSession
+import org.mifosx.openbanking.core.data.vrp.VrpAuthRepository
+import org.mifosx.openbanking.core.data.vrp.VrpAuthRepositoryImpl
+import org.mifosx.openbanking.core.data.vrp.VrpAuthSession
+import org.mifosx.openbanking.core.data.vrp.VrpConsentRepository
+import org.mifosx.openbanking.core.data.vrp.VrpConsentRepositoryImpl
+import org.mifosx.openbanking.core.data.vrp.VrpPaymentRepository
+import org.mifosx.openbanking.core.data.vrp.VrpPaymentRepositoryImpl
+import org.mifosx.openbanking.core.data.vrp.VrpTokenProvider
+import org.mifosx.openbanking.core.data.vrp.VrpTokenProviderImpl
 import org.mifosx.openbanking.core.database.AppDatabase
 import org.mifosx.openbanking.core.database.di.DatabaseModule
 import org.mifosx.openbanking.core.datastore.di.DatastoreModule
@@ -94,6 +106,48 @@ val DataModule = module {
 
     single<PaymentAuthSession> { SettingsPaymentAuthSession(secureSettings = get<Settings>(named("secure"))) }
 
+    single<VrpAuthSession> { SettingsVrpAuthSession(secureSettings = get<Settings>(named("secure"))) }
+
+    single<VrpTokenProvider> {
+        VrpTokenProviderImpl(
+            oauth = get(),
+            session = get(),
+        )
+    }
+
+    single<VrpConsentRepository> {
+        VrpConsentRepositoryImpl(
+            vrp = get(),
+            oauth = get(),
+            dao = get(),
+            session = get(),
+            tokens = get(),
+        )
+    }
+
+    single<VrpAuthRepository> {
+        VrpAuthRepositoryImpl(
+            oauth = get(),
+            session = get(),
+            signingKeyPem = get(named("hsbcSigningKey")),
+            clientId = get(named("hsbcClientId")),
+            kid = get(named("hsbcKid")),
+            bankHost = get(named("hsbcBankHost")),
+            authorizeHost = get(named("hsbcAuthorizeHost")),
+            redirectUri = get(named("hsbcRedirectUri")),
+        )
+    }
+
+    single<VrpPaymentRepository> {
+        VrpPaymentRepositoryImpl(
+            vrp = get(),
+            oauth = get(),
+            consentDao = get(),
+            paymentDao = get(),
+            tokens = get(),
+        )
+    }
+
     single<PaymentAuthRepository> {
         PaymentAuthRepositoryImpl(
             oauth = get(),
@@ -108,7 +162,6 @@ val DataModule = module {
             pisp = get(),
             oauth = get(),
             paymentAuthSession = get(),
-            capabilityRegistry = get(),
             signingKeyPem = get(named("hsbcSigningKey")),
             clientId = get(named("hsbcClientId")),
             kid = get(named("hsbcKid")),
@@ -124,7 +177,21 @@ val DataModule = module {
             pisp = get(),
             oauth = get(),
             paymentAuthSession = get(),
-            capabilityRegistry = get(),
+            signingKeyPem = get(named("hsbcSigningKey")),
+            clientId = get(named("hsbcClientId")),
+            kid = get(named("hsbcKid")),
+            bankHost = get(named("hsbcBankHost")),
+            authorizeHost = get(named("hsbcAuthorizeHost")),
+            redirectUri = get(named("hsbcRedirectUri")),
+            paymentHistoryRepository = get(),
+        )
+    }
+
+    single<StandingOrderInitiationRepository> {
+        StandingOrderInitiationRepositoryImpl(
+            pisp = get(),
+            oauth = get(),
+            paymentAuthSession = get(),
             signingKeyPem = get(named("hsbcSigningKey")),
             clientId = get(named("hsbcClientId")),
             kid = get(named("hsbcKid")),
@@ -146,8 +213,6 @@ val DataModule = module {
     single<PaymentHistoryRepository> {
         PaymentHistoryRepositoryImpl(
             dao = get(),
-            pisp = get(),
-            oauth = get(),
             paymentAuthSession = get(),
         )
     }
@@ -166,6 +231,10 @@ val DataModule = module {
             userDataRepository = get(),
             storeCacheManager = get(),
             paymentHistoryDao = get(),
+            vrpConsentRepository = get(),
+            vrpConsentDao = get(),
+            vrpPaymentDao = get(),
+            vrpAuthSession = get(),
         )
     }
 

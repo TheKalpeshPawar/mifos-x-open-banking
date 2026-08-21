@@ -49,10 +49,15 @@ kotlin {
             implementation(projects.feature.login)
             implementation(projects.feature.consentCallback)
             implementation(projects.feature.paymentsSchedulePayment)
+            implementation(projects.feature.paymentsStandingOrder)
             implementation(projects.feature.sendMoney)
             implementation(projects.feature.paymentStatus)
             implementation(projects.feature.paymentConsent)
             implementation(projects.feature.paymentsHub)
+            implementation(projects.feature.vrp.vrpConsents)
+            implementation(projects.feature.vrp.vrpSetup)
+            implementation(projects.feature.vrp.vrpCallback)
+            implementation(projects.feature.vrp.vrpPayment)
 
             //put your multiplatform dependencies here
             implementation(compose.material3)

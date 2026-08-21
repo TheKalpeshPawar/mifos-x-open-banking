@@ -12,13 +12,13 @@ package org.mifosx.openbanking.core.data.banking.mapper
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -101,52 +101,6 @@ class PaymentHistoryMapperTest {
         assertNull(entity.status)
         assertNull(entity.settlementDateTime)
         assertNull(entity.syncedAt)
-    }
-
-    @Test
-    fun mapsEntityToPaymentHistoryItemForTerminalSuccess() {
-        val entity = receipt(PaymentStatus.AcceptedSettlementCompleted).toEntity(draft())
-        val item = entity.toPaymentHistoryItem()
-
-        assertEquals("19901", item.id)
-        assertEquals("19901", item.domesticPaymentId)
-        assertEquals("Mr Dharani C", item.creditorName)
-        assertEquals(10_000L, item.amountMinorUnits)
-        assertEquals("Sent", item.statusLabel)
-        assertFalse(item.isFailure)
-        assertFalse(item.isInFlight)
-    }
-
-    @Test
-    fun mapsEntityToPaymentHistoryItemForInFlight() {
-        val entity = receipt(PaymentStatus.AcceptedSettlementInProcess).toEntity(draft())
-        val item = entity.toPaymentHistoryItem()
-
-        assertEquals("Processing", item.statusLabel)
-        assertFalse(item.isFailure)
-        assertTrue(item.isInFlight)
-    }
-
-    @Test
-    fun mapsEntityToPaymentHistoryItemForTerminalFailure() {
-        val entity = receipt(PaymentStatus.Rejected).toEntity(draft())
-        val item = entity.toPaymentHistoryItem()
-
-        assertEquals("Failed", item.statusLabel)
-        assertTrue(item.isFailure)
-        assertFalse(item.isInFlight)
-    }
-
-    @Test
-    fun mapsFailureEntityToPaymentHistoryItem() {
-        val entity = draft().toFailureEntity("InsufficientFunds", "Not enough money")
-        val item = entity.toPaymentHistoryItem()
-
-        assertNull(item.domesticPaymentId)
-        assertTrue(item.isFailure)
-        assertFalse(item.isInFlight)
-        assertEquals("Not enough money", item.statusLabel)
-        assertEquals("Not enough money", item.errorDescription)
     }
 
     @Test
@@ -264,5 +218,47 @@ class PaymentHistoryMapperTest {
         val e2 = draft().toFailureEntity("NetworkError", "Connection failed")
 
         assertTrue(e1.id != e2.id)
+    }
+
+    @Test
+    fun historyRowCarriesTheStoredPaymentThrough() {
+        val row = receipt().toEntity(draft()).toHistoryRow()
+
+        assertEquals("19901", row?.paymentId)
+        assertEquals(ConsentType.DomesticSinglePayment, row?.consentType)
+        assertEquals(10_000L, row?.amountMinorUnits)
+        assertEquals("GBP", row?.currency)
+        assertEquals("Mr Dharani C", row?.creditorName)
+    }
+
+    @Test
+    fun historyRowIsNullForAPaymentThatNeverReachedTheBank() {
+        val row = draft().toFailureEntity("NetworkError", "Connection failed").toHistoryRow()
+
+        assertNull(row)
+    }
+
+    @Test
+    fun historyRowIsNullForAnUnrecognisedPaymentType() {
+        val entity = receipt().toEntity(draft()).copy(paymentType = "sepa_instant")
+
+        assertNull(entity.toHistoryRow())
+    }
+
+    @Test
+    fun historyRowResolvesTheStoredStatusName() {
+        val entity = receipt().toEntity(draft()).copy(status = "PartiallyAccepted")
+
+        assertEquals(PaymentStatus.PartiallyAccepted, entity.toHistoryRow()?.status)
+    }
+
+    @Test
+    fun historyRowResolvesAWireCodeStatusToo() {
+        val entity = receipt().toEntity(draft()).copy(status = "ACCC")
+
+        assertEquals(
+            PaymentStatus.AcceptedCreditSettlementCompleted,
+            entity.toHistoryRow()?.status,
+        )
     }
 }

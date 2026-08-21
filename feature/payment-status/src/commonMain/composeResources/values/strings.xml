@@ -35,7 +35,12 @@
     <string name="feature_payment_status_detail_acsc">Payment is settled</string>
     <string name="feature_payment_status_detail_accc">Payment is settled</string>
     <string name="feature_payment_status_detail_acwp">Payment is accepted but not credited into payee's account yet.</string>
+    <string name="feature_payment_status_detail_patc">Partly accepted — the bank is waiting for the rest of the authorisation</string>
     <string name="feature_payment_status_detail_rjct">Payment is rejected.</string>
+    <!-- Reachable on a standing order the customer stopped through their bank's own channel, which
+         is the only place it can be stopped. Nothing in this app can have caused it. -->
+    <string name="feature_payment_status_detail_canc">Cancelled by the bank</string>
+    <string name="feature_payment_status_detail_infa">The bank could not set this up</string>
     <string name="feature_payment_status_detail_unknown">Unknown status.</string>
 
     <!-- The four stages, newest first. "Completed" becomes "Rejected" when the bank refused the
@@ -65,8 +70,18 @@
     <string name="feature_payment_status_payment_id">Payment ID</string>
 
     <string name="feature_payment_status_refresh">Refresh</string>
-    <string name="feature_payment_status_new_payment">Make another payment</string>
     <string name="feature_payment_status_last_checked">Last checked · %1$s</string>
+
+    <!-- Standing orders only. Without these a mandate reads as a payment that happened once. -->
+    <string name="feature_payment_status_repeats">Repeats</string>
+    <string name="feature_payment_status_repeats_weekly">Every week</string>
+    <string name="feature_payment_status_repeats_fortnightly">Every two weeks</string>
+    <string name="feature_payment_status_repeats_monthly">Every month</string>
+    <string name="feature_payment_status_repeats_quarterly">Every three months</string>
+    <string name="feature_payment_status_repeats_yearly">Every year</string>
+    <string name="feature_payment_status_first_payment">First payment</string>
+    <string name="feature_payment_status_final_payment">Last payment</string>
+    <string name="feature_payment_status_recurring_amount">Each payment after the first</string>
 
     <string name="feature_payment_status_error_title">Could not load this payment</string>
     <string name="feature_payment_status_error_not_found">This payment could not be found. It may have been made from another device.</string>

@@ -60,14 +60,19 @@ import org.mifosx.openbanking.feature.login.LoginRenewRoute
 import org.mifosx.openbanking.feature.login.browser.BrowserLauncher
 import org.mifosx.openbanking.feature.login.loginRenewScreen
 import org.mifosx.openbanking.feature.paymentshub.paymentsHubGraph
+import org.mifosx.openbanking.feature.paymentsschedulepayment.SchedulePaymentHistoryRoute
 import org.mifosx.openbanking.feature.paymentsschedulepayment.SchedulePaymentRoute
 import org.mifosx.openbanking.feature.paymentsschedulepayment.schedulePaymentGraph
+import org.mifosx.openbanking.feature.paymentsstandingorder.StandingOrderHistoryRoute
+import org.mifosx.openbanking.feature.paymentsstandingorder.StandingOrderRoute
+import org.mifosx.openbanking.feature.paymentsstandingorder.standingOrderGraph
 import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
 import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
 import org.mifosx.openbanking.feature.product.ProductRoute
 import org.mifosx.openbanking.feature.product.productScreen
 import org.mifosx.openbanking.feature.scheduledpayments.ScheduledPaymentsRoute
 import org.mifosx.openbanking.feature.scheduledpayments.scheduledPaymentsScreen
+import org.mifosx.openbanking.feature.sendmoney.SendMoneyHistoryRoute
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyRoute
 import org.mifosx.openbanking.feature.sendmoney.sendMoneyGraph
 import org.mifosx.openbanking.feature.settings.LicencesRoute
@@ -83,6 +88,12 @@ import org.mifosx.openbanking.feature.transactiondetail.TransactionDetailRoute
 import org.mifosx.openbanking.feature.transactiondetail.transactionDetailScreen
 import org.mifosx.openbanking.feature.transactions.TransactionsRoute
 import org.mifosx.openbanking.feature.transactions.transactionsScreen
+import org.mifosx.openbanking.feature.vrpconsents.consentList.navigateToVrpConsentList
+import org.mifosx.openbanking.feature.vrpconsents.navigation.vrpConsentsDestination
+import org.mifosx.openbanking.feature.vrppayment.payment.navigateToVrpPayment
+import org.mifosx.openbanking.feature.vrppayment.payment.vrpPaymentScreen
+import org.mifosx.openbanking.feature.vrpsetup.setup.navigateToVrpSetup
+import org.mifosx.openbanking.feature.vrpsetup.setup.vrpSetupScreen
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
@@ -171,30 +182,66 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             paymentsHubGraph(
                 onNavigateToSendMoney = { navController.navigate(SendMoneyRoute) },
                 onNavigateToSchedulePayment = { navController.navigate(SchedulePaymentRoute) },
-                onNavigateToPaymentStatus = { paymentId ->
-                    navController.navigate(PaymentStatusRoute(paymentId))
-                },
+                onNavigateToStandingOrder = { navController.navigate(StandingOrderRoute) },
+                onNavigateToVrp = { navController.navigateToVrpConsentList() },
             )
+
+            // The VRP destinations. Siblings of the hub graph, like the payment flows — but only
+            // setup hands off to the browser, and its return leg lands at the root navigator.
+            vrpConsentsDestination(
+                navController = navController,
+                onBack = { navController.popBackStack() },
+                onNavigateToSetup = { navController.navigateToVrpSetup() },
+                onNavigateToPayment = { consentId -> navController.navigateToVrpPayment(consentId) },
+            )
+            vrpSetupScreen(
+                onBack = { navController.popBackStack() },
+                onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
+            )
+            vrpPaymentScreen(onBack = { navController.popBackStack() })
             sendMoneyGraph(
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
                 onNavigateToConsents = {},
+                onNavigateToPayment = { paymentId ->
+                    navController.navigate(PaymentStatusRoute(paymentId))
+                },
+                onNavigateToHistory = { navController.navigate(SendMoneyHistoryRoute) },
+                onBack = { navController.popBackStack() },
             )
             // A sibling of the hub graph, like send-money: the scheduled rails own their own browser
             // hand-off, and the return leg lands at the root navigator, not here.
             schedulePaymentGraph(
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
                 onNavigateToConsents = {},
+                onNavigateToPayment = { paymentId ->
+                    navController.navigate(PaymentStatusRoute(paymentId))
+                },
+                onNavigateToHistory = { navController.navigate(SchedulePaymentHistoryRoute) },
+                onBack = { navController.popBackStack() },
+            )
+
+            // A sibling of the hub graph too, for the same reason: each payment product owns its own
+            // browser hand-off, and the return leg lands at the root navigator rather than here.
+            standingOrderGraph(
+                onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
+                onNavigateToConsents = {},
+                onNavigateToPayment = { paymentId ->
+                    navController.navigate(PaymentStatusRoute(paymentId))
+                },
+                onNavigateToHistory = { navController.navigate(StandingOrderHistoryRoute) },
+                onBack = { navController.popBackStack() },
             )
             // Registered here as well as at the root, because a route has to exist in the host that
             // navigates to it. The root copy serves the authorisation return leg, which lands outside
-            // this NavHost entirely; this copy serves the hub, which is inside it. Without this,
-            // tapping a payment in the hub threw "Destination with route PaymentStatusRoute cannot be
-            // found in navigation graph" and killed the app — the two hosts cannot see each other's
-            // destinations in either direction.
-            paymentStatusScreen(
-                onBack = { navController.popBackStack() },
-                onStartNewPayment = { navController.navigate(SendMoneyRoute) },
-            )
+            // this NavHost entirely.
+            //
+            // This copy is currently unreachable: it existed for the hub's Recent list, and tapping a
+            // row there threw "Destination with route PaymentStatusRoute cannot be found in
+            // navigation graph" until it was added. The list is gone, so nothing inside this host
+            // navigates here any more. Kept deliberately — the two hosts cannot see each other's
+            // destinations in either direction, so the next screen in this host that wants to show a
+            // payment needs this entry to already exist rather than to rediscover the crash.
+            paymentStatusScreen(onBack = { navController.popBackStack() })
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },
                 onBack = { navController.popBackStack() },

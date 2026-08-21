@@ -42,32 +42,94 @@ enum class PaymentStatus(val disposition: PaymentDisposition) {
     /**
      * The instruction is set up and waiting for its execution date.
      *
-     * Both scheduled rails return this immediately after the payment resource is created, and it is
-     * the status a scheduled payment then holds for up to 365 days. Without it here the wire value
-     * `INCO` fell to [Unknown] — which is also `InProgress`, so nothing looked broken, but the hub's
-     * refresh re-read every scheduled payment on every visit for a status that cannot move until the
-     * date arrives.
+     * The declared disposition holds on the single-immediate rails; on the scheduled and
+     * standing-order rails it is terminal, which [dispositionFor] resolves.
      */
     InitiationCompleted(PaymentDisposition.InProgress),
+
+    /**
+     * Some of a multi-authorisation instruction is accepted and the rest is not yet.
+     *
+     * Still in progress, unlike its two neighbours below: `PATC` says the bank is waiting for more
+     * authorisations, not that it has stopped.
+     */
+    PartiallyAccepted(PaymentDisposition.InProgress),
     AcceptedSettlementCompleted(PaymentDisposition.TerminalSuccess),
     AcceptedCreditSettlementCompleted(PaymentDisposition.TerminalSuccess),
     AcceptedWithoutPosting(PaymentDisposition.TerminalSuccess),
     Rejected(PaymentDisposition.TerminalFailure),
+
+    /**
+     * The bank cancelled the instruction.
+     *
+     * Terminal, and reachable on a standing order — a mandate the customer stopped through their
+     * bank's own channel reads `CANC` here, and this app offers no way to have caused it.
+     */
+    Cancelled(PaymentDisposition.TerminalFailure),
+
+    /**
+     * Setting the instruction up failed at the bank.
+     *
+     * The counterpart to [InitiationCompleted], and terminal. Until these three landed they fell to
+     * [Unknown] — which is `InProgress`, so a cancelled or failed mandate was re-read on every hub
+     * refresh for a status that could never move, and the status screen never settled.
+     */
+    InitiationFailed(PaymentDisposition.TerminalFailure),
     Unknown(PaymentDisposition.InProgress),
     ;
 
     companion object {
-        fun fromWire(raw: String?): PaymentStatus = when (raw?.trim()?.uppercase()) {
-            "RCVD", "RECEIVED" -> Received
-            "PDNG", "PENDING" -> Pending
-            "ACSP", "ACCEPTEDSETTLEMENTINPROCESS" -> AcceptedSettlementInProcess
-            "ACTC", "ACCEPTEDTECHNICALVALIDATION" -> AcceptedTechnicalValidation
-            "INCO", "INITIATIONCOMPLETED" -> InitiationCompleted
-            "ACSC", "ACCEPTEDSETTLEMENTCOMPLETED" -> AcceptedSettlementCompleted
-            "ACCC", "ACCEPTEDCREDITSETTLEMENTCOMPLETED" -> AcceptedCreditSettlementCompleted
-            "ACWP", "ACCEPTEDWITHOUTPOSTING" -> AcceptedWithoutPosting
-            "RJCT", "REJECTED" -> Rejected
+        fun fromWire(raw: String?): PaymentStatus = when (raw?.trim()) {
+            "RCVD", "Received" -> Received
+            "PDNG", "Pending" -> Pending
+            "ACSP", "AcceptedSettlementInProcess" -> AcceptedSettlementInProcess
+            "ACTC", "AcceptedTechnicalValidation" -> AcceptedTechnicalValidation
+            "INCO", "InitiationCompleted", "Initiation Completed" -> InitiationCompleted
+            "PATC", "PartiallyAcceptedTechnicalCorrect" -> PartiallyAccepted
+
+            "ACSC",
+            "AcceptedSettlementCompleted",
+            "AcceptedSettlementCompletedDebitorAccount",
+            -> AcceptedSettlementCompleted
+
+            "ACCC",
+            "AcceptedCreditSettlementCompleted",
+            "AcceptedSettlementCompletedCreditorAccount",
+            -> AcceptedCreditSettlementCompleted
+
+            "ACWP", "AcceptedWithoutPosting" -> AcceptedWithoutPosting
+            "RJCT", "Rejected" -> Rejected
+            "CANC", "Cancelled" -> Cancelled
+            "INFA", "InitiationFailed" -> InitiationFailed
             else -> Unknown
         }
     }
 }
+
+/**
+ * What this status means on [consentType]'s rail.
+ *
+ * [PaymentStatus.InitiationCompleted] is [PaymentDisposition.TerminalSuccess] on the scheduled and
+ * standing-order rails, where it means the instruction is set up; every other status resolves to
+ * [PaymentStatus.disposition].
+ */
+fun PaymentStatus.dispositionFor(consentType: ConsentType): PaymentDisposition =
+    if (this == PaymentStatus.InitiationCompleted && consentType.setsUpAnInstruction) {
+        PaymentDisposition.TerminalSuccess
+    } else {
+        disposition
+    }
+
+/** Whether this consent sets up a standing instruction rather than moving money once. */
+private val ConsentType.setsUpAnInstruction: Boolean
+    get() = when (this) {
+        ConsentType.DomesticScheduledPayment,
+        ConsentType.InternationalScheduledPayment,
+        ConsentType.DomesticStandingOrder,
+        ConsentType.InternationalStandingOrder,
+        -> true
+
+        ConsentType.DomesticSinglePayment,
+        ConsentType.InternationalSinglePayment,
+        -> false
+    }

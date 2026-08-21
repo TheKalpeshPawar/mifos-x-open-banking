@@ -12,7 +12,6 @@ package org.mifosx.openbanking.core.database.migration
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
-import androidx.sqlite.execSQL
 import org.mifosx.openbanking.core.database.AppDatabase
 
 /**
@@ -31,17 +30,17 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         // Renamed because international payments have always been stored here too, so the old name
         // was never accurate. RENAME COLUMN needs SQLite 3.25+, which BundledSQLiteDriver ships on
         // every target this app builds for, and it leaves the rows themselves untouched.
-        connection.execSQL("ALTER TABLE payment_history RENAME COLUMN domesticPaymentId TO paymentId")
+        connection.runSql("ALTER TABLE payment_history RENAME COLUMN domesticPaymentId TO paymentId")
 
         // OBIE returns one CreationDateTime and no per-stage history, so the timeline can only be
         // built from what this app observed. Existing rows get NULL: their stages happened before
         // anything recorded them, and a made-up timestamp would read as fact.
-        connection.execSQL("ALTER TABLE payment_history ADD COLUMN approvedAt TEXT")
-        connection.execSQL("ALTER TABLE payment_history ADD COLUMN submittedAt TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN approvedAt TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN submittedAt TEXT")
 
         // International-only. NULL on a domestic row, and on every row written before v5.
-        connection.execSQL("ALTER TABLE payment_history ADD COLUMN chargeBearer TEXT")
-        connection.execSQL("ALTER TABLE payment_history ADD COLUMN currencyOfTransfer TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN chargeBearer TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN currencyOfTransfer TEXT")
     }
 }
 
@@ -56,7 +55,7 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
  */
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override suspend fun migrate(connection: SQLiteConnection) {
-        connection.execSQL("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+        connection.runSql("ALTER TABLE accounts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
     }
 }
 
@@ -65,12 +64,96 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         // Scheduled payments only. NULL on every existing row, and on every immediate payment
         // written after this: an immediate payment has no future date, and defaulting one would
         // make the hub claim a payment is due later than it was actually made.
-        connection.execSQL("ALTER TABLE payment_history ADD COLUMN requestedExecutionDateTime TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN requestedExecutionDateTime TEXT")
+    }
+}
+
+/**
+ * Adds the two columns a recurring mandate needs.
+ *
+ * Both NULL on every existing row and on every product that runs once. A standing order's *first*
+ * payment date deliberately reuses `requestedExecutionDateTime` rather than taking a third column:
+ * the two mean the same thing — the date the first movement is due — and splitting them would leave
+ * two columns that must never both be set, which is a rule nothing enforces.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN frequency TEXT")
+        connection.runSql("ALTER TABLE payment_history ADD COLUMN finalPaymentDateTime TEXT")
+    }
+}
+
+/**
+ * Adds the two tables variable recurring payments need.
+ *
+ * A consent carries its caps as one nullable column per period rather than a child table: each
+ * period may appear at most once, so the six columns are the whole set. Payments reference their
+ * consent and go with it.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.runSql(
+            """
+            CREATE TABLE IF NOT EXISTS `vrp_consent` (
+                `consentId` TEXT NOT NULL,
+                `status` TEXT NOT NULL,
+                `createdAt` TEXT NOT NULL,
+                `validFrom` TEXT,
+                `validTo` TEXT,
+                `maxIndividualAmountMinor` INTEGER NOT NULL,
+                `currency` TEXT NOT NULL,
+                `interactionType` TEXT,
+                `payerScheme` TEXT,
+                `payerIdentification` TEXT,
+                `payerName` TEXT,
+                `payeeScheme` TEXT NOT NULL,
+                `payeeIdentification` TEXT NOT NULL,
+                `payeeName` TEXT NOT NULL,
+                `dayLimitMinor` INTEGER,
+                `weekLimitMinor` INTEGER,
+                `fortnightLimitMinor` INTEGER,
+                `monthLimitMinor` INTEGER,
+                `halfYearLimitMinor` INTEGER,
+                `yearLimitMinor` INTEGER,
+                `reference` TEXT,
+                `revokedAt` TEXT,
+                `syncedAt` TEXT,
+                PRIMARY KEY(`consentId`)
+            )
+            """.trimIndent(),
+        )
+        connection.runSql(
+            """
+            CREATE TABLE IF NOT EXISTS `vrp_payment` (
+                `localId` TEXT NOT NULL,
+                `consentId` TEXT NOT NULL,
+                `paymentId` TEXT,
+                `amountMinor` INTEGER NOT NULL,
+                `currency` TEXT NOT NULL,
+                `status` TEXT NOT NULL,
+                `createdAt` TEXT NOT NULL,
+                `submittedAt` TEXT,
+                `settledAt` TEXT,
+                `reference` TEXT,
+                `errorKind` TEXT,
+                `errorDescription` TEXT,
+                `supportReference` TEXT,
+                `syncedAt` TEXT,
+                PRIMARY KEY(`localId`),
+                FOREIGN KEY(`consentId`) REFERENCES `vrp_consent`(`consentId`)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        connection.runSql(
+            "CREATE INDEX IF NOT EXISTS `index_vrp_payment_consentId` ON `vrp_payment` (`consentId`)",
+        )
     }
 }
 
 /** Every migration the database knows about, in the order Room should consider them. */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+val ALL_MIGRATIONS: Array<Migration> =
+    arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
 
 /**
  * Registers every migration on a builder.

@@ -20,17 +20,18 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.data.TestSigningKey
 import org.mifosx.openbanking.core.data.banking.impl.PaymentStatusRepositoryImpl
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import template.core.base.network.NetworkResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,7 +71,6 @@ class PaymentStatusRepositoryImplTest {
     private class FakePaymentHistoryRepo(
         private val type: ConsentType? = null,
     ) : PaymentHistoryRepository {
-        override fun observeRecent(): Flow<List<PaymentHistoryItem>> = MutableStateFlow(emptyList())
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {}
         override suspend fun saveFailed(draft: PaymentDraft, errorKind: String, errorDescription: String) {}
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: ScheduledPaymentDraft) {}
@@ -79,9 +79,19 @@ class PaymentStatusRepositoryImplTest {
             errorKind: String,
             errorDescription: String,
         ) = Unit
-        override suspend fun refreshStatuses() {}
+        override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: StandingOrderDraft) {}
+        override suspend fun saveFailed(
+            draft: StandingOrderDraft,
+            errorKind: String,
+            errorDescription: String,
+        ) = Unit
         override suspend fun consentTypeOf(paymentId: String): ConsentType? = type
         override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
+        override fun observeHistory(
+            types: Set<ConsentType>,
+            limit: Int,
+        ): Flow<List<PaymentHistoryRow>> = flowOf(emptyList())
+        override suspend fun recordStatus(paymentId: String, receipt: PaymentReceipt) = Unit
     }
 
     private suspend fun repository(storedType: ConsentType?): PaymentStatusRepositoryImpl {

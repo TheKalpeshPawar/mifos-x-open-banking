@@ -35,8 +35,11 @@ import cmp.navigation.ui.rememberKptNavController
 import cmp.navigation.utils.toObjectNavigationRoute
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.data.callback.AuthorisationLeg
 import org.mifosx.openbanking.core.data.callback.ConsentRedirectBus
 import org.mifosx.openbanking.core.data.callback.PaymentAuthRepository
+import org.mifosx.openbanking.core.data.callback.authorisationLegOf
+import org.mifosx.openbanking.core.data.vrp.VrpAuthRepository
 import org.mifosx.openbanking.feature.consentcallback.ConsentCallbackRoute
 import org.mifosx.openbanking.feature.consentcallback.consentCallbackDestination
 import org.mifosx.openbanking.feature.consentcallback.navigateToConsentCallback
@@ -47,6 +50,8 @@ import org.mifosx.openbanking.feature.paymentconsent.PaymentConsentRoute
 import org.mifosx.openbanking.feature.paymentconsent.paymentConsentScreen
 import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusRoute
 import org.mifosx.openbanking.feature.paymentstatus.paymentStatusScreen
+import org.mifosx.openbanking.feature.vrpcallback.callback.VrpCallbackRoute
+import org.mifosx.openbanking.feature.vrpcallback.callback.vrpCallbackScreen
 import template.core.base.ui.util.NonNullEnterTransitionProvider
 import template.core.base.ui.util.NonNullExitTransitionProvider
 import template.core.base.ui.util.RootTransitionProviders
@@ -65,6 +70,7 @@ fun RootNavScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val previousStateReference = remember { AtomicReference(state) }
     val paymentAuthRepository: PaymentAuthRepository = koinInject()
+    val vrpAuthRepository: VrpAuthRepository = koinInject()
 
     val isNotSplashScreen = state != RootNavState.Splash
     LaunchedEffect(isNotSplashScreen) {
@@ -114,13 +120,19 @@ fun RootNavScreen(
         )
         paymentStatusScreen(
             onBack = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
-            onStartNewPayment = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
         )
         consentCallbackDestination(
             onNavigateToHome = {
                 navController.navigateToAuthenticatedGraph(rootNavOptions())
             },
             onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
+        )
+        // The VRP return leg. Registered here rather than in the navbar because the redirect arrives
+        // from outside the Compose tree; both outcomes route back into the authenticated graph,
+        // which then resolves the VRP list.
+        vrpCallbackScreen(
+            onCompleted = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
+            onAbandoned = { navController.navigateToAuthenticatedGraph(rootNavOptions()) },
         )
         authenticatedGraph(
             navController = navController,
@@ -149,19 +161,22 @@ fun RootNavScreen(
             if (redirectUrl == lastRoutedRedirect) return@collect
             lastRoutedRedirect = redirectUrl
 
-            // Sign-in and payment authorisations return through the same bus on the same registered
-            // redirect URI, so they must be told apart before either is processed. A payment return
-            // handled as a sign-in would exchange its code into the AIS session and overwrite the
-            // account bearer with a payments-scoped token, breaking every read in the app. The test
-            // matches the callback's `state` against the payment authorisation in flight — a value
-            // only that leg could have minted.
-            if (paymentAuthRepository.isPaymentRedirect(redirectUrl)) {
-                navController.navigate(
+            // All three legs return through the same bus on the same registered redirect URI, so
+            // they must be told apart before any of them is processed: the leg decides which session
+            // the code is exchanged into, and exchanging into the wrong one corrupts it. The
+            // ordering that resolves a redirect two legs would accept lives in authorisationLegOf.
+            when (authorisationLegOf(redirectUrl, vrpAuthRepository, paymentAuthRepository)) {
+                AuthorisationLeg.Vrp -> navController.navigate(
+                    VrpCallbackRoute(redirectUrl = redirectUrl),
+                    rootNavOptions(),
+                )
+
+                AuthorisationLeg.Payment -> navController.navigate(
                     PaymentConsentRoute(redirectUrl = redirectUrl),
                     rootNavOptions(),
                 )
-            } else {
-                navController.navigateToConsentCallback(
+
+                AuthorisationLeg.SignIn -> navController.navigateToConsentCallback(
                     route = ConsentCallbackRoute(redirectUrl = redirectUrl),
                     navOptions = rootNavOptions(),
                 )

@@ -30,8 +30,8 @@ import org.mifosx.openbanking.feature.directdebits.di.DirectDebitsModule
 import org.mifosx.openbanking.feature.home.di.HomeModule
 import org.mifosx.openbanking.feature.login.di.LoginModule
 import org.mifosx.openbanking.feature.paymentconsent.di.PaymentConsentModule
-import org.mifosx.openbanking.feature.paymentshub.di.PaymentsHubModule
 import org.mifosx.openbanking.feature.paymentsschedulepayment.di.SchedulePaymentModule
+import org.mifosx.openbanking.feature.paymentsstandingorder.di.StandingOrderModule
 import org.mifosx.openbanking.feature.paymentstatus.di.PaymentStatusModule
 import org.mifosx.openbanking.feature.product.di.ProductModule
 import org.mifosx.openbanking.feature.scheduledpayments.di.ScheduledPaymentsModule
@@ -43,6 +43,10 @@ import org.mifosx.openbanking.feature.statements.StatementFileHandler
 import org.mifosx.openbanking.feature.statements.di.StatementsModule
 import org.mifosx.openbanking.feature.transactiondetail.di.TransactionDetailModule
 import org.mifosx.openbanking.feature.transactions.di.TransactionsModule
+import org.mifosx.openbanking.feature.vrpcallback.di.VrpCallbackModule
+import org.mifosx.openbanking.feature.vrpconsents.di.VrpConsentsModule
+import org.mifosx.openbanking.feature.vrppayment.di.VrpPaymentModule
+import org.mifosx.openbanking.feature.vrpsetup.di.VrpSetupModule
 import template.core.base.analytics.di.analyticsModule
 import template.core.base.common.di.CommonModule
 import template.core.base.platform.di.platformModule
@@ -86,10 +90,14 @@ object KoinModules {
             LoginModule,
             ConsentCallbackModule,
             SchedulePaymentModule,
+            StandingOrderModule,
             SendMoneyModule,
             PaymentStatusModule,
             PaymentConsentModule,
-            PaymentsHubModule,
+            VrpConsentsModule,
+            VrpSetupModule,
+            VrpCallbackModule,
+            VrpPaymentModule,
         )
 
         // App-layer binding for the statements feature's platform delivery seam; the impl is

@@ -12,12 +12,12 @@ package org.mifosx.openbanking.core.data.banking.mapper
 import org.mifosx.openbanking.core.database.banking.entity.PaymentHistoryEntity
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
-import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -25,12 +25,8 @@ private const val PAYMENT_TYPE_DOMESTIC = "domestic_payment"
 private const val PAYMENT_TYPE_INTERNATIONAL = "international_payment"
 private const val PAYMENT_TYPE_DOMESTIC_SCHEDULED = "domestic_scheduled_payment"
 private const val PAYMENT_TYPE_INTERNATIONAL_SCHEDULED = "international_scheduled_payment"
-
-private fun PaymentStatus.toLabel(): String = when (disposition) {
-    PaymentDisposition.TerminalSuccess -> "Sent"
-    PaymentDisposition.InProgress -> "Processing"
-    PaymentDisposition.TerminalFailure -> "Failed"
-}
+private const val PAYMENT_TYPE_DOMESTIC_STANDING_ORDER = "domestic_standing_order"
+private const val PAYMENT_TYPE_INTERNATIONAL_STANDING_ORDER = "international_standing_order"
 
 /**
  * The payer's three columns, blank when the PSU left the account to the bank.
@@ -163,6 +159,86 @@ internal fun ScheduledPaymentDraft.toFailureEntity(
     syncedAt = null,
 )
 
+/** The rail a mandate was built for, on the same discriminator both siblings use. */
+private fun StandingOrderDraft.paymentType(): String =
+    if (currencyOfTransfer != null) {
+        PAYMENT_TYPE_INTERNATIONAL_STANDING_ORDER
+    } else {
+        PAYMENT_TYPE_DOMESTIC_STANDING_ORDER
+    }
+
+/**
+ * The standing-order equivalent, carrying the two columns only a mandate has a value for.
+ *
+ * `settlementDateTime` stays null, and here that is not a workaround for a bank quirk but the plain
+ * fact: a mandate has no single settlement. The first payment date reuses `requestedExecutionDateTime`
+ * — the same meaning as on a scheduled payment — and [PaymentHistoryEntity.frequency] is what tells a
+ * reader the row repeats.
+ */
+internal fun PaymentReceipt.toEntity(
+    draft: StandingOrderDraft,
+    approvedAt: String? = null,
+    submittedAt: String? = null,
+): PaymentHistoryEntity =
+    PaymentHistoryEntity(
+        id = domesticPaymentId,
+        paymentId = domesticPaymentId,
+        errorKind = null,
+        errorDescription = null,
+        status = status.name,
+        debtorAccountId = draft.debtorAccount.historyAccountId(),
+        debtorName = draft.debtorAccount.historyName(),
+        debtorIdentification = debtorIdentification.ifBlank {
+            draft.debtorAccount.historyIdentification()
+        },
+        creditorName = draft.creditor.name,
+        creditorIdentification = draft.creditor.identification,
+        amountMinorUnits = draft.firstPaymentAmountMinorUnits,
+        currency = draft.currency,
+        reference = draft.reference,
+        creationDateTime = creationDateTime,
+        approvedAt = approvedAt,
+        submittedAt = submittedAt,
+        settlementDateTime = null,
+        chargeBearer = draft.chargeBearer?.wireValue,
+        currencyOfTransfer = draft.currencyOfTransfer,
+        requestedExecutionDateTime = requestedExecutionDateTime.takeIf { it.isNotBlank() }
+            ?: draft.firstPaymentDate,
+        frequency = draft.frequency.wireValue,
+        finalPaymentDateTime = draft.finalPaymentDate,
+        paymentType = draft.paymentType(),
+        syncedAt = null,
+    )
+
+/** A mandate the bank refused before it became a standing order. */
+internal fun StandingOrderDraft.toFailureEntity(
+    errorKind: String,
+    errorDescription: String,
+): PaymentHistoryEntity = PaymentHistoryEntity(
+    id = errorId(),
+    paymentId = null,
+    errorKind = errorKind,
+    errorDescription = errorDescription,
+    status = null,
+    debtorAccountId = debtorAccount.historyAccountId(),
+    debtorName = debtorAccount.historyName(),
+    debtorIdentification = debtorAccount.historyIdentification(),
+    creditorName = creditor.name,
+    creditorIdentification = creditor.identification,
+    amountMinorUnits = firstPaymentAmountMinorUnits,
+    currency = currency,
+    reference = reference,
+    creationDateTime = "",
+    settlementDateTime = null,
+    chargeBearer = chargeBearer?.wireValue,
+    currencyOfTransfer = currencyOfTransfer,
+    requestedExecutionDateTime = firstPaymentDate,
+    frequency = frequency.wireValue,
+    finalPaymentDateTime = finalPaymentDate,
+    paymentType = paymentType(),
+    syncedAt = null,
+)
+
 internal fun PaymentDraft.toFailureEntity(
     errorKind: String,
     errorDescription: String,
@@ -188,26 +264,36 @@ internal fun PaymentDraft.toFailureEntity(
     syncedAt = null,
 )
 
-internal fun PaymentHistoryEntity.toPaymentHistoryItem(): PaymentHistoryItem {
-    val resolved = status?.let(PaymentStatus.Companion::fromWire)
-    return PaymentHistoryItem(
-        id = id,
-        domesticPaymentId = paymentId,
-        debtorName = debtorName,
-        creditorName = creditorName,
-        creditorIdentification = creditorIdentification,
-        amountMinorUnits = amountMinorUnits,
-        currency = currency,
-        creationDateTime = creationDateTime,
-        isFailure = errorKind != null ||
-            resolved?.disposition == PaymentDisposition.TerminalFailure,
-        isInFlight = resolved?.disposition == PaymentDisposition.InProgress,
-        statusLabel = resolved?.toLabel()
-            ?: errorDescription
-            ?: "Failed",
-        errorDescription = errorDescription,
-    )
+/**
+ * A stored row as a history entry, or null when it is not one.
+ *
+ * Null for a row with no bank id or an unrecognised [PaymentHistoryEntity.paymentType].
+ */
+internal fun PaymentHistoryEntity.toHistoryRow(): PaymentHistoryRow? {
+    val bankId = paymentId
+    val type = paymentType.toConsentType()
+    return if (bankId == null || type == null) {
+        null
+    } else {
+        PaymentHistoryRow(
+            paymentId = bankId,
+            consentType = type,
+            status = status.toPaymentStatus(),
+            amountMinorUnits = amountMinorUnits,
+            currency = currency,
+            creditorName = creditorName,
+            submittedAt = submittedAt.orEmpty(),
+            reference = reference,
+            requestedExecutionDateTime = requestedExecutionDateTime,
+            frequency = frequency,
+            finalPaymentDateTime = finalPaymentDateTime,
+        )
+    }
 }
+
+/** The status a stored string names, matching the persisted enum name before the wire codes. */
+private fun String?.toPaymentStatus(): PaymentStatus =
+    PaymentStatus.entries.firstOrNull { it.name == this } ?: PaymentStatus.fromWire(this)
 
 @OptIn(ExperimentalUuidApi::class)
 private fun errorId(): String = Uuid.random().toString()

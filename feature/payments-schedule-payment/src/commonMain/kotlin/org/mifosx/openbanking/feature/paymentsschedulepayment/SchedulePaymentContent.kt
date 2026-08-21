@@ -22,14 +22,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,16 +38,23 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
+import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
+import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
+import org.mifosx.openbanking.core.ui.components.MifosAmountCard
+import org.mifosx.openbanking.core.ui.components.MifosDropdownBox
+import org.mifosx.openbanking.core.ui.components.MifosDropdownField
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
-import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
+import org.mifosx.openbanking.core.ui.components.MifosOutlinedTextField
+import org.mifosx.openbanking.core.ui.components.MifosRailToggle
+import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice
+import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
+import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
+import org.mifosx.openbanking.core.ui.payee.MifosPayeeOption
+import org.mifosx.openbanking.core.ui.payment.MifosPaymentHistoryList
+import org.mifosx.openbanking.core.ui.payment.toRowUi
 import org.mifosx.openbanking.feature.paymentsschedulepayment.components.DateField
 import org.mifosx.openbanking.feature.paymentsschedulepayment.components.ExecutionDatePickerDialog
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.RailToggle
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.SchedulePaymentAmountCard
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.SchedulePaymentDropdownBox
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.SchedulePaymentDropdownField
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.SchedulePaymentPayeeAvatarRow
-import org.mifosx.openbanking.feature.paymentsschedulepayment.components.SchedulePaymentPayerPicker
 import org.mifosx.openbanking.feature.paymentsschedulepayment.components.chargeBearerLabel
 import org.mifosx.openbanking.feature.paymentsschedulepayment.components.currencyName
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.Res
@@ -64,6 +68,7 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_date_heading
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_debtor_heading
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_form_trust_note
+import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_history_title
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_account_number
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_account_number_error
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_confirm
@@ -72,24 +77,20 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_name
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_sort_code
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_manual_sort_code_error
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_no_saved_payees_body
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_no_saved_payees_title
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_non_gbp_notice
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_payee_needs_payer
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_payees_failed_body
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_payees_failed_title
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_payees_loading_a11y
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_reference_helper
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_reference_label
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_retry
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_button
-import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_selected_a11y
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.OFFERED_CHARGE_BEARERS
+import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAccountRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAmountProblem
+import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentUiState
 import template.core.base.designsystem.theme.KptTheme
+import org.mifosx.openbanking.core.ui.generated.resources.Res as CoreRes
 
 private const val REFERENCE_MAX_LENGTH = 35
 
@@ -104,11 +105,39 @@ internal fun SchedulePaymentContent(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPayment: (String) -> Unit = {},
+    onShowAllPayments: () -> Unit = {},
 ) {
     when (state.step) {
-        SchedulePaymentStep.Form -> SchedulePaymentFormPage(state, onAction, modifier)
+        SchedulePaymentStep.Form ->
+            SchedulePaymentFormPage(state, onAction, onOpenPayment, onShowAllPayments, modifier)
+
         SchedulePaymentStep.Review -> SchedulePaymentReviewPage(state, onAction, modifier)
     }
+}
+
+/**
+ * The payments already scheduled from here.
+ *
+ * Absent rather than empty until there is one: this sits under a form the customer came to fill in,
+ * and a notice saying they have scheduled nothing is not worth the space it takes on first use.
+ */
+@Composable
+private fun RecentPaymentsSection(
+    state: SchedulePaymentUiState.Content,
+    onOpenPayment: (String) -> Unit,
+    onShowAllPayments: () -> Unit,
+) {
+    if (state.recentPayments.isEmpty()) return
+
+    MifosPaymentHistoryList(
+        payments = state.recentPayments.map { it.toRowUi() },
+        title = stringResource(Res.string.feature_payments_schedule_payment_history_title),
+        onPaymentClick = onOpenPayment,
+        onSeeAll = onShowAllPayments.takeIf { state.hasMorePayments },
+        testTag = SchedulePaymentTestTags.HISTORY,
+        rowTestTag = SchedulePaymentTestTags::historyRow,
+    )
 }
 
 /**
@@ -123,6 +152,8 @@ internal fun SchedulePaymentContent(
 private fun SchedulePaymentFormPage(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
+    onOpenPayment: (String) -> Unit,
+    onShowAllPayments: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -143,9 +174,11 @@ private fun SchedulePaymentFormPage(
                     .padding(ScreenPadding),
                 verticalArrangement = Arrangement.spacedBy(SectionGap),
             ) {
-                RailToggle(
+                MifosRailToggle(
                     rail = state.rail,
                     onSelect = { onAction(SchedulePaymentAction.SelectRail(it)) },
+                    modifier = Modifier.testTag(SchedulePaymentTestTags.RAIL_TOGGLE),
+                    optionTestTag = SchedulePaymentTestTags::railOption,
                 )
                 PayerSection(state, onAction)
                 PayeeSection(state, onAction)
@@ -154,6 +187,7 @@ private fun SchedulePaymentFormPage(
                 // flow rather than tucked under the amount as an afterthought.
                 DateSection(state, onAction)
                 AmountSection(state, onAction)
+                RecentPaymentsSection(state, onOpenPayment, onShowAllPayments)
             }
         }
         FormActions(state, onAction)
@@ -195,14 +229,33 @@ private fun PayerSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_debtor_heading))
-        SchedulePaymentPayerPicker(
-            rows = state.debtorRows,
+        MifosAccountPicker(
+            options = state.debtorRows.map { it.toPickerOption() },
             selectedId = state.debtorAccountId,
-            letBankChoose = state.letBankChoosePayer,
             expanded = state.payerPickerExpanded,
             onToggle = { onAction(SchedulePaymentAction.TogglePayerPicker) },
             onSelect = { onAction(SchedulePaymentAction.SelectDebtorAccount(it)) },
-            onLetBankChoose = { onAction(SchedulePaymentAction.LetBankChoosePayer) },
+            modifier = Modifier.testTag(SchedulePaymentTestTags.PAYER_PICKER),
+            unselectedLabel = if (state.letBankChoosePayer) {
+                stringResource(CoreRes.string.core_ui_account_picker_bank_choice)
+            } else {
+                null
+            },
+            unselectedSupporting = if (state.letBankChoosePayer) {
+                stringResource(CoreRes.string.core_ui_account_picker_bank_choice_supporting)
+            } else {
+                ""
+            },
+            headerTestTag = SchedulePaymentTestTags.PAYER_HEADER,
+            listTestTag = SchedulePaymentTestTags.DEBTOR_LIST,
+            rowTestTag = SchedulePaymentTestTags::debtorRow,
+            extraOptions = {
+                MifosBankChoiceRow(
+                    selected = state.letBankChoosePayer,
+                    onClick = { onAction(SchedulePaymentAction.LetBankChoosePayer) },
+                    testTag = SchedulePaymentTestTags.PAYER_BANK_CHOICE,
+                )
+            },
         )
         if (state.showsConversionAdvisory) {
             ConversionNotice(instructedCurrency = state.instructedCurrency)
@@ -261,14 +314,18 @@ private fun PayeeSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_creditor_heading))
-        SchedulePaymentPayeeAvatarRow(
+        MifosPayeeAvatarRow(
             // Empty whenever there is no payer, whatever the list happens to hold. Beneficiaries are
             // an account-scoped resource: with no account they are not "not loaded yet", they are
             // the previous account's, and showing them under a payer that no longer exists is the
             // defect this guard closes.
-            payees = if (state.payeesUnavailable) emptyList() else state.beneficiaries,
-            selectedId = state.creditor?.beneficiaryId,
-            selectedLabel = stringResource(Res.string.feature_payments_schedule_payment_selected_a11y),
+            payees = if (state.payeesUnavailable) {
+                emptyList()
+            } else {
+                state.beneficiaries.map { it.toPayeeOption() }
+            },
+            selectedId = state.creditor?.identification,
+            payNewSelected = state.manualEntryVisible,
             onSelect = { onAction(SchedulePaymentAction.SelectCreditor(it)) },
             onPayNew = { onAction(SchedulePaymentAction.ShowManualCreditorEntry) },
             modifier = Modifier.testTag(SchedulePaymentTestTags.CREDITOR_LIST),
@@ -276,15 +333,10 @@ private fun PayeeSection(
             loadingContentDescription = stringResource(
                 Res.string.feature_payments_schedule_payment_payees_loading_a11y,
             ),
+            payNewTestTag = SchedulePaymentTestTags.MANUAL_ENTRY_BUTTON,
+            loadingTestTag = SchedulePaymentTestTags.PAYEES_LOADING,
+            payeeTestTag = SchedulePaymentTestTags::creditorRow,
         )
-        when {
-            // Beneficiaries are saved per account, so without one there is no list to read.
-            // Saying so beats showing someone else's payees or an empty row that looks broken.
-            state.payeesUnavailable -> ChoosePayerFirstNotice()
-            state.payeesLoading -> Unit
-            state.payeesFailed -> PayeesFailedNotice(onAction)
-            !state.hasBeneficiaries -> NoSavedPayees()
-        }
 
         if (state.manualEntryVisible) {
             ManualCreditorFields(state, onAction)
@@ -348,50 +400,48 @@ private fun ManualCreditorFields(
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
-        OutlinedTextField(
+        MifosOutlinedTextField(
             value = state.manualName,
             onValueChange = { onAction(SchedulePaymentAction.EnterManualName(it)) },
-            label = { Text(stringResource(Res.string.feature_payments_schedule_payment_manual_name)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.MANUAL_NAME),
+            label = stringResource(Res.string.feature_payments_schedule_payment_manual_name),
+            testTag = SchedulePaymentTestTags.MANUAL_NAME,
         )
         // The rails identify a creditor differently — sort code and account number against an IBAN —
         // and each refuses the other's scheme with U027, so only one set is ever offered.
         if (state.rail == PaymentRail.Domestic) {
-            OutlinedTextField(
+            MifosOutlinedTextField(
                 value = state.manualSortCode,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualSortCode(it)) },
-                label = { Text(stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code)) },
-                isError = state.fieldErrors.sortCodeInvalid,
+                label = stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code),
+                error = state.fieldErrors.sortCodeInvalid,
+                keyboardType = KeyboardType.Number,
+                testTag = SchedulePaymentTestTags.MANUAL_SORT_CODE,
                 supportingText = {
                     if (state.fieldErrors.sortCodeInvalid) {
                         Text(stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code_error))
                     }
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.MANUAL_SORT_CODE),
             )
-            OutlinedTextField(
+            MifosOutlinedTextField(
                 value = state.manualAccountNumber,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualAccountNumber(it)) },
-                label = { Text(stringResource(Res.string.feature_payments_schedule_payment_manual_account_number)) },
-                isError = state.fieldErrors.accountNumberInvalid,
+                label = stringResource(Res.string.feature_payments_schedule_payment_manual_account_number),
+                error = state.fieldErrors.accountNumberInvalid,
+                keyboardType = KeyboardType.Number,
+                testTag = SchedulePaymentTestTags.MANUAL_ACCOUNT_NUMBER,
                 supportingText = {
                     if (state.fieldErrors.accountNumberInvalid) {
                         Text(stringResource(Res.string.feature_payments_schedule_payment_manual_account_number_error))
                     }
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.MANUAL_ACCOUNT_NUMBER),
             )
         } else {
-            OutlinedTextField(
+            MifosOutlinedTextField(
                 value = state.manualIban,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualIban(it)) },
-                label = { Text(stringResource(Res.string.feature_payments_schedule_payment_manual_iban)) },
-                isError = state.fieldErrors.ibanInvalid,
+                label = stringResource(Res.string.feature_payments_schedule_payment_manual_iban),
+                error = state.fieldErrors.ibanInvalid,
+                testTag = SchedulePaymentTestTags.MANUAL_IBAN,
                 supportingText = {
                     if (state.fieldErrors.ibanInvalid) {
                         Text(
@@ -400,8 +450,6 @@ private fun ManualCreditorFields(
                         )
                     }
                 },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.MANUAL_IBAN),
             )
         }
         MifosFilledPillButton(
@@ -418,11 +466,15 @@ private fun AmountSection(
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
-        SchedulePaymentAmountCard(
+        MifosAmountCard(
             amount = state.amountInput,
             balanceLabel = state.availableBalanceLabel,
             errorMessage = state.amountProblem?.let { stringResource(it.messageResource()) },
             onAmountChange = { onAction(SchedulePaymentAction.EnterAmount(it)) },
+            modifier = Modifier.testTag(SchedulePaymentTestTags.AMOUNT_CARD),
+            fieldTestTag = SchedulePaymentTestTags.AMOUNT_FIELD,
+            errorTestTag = SchedulePaymentTestTags.AMOUNT_ERROR,
+            balanceTestTag = SchedulePaymentTestTags.AMOUNT_BALANCE,
         ) {
             // Both rails fill the slot, so the figure begins at the same x-position on each and
             // switching rails does not shift it. What differs is only whether the box can be
@@ -436,15 +488,14 @@ private fun AmountSection(
         // Domestic only. International refuses RemittanceInformation outright with U005, so showing
         // the field there would invite someone to type a reference the recipient never sees.
         if (state.rail == PaymentRail.Domestic) {
-            OutlinedTextField(
+            MifosOutlinedTextField(
                 value = state.reference,
                 onValueChange = { onAction(SchedulePaymentAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
-                label = { Text(stringResource(Res.string.feature_payments_schedule_payment_reference_label)) },
+                label = stringResource(Res.string.feature_payments_schedule_payment_reference_label),
+                testTag = SchedulePaymentTestTags.REFERENCE_FIELD,
                 supportingText = {
                     Text(stringResource(Res.string.feature_payments_schedule_payment_reference_helper))
                 },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.REFERENCE_FIELD),
             )
         }
 
@@ -472,7 +523,7 @@ private fun InstructedCurrencyControl(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    SchedulePaymentDropdownBox(
+    MifosDropdownBox(
         label = state.instructedCurrency,
         selected = state.instructedCurrency,
         options = state.offeredCurrencies,
@@ -542,7 +593,7 @@ private fun ChargesSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_charges_heading))
-        SchedulePaymentDropdownField(
+        MifosDropdownField(
             label = chargeBearerLabel(state.chargeBearer),
             selected = state.chargeBearer,
             options = OFFERED_CHARGE_BEARERS,
@@ -563,88 +614,19 @@ private fun ChargesSection(
     }
 }
 
-/**
- * The saved payees could not be read, which is not the same as there being none.
- *
- * Says the read failed and offers to run it again, and leaves "Pay new" above it untouched — with no
- * list, hand-keying the details is the only route to a payment, so it must survive the failure that
- * makes it necessary. The cause is deliberately not named: `403` here is indistinguishable from an
- * expired token by the time it reaches this state, and guessing at the bank's reason would put words
- * in its mouth.
- */
-@Composable
-private fun PayeesFailedNotice(onAction: (SchedulePaymentAction) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(SchedulePaymentTestTags.PAYEES_FAILED)
-            .clip(RoundedCornerShape(NoticeCorner))
-            .background(KptTheme.colorScheme.surfaceContainer)
-            .padding(NoticePadding),
-        verticalArrangement = Arrangement.spacedBy(HeadingGap),
-    ) {
-        Text(
-            text = stringResource(Res.string.feature_payments_schedule_payment_payees_failed_title),
-            style = KptTheme.typography.titleSmall,
-            color = KptTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(Res.string.feature_payments_schedule_payment_payees_failed_body),
-            style = KptTheme.typography.bodySmall,
-            color = KptTheme.colorScheme.onSurfaceVariant,
-        )
-        MifosTonalPillButton(
-            label = stringResource(Res.string.feature_payments_schedule_payment_retry),
-            onClick = { onAction(SchedulePaymentAction.RetryPayees) },
-            testTag = SchedulePaymentTestTags.PAYEES_RETRY_BUTTON,
-        )
-    }
-}
+private fun SchedulePaymentAccountRow.toPickerOption(): MifosAccountOption = MifosAccountOption(
+    accountId = id,
+    accountSubType = accountSubType,
+    accountNumber = accountNumber,
+    rawIdentification = rawIdentification,
+    availableBalance = supporting,
+)
 
-/**
- * Why the payee list is empty when no payer has been chosen.
- *
- * Not an error and not an empty state: the list is account-scoped, so it genuinely cannot be
- * fetched yet. [NoSavedPayees] is the different case where an account was chosen and has none.
- */
-@Composable
-private fun ChoosePayerFirstNotice() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(SchedulePaymentTestTags.PAYEE_NEEDS_PAYER)
-            .clip(RoundedCornerShape(NoticeCorner))
-            .background(KptTheme.colorScheme.surfaceContainer)
-            .padding(NoticePadding),
-        verticalArrangement = Arrangement.spacedBy(HeroGap),
-    ) {
-        Text(
-            text = stringResource(Res.string.feature_payments_schedule_payment_payee_needs_payer),
-            style = KptTheme.typography.bodyMedium,
-            color = KptTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun NoSavedPayees() {
-    Column(
-        modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.NO_SAVED_PAYEES),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(HeadingGap),
-    ) {
-        Text(
-            text = stringResource(Res.string.feature_payments_schedule_payment_no_saved_payees_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(Res.string.feature_payments_schedule_payment_no_saved_payees_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
+private fun SchedulePaymentPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = id,
+    shortName = shortName.ifBlank { headline },
+    initials = initials,
+)
 
 private fun SchedulePaymentAmountProblem.messageResource(): StringResource = when (this) {
     SchedulePaymentAmountProblem.NotANumber -> Res.string.feature_payments_schedule_payment_amount_error_not_a_number

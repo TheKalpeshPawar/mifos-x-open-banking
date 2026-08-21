@@ -33,15 +33,17 @@ data object PaymentsHubRoute
  */
 fun NavGraphBuilder.paymentsHubGraph(
     onNavigateToSendMoney: () -> Unit,
-    onNavigateToPaymentStatus: (String) -> Unit,
     onNavigateToSchedulePayment: () -> Unit = {},
+    onNavigateToStandingOrder: () -> Unit = {},
+    onNavigateToVrp: () -> Unit = {},
 ) {
     navigation<PaymentsHubDestination>(startDestination = PaymentsHubRoute) {
         composableWithStayTransitions<PaymentsHubRoute> {
             PaymentsHubScreen(
                 onNavigateToSendMoney = onNavigateToSendMoney,
-                onNavigateToPaymentStatus = onNavigateToPaymentStatus,
                 onNavigateToSchedulePayment = onNavigateToSchedulePayment,
+                onNavigateToStandingOrder = onNavigateToStandingOrder,
+                onNavigateToVrp = onNavigateToVrp,
             )
         }
     }

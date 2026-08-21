@@ -22,7 +22,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.mifosx.openbanking.core.data.TestSigningKey
@@ -35,11 +35,11 @@ import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
-import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import org.mifosx.openbanking.core.network.api.OAuth
 import org.mifosx.openbanking.core.network.api.Pisp
 import org.mifosx.openbanking.core.network.model.oauth.PsuTokenResponse
@@ -65,16 +65,6 @@ private const val PAYMENT_JSON =
 private const val INTL_PAYMENT_JSON =
     """{"Data":{"InternationalScheduledPaymentId":"19921","ConsentId":"$CONSENT_ID","Status":"INCO"}}"""
 
-/** The card refusal on this rail: a different code from the immediate one, the same path. */
-private const val CARD_REFUSAL_BODY =
-    """{"Code":"400","Id":"ref-1","Message":"Bad Request","Errors":[{"ErrorCode":"U027",""" +
-        """"Message":"Unsupported scheme","Path":"Data.Initiation.DebtorAccount.SchemeName"}]}"""
-
-/** A refusal about the payee, which must not be read as a statement about the payer. */
-private const val CREDITOR_REFUSAL_BODY =
-    """{"Code":"400","Id":"ref-2","Message":"Bad Request","Errors":[{"ErrorCode":"U027",""" +
-        """"Message":"Unsupported scheme","Path":"Data.Initiation.CreditorAccount.SchemeName"}]}"""
-
 /**
  * The scheduled write path at the wire, with one recurring question: **did it reach the scheduled
  * endpoint rather than the immediate one?**
@@ -95,8 +85,6 @@ class ScheduledPaymentInitiationRepositoryImplTest {
     )
 
     private val captured = mutableListOf<Recorded>()
-
-    private val registry = FakeAccountCapabilityRegistry()
 
     private fun draft(
         debtor: BankAccount? = BankAccount(
@@ -137,7 +125,6 @@ class ScheduledPaymentInitiationRepositoryImplTest {
 
     private class FakePaymentHistoryRepo : PaymentHistoryRepository {
         val submitted = mutableListOf<Pair<PaymentReceipt, ScheduledPaymentDraft>>()
-        override fun observeRecent(): Flow<List<PaymentHistoryItem>> = MutableStateFlow(emptyList())
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) {}
         override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: ScheduledPaymentDraft) {
             submitted += receipt to draft
@@ -148,9 +135,19 @@ class ScheduledPaymentInitiationRepositoryImplTest {
             errorKind: String,
             errorDescription: String,
         ) = Unit
-        override suspend fun refreshStatuses() {}
+        override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: StandingOrderDraft) {}
+        override suspend fun saveFailed(
+            draft: StandingOrderDraft,
+            errorKind: String,
+            errorDescription: String,
+        ) = Unit
         override suspend fun consentTypeOf(paymentId: String): ConsentType? = null
         override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
+        override fun observeHistory(
+            types: Set<ConsentType>,
+            limit: Int,
+        ): Flow<List<PaymentHistoryRow>> = flowOf(emptyList())
+        override suspend fun recordStatus(paymentId: String, receipt: PaymentReceipt) = Unit
     }
 
     private val history = FakePaymentHistoryRepo()
@@ -192,7 +189,6 @@ class ScheduledPaymentInitiationRepositoryImplTest {
             ),
             oauth = OAuth(client, "https://sandbox.test/oauth2/token", "test-client", "test-kid", signingKey),
             paymentAuthSession = session,
-            capabilityRegistry = registry,
             signingKeyPem = signingKey,
             clientId = "test-client",
             kid = "test-kid",
@@ -346,36 +342,6 @@ class ScheduledPaymentInitiationRepositoryImplTest {
         val result = repository(errorBody = """{"Data":{"Status":"AWAU"}}""").stagePayment(draft())
 
         assertIs<NetworkResult.Error<*>>(result)
-    }
-
-    /**
-     * A refused payer is remembered so the picker stops offering it.
-     *
-     * The match is on the OBIE **path**, which is why this works on a rail whose refusal code
-     * (`U027`) is different from the immediate rail's (`U002`) and is mapped nowhere.
-     */
-    @Test
-    fun aRefusedPayerIsRecordedAgainstTheAccount() = runTest {
-        repository(errorBody = CARD_REFUSAL_BODY, status = HttpStatusCode.BadRequest).stagePayment(draft())
-
-        assertEquals(listOf("acc-1" to AccountEndpoint.PaymentDebtor), registry.marked)
-    }
-
-    /** A refusal naming the payee says nothing about the payer, and must not disable their account. */
-    @Test
-    fun aRefusalAboutThePayeeDoesNotDisableThePayer() = runTest {
-        repository(errorBody = CREDITOR_REFUSAL_BODY, status = HttpStatusCode.BadRequest).stagePayment(draft())
-
-        assertTrue(registry.marked.isEmpty(), "nothing should have been marked unsupported")
-    }
-
-    /** With no debtor named, the bank was refusing its own choice — there is nothing to remember. */
-    @Test
-    fun aRefusalWithNoNamedDebtorRecordsNothing() = runTest {
-        repository(errorBody = CARD_REFUSAL_BODY, status = HttpStatusCode.BadRequest)
-            .stagePayment(draft(debtor = null))
-
-        assertTrue(registry.marked.isEmpty(), "nothing should have been marked unsupported")
     }
 
     // endregion

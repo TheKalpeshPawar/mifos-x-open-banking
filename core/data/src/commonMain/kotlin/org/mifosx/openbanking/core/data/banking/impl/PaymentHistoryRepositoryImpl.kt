@@ -16,38 +16,27 @@ import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.mapper.toConsentType
 import org.mifosx.openbanking.core.data.banking.mapper.toEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toFailureEntity
-import org.mifosx.openbanking.core.data.banking.mapper.toPaymentHistoryItem
+import org.mifosx.openbanking.core.data.banking.mapper.toHistoryRow
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
 import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
-import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
-import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryItem
+import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
-import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
-import org.mifosx.openbanking.core.network.api.ConsentCreationScope
-import org.mifosx.openbanking.core.network.api.OAuth
-import org.mifosx.openbanking.core.network.api.Pisp
-import template.core.base.network.NetworkResult
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import kotlin.time.Clock
 
 /**
- * Reads [PaymentHistoryDao.observeRecent] for the hub, writes on payment outcomes, and refreshes
- * in-flight statuses via [Pisp.getDomesticPayment].
+ * Writes payment outcomes and reads them back for the feature history lists.
  *
  * Stateless — the only thing it holds are its injected collaborators.
  */
 internal class PaymentHistoryRepositoryImpl(
     private val dao: PaymentHistoryDao,
-    private val pisp: Pisp,
-    private val oauth: OAuth,
     private val paymentAuthSession: PaymentAuthSession,
 ) : PaymentHistoryRepository {
-
-    override fun observeRecent(): Flow<List<PaymentHistoryItem>> =
-        dao.observeRecent().map { entities -> entities.map { it.toPaymentHistoryItem() } }
 
     /**
      * Stamps the two stage times the bank does not report.
@@ -74,6 +63,25 @@ internal class PaymentHistoryRepositoryImpl(
                 submittedAt = Clock.System.now().toString(),
             ),
         )
+    }
+
+    override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: StandingOrderDraft) {
+        dao.upsert(
+            receipt.toEntity(
+                draft = draft,
+                approvedAt = paymentAuthSession.approvedAt(),
+                submittedAt = Clock.System.now().toString(),
+            ),
+        )
+    }
+
+    override suspend fun saveFailed(
+        draft: StandingOrderDraft,
+        errorKind: String,
+        errorDescription: String,
+    ) {
+        val now = Clock.System.now().toEpochMilliseconds().toString()
+        dao.upsert(draft.toFailureEntity(errorKind, errorDescription).copy(creationDateTime = now))
     }
 
     override suspend fun saveFailed(
@@ -103,59 +111,20 @@ internal class PaymentHistoryRepositoryImpl(
             PaymentStageTimestamps(approvedAt = it.approvedAt, submittedAt = it.submittedAt)
         }
 
-    /**
-     * Refreshes every in-flight submitted payment.
-     *
-     * Only rows whose status resolves to [PaymentStatus.PaymentDisposition.InProgress] are
-     * refreshed; terminal successes, pre-submission failures, and rejected payments are skipped.
-     * Each refreshed row is re-upserted with the updated status and [syncedAt] timestamp.
-     */
-    @Suppress("ReturnCount")
-    override suspend fun refreshStatuses() {
-        val entities = dao.observeRecent().first()
-        val token = when (val result = oauth.clientCredentialsToken(ConsentCreationScope.PAYMENTS)) {
-            is template.core.base.network.NetworkResult.Success -> result.data.accessToken
-            is template.core.base.network.NetworkResult.Error -> return
-        }
+    /** Rows the mapper cannot resolve are dropped rather than shown as an unknown product. */
+    override fun observeHistory(
+        types: Set<ConsentType>,
+        limit: Int,
+    ): Flow<List<PaymentHistoryRow>> =
+        dao.observeByType(types.map { it.wireValue }, limit)
+            .map { rows -> rows.mapNotNull { it.toHistoryRow() } }
 
-        entities
-            .filter { it.paymentId != null && it.errorKind == null }
-            .filter { e ->
-                val resolved = e.status?.let(PaymentStatus.Companion::fromWire)
-                resolved?.disposition == PaymentDisposition.InProgress
-            }
-            .forEach { entity ->
-                val now = Clock.System.now().toEpochMilliseconds().toString()
-                val type = entity.paymentType.toConsentType()
-                val receipt = type?.let { fetchReceipt(token, entity.paymentId!!, it) }
-                dao.upsert(
-                    if (receipt == null) {
-                        // Keep the last-known status; mark that we tried.
-                        entity.copy(syncedAt = now)
-                    } else {
-                        entity.copy(
-                            status = receipt.status.name,
-                            settlementDateTime = receipt.settlementDateTime.takeIf { it.isNotBlank() },
-                            syncedAt = now,
-                        )
-                    },
-                )
-            }
+    override suspend fun recordStatus(paymentId: String, receipt: PaymentReceipt) {
+        dao.updateStatus(
+            paymentId = paymentId,
+            status = receipt.status.name,
+            settledAt = receipt.settlementDateTime.takeIf { it.isNotBlank() },
+            syncedAt = Clock.System.now().toString(),
+        )
     }
-
-    /**
-     * Reads a payment's status from the endpoint belonging to its own consent family.
-     *
-     * The endpoints are not interchangeable: an id issued by one answers 404 against another, so
-     * every international payment used to fail its own status refresh. Null on any failure — a
-     * refresh that cannot reach the bank leaves the stored status alone rather than overwriting it.
-     *
-     * A row whose stored type this build does not recognise never reaches here: the caller skips it
-     * rather than guessing an endpoint, which would report another product's answer as this one's.
-     */
-    private suspend fun fetchReceipt(
-        token: String,
-        paymentId: String,
-        type: ConsentType,
-    ): PaymentReceipt? = (pisp.readReceipt(token, paymentId, type) as? NetworkResult.Success)?.data
 }

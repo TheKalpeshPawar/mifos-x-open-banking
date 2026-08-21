@@ -30,27 +30,23 @@ internal object SchedulePaymentTestTags {
 
     /** The expanded half of the picker. Absent entirely while it is collapsed. */
     const val DEBTOR_LIST = "schedulePayment:debtorList"
+
+    /** The picker's collapsed row, which opens and closes it. */
+    const val PAYER_HEADER = "schedulePayment:payerHeader"
+
+    /** The recent scheduled payments under the form. */
+    const val HISTORY = "schedulePayment:history"
+
+    /** The full list of scheduled payments. */
+    const val HISTORY_SCREEN = "schedulePayment:historyScreen"
     const val PAYER_BANK_CHOICE = "schedulePayment:payerBankChoice"
     const val AMOUNT_CARD = "schedulePayment:amountCard"
     const val AMOUNT_BALANCE = "schedulePayment:amountBalance"
-    const val PAYEE_NEEDS_PAYER = "schedulePayment:payeeNeedsPayer"
     const val NON_GBP_NOTICE = "schedulePayment:nonGbpNotice"
     const val CREDITOR_LIST = "schedulePayment:creditorList"
-    const val NO_SAVED_PAYEES = "schedulePayment:noSavedPayees"
 
-    /**
-     * The payee read failed. Distinct from [NO_SAVED_PAYEES], which is the bank saying there are
-     * none — asserting one where the other belongs is the defect these two tags exist to separate.
-     */
-    const val PAYEES_FAILED = "schedulePayment:payeesFailed"
-
-    /**
-     * The payee read is still in flight — a third thing again, and the one that used to render as
-     * [NO_SAVED_PAYEES]. Every assertion on this tag is worth double: that it is there while the
-     * read is running, and that it is GONE on all four of the outcomes that end the read.
-     */
+    /** The payee read is still in flight, and the row is showing placeholders in its place. */
     const val PAYEES_LOADING = "schedulePayment:payeesLoading"
-    const val PAYEES_RETRY_BUTTON = "schedulePayment:payeesRetryButton"
     const val MANUAL_ENTRY_BUTTON = "schedulePayment:manualEntryButton"
     const val MANUAL_SORT_CODE = "schedulePayment:manualSortCode"
     const val MANUAL_ACCOUNT_NUMBER = "schedulePayment:manualAccountNumber"
@@ -157,4 +153,7 @@ internal object SchedulePaymentTestTags {
 
     /** One payee row, keyed by OBIE `BeneficiaryId`. */
     fun creditorRow(beneficiaryId: String): String = "schedulePayment:creditorRow:$beneficiaryId"
+
+    /** One scheduled-payment row, keyed by the bank's payment id. */
+    fun historyRow(paymentId: String): String = "schedulePayment:historyRow:$paymentId"
 }

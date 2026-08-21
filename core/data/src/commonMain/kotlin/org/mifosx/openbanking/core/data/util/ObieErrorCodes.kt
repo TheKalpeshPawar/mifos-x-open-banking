@@ -23,6 +23,14 @@ import template.core.base.network.NetworkError
  */
 const val OBIE_UNSUPPORTED_PRODUCT_CODE = "U000"
 
+/**
+ * HSBC's code for "payment outside control parameters".
+ *
+ * Covers both a breach of `MaximumIndividualAmount` and a breach of a periodic cap. The two share a
+ * request path and differ only in the message, so the code identifies the pair, not either half.
+ */
+const val OBIE_OUTSIDE_CONTROL_PARAMETERS_CODE = "U014"
+
 private val lenientJson = Json { ignoreUnknownKeys = true }
 
 /**
@@ -65,6 +73,16 @@ fun NetworkError.obieErrorCode(): String? = body?.parseObError()
 
 /** As [obieErrorCode], unwrapping [RemoteException]. */
 fun Throwable.obieErrorCode(): String? = (this as? RemoteException)?.networkError?.obieErrorCode()
+
+/**
+ * Whether the bank refused a payment for breaching the consent's own limits.
+ *
+ * Matched on the code rather than the status: it arrives as a `400`, the same as a malformed request
+ * and a refused payer, and only the code separates a limit the customer can work within from a
+ * failure they cannot act on.
+ */
+fun NetworkError.isOutsideControlParameters(): Boolean =
+    obieErrorCode() == OBIE_OUTSIDE_CONTROL_PARAMETERS_CODE
 
 /**
  * The envelope's top-level `Id` — the bank's own reference for this failure.
@@ -128,6 +146,41 @@ fun Throwable.isExecutionDateRefusal(): Boolean =
     obieErrorPath()?.contains(EXECUTION_DATE_PATH_FRAGMENT, ignoreCase = true) == true
 
 private const val EXECUTION_DATE_PATH_FRAGMENT = "RequestedExecutionDateTime"
+
+/**
+ * Whether the bank refused a standing order because of its FIRST payment date.
+ *
+ * A separate predicate from [isExecutionDateRefusal] rather than a widening of it, because a standing
+ * order never sends `RequestedExecutionDateTime` at all — that predicate silently never fires on this
+ * product, which is worse than it failing, since a refused date then reads as a generic failure.
+ *
+ * Kept apart from [isFinalPaymentDateRefusal] because the customer has two dates and only one of them
+ * is wrong. The bank cannot tell them apart for us: its `U003` message recites three rules at once —
+ * not today or tomorrow, within twelve months, and after the first payment date — whichever was
+ * actually broken.
+ */
+fun Throwable.isFirstPaymentDateRefusal(): Boolean =
+    obieErrorPath()?.contains(FIRST_PAYMENT_DATE_PATH_FRAGMENT, ignoreCase = true) == true
+
+private const val FIRST_PAYMENT_DATE_PATH_FRAGMENT = "FirstPaymentDateTime"
+
+/** Whether the bank refused a standing order because of its FINAL payment date. */
+fun Throwable.isFinalPaymentDateRefusal(): Boolean =
+    obieErrorPath()?.contains(FINAL_PAYMENT_DATE_PATH_FRAGMENT, ignoreCase = true) == true
+
+private const val FINAL_PAYMENT_DATE_PATH_FRAGMENT = "FinalPaymentDateTime"
+
+/**
+ * Whether the bank rejected the repeat interval.
+ *
+ * `U002 "Invalid value"` at `…MandateRelatedInformation.Frequency.Type`. The app should never provoke
+ * this — the frequency is a closed enum of the five accepted codes — so reaching it means a defect
+ * rather than something the customer can correct.
+ */
+fun Throwable.isFrequencyRefusal(): Boolean =
+    obieErrorPath()?.contains(FREQUENCY_PATH_FRAGMENT, ignoreCase = true) == true
+
+private const val FREQUENCY_PATH_FRAGMENT = "Frequency"
 
 private fun String?.carriesUnsupportedProductCode(): Boolean {
     if (this.isNullOrBlank()) return false
