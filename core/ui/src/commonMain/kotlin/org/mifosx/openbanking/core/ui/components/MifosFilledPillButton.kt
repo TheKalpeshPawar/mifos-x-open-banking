@@ -11,19 +11,16 @@ package org.mifosx.openbanking.core.ui.components
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import template.core.base.designsystem.theme.KptTheme
 
@@ -47,26 +44,21 @@ fun MifosFilledPillButton(
     testTag: String? = null,
     enabled: Boolean = true,
 ) {
-    Button(
+    MifosButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(BUTTON_HEIGHT)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
-        shape = RoundedCornerShape(PILL_CORNER_PERCENT),
+        shape = DesignToken.shapes.pill,
     ) {
         if (icon != null) {
-            Icon(icon, null, Modifier.size(ICON_SIZE))
+            Icon(icon, null, Modifier.size(DesignToken.sizes.iconExtraSmall))
             Spacer(Modifier.width(KptTheme.spacing.sm))
         }
         Text(label, style = KptTheme.typography.labelLarge)
     }
 }
-
-private val BUTTON_HEIGHT = 48.dp
-private val ICON_SIZE = 18.dp
-private const val PILL_CORNER_PERCENT = 50
 
 @Preview
 @Composable
