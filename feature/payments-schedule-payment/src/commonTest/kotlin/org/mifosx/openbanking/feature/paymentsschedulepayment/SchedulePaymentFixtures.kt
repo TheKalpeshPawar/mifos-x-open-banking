@@ -23,9 +23,9 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.OFFERED_CURRENCIES
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAccountRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAmountProblem
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentErrorKind
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
@@ -218,22 +218,22 @@ object SchedulePaymentFixtures {
      * `accountDisplayName`, exactly as it is in production. A fixture that pre-baked the label would
      * have passed while the live screen rendered blank rows, which is what happened.
      */
-    private fun debtorRows(): List<SchedulePaymentAccountRow> = listOf(
-        SchedulePaymentAccountRow(
-            id = CURRENT_ACCOUNT_ID,
-            nickname = "",
+    private fun debtorRows(): List<MifosAccountOption> = listOf(
+        MifosAccountOption(
+            accountId = CURRENT_ACCOUNT_ID,
+            accountHolderName = "",
             accountSubType = "CurrentAccount",
             accountNumber = "10203349",
             rawIdentification = "80200110203349",
-            supporting = "£21,530.92",
+            availableBalance = "£21,530.92",
         ),
-        SchedulePaymentAccountRow(
-            id = SAVINGS_ACCOUNT_ID,
-            nickname = "",
+        MifosAccountOption(
+            accountId = SAVINGS_ACCOUNT_ID,
+            accountHolderName = "",
             accountSubType = "Savings",
             accountNumber = "90953695",
             rawIdentification = "80122590953695",
-            supporting = "£482.10",
+            availableBalance = "£482.10",
         ),
     )
 
@@ -400,7 +400,7 @@ object SchedulePaymentFixtures {
     fun reviewState(
         reference: String = "RENT-FLAT12",
         rail: PaymentRail = PaymentRail.Domestic,
-        debtorAccountRow: SchedulePaymentAccountRow? = debtorRows().first(),
+        debtorAccountRow: MifosAccountOption? = debtorRows().first(),
         instructedCurrency: String = "GBP",
         chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
     ): SchedulePaymentState = SchedulePaymentState(

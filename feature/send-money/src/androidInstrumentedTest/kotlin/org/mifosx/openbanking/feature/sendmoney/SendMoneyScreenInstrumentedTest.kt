@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyState
@@ -50,14 +50,14 @@ private fun currentAccount(): BankAccount = BankAccount(
     rawIdentification = "80200110203349",
 )
 
-private fun debtorRows(): List<SendMoneyAccountRow> = listOf(
-    SendMoneyAccountRow(
-        id = CURRENT_ACCOUNT_ID,
-        nickname = "Current account ·· 3349",
+private fun debtorRows(): List<MifosAccountOption> = listOf(
+    MifosAccountOption(
+        accountId = CURRENT_ACCOUNT_ID,
+        accountHolderName = "Current account ·· 3349",
         accountSubType = "CurrentAccount",
         accountNumber = "10203349",
         rawIdentification = "80200110203349",
-        supporting = "£21,530.92 available",
+        availableBalance = "£21,530.92 available",
     ),
 )
 

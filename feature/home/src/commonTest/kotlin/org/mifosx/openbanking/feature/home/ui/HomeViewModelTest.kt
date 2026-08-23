@@ -41,7 +41,15 @@ class HomeViewModelTest {
     }
 
     private fun account(id: String, subType: String = "CurrentAccount") =
-        BankAccount(id, "Nickname $id", subType, "GBP", "400515", "12345678")
+        BankAccount(
+            accountId = id,
+            nickname = "Nickname $id",
+            accountSubType = subType,
+            currency = "GBP",
+            sortCode = "400515",
+            accountNumber = "12345678",
+            accountHolderName = "Nickname $id",
+        )
 
     private fun balance(id: String) = AccountBalance(id, "GBP", "2900.00", "2847.63")
 
@@ -64,7 +72,7 @@ class HomeViewModelTest {
 
         assertEquals("acc-1", data.selectedAccountId)
         assertEquals(2, data.accounts.size)
-        assertEquals("Nickname acc-1", data.accountNickname)
+        assertEquals("Nickname acc-1", data.accountHolderName)
         assertEquals("£2,900.00", data.balanceLabel)
         assertEquals("40-05-15  12345678", data.accountNumberLabel)
         assertEquals(5, data.recentTransactions.size)

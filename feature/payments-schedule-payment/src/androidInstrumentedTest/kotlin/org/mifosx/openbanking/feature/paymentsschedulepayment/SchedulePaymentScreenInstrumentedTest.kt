@@ -21,7 +21,7 @@ import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAccountRow
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentState
@@ -57,13 +57,13 @@ class SchedulePaymentScreenInstrumentedTest {
         rawIdentification = "80200110203349",
     )
 
-    private val accountRow = SchedulePaymentAccountRow(
-        id = "acc-1",
-        nickname = "",
+    private val accountRow = MifosAccountOption(
+        accountId = "acc-1",
+        accountHolderName = "",
         accountSubType = "CurrentAccount",
         accountNumber = "10203349",
         rawIdentification = "80200110203349",
-        supporting = "£21,530.92",
+        availableBalance = "£21,530.92",
     )
 
     private fun formState(

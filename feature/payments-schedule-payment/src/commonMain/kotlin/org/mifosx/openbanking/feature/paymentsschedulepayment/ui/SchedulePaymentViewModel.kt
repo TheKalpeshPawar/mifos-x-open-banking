@@ -44,6 +44,7 @@ import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.toHistoryEntry
 import template.core.base.common.screen.DataFreshness
@@ -740,7 +741,7 @@ class SchedulePaymentViewModel(
             step = entered.step,
             rail = entered.rail,
             debtorAccounts = accounts.map { it.account },
-            debtorRows = accounts.map { it.toAccountRow() },
+            debtorRows = accounts.map { it.toAccountOption() },
             beneficiaries = filteredPayees.map { it.toPickerRow() },
             debtorAccountId = entered.debtorAccountId,
             payerPickerExpanded = entered.payerPickerExpanded,
@@ -748,7 +749,7 @@ class SchedulePaymentViewModel(
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
             creditorSupporting = entered.creditor?.let { schemeLabel(it) }.orEmpty(),
-            debtorAccountRow = selected?.toAccountRow(),
+            debtorAccountRow = selected?.toAccountOption(),
             debtorCurrency = selected?.account?.currency.orEmpty(),
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
@@ -851,19 +852,15 @@ private fun ScreenState<*>.isFailure(): Boolean = when (this) {
 }
 
 /**
- * Carries the account's raw fields rather than a finished name.
- *
- * `nickname` is blank on most HSBC accounts, so using it as the headline renders an empty row —
- * which is exactly what shipped before this. The readable label is resolved at render by
- * `core/ui`'s `accountDisplayName`, the same resolver Home and Accounts use.
+ * One selectable account, carrying the raw fields the picker resolves to a finished name at render.
  */
-private fun AccountWithBalance.toAccountRow(): SchedulePaymentAccountRow = SchedulePaymentAccountRow(
-    id = account.accountId,
-    nickname = account.nickname,
+private fun AccountWithBalance.toAccountOption(): MifosAccountOption = MifosAccountOption(
+    accountId = account.accountId,
+    accountHolderName = account.accountHolderName,
     accountSubType = account.accountSubType,
     accountNumber = account.accountNumber,
     rawIdentification = account.rawIdentification,
-    supporting = balance?.let { formatMinorUnits(parseMinorUnits(it.availableAmount) ?: 0L, it.currency) }
+    availableBalance = balance?.let { formatMinorUnits(parseMinorUnits(it.availableAmount) ?: 0L, it.currency) }
         .orEmpty(),
 )
 

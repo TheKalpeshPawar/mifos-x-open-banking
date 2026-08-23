@@ -80,6 +80,7 @@ data class AccountHeaderUi(
      * description card is not drawn.
      */
     val description: String = "",
+    val accountHolderName: String = "",
 )
 
 /** One typed balance row, e.g. `InterimAvailable` / `2,847.63 GBP`. */

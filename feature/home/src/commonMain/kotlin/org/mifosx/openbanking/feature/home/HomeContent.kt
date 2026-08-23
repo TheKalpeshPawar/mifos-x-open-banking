@@ -52,7 +52,7 @@ internal fun HomeContent(
         HeroBalanceCard(
             accountTypeLabel = data.accountTypeLabel,
             nickname = accountDisplayName(
-                nickname = data.accountNickname,
+                accountHolderName = data.accountHolderName,
                 accountSubType = data.accountSubType,
                 accountNumber = data.accountNumber,
                 rawIdentification = data.rawIdentification,

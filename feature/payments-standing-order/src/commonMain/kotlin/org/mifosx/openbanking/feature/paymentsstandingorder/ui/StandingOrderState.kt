@@ -23,6 +23,7 @@ import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import template.core.base.network.NetworkError
 
@@ -138,15 +139,6 @@ data class StandingOrderPickerRow(
     val shortName: String = "",
 )
 
-data class StandingOrderAccountRow(
-    val id: String,
-    val nickname: String,
-    val accountSubType: String,
-    val accountNumber: String,
-    val rawIdentification: String,
-    val supporting: String,
-)
-
 sealed interface StandingOrderUiState {
 
     data object Loading : StandingOrderUiState
@@ -168,14 +160,14 @@ sealed interface StandingOrderUiState {
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
         val beneficiaries: List<StandingOrderPickerRow>,
-        val debtorRows: List<StandingOrderAccountRow>,
+        val debtorRows: List<MifosAccountOption>,
         val debtorAccountId: String? = null,
         val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
-        val debtorAccountRow: StandingOrderAccountRow? = null,
+        val debtorAccountRow: MifosAccountOption? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",

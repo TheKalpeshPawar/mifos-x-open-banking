@@ -110,7 +110,7 @@ internal fun AccountSelectorSheetContent(
             ) {
                 Text(
                     text = accountDisplayName(
-                        nickname = account.nickname,
+                        accountHolderName = account.accountHolderName,
                         accountSubType = account.accountSubType,
                         accountNumber = account.accountNumber,
                         rawIdentification = account.rawIdentification,

@@ -105,6 +105,7 @@ data class AccountRowUi(
     val accountSubType: String = "",
     val accountNumber: String = "",
     val rawIdentification: String = "",
+    val accountHolderName: String = "",
 )
 
 /** Display-ready accounts payload: filtered rows and the active type filter. */
@@ -162,6 +163,7 @@ class AccountsViewModel(
         id = account.accountId,
         type = AccountUiType.fromSubtype(account.accountSubType),
         nickname = account.nickname,
+        accountHolderName = account.accountHolderName,
         identifier = formatAccountIdentifier(
             subType = account.accountSubType,
             rawIdentification = account.rawIdentification,

@@ -57,23 +57,22 @@ fun accountTypeLabel(accountSubType: String): String =
 /**
  * The name to show for an account.
  *
- * A bank-provided `Nickname`/`Name` is used as-is. HSBC's sandbox provides neither (its top-level
- * `Description` is free text and the nested `Account[].Name` is the account holder, not the account),
- * so when [nickname] is blank this falls back to a localized account-type label plus an identifier —
- * e.g. "Current account ·· 3349". Shared so Home, Accounts and Account-detail render the same label
- * from the same localized strings.
+ * [accountHolderName] (OBIE nested `Account[].Name`) is used as-is when the bank supplies one; when it
+ * is blank this falls back to a localized account-type label plus an identifier — e.g.
+ * "Current account ·· 3349". Shared so Home, Accounts and Account-detail render the same label from the
+ * same localized strings.
  *
  * @param accountNumber the flattened UK account number; [rawIdentification] (e.g. a card number or
  *   IBAN) is used for the last-four when the account number is absent, as it is for cards.
  */
 @Composable
 fun accountDisplayName(
-    nickname: String,
+    accountHolderName: String,
     accountSubType: String,
     accountNumber: String,
     rawIdentification: String = "",
 ): String {
-    if (nickname.isNotBlank()) return nickname
+    if (accountHolderName.isNotBlank()) return accountHolderName
     val typeLabel = stringResource(accountTypeLabelRes(accountSubType))
     return accountFallbackLabel(typeLabel, accountSubType, accountNumber, rawIdentification)
 }

@@ -45,6 +45,7 @@ import org.mifosx.openbanking.core.model.vrp.PeriodicLimit
 import org.mifosx.openbanking.core.model.vrp.ValidityWindow
 import org.mifosx.openbanking.core.model.vrp.VrpConsentDraft
 import org.mifosx.openbanking.core.model.vrp.VrpControlParameters
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.vrpsetup.AmountProblem
 import org.mifosx.openbanking.feature.vrpsetup.PayeeProblem
 import org.mifosx.openbanking.feature.vrpsetup.checkAccountNumber
@@ -118,24 +119,6 @@ sealed interface VrpSetupUiState {
 }
 
 /**
- * One account the customer may pay from.
- *
- * @property accountSubType Resolved to the type line by the picker.
- * @property accountNumber Masked by the picker; never shown whole.
- * @property identification The sort code and account number the bank is sent, and what the
- *   same-as-payee check compares.
- * @property availableBalance Already formatted, e.g. `£3,482.19`.
- */
-data class PayerOptionUi(
-    val accountId: String,
-    val displayName: String,
-    val accountSubType: String,
-    val accountNumber: String,
-    val identification: String,
-    val availableBalance: String,
-)
-
-/**
  * One payee the customer has already saved.
  *
  * @property payeeId The destination account, which is what the picker selects by.
@@ -158,7 +141,7 @@ data class PayeeOptionUi(
  * cannot wipe what has been typed.
  */
 data class SetupFormUi(
-    val payerOptions: List<PayerOptionUi> = emptyList(),
+    val payerOptions: List<MifosAccountOption> = emptyList(),
     val selectedPayerId: String? = null,
     val chooseAtBank: Boolean = false,
     val payerExpanded: Boolean = false,
@@ -198,7 +181,7 @@ data class SetupFormUi(
         get() = combinedIdentification(newPayeeSortCode, newPayeeAccountNumber)
 
     /** The account paying, when it is named here rather than chosen at the bank. */
-    val selectedPayer: PayerOptionUi?
+    val selectedPayer: MifosAccountOption?
         get() = payerOptions.firstOrNull { it.accountId == selectedPayerId }
 
     /** The payee chosen from the saved list. */
@@ -221,7 +204,7 @@ data class SetupFormUi(
             checkAmount(perPaymentAmount) == null &&
             checkAmount(periodicAmount) == null &&
             checkOrdering(perPaymentAmount, periodicAmount) == null &&
-            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.identification) == null &&
+            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.rawIdentification) == null &&
             newPayeeIsUsable
 
     /** Whether a newly entered payee is complete. Vacuously true when a saved payee was chosen. */
@@ -596,12 +579,12 @@ private fun BankAccount.canFundAVrp(): Boolean = HsbcProductCapability.supports(
     ),
 )
 
-private fun AccountWithBalance.toOptionUi(): PayerOptionUi = PayerOptionUi(
+private fun AccountWithBalance.toOptionUi(): MifosAccountOption = MifosAccountOption(
     accountId = account.accountId,
-    displayName = account.nickname.ifBlank { account.accountSubType },
+    accountHolderName = account.accountHolderName,
     accountSubType = account.accountSubType,
     accountNumber = account.accountNumber,
-    identification = account.rawIdentification,
+    rawIdentification = account.rawIdentification,
     availableBalance = balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
 )
 
@@ -634,8 +617,8 @@ private fun SetupFormUi.toDraft(): VrpConsentDraft = VrpConsentDraft(
     payer = selectedPayer?.let {
         AccountIdentity(
             schemeName = SORT_CODE_ACCOUNT_NUMBER,
-            identification = it.identification,
-            name = it.displayName,
+            identification = it.rawIdentification,
+            name = it.accountHolderName,
         )
     },
     payerAccountId = selectedPayerId,
@@ -667,7 +650,7 @@ private fun SetupFormUi.revalidateAmounts(): SetupFormUi {
  * against the sort code or the account number the customer happened to edit last.
  */
 private fun SetupFormUi.revalidatePayee(): SetupFormUi = copy(
-    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.identification),
+    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.rawIdentification),
 )
 
 /** Re-checks everything, for the moment the customer asks to continue. */

@@ -52,6 +52,11 @@ data class AppSizes(
     val heroCard: Dp = 180.dp,
     val step: Dp = 40.dp,
     val badge: Dp = 96.dp,
+    val imageSmall: Dp = 50.dp,
+    val imageLarge: Dp = 100.dp,
+    val imageWide: Dp = 28.dp,
+    val navigationRailWidth: Dp = 80.dp,
+    val illustration: Dp = 212.dp,
 )
 
 /** Border widths. */

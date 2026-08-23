@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import template.core.base.network.NetworkError
 
@@ -158,24 +159,6 @@ data class SendMoneyPickerRow(
     val shortName: String = "",
 )
 
-/**
- * One selectable account row, carrying the raw fields rather than a finished label.
- *
- * HSBC leaves `Nickname` blank on most accounts, so the readable name — "Current account ·· 3349" —
- * has to be derived. That derivation lives in `core/ui`'s `accountDisplayName`, which is
- * `@Composable` because it resolves a string resource per account type, so it cannot run in the
- * ViewModel. Passing the ingredients up and resolving them at render keeps this list showing exactly
- * what Home, Accounts and account-detail show, instead of a second, emptier answer.
- */
-data class SendMoneyAccountRow(
-    val id: String,
-    val nickname: String,
-    val accountSubType: String,
-    val accountNumber: String,
-    val rawIdentification: String,
-    val supporting: String,
-)
-
 sealed interface SendMoneyUiState {
 
     data object Loading : SendMoneyUiState
@@ -198,14 +181,14 @@ sealed interface SendMoneyUiState {
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
         val beneficiaries: List<SendMoneyPickerRow>,
-        val debtorRows: List<SendMoneyAccountRow>,
+        val debtorRows: List<MifosAccountOption>,
         val debtorAccountId: String? = null,
         val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
-        val debtorAccountRow: SendMoneyAccountRow? = null,
+        val debtorAccountRow: MifosAccountOption? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",

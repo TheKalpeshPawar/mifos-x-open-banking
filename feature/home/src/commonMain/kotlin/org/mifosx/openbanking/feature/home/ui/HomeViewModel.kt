@@ -48,6 +48,7 @@ data class AccountChipUi(
     val accountSubType: String = "",
     val accountNumber: String = "",
     val rawIdentification: String = "",
+    val accountHolderName: String = "",
 )
 
 /** A recent-transaction row, pre-formatted for display. */
@@ -67,7 +68,7 @@ data class HomeData(
     val accounts: List<AccountChipUi>,
     val selectedAccountId: String,
     val accountTypeLabel: String,
-    val accountNickname: String,
+    val accountHolderName: String,
     /** Selected account's raw fields, so the hero card can fall back to a "type ·· last 4" label. */
     val accountSubType: String = "",
     val accountNumber: String = "",
@@ -195,6 +196,7 @@ class HomeViewModel(
                 AccountChipUi(
                     id = it.accountId,
                     nickname = it.nickname,
+                    accountHolderName = it.accountHolderName,
                     accountSubType = it.accountSubType,
                     accountNumber = it.accountNumber,
                     rawIdentification = it.rawIdentification,
@@ -202,7 +204,7 @@ class HomeViewModel(
             },
             selectedAccountId = selectedId,
             accountTypeLabel = selected?.accountSubType.orEmpty().uppercase(),
-            accountNickname = selected?.nickname.orEmpty(),
+            accountHolderName = selected?.accountHolderName.orEmpty(),
             accountSubType = selected?.accountSubType.orEmpty(),
             accountNumber = selected?.accountNumber.orEmpty(),
             rawIdentification = selected?.rawIdentification.orEmpty(),

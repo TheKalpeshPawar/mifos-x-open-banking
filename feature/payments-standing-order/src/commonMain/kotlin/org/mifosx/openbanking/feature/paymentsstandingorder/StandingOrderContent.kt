@@ -38,7 +38,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.components.MifosAmountCard
@@ -94,7 +93,6 @@ import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.feature_payments_standing_order_reference_label
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.feature_payments_standing_order_review_button
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.OFFERED_CHARGE_BEARERS
-import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAccountRow
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAction
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAmountProblem
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderDateRole
@@ -270,7 +268,7 @@ private fun PayerSection(
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_payments_standing_order_debtor_heading))
         MifosAccountPicker(
-            options = state.debtorRows.map { it.toPickerOption() },
+            options = state.debtorRows,
             selectedId = state.debtorAccountId,
             expanded = state.payerPickerExpanded,
             onToggle = { onAction(StandingOrderAction.TogglePayerPicker) },
@@ -709,14 +707,6 @@ private fun ChargesSection(
         )
     }
 }
-
-private fun StandingOrderAccountRow.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = id,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
-    availableBalance = supporting,
-)
 
 private fun StandingOrderPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
     payeeId = id,

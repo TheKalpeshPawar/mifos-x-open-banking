@@ -38,7 +38,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.components.MifosAmountCard
@@ -83,7 +82,6 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_reference_label
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_button
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.OFFERED_CHARGE_BEARERS
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAccountRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAmountProblem
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
@@ -230,7 +228,7 @@ private fun PayerSection(
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_debtor_heading))
         MifosAccountPicker(
-            options = state.debtorRows.map { it.toPickerOption() },
+            options = state.debtorRows,
             selectedId = state.debtorAccountId,
             expanded = state.payerPickerExpanded,
             onToggle = { onAction(SchedulePaymentAction.TogglePayerPicker) },
@@ -613,14 +611,6 @@ private fun ChargesSection(
         )
     }
 }
-
-private fun SchedulePaymentAccountRow.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = id,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
-    availableBalance = supporting,
-)
 
 private fun SchedulePaymentPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
     payeeId = id,

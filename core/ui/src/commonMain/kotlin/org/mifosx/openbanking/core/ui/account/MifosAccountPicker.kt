@@ -33,8 +33,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.ui.generated.resources.Res
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_available_balance
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_choose
@@ -42,15 +42,16 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_expand
 import template.core.base.designsystem.theme.KptTheme
 
-private val RowMinHeight = 64.dp
+private val RowMinHeight = DesignToken.sizes.rowTall
 
 /** Matches the outlined text fields the picker sits beside. */
-private val BorderThickness = 1.dp
+private val BorderThickness = DesignToken.strokes.hairline
 
 /**
  * One account the picker offers.
  *
  * @property accountId The bank's identifier, and the value [MifosAccountPicker] reports on select.
+ * @property accountHolderName The account holder's name (OBIE `Account[].Name`), shown as the headline.
  * @property accountSubType OBIE `AccountSubType` or `AccountTypeCode`, resolved to the type label.
  * @property accountNumber The flattened UK account number, masked for display.
  * @property rawIdentification Used for the mask when [accountNumber] is absent, as it is for cards.
@@ -63,6 +64,7 @@ data class MifosAccountOption(
     val accountNumber: String,
     val rawIdentification: String = "",
     val availableBalance: String = "",
+    val accountHolderName: String = "",
 )
 
 /**
@@ -192,6 +194,7 @@ private fun AccountRow(
 @Composable
 private fun MifosAccountOption.Lines(emphasised: Boolean = false) {
     AccountLines(
+        name = accountHolderName,
         headline = maskedAccountNumber(accountSubType, accountNumber, rawIdentification),
         type = accountTypeLabel(accountSubType),
         balance = availableBalance,
@@ -204,13 +207,28 @@ private fun AccountLines(
     headline: String,
     type: String,
     balance: String,
+    name: String = "",
     emphasised: Boolean = false,
 ) {
+    if (name.isNotBlank()) {
+        Text(
+            text = name,
+            style = KptTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (emphasised) KptTheme.colorScheme.primary else KptTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
     Text(
         text = headline,
-        style = KptTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = if (emphasised) KptTheme.colorScheme.primary else KptTheme.colorScheme.onSurface,
+        style = if (name.isNotBlank()) KptTheme.typography.bodyMedium else KptTheme.typography.titleMedium,
+        fontWeight = if (name.isNotBlank()) null else FontWeight.SemiBold,
+        color = when {
+            name.isNotBlank() -> KptTheme.colorScheme.onSurfaceVariant
+            emphasised -> KptTheme.colorScheme.primary
+            else -> KptTheme.colorScheme.onSurface
+        },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

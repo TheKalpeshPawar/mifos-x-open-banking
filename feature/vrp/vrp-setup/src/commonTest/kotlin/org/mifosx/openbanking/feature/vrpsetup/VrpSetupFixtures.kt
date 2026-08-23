@@ -11,8 +11,8 @@ package org.mifosx.openbanking.feature.vrpsetup
 
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.model.vrp.PeriodType
+import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.vrpsetup.setup.PayeeOptionUi
-import org.mifosx.openbanking.feature.vrpsetup.setup.PayerOptionUi
 import org.mifosx.openbanking.feature.vrpsetup.setup.SetupFormUi
 import org.mifosx.openbanking.feature.vrpsetup.setup.SetupPhase
 import org.mifosx.openbanking.feature.vrpsetup.setup.StagingUi
@@ -31,21 +31,21 @@ object VrpSetupFixtures {
 
     val EARLIEST_END_DATE: LocalDate = LocalDate(2026, 8, 21)
 
-    fun payers(): List<PayerOptionUi> = listOf(
-        PayerOptionUi(
+    fun payers(): List<MifosAccountOption> = listOf(
+        MifosAccountOption(
             accountId = CURRENT_ACCOUNT_ID,
-            displayName = "Everyday Current Account",
+            accountHolderName = "Everyday Current Account",
             accountSubType = "CurrentAccount",
             accountNumber = "10204021",
-            identification = "80200110204021",
+            rawIdentification = "80200110204021",
             availableBalance = "£3,482.19",
         ),
-        PayerOptionUi(
+        MifosAccountOption(
             accountId = SAVINGS_ACCOUNT_ID,
-            displayName = "BMM ACCOUNT",
+            accountHolderName = "BMM ACCOUNT",
             accountSubType = "Savings",
             accountNumber = "90953695",
-            identification = "80122590953695",
+            rawIdentification = "80122590953695",
             availableBalance = "£482.10",
         ),
     )

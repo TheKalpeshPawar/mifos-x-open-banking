@@ -95,7 +95,7 @@ internal fun AccountCard(
                 )
                 Text(
                     text = accountDisplayName(
-                        nickname = row.nickname,
+                        accountHolderName = row.accountHolderName,
                         accountSubType = row.accountSubType,
                         accountNumber = row.accountNumber,
                         rawIdentification = row.rawIdentification,

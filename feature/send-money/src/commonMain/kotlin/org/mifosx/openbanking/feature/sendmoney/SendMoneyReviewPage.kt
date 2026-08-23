@@ -86,7 +86,7 @@ internal fun SendMoneyReviewPage(
 ) {
     val payerLabel = state.debtorAccountRow?.let { row ->
         accountDisplayName(
-            nickname = row.nickname,
+            accountHolderName = row.accountHolderName,
             accountSubType = row.accountSubType,
             accountNumber = row.accountNumber,
             rawIdentification = row.rawIdentification,

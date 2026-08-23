@@ -44,4 +44,11 @@
     <string name="core_ui_payment_history_failed">Your bank did not accept this payment</string>
     <!-- Spoken on a row, which otherwise reads as an amount and a date with no hint that it opens. -->
     <string name="core_ui_payment_history_open">Show this payment</string>
+
+    <!-- Shared state messages. -->
+    <string name="core_ui_no_internet">No internet connection</string>
+    <string name="core_ui_no_data">No data available</string>
+    <string name="core_ui_retry">Retry</string>
+    <string name="core_ui_something_went_wrong">Something went wrong</string>
+    <string name="core_ui_loading">Loading…</string>
 </resources>

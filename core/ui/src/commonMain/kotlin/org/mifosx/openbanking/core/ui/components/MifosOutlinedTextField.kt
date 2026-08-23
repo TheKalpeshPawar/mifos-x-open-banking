@@ -35,6 +35,10 @@ import template.core.base.designsystem.theme.KptTheme
  * @param supportingText Sits under the field, for a helper line or the message that goes with
  *   [error]. A slot rather than a string because several callers tag or condition their own.
  */
+@Deprecated(
+    "Use the config-based overload " +
+        "MifosOutlinedTextField(value, onValueChange, label, config = MifosTextFieldConfig(...)).",
+)
 @Composable
 fun MifosOutlinedTextField(
     value: String,

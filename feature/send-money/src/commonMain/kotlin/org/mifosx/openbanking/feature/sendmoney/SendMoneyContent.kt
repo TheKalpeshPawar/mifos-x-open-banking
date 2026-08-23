@@ -38,7 +38,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.components.MifosAmountCard
@@ -79,7 +78,6 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
 import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
-import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
@@ -194,7 +192,7 @@ private fun PayerSection(
     Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
         SectionHeading(stringResource(Res.string.feature_send_money_debtor_heading))
         MifosAccountPicker(
-            options = state.debtorRows.map { it.toPickerOption() },
+            options = state.debtorRows,
             selectedId = state.debtorAccountId,
             expanded = state.payerPickerExpanded,
             onToggle = { onAction(SendMoneyAction.TogglePayerPicker) },
@@ -564,14 +562,6 @@ private fun ChargesSection(
         )
     }
 }
-
-private fun SendMoneyAccountRow.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = id,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
-    availableBalance = supporting,
-)
 
 private fun SendMoneyPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
     payeeId = id,

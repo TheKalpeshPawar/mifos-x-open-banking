@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Info
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -124,6 +127,9 @@ object AppIcons {
     val QrCode2 = Icons.Filled.QrCode2
     val Edit = Icons.Filled.Edit
     val Edit2 = Icons.Outlined.Edit
+    val Error: ImageVector = Icons.Filled.Error
+    val ErrorCircle: ImageVector = Icons.Filled.ErrorOutline
+    val WifiOff: ImageVector = Icons.Filled.WifiOff
     val CalenderMonth = Icons.Filled.CalendarMonth
     val OutlinedDoneAll = Icons.Outlined.DoneAll
     val Person = Icons.Filled.Person

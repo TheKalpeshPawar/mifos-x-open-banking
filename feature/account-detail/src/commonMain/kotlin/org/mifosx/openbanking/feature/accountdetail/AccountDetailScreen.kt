@@ -70,7 +70,11 @@ private fun AccountDetailState.topBarTitle(): String = when (val current = uiSta
 
 @Composable
 private fun AccountHeaderUi.displayName(): String =
-    accountDisplayName(nickname = nickname, accountSubType = accountSubType, accountNumber = accountNumber)
+    accountDisplayName(
+        accountHolderName = accountHolderName,
+        accountSubType = accountSubType,
+        accountNumber = accountNumber,
+    )
 
 @Composable
 internal fun AccountDetailScreenContent(

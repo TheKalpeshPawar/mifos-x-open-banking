@@ -70,7 +70,7 @@ internal fun AccountHeaderCard(header: AccountHeaderUi, modifier: Modifier = Mod
             )
             Text(
                 text = accountDisplayName(
-                    nickname = header.nickname,
+                    accountHolderName = header.accountHolderName,
                     accountSubType = header.accountSubType,
                     accountNumber = header.accountNumber,
                 ),

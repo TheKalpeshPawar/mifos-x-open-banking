@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.formatIsoDate
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
@@ -87,7 +86,7 @@ private fun PayerSection(
         SectionLabel(stringResource(Res.string.feature_vrp_setup_payer_label))
 
         MifosAccountPicker(
-            options = form.payerOptions.map { it.toPickerOption() },
+            options = form.payerOptions,
             selectedId = form.selectedPayerId,
             expanded = form.payerExpanded,
             onToggle = { onAction(VrpSetupAction.PayerToggled) },
@@ -321,12 +320,4 @@ private fun PayeeOptionUi.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
     payeeId = payeeId,
     shortName = shortName,
     initials = initials,
-)
-
-private fun PayerOptionUi.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = accountId,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = identification,
-    availableBalance = availableBalance,
 )

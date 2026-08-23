@@ -21,6 +21,7 @@ import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
  *
  * @property accountId OBIE `AccountId`, the key for balance, direct-debit and standing-order lookups.
  * @property nickname Human-readable account name (OBIE `Nickname`, falling back to `Name`).
+ * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`).
  * @property accountSubType OBIE `AccountSubType` (e.g. `CurrentAccount`), rendered uppercase.
  * @property currency ISO-4217 currency code.
  * @property sortCode Six-digit UK sort code, unformatted (e.g. `400515`).
@@ -48,6 +49,7 @@ data class AccountDetail(
     val statusUpdateDateTime: String = "",
     val accountTypeCode: String = "",
     val description: String = "",
+    val accountHolderName: String = "",
 ) {
     /**
      * HSBC's product classification, which decides what this account's endpoints will serve.

@@ -36,6 +36,7 @@ private fun Account.toAccountDetailOrNull(): AccountDetail? {
     return AccountDetail(
         accountId = id,
         nickname = resolveNickname(),
+        accountHolderName = account?.firstOrNull()?.name.orEmpty(),
         accountSubType = resolveSubType(),
         currency = currency ?: "",
         sortCode = flattened.take(SORT_CODE_LENGTH),

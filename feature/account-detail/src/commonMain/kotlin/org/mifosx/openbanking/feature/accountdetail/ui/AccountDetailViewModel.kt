@@ -110,6 +110,7 @@ class AccountDetailViewModel(
 
     private fun AccountDetail.toHeaderUi(): AccountHeaderUi = AccountHeaderUi(
         nickname = nickname,
+        accountHolderName = accountHolderName,
         accountSubType = accountSubType.uppercase(),
         identificationLabel = buildIdentificationLabel(sortCode, accountNumber),
         currency = currency,
