@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Badge
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -40,6 +43,8 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -90,6 +95,9 @@ object AppIcons {
     val Visibility: ImageVector = Icons.Filled.Visibility
     val Check: ImageVector = Icons.Default.Check
     val KeyboardArrowDown: ImageVector = Icons.Default.KeyboardArrowDown
+    val KeyboardArrowUp: ImageVector = Icons.Filled.KeyboardArrowUp
+    val ArrowDropUp: ImageVector = Icons.Filled.ArrowDropUp
+    val ArrowDropDown: ImageVector = Icons.Filled.ArrowDropDown
     val Home = Icons.Outlined.Home
     val HomeBoarder = Icons.Rounded.Home
     val Payment = Icons.Rounded.SwapHoriz
@@ -100,6 +108,8 @@ object AppIcons {
     val MoreVert = Icons.Rounded.MoreVert
     val Search = Icons.Rounded.Search
     val Add = Icons.Rounded.Add
+    val Remove = Icons.Filled.Remove
+    val Refresh = Icons.Filled.Refresh
     val Back = Icons.AutoMirrored.Outlined.ArrowBack
     val Copy = Icons.Filled.ContentCopy
     val Share = Icons.Filled.Share

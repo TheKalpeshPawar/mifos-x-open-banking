@@ -88,7 +88,6 @@ class BeneficiariesViewModel(
     private fun BeneficiaryItem.toRowUi(): BeneficiaryRowUi = BeneficiaryRowUi(
         beneficiaryId = beneficiaryId,
         name = creditorName,
-        initials = initialsOf(creditorName),
         scheme = scheme,
         identification = formatIdentification(identification, scheme),
         reference = reference,
@@ -100,7 +99,6 @@ class BeneficiariesViewModel(
     }
 }
 
-private const val MAX_INITIALS = 2
 private const val IBAN_GROUP_SIZE = 4
 
 /**
@@ -117,20 +115,6 @@ internal fun List<BeneficiaryRowUi>.matching(query: String): List<BeneficiaryRow
         it.name.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
     }
 }
-
-/**
- * Derives up to two uppercase initials from a creditor name.
- *
- * Takes the first letter of the first two whitespace-separated words that start with a letter, so
- * `Priya Rajan N26 GmbH` yields `PR` rather than picking up the `N26`. A single-word name yields one
- * letter; a name with none yields an empty string, and the avatar renders blank rather than showing
- * punctuation.
- */
-internal fun initialsOf(name: String): String = name
-    .split(' ', '\t', '\n')
-    .mapNotNull { word -> word.firstOrNull { it.isLetter() } }
-    .take(MAX_INITIALS)
-    .joinToString(separator = "") { it.uppercase() }
 
 /**
  * Groups an IBAN into four-character blocks for display, leaving every other scheme untouched.

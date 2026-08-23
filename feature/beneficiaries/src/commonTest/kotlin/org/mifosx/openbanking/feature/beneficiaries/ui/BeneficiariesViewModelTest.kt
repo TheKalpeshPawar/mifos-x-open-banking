@@ -136,23 +136,6 @@ class BeneficiariesViewModelTest {
     }
 
     @Test
-    fun initialsAreDerivedFromTheFirstTwoWords() {
-        val vm = viewModel(repository = contentRepository())
-
-        val rows = content(vm).all
-        assertEquals("JL", rows.first { it.beneficiaryId == BeneficiariesFixtures.FIRST_ID }.initials)
-        assertEquals("EE", rows.first { it.beneficiaryId == BeneficiariesFixtures.ENERGY_ID }.initials)
-    }
-
-    @Test
-    fun initialsSkipAWordThatStartsWithADigit() {
-        val vm = viewModel(repository = contentRepository())
-
-        val iban = content(vm).all.first { it.beneficiaryId == BeneficiariesFixtures.IBAN_ID }
-        assertEquals("PR", iban.initials)
-    }
-
-    @Test
     fun anIbanIsGroupedIntoFourCharacterBlocksForDisplay() {
         val vm = viewModel(repository = contentRepository())
 

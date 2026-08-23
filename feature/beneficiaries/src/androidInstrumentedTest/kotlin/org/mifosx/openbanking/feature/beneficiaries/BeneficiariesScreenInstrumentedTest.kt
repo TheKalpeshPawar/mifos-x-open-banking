@@ -40,7 +40,6 @@ private fun rows(): List<BeneficiaryRowUi> = listOf(
     BeneficiaryRowUi(
         beneficiaryId = FIRST_ID,
         name = "Jameson Lettings",
-        initials = "JL",
         scheme = BeneficiaryScheme.SortCode,
         identification = "40-12-09 65872310",
         reference = "RENT-FLAT12",
@@ -48,7 +47,6 @@ private fun rows(): List<BeneficiaryRowUi> = listOf(
     BeneficiaryRowUi(
         beneficiaryId = ENERGY_ID,
         name = "EDF Energy",
-        initials = "EE",
         scheme = BeneficiaryScheme.SortCode,
         identification = "60-00-01 99887766",
         reference = "ELEC-8841",
@@ -104,8 +102,6 @@ class BeneficiariesScreenInstrumentedTest {
         composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertIsDisplayed()
         composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertExists()
         composeRule.onNodeWithTag(BeneficiariesTestTags.row(FIRST_ID)).assertIsDisplayed()
-        // Unmerged tree: the row merges its descendants so a screen reader announces the payee once.
-        composeRule.onNodeWithTag(BeneficiariesTestTags.avatar(FIRST_ID), useUnmergedTree = true).assertExists()
     }
 
     @Test

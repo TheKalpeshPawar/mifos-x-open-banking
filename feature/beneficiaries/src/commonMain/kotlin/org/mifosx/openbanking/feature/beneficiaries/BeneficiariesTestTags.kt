@@ -40,7 +40,4 @@ internal object BeneficiariesTestTags {
 
     /** Tag for one payee row, keyed by its OBIE `BeneficiaryId`. */
     fun row(beneficiaryId: String): String = "beneficiaries:row:$beneficiaryId"
-
-    /** Tag for one payee row's initials avatar, keyed by its `BeneficiaryId`. */
-    fun avatar(beneficiaryId: String): String = "beneficiaries:avatar:$beneficiaryId"
 }

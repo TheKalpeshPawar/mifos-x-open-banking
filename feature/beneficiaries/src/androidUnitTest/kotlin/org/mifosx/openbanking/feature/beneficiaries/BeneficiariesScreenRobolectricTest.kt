@@ -61,22 +61,6 @@ class BeneficiariesScreenRobolectricTest {
         composeRule.onNodeWithTag(BeneficiariesTestTags.row(BeneficiariesFixtures.FIRST_ID)).assertIsDisplayed()
     }
 
-    /**
-     * The avatar is looked up in the unmerged tree on purpose: the row merges its descendants so a
-     * screen reader announces the payee once, which folds the avatar's node into the row's.
-     */
-    @Test
-    fun eachRowCarriesItsInitialsAvatar() {
-        render(BeneficiariesFixtures.contentState())
-
-        composeRule
-            .onNodeWithTag(BeneficiariesTestTags.avatar(BeneficiariesFixtures.FIRST_ID), useUnmergedTree = true)
-            .assertExists()
-        composeRule
-            .onNodeWithTag(BeneficiariesTestTags.avatar(BeneficiariesFixtures.ENERGY_ID), useUnmergedTree = true)
-            .assertExists()
-    }
-
     @Test
     fun typingInTheSearchFieldRoutesTheQuery() {
         render(BeneficiariesFixtures.contentState())

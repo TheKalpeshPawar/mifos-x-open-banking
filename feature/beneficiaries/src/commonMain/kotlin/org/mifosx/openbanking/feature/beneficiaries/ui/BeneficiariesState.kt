@@ -62,10 +62,8 @@ sealed interface BeneficiariesUiState {
  * row resolves to its short label so the enum-to-presentation mapping lives with the composable that
  * renders it.
  *
- * @property beneficiaryId OBIE `BeneficiaryId`; the row key and the avatar colour seed.
+ * @property beneficiaryId OBIE `BeneficiaryId`; the row key and test-tag key.
  * @property name Creditor display name, e.g. `EDF Energy`. The row headline.
- * @property initials Up to two letters derived from [name], e.g. `EE`. Decorative — the row's own
- *   accessibility label already reads the full name.
  * @property scheme Which identifier scheme [identification] is in; drives the supporting-text label.
  * @property identification The destination account, already grouped for display where the scheme
  *   calls for it, e.g. `DE89 3704 0044 0532 0130 00`.
@@ -74,7 +72,6 @@ sealed interface BeneficiariesUiState {
 data class BeneficiaryRowUi(
     val beneficiaryId: String,
     val name: String,
-    val initials: String,
     val scheme: BeneficiaryScheme,
     val identification: String,
     val reference: String,

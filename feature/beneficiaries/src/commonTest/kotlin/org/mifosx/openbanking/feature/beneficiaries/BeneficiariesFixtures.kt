@@ -25,9 +25,8 @@ import template.core.base.network.NetworkError
  * drawn against (accountId `40051512345678`).
  *
  * Five payees, chosen so the interesting cases are all present in one list: four sort-code payees
- * and one IBAN payee (which is the only scheme that gets display grouping), a two-word name and a
- * name whose second word is numeric (`Priya Rajan N26 GmbH`, whose initials must be `PR`, not `PN`),
- * and references that make the search cases unambiguous.
+ * and one IBAN payee (which is the only scheme that gets display grouping), and references that make
+ * the search cases unambiguous.
  *
  * Shared by the view-model, Compose, Robolectric and screenshot suites so all assert against one
  * screen rather than several that happen to look alike.
@@ -90,24 +89,22 @@ object BeneficiariesFixtures {
 
     /** The five payees as the view model formats them — note the IBAN arrives grouped. */
     fun rows(): List<BeneficiaryRowUi> = listOf(
-        row(FIRST_ID, "Jameson Lettings", "JL", BeneficiaryScheme.SortCode, "40-12-09 65872310", "RENT-FLAT12"),
-        row("BEN-002", "John Sharma", "JS", BeneficiaryScheme.SortCode, "23-05-80 11223344", "FAMILY"),
-        row(ENERGY_ID, "EDF Energy", "EE", BeneficiaryScheme.SortCode, "60-00-01 99887766", "ELEC-8841"),
-        row(ISA_ID, "Hargreaves Lansdown", "HL", BeneficiaryScheme.SortCode, "11-22-33 44556677", "ISA-TOPUP"),
-        row(IBAN_ID, "Priya Rajan N26 GmbH", "PR", BeneficiaryScheme.Iban, "DE89 3704 0044 0532 0130 00", "TRAVEL-EUR"),
+        row(FIRST_ID, "Jameson Lettings", BeneficiaryScheme.SortCode, "40-12-09 65872310", "RENT-FLAT12"),
+        row("BEN-002", "John Sharma", BeneficiaryScheme.SortCode, "23-05-80 11223344", "FAMILY"),
+        row(ENERGY_ID, "EDF Energy", BeneficiaryScheme.SortCode, "60-00-01 99887766", "ELEC-8841"),
+        row(ISA_ID, "Hargreaves Lansdown", BeneficiaryScheme.SortCode, "11-22-33 44556677", "ISA-TOPUP"),
+        row(IBAN_ID, "Priya Rajan N26 GmbH", BeneficiaryScheme.Iban, "DE89 3704 0044 0532 0130 00", "TRAVEL-EUR"),
     )
 
     fun row(
         id: String,
         name: String,
-        initials: String,
         scheme: BeneficiaryScheme,
         identification: String,
         reference: String,
     ): BeneficiaryRowUi = BeneficiaryRowUi(
         beneficiaryId = id,
         name = name,
-        initials = initials,
         scheme = scheme,
         identification = identification,
         reference = reference,

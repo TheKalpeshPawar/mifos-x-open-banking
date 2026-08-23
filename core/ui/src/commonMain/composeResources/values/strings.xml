@@ -51,4 +51,7 @@
     <string name="core_ui_retry">Retry</string>
     <string name="core_ui_something_went_wrong">Something went wrong</string>
     <string name="core_ui_loading">Loading…</string>
+    <string name="core_ui_filter">Filter</string>
+    <string name="core_ui_reset">Reset</string>
+    <string name="core_ui_apply">Apply</string>
 </resources>

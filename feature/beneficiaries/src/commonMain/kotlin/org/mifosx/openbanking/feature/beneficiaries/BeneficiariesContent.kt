@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -68,7 +66,6 @@ private val RowMinHeight = 72.dp
 private val RowVerticalPadding = 8.dp
 private val RowHorizontalPadding = 16.dp
 private val RowGap = 16.dp
-private val AvatarSize = 40.dp
 private val ReferenceMaxWidth = 96.dp
 
 /**
@@ -203,8 +200,6 @@ private fun BeneficiaryRow(
         horizontalArrangement = Arrangement.spacedBy(RowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        InitialsAvatar(row = row)
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.name,
@@ -259,63 +254,6 @@ private fun SupportingLine(
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-/**
- * The tonal initials disc.
- *
- * Purely decorative — the row's merged description already reads the payee's full name, so this is
- * hidden from the accessibility tree rather than repeating it. Its tone is picked from the
- * beneficiary id so a payee keeps the same colour between sessions.
- */
-@Composable
-private fun InitialsAvatar(
-    row: BeneficiaryRowUi,
-    modifier: Modifier = Modifier,
-) {
-    val tone = avatarToneFor(row.beneficiaryId)
-    Box(
-        modifier = modifier
-            .size(AvatarSize)
-            .background(color = tone.container(), shape = CircleShape)
-            .testTag(BeneficiariesTestTags.avatar(row.beneficiaryId))
-            .semantics { contentDescription = "" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = row.initials,
-            style = MaterialTheme.typography.labelLarge,
-            color = tone.onContainer(),
-        )
-    }
-}
-
-/** The three tonal pairs an avatar cycles through. */
-private enum class AvatarTone { Primary, Secondary, Tertiary }
-
-@Composable
-private fun AvatarTone.container(): Color = when (this) {
-    AvatarTone.Primary -> MaterialTheme.colorScheme.primaryContainer
-    AvatarTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer
-    AvatarTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer
-}
-
-@Composable
-private fun AvatarTone.onContainer(): Color = when (this) {
-    AvatarTone.Primary -> MaterialTheme.colorScheme.onPrimaryContainer
-    AvatarTone.Secondary -> MaterialTheme.colorScheme.onSecondaryContainer
-    AvatarTone.Tertiary -> MaterialTheme.colorScheme.onTertiaryContainer
-}
-
-/**
- * Picks a stable tone from the beneficiary id.
- *
- * Seeded by the id rather than the row index so a payee keeps its colour when the list is filtered
- * or re-ordered — a colour that shifts as you type would read as the row having changed.
- */
-private fun avatarToneFor(beneficiaryId: String): AvatarTone {
-    val seed = beneficiaryId.sumOf { it.code }
-    return AvatarTone.entries[seed.mod(AvatarTone.entries.size)]
 }
 
 private fun BeneficiaryScheme.labelResource(): StringResource = when (this) {
