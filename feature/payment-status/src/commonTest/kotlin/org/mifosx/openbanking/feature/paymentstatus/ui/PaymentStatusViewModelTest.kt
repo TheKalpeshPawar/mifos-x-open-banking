@@ -175,12 +175,12 @@ class PaymentStatusViewModelTest {
         assertEquals("15:00", state.lastCheckedAt)
     }
 
-    /** The wire carries fourteen unpunctuated digits; people read a sort code in pairs. */
+    /** The paying account is shown as its raw identification. */
     @Test
-    fun formatsThePayingAccountTheWayItIsWrittenDown() = runTest {
+    fun showsThePayingAccountIdentification() = runTest {
         val vm = viewModel()
 
-        assertEquals("40-05-15 12345678", content(vm).debtorLabel)
+        assertEquals("40051512345678", content(vm).debtorLabel)
     }
 
     /**

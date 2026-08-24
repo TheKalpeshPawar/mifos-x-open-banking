@@ -184,7 +184,7 @@ data class SetupFormUi(
             checkAmount(perPaymentAmount) == null &&
             checkAmount(periodicAmount) == null &&
             checkOrdering(perPaymentAmount, periodicAmount) == null &&
-            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.rawIdentification) == null &&
+            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.identification) == null &&
             newPayeeIsUsable
 
     /** Whether a newly entered payee is complete. Vacuously true when a saved payee was chosen. */
@@ -553,8 +553,7 @@ class VrpSetupViewModel(
 private fun BankAccount.canFundAVrp(): Boolean = HsbcProductCapability.supports(
     endpoint = AccountEndpoint.VrpPayer,
     productType = HsbcProductType.resolve(
-        accountSubType = accountSubType,
-        accountTypeCode = "",
+        accountTypeCode = accountTypeCode,
         description = description,
     ),
 )
@@ -580,7 +579,7 @@ private fun SetupFormUi.toDraft(): VrpConsentDraft = VrpConsentDraft(
     payer = selectedPayer?.let {
         AccountIdentity(
             schemeName = SORT_CODE_ACCOUNT_NUMBER,
-            identification = it.account.rawIdentification,
+            identification = it.account.identification,
             name = it.account.accountHolderName,
         )
     },
@@ -613,7 +612,7 @@ private fun SetupFormUi.revalidateAmounts(): SetupFormUi {
  * against the sort code or the account number the customer happened to edit last.
  */
 private fun SetupFormUi.revalidatePayee(): SetupFormUi = copy(
-    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.rawIdentification),
+    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.identification),
 )
 
 /** Re-checks everything, for the moment the customer asks to continue. */

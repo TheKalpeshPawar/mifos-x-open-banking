@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.sendmoney
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
@@ -59,44 +60,39 @@ object SendMoneyFixtures {
     fun currentAccount(): BankAccount = BankAccount(
         accountId = CURRENT_ACCOUNT_ID,
         accountHolderName = "Current account ·· 3349",
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "802001",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
+        identification = "80200110203349",
+        scheme = AccountScheme.SortCode,
     )
 
     /** £482.10 available — the account TC-SEND-003 overdraws. */
     fun savingsAccount(): BankAccount = BankAccount(
         accountId = SAVINGS_ACCOUNT_ID,
         accountHolderName = "BMM ACCOUNT ·· 3695",
-        accountSubType = "Savings",
+        accountTypeCode = "SVGS",
         currency = "GBP",
-        sortCode = "801225",
-        accountNumber = "90953695",
-        rawIdentification = "80122590953695",
+        identification = "80122590953695",
+        scheme = AccountScheme.SortCode,
     )
 
     /**
-     * A credit card, as HSBC returns one: the account-number field is a masked PAN slice, not a
-     * real account number, which is why it cannot fund a payment. Present in [accounts] on purpose
+     * A credit card, as HSBC returns one: the identification is a masked PAN, not a real account
+     * number, which is why it cannot fund a payment. Present in [accounts] on purpose
      * — the picker must be proven to exclude it, and a fixture without one proves nothing.
      */
     fun creditCard(): BankAccount = BankAccount(
         accountId = CREDIT_CARD_ID,
         accountHolderName = "",
-        // "CARD", not "CreditCard": v4.0 has no AccountSubType, so AccountMapper falls through to
-        // AccountTypeCode, which HSBC sends as CARD. Both resolve, but the fixture mirrors the bank.
-        accountSubType = "CARD",
+        accountTypeCode = "CARD",
         currency = "GBP",
-        sortCode = "",
-        accountNumber = "xxxx-xxxx-xxxx-3456",
-        rawIdentification = "xxxx-xxxx-xxxx-3456",
+        identification = "xxxx-xxxx-xxxx-3456",
+        scheme = AccountScheme.Pan,
     )
 
     /**
      * The Global Money wallet exactly as HSBC returns it: `AccountTypeCode: CACC`, so
-     * `accountSubType` reads "CACC" and is indistinguishable from a current account. The one field
+     * `accountTypeCode` reads "CACC" and is indistinguishable from a current account. The one field
      * that gives it away is the free-text description, which the sandbox returns verbatim as
      * "GLOBAL MONEY ACCOUNT" — so the fixture carries it. It stays in [accounts] on purpose: the
      * picker must be proven to exclude it, and a fixture without one proves nothing.
@@ -104,11 +100,10 @@ object SendMoneyFixtures {
     fun globalMoneyWallet(): BankAccount = BankAccount(
         accountId = GLOBAL_MONEY_ID,
         accountHolderName = "",
-        accountSubType = "CACC",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "801197",
-        accountNumber = "70009652",
-        rawIdentification = "80119770009652",
+        identification = "80119770009652",
+        scheme = AccountScheme.SortCode,
         description = "GLOBAL MONEY ACCOUNT",
     )
 

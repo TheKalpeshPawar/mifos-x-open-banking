@@ -53,9 +53,9 @@ internal fun HomeContent(
             accountTypeLabel = data.accountTypeLabel,
             displayName = accountDisplayName(
                 accountHolderName = data.accountHolderName,
-                accountSubType = data.accountSubType,
-                accountNumber = data.accountNumber,
-                rawIdentification = data.rawIdentification,
+                accountTypeCode = data.accountTypeCode,
+                scheme = data.scheme,
+                identification = data.identification,
             ),
             balanceLabel = data.balanceLabel,
             availableAmountLabel = data.availableAmountLabel,

@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -437,11 +438,10 @@ class VrpSetupViewModelTest {
         account = BankAccount(
             accountId = CURRENT_ACCOUNT_ID,
             accountHolderName = "Everyday Current Account",
-            accountSubType = "CurrentAccount",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10204021",
-            rawIdentification = "80200110204021",
+            identification = "80200110204021",
+            scheme = AccountScheme.SortCode,
         ),
         balance = AccountBalance(
             accountId = CURRENT_ACCOUNT_ID,
@@ -455,11 +455,10 @@ class VrpSetupViewModelTest {
         account = BankAccount(
             accountId = SAVINGS_ACCOUNT_ID,
             accountHolderName = "",
-            accountSubType = "Savings",
+            accountTypeCode = "SVGS",
             currency = "GBP",
-            sortCode = "801225",
-            accountNumber = "90953695",
-            rawIdentification = "80122590953695",
+            identification = "80122590953695",
+            scheme = AccountScheme.SortCode,
         ),
         balance = null,
     )
@@ -468,11 +467,10 @@ class VrpSetupViewModelTest {
         account = BankAccount(
             accountId = CREDIT_CARD_ID,
             accountHolderName = "",
-            accountSubType = "CARD",
+            accountTypeCode = "CARD",
             currency = "GBP",
-            sortCode = "",
-            accountNumber = "xxxx-xxxx-xxxx-3456",
-            rawIdentification = "xxxx-xxxx-xxxx-3456",
+            identification = "xxxx-xxxx-xxxx-3456",
+            scheme = AccountScheme.Pan,
         ),
         balance = null,
     )

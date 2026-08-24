@@ -154,7 +154,7 @@ object PaymentStatusFixtures {
             amountLabel = "£850.00",
             creditorName = "Jameson Lettings",
             reference = reference,
-            debtorLabel = "40-05-15 12345678",
+            debtorLabel = "40051512345678",
             submittedAt = "3 Aug 2026, 14:22",
             settledAt = settledAt,
             scheduledForAt = scheduledForAt,

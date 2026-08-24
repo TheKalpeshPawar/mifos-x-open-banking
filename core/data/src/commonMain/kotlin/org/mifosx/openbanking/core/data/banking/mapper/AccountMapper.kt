@@ -9,13 +9,13 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.network.model.ais.accounts.Account
 import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
 
-private const val SORT_CODE_LENGTH = 6
-private const val ACCOUNT_NUMBER_LENGTH = 8
 private const val SORT_CODE_SCHEME = "SortCode"
+private const val PAN_SCHEME = "PAN"
 
 /**
  * Flattens the OBIE `OBReadAccount6` payload into UI-facing [BankAccount]s. Accounts without an
@@ -26,22 +26,27 @@ fun AccountsResponse.toBankAccounts(): List<BankAccount> =
 
 private fun Account.toBankAccountOrNull(): BankAccount? {
     val id = accountId ?: return null
-    val identification = account.orEmpty()
-        .firstOrNull { it.schemeName?.contains(SORT_CODE_SCHEME, ignoreCase = true) == true }
-        ?.identification
-        ?: account.orEmpty().firstOrNull()?.identification
-        ?: identification
-        ?: ""
+    val (identification, scheme) = resolveIdentification()
     return BankAccount(
         accountId = id,
-        accountHolderName = account?.firstOrNull()?.name.orEmpty(),
-        accountSubType = accountSubType ?: accountTypeCode ?: accountCategory ?: description ?: "",
+        accountTypeCode = accountTypeCode ?: "",
         currency = currency ?: "",
-        sortCode = identification.take(SORT_CODE_LENGTH),
-        accountNumber = identification.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),
-        rawIdentification = identification,
-        // Kept verbatim, not as a name: it is the only field that identifies a Global Money wallet,
-        // whose AccountTypeCode is CACC exactly like an ordinary current account.
+        identification = identification,
+        scheme = scheme,
         description = description ?: "",
+        accountHolderName = account?.firstOrNull()?.name.orEmpty(),
     )
+}
+
+/**
+ * Picks the identifier and its scheme, preferring the sort-code entry — the one the domestic payment
+ * rail and the UI both want — then the PAN, then whatever the bank sent first.
+ */
+private fun Account.resolveIdentification(): Pair<String, AccountScheme> {
+    val entries = account.orEmpty()
+    val entry = entries.firstOrNull { it.schemeName?.contains(SORT_CODE_SCHEME, ignoreCase = true) == true }
+        ?: entries.firstOrNull { it.schemeName?.contains(PAN_SCHEME, ignoreCase = true) == true }
+        ?: entries.firstOrNull()
+    val value = entry?.identification ?: identification ?: ""
+    return value to AccountScheme.fromSchemeName(entry?.schemeName)
 }

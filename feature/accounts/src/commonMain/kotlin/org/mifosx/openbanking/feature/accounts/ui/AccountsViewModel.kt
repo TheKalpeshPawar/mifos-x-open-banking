@@ -25,11 +25,11 @@ private const val SUBTYPE_GLOBAL_MONEY = "GlobalMoney"
 private const val SUBTYPE_GLOBAL_WALLET = "GlobalWallet"
 
 /**
- * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE `AccountSubType`
- * enum case-insensitively and the common ISO-20022 cash-account codes (`CACC`, `SVGS`, `CCRD`) so the
- * screen classifies correctly whether the bank populates `AccountSubType` or only `AccountTypeCode`.
+ * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE
+ * `AccountTypeCode` codes case-insensitively (`CACC`, `SVGS`, `CCRD`) plus the legacy subtype tokens
+ * so the screen classifies correctly whichever vocabulary the bank uses.
  */
-private fun String.canonicalSubtype(): String = when (lowercase()) {
+private fun String.canonicalTypeCode(): String = when (lowercase()) {
     "currentaccount", "current", "cacc" -> SUBTYPE_CURRENT
     "savings", "svgs" -> SUBTYPE_SAVINGS
     "creditcard", "credit", "card", "ccrd" -> SUBTYPE_CREDIT_CARD
@@ -38,7 +38,7 @@ private fun String.canonicalSubtype(): String = when (lowercase()) {
     else -> this
 }
 
-/** The account category, resolved from the OBIE `AccountSubType`; drives the row icon and label. */
+/** The account category, resolved from the OBIE `AccountTypeCode`; drives the row icon and label. */
 enum class AccountUiType {
     CURRENT,
     SAVINGS,
@@ -48,7 +48,7 @@ enum class AccountUiType {
     OTHER, ;
 
     companion object {
-        fun fromSubtype(subType: String): AccountUiType = when (subType.canonicalSubtype()) {
+        fun fromTypeCode(accountTypeCode: String): AccountUiType = when (accountTypeCode.canonicalTypeCode()) {
             SUBTYPE_CURRENT -> CURRENT
             SUBTYPE_SAVINGS -> SAVINGS
             SUBTYPE_CREDIT_CARD -> CREDIT
@@ -77,7 +77,7 @@ enum class AccountFilter(private val subtypes: Set<String>?) {
     CREDIT(setOf(SUBTYPE_CREDIT_CARD)),
     ;
 
-    fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes
+    fun matches(accountTypeCode: String): Boolean = subtypes == null || accountTypeCode.canonicalTypeCode() in subtypes
 }
 
 /** Accounts payload: the filtered accounts (each with its resolved balance) and the active filter. */
@@ -133,7 +133,7 @@ class AccountsViewModel(
 
     private fun buildData(accounts: List<AccountWithBalance>, active: AccountFilter): AccountsData =
         AccountsData(
-            rows = accounts.filter { active.matches(it.account.accountSubType) },
+            rows = accounts.filter { active.matches(it.account.accountTypeCode) },
             activeFilter = active,
         )
 }

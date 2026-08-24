@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.mifosx.openbanking.core.common.formatMinorUnits
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.parseMinorUnits
 import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
@@ -817,7 +816,7 @@ class SchedulePaymentViewModel(
     private fun isOwnAccount(identification: String): Boolean {
         val digits = identification.filter(Char::isDigit)
         if (digits.isEmpty()) return false
-        return accounts().any { (it.account.sortCode + it.account.accountNumber) == digits }
+        return accounts().any { it.account.identification.filter(Char::isDigit) == digits }
     }
 }
 
@@ -853,7 +852,7 @@ private fun ScreenState<*>.isFailure(): Boolean = when (this) {
  * Whether this account's PRODUCT is known to be unable to fund a payment.
  *
  * Catches both products the sandbox refuses as a named payer: the credit card, visible in
- * [BankAccount.accountSubType], and the Global Money wallet, which reports `AccountTypeCode: CACC`
+ * [BankAccount.accountTypeCode], and the Global Money wallet, which reports `AccountTypeCode: CACC`
  * and is identifiable **only** by its free-text [BankAccount.description]. That description used to
  * be passed as an empty string here, so every wallet resolved to a plain current account, was
  * offered as a payer, and was removed only after the bank refused it with `U002` — and because the
@@ -868,8 +867,7 @@ private fun ScreenState<*>.isFailure(): Boolean = when (this) {
 private fun BankAccount.canFundAPayment(): Boolean = HsbcProductCapability.supports(
     endpoint = AccountEndpoint.PaymentDebtor,
     productType = HsbcProductType.resolve(
-        accountSubType = accountSubType,
-        accountTypeCode = "",
+        accountTypeCode = accountTypeCode,
         description = description,
     ),
 )
@@ -890,17 +888,10 @@ private fun schemeLabel(creditor: CreditorSelection): String =
     schemeLabelFor(creditor.scheme, creditor.identification)
 
 /**
- * The identifier as it is written down rather than as it is transmitted — a sort code reads in
- * pairs, an IBAN in fours, and neither is how OBIE carries it.
+ * The payee's identifier with its scheme label, kept raw as the PSU entered or the bank returned it.
  */
 private fun schemeLabelFor(scheme: BeneficiaryScheme, identification: String): String = when (scheme) {
-    BeneficiaryScheme.SortCode -> {
-        val digits = identification.filter(Char::isDigit)
-        val sortCode = digits.take(SORT_CODE_DIGITS)
-        val accountNumber = digits.drop(SORT_CODE_DIGITS)
-        "Sort Code · ${formatSortCode(sortCode)} $accountNumber".trimEnd()
-    }
-
+    BeneficiaryScheme.SortCode -> "Sort Code · $identification"
     BeneficiaryScheme.Iban -> "IBAN · $identification"
     BeneficiaryScheme.Paym -> "Paym · $identification"
     BeneficiaryScheme.Card -> "Card · $identification"

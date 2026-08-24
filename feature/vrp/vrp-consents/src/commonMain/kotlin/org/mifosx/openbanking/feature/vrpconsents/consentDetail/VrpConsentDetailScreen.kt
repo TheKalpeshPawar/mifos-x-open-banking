@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.vrp.AccountIdentity
 import org.mifosx.openbanking.core.ui.account.accountTypeLabel
@@ -437,9 +438,6 @@ private fun LimitRow(
     }
 }
 
-/** The account-number half of a sort-code-and-account-number identification. */
-private const val ACCOUNT_NUMBER_LENGTH = 8
-
 @Composable
 private fun PayerCard(payer: AccountIdentity?) {
     DetailCard {
@@ -468,9 +466,8 @@ private fun PayerCard(payer: AccountIdentity?) {
                 Column {
                     Text(
                         text = maskedAccountNumber(
-                            accountSubType = payer.name,
-                            accountNumber = payer.identification.takeLast(ACCOUNT_NUMBER_LENGTH),
-                            rawIdentification = payer.identification,
+                            scheme = AccountScheme.fromSchemeName(payer.schemeName),
+                            identification = payer.identification,
                         ),
                         style = KptTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,

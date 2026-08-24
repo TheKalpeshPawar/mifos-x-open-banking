@@ -39,8 +39,7 @@ private fun BankAccount?.historyAccountId(): String = this?.accountId.orEmpty()
 
 private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
 
-private fun BankAccount?.historyIdentification(): String =
-    this?.let { it.rawIdentification.ifBlank { it.sortCode + it.accountNumber } }.orEmpty()
+private fun BankAccount?.historyIdentification(): String = this?.identification.orEmpty()
 
 /** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
 private fun PaymentDraft.paymentType(): String =
@@ -300,4 +299,4 @@ private fun errorId(): String = Uuid.random().toString()
 
 private fun org.mifosx.openbanking.core.model.banking.BankAccount.displayName(): String =
     accountHolderName.takeIf { it.isNotBlank() }
-        ?: accountSubType.ifBlank { "Account" }
+        ?: accountTypeCode.ifBlank { "Account" }

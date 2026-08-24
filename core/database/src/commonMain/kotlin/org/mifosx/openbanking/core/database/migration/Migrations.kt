@@ -164,9 +164,45 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
+/**
+ * Collapses the split identifier and type columns onto the domain's single fields.
+ *
+ * `sortCode` and `accountNumber` were only ever recombined for display, and `accountSubType` was
+ * never populated by HSBC — `accountTypeCode` is the value that exists. The table is recreated so the
+ * columns land in the new order and the two dead columns are dropped. The `scheme` is defaulted to
+ * `Other`; the next accounts fetch resolves it from the OBIE `SchemeName`.
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.runSql(
+            """
+            CREATE TABLE IF NOT EXISTS `accounts_new` (
+                `accountId` TEXT NOT NULL,
+                `accountTypeCode` TEXT NOT NULL,
+                `currency` TEXT NOT NULL,
+                `identification` TEXT NOT NULL,
+                `scheme` TEXT NOT NULL,
+                `description` TEXT NOT NULL,
+                `accountHolderName` TEXT NOT NULL,
+                PRIMARY KEY(`accountId`)
+            )
+            """.trimIndent(),
+        )
+        connection.runSql(
+            """
+            INSERT INTO accounts_new (accountId, accountTypeCode, currency, identification, scheme, description, accountHolderName)
+            SELECT accountId, accountSubType, currency, rawIdentification, 'Other', description, accountHolderName
+            FROM accounts
+            """.trimIndent(),
+        )
+        connection.runSql("DROP TABLE accounts")
+        connection.runSql("ALTER TABLE accounts_new RENAME TO accounts")
+    }
+}
+
 /** Every migration the database knows about, in the order Room should consider them. */
 val ALL_MIGRATIONS: Array<Migration> =
-    arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+    arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
 
 /**
  * Registers every migration on a builder.

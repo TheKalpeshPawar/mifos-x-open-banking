@@ -18,6 +18,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -45,11 +46,10 @@ private const val WEISS_ID = "BEN-101"
 private fun currentAccount(): BankAccount = BankAccount(
     accountId = CURRENT_ACCOUNT_ID,
     accountHolderName = "Current account ·· 3349",
-    accountSubType = "CurrentAccount",
+    accountTypeCode = "CACC",
     currency = "GBP",
-    sortCode = "802001",
-    accountNumber = "10203349",
-    rawIdentification = "80200110203349",
+    identification = "80200110203349",
+    scheme = AccountScheme.SortCode,
 )
 
 private fun debtorRows(): List<AccountWithBalance> = listOf(

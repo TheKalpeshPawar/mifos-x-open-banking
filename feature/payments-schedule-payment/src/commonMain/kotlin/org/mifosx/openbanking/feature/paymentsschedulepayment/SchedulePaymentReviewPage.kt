@@ -87,9 +87,9 @@ internal fun SchedulePaymentReviewPage(
     val payerLabel = state.debtorAccountRow?.let { row ->
         accountDisplayName(
             accountHolderName = row.account.accountHolderName,
-            accountSubType = row.account.accountSubType,
-            accountNumber = row.account.accountNumber,
-            rawIdentification = row.account.rawIdentification,
+            accountTypeCode = row.account.accountTypeCode,
+            scheme = row.account.scheme,
+            identification = row.account.identification,
         )
     }.orEmpty()
 

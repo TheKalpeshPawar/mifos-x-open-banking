@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.database.banking.entity.AccountEntity
 import org.mifosx.openbanking.core.database.banking.entity.TransactionEntity
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -24,11 +25,10 @@ class EntityMapperTest {
         val account = BankAccount(
             accountId = "a-1",
             accountHolderName = "Everyday",
-            accountSubType = "CurrentAccount",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "400515",
-            accountNumber = "12345678",
-            rawIdentification = "40051512345678",
+            identification = "40051512345678",
+            scheme = AccountScheme.SortCode,
         )
 
         assertEquals(account, account.toAccountEntity().toBankAccount())
@@ -39,22 +39,20 @@ class EntityMapperTest {
         val entity = AccountEntity(
             accountId = "a-2",
             accountHolderName = "Savings",
-            accountSubType = "Savings",
+            accountTypeCode = "SVGS",
             currency = "EUR",
-            sortCode = "112233",
-            accountNumber = "87654321",
-            rawIdentification = "11223387654321",
+            identification = "11223387654321",
+            scheme = AccountScheme.SortCode,
         )
 
         val domain = entity.toBankAccount()
 
         assertEquals("a-2", domain.accountId)
         assertEquals("Savings", domain.accountHolderName)
-        assertEquals("Savings", domain.accountSubType)
+        assertEquals("SVGS", domain.accountTypeCode)
         assertEquals("EUR", domain.currency)
-        assertEquals("112233", domain.sortCode)
-        assertEquals("87654321", domain.accountNumber)
-        assertEquals("11223387654321", domain.rawIdentification)
+        assertEquals("11223387654321", domain.identification)
+        assertEquals(AccountScheme.SortCode, domain.scheme)
     }
 
     @Test
@@ -111,11 +109,10 @@ class EntityMapperTest {
         val wallet = BankAccount(
             accountId = "1123456843",
             accountHolderName = "",
-            accountSubType = "CACC",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "801197",
-            accountNumber = "70009652",
-            rawIdentification = "80119770009652",
+            identification = "80119770009652",
+            scheme = AccountScheme.SortCode,
             description = "GLOBAL MONEY ACCOUNT",
         )
 

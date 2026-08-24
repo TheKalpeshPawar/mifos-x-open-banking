@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailAction
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailErrorKind
@@ -34,10 +35,10 @@ private const val ACCOUNT_ID = "acc-1"
 private val header = AccountDetail(
     accountId = ACCOUNT_ID,
     accountHolderName = "Everyday Current",
-    accountSubType = "CurrentAccount",
+    accountTypeCode = "CACC",
     currency = "GBP",
-    sortCode = "400515",
-    accountNumber = "12345678",
+    identification = "40051512345678",
+    scheme = AccountScheme.SortCode,
     servicerIdentification = "MIDLGB2105V",
     statusUpdateDateTime = "2026-06-28T18:30:00Z",
 )

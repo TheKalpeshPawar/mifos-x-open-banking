@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import org.mifosx.openbanking.core.common.formatDateTime
 import org.mifosx.openbanking.core.common.formatIsoDate
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.formatTimeOfDay
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
@@ -30,8 +29,6 @@ import org.mifosx.openbanking.core.model.banking.payment.dispositionFor
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
-
-private const val SORT_CODE_DIGITS = 6
 
 /**
  * Reads one submitted payment's settlement status.
@@ -130,7 +127,7 @@ class PaymentStatusViewModel(
             amountLabel = amountLabel,
             creditorName = creditorName,
             reference = reference,
-            debtorLabel = debtorIdentification.toAccountLabel(),
+            debtorLabel = debtorIdentification,
             submittedAt = formatDateTime(creationDateTime, timeZone),
             settledAt = settled,
             // Date only. The wire value is midnight UTC, so a date-and-time rendering would
@@ -238,14 +235,4 @@ private fun PaymentStatus.inFlightStepState(): PaymentStepState = when (this) {
     -> PaymentStepState.Current
 
     else -> PaymentStepState.Pending
-}
-
-/**
- * Renders the OBIE identification the way it is written down — `40-05-15 12345678` — rather than the
- * unpunctuated fourteen digits the wire carries.
- */
-private fun String.toAccountLabel(): String {
-    val digits = filter(Char::isDigit)
-    if (digits.length <= SORT_CODE_DIGITS) return this
-    return "${formatSortCode(digits.take(SORT_CODE_DIGITS))} ${digits.drop(SORT_CODE_DIGITS)}"
 }

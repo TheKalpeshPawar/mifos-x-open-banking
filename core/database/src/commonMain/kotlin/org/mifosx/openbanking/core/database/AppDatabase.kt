@@ -95,7 +95,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val vrpPaymentDao: VrpPaymentDao
 
     companion object {
-        const val VERSION = 10
+        const val VERSION = 11
         const val DATABASE_NAME = "mifos_database.db"
     }
 }

@@ -229,11 +229,10 @@ private fun ReviewHeading(text: String) {
 private fun SetupFormUi.payerHeadline(): String {
     val payer = selectedPayer ?: return stringResource(Res.string.feature_vrp_setup_payer_choose_at_bank)
     val masked = maskedAccountNumber(
-        payer.account.accountSubType,
-        payer.account.accountNumber,
-        payer.account.rawIdentification,
+        payer.account.scheme,
+        payer.account.identification,
     )
-    return "$masked · ${accountTypeLabel(payer.account.accountSubType)}"
+    return "$masked · ${accountTypeLabel(payer.account.accountTypeCode)}"
 }
 
 private fun SetupFormUi.payeeName(): String =

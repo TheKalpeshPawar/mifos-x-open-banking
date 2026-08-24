@@ -87,7 +87,7 @@ internal fun ScheduledPaymentDraft.toIntlScheduledPaymentRequest(
  * than sent half-formed, which the bank reads as "you choose" instead of refusing the consent.
  */
 private fun BankAccount.toIntlScheduledObieDebtor(): DebtorAccount? =
-    rawIdentification.takeIf { it.isNotBlank() }?.let {
+    identification.takeIf { it.isNotBlank() }?.let {
         DebtorAccount(schemeName = SCHEME_SORT_CODE, identification = it)
     }
 

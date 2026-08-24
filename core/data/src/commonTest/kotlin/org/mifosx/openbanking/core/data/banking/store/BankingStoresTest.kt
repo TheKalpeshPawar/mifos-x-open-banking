@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountBalance
 import org.mifosx.openbanking.core.data.banking.mapper.toAccountEntity
 import org.mifosx.openbanking.core.data.banking.mapper.toBankAccount
@@ -121,10 +122,10 @@ class BankingStoresTest {
         val seeded = AccountEntity(
             accountId = "acc-9",
             accountHolderName = "Savings",
-            accountSubType = "Savings",
+            accountTypeCode = "SVGS",
             currency = "EUR",
-            sortCode = "112233",
-            accountNumber = "87654321",
+            identification = "11223387654321",
+            scheme = AccountScheme.SortCode,
         )
         dao.upsertAll(listOf(seeded))
         val store = BankingStores.accountsStore(failingAisp(), dao)

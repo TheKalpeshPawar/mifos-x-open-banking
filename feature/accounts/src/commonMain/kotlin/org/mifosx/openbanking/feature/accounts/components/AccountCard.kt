@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -36,11 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.common.formatMoney
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.feature.accounts.AccountsTestTags
 import org.mifosx.openbanking.feature.accounts.generated.resources.Res
@@ -58,8 +61,8 @@ private val AccountIconInnerSize = 22.dp
 private val CardBorderWidth = 1.dp
 
 /**
- * A single account: type icon in a tinted circle, subtype label, account number, sort code and
- * balance. The card is flat with a hairline border. Tapping opens account detail.
+ * A single account: type icon in a tinted circle, subtype label, identification and balance. The card
+ * is flat with a hairline border. Tapping opens account detail.
  */
 @Composable
 internal fun AccountCard(
@@ -67,7 +70,7 @@ internal fun AccountCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val type = AccountUiType.fromSubtype(account.account.accountSubType)
+    val type = AccountUiType.fromTypeCode(account.account.accountTypeCode)
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().testTag(AccountsTestTags.accountCard(account.account.accountId)),
@@ -82,29 +85,34 @@ internal fun AccountCard(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             AccountTypeIcon(type)
+            Spacer(Modifier.width(KptTheme.spacing.md))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             ) {
                 Text(
                     text = stringResource(type.labelRes()),
-                    style = KptTheme.typography.bodySmall,
+                    style = KptTheme.typography.titleSmall,
                     color = KptTheme.colorScheme.secondary,
                 )
+
                 Text(
-                    text = account.account.accountNumber,
-                    style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = KptTheme.colorScheme.onBackground,
+                    text = account.account.accountHolderName,
+                    style = KptTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = KptTheme.colorScheme.secondary,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
                 )
+
                 Text(
-                    text = formatSortCode(account.account.sortCode),
-                    style = KptTheme.typography.labelSmall,
-                    color = KptTheme.colorScheme.onSurfaceVariant,
+                    text = formatAccountIdentifier(account.account.scheme, account.account.identification),
+                    style = KptTheme.typography.titleSmall,
+                    color = KptTheme.colorScheme.onBackground,
                 )
             }
             Text(
                 text = account.balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
-                style = KptTheme.typography.labelSmall,
+                style = KptTheme.typography.titleMedium,
                 color = KptTheme.colorScheme.onSurface,
             )
         }

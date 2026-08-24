@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -129,9 +130,9 @@ class SendMoneyViewModelTest {
 
         val row = content(viewModel(accounts = accounts)).debtorRows.single()
 
-        assertEquals("CurrentAccount", row.account.accountSubType)
-        assertEquals("10203349", row.account.accountNumber)
-        assertEquals("80200110203349", row.account.rawIdentification)
+        assertEquals("CACC", row.account.accountTypeCode)
+        assertEquals("80200110203349", row.account.identification)
+        assertEquals(AccountScheme.SortCode, row.account.scheme)
     }
 
     /**

@@ -14,6 +14,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.database.AppDatabase
 import org.mifosx.openbanking.core.database.banking.entity.AccountEntity
 import kotlin.test.AfterTest
@@ -30,10 +31,10 @@ class AccountDaoTest {
     private fun account(id: String, accountHolderName: String) = AccountEntity(
         accountId = id,
         accountHolderName = accountHolderName,
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "12345678",
+        identification = "40051512345678",
+        scheme = AccountScheme.SortCode,
     )
 
     @BeforeTest

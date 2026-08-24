@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -81,10 +82,10 @@ private fun sampleAccountsData(): AccountsData = AccountsData(
             account = BankAccount(
                 accountId = "acc-current",
                 accountHolderName = "Everyday Current",
-                accountSubType = "CurrentAccount",
+                accountTypeCode = "CACC",
                 currency = "GBP",
-                sortCode = "400515",
-                accountNumber = "12345678",
+                identification = "40051512345678",
+                scheme = AccountScheme.SortCode,
             ),
             balance = AccountBalance("acc-current", "GBP", "2847.63", "2847.63"),
         ),
@@ -92,11 +93,10 @@ private fun sampleAccountsData(): AccountsData = AccountsData(
             account = BankAccount(
                 accountId = "acc-credit",
                 accountHolderName = "Platinum Mastercard",
-                accountSubType = "CreditCard",
+                accountTypeCode = "CARD",
                 currency = "GBP",
-                sortCode = "",
-                accountNumber = "7654",
-                rawIdentification = "•••• 7654",
+                identification = "•••• 7654",
+                scheme = AccountScheme.Pan,
             ),
             balance = AccountBalance("acc-credit", "GBP", "342.18", "342.18"),
         ),

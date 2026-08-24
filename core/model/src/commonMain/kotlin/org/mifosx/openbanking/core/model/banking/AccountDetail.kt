@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.model.banking
 
 import kotlinx.serialization.Serializable
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 
 /**
@@ -20,33 +21,29 @@ import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
  * [AccountBalanceLine].
  *
  * @property accountId OBIE `AccountId`, the key for balance, direct-debit and standing-order lookups.
- * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`) — the single
- *   display-name field; the bank never returns a `Nickname`/top-level `Name`.
- * @property accountSubType OBIE `AccountSubType` (e.g. `CurrentAccount`), rendered uppercase.
+ * @property accountTypeCode OBIE `AccountTypeCode` (e.g. `CACC`, `CARD`, `SVGS`).
  * @property currency ISO-4217 currency code.
- * @property sortCode Six-digit UK sort code, unformatted (e.g. `400515`).
- * @property accountNumber Eight-digit UK account number.
+ * @property identification The OBIE `Identification` in its raw form; [scheme] says how to read it.
+ * @property scheme The identifier scheme [identification] is expressed in.
  * @property servicerIdentification OBIE `Servicer.Identification` — the BIC of the servicing
  *   institution (e.g. `MIDLGB2105V`). Empty string when the payload carried no servicer.
  * @property statusUpdateDateTime OBIE `StatusUpdateDateTime` as an ISO-8601 string; formatted for
  *   display in the ViewModel. Empty string when absent.
- * @property accountTypeCode OBIE `AccountTypeCode` verbatim (e.g. `CACC`). Held separately from
- *   [accountSubType] — which is a lossy fallback chain — because [productType] needs to know which
- *   field the value actually came from. Empty string when absent.
  * @property description OBIE `Description` verbatim (e.g. `GLOBAL MONEY ACCOUNT`). The only signal
  *   that distinguishes a Global Money wallet from an ordinary current account; see [productType].
  *   Empty string when absent.
+ * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`) — the single
+ *   display-name field; the bank never returns a `Nickname`/top-level `Name`.
  */
 @Serializable
 data class AccountDetail(
     val accountId: String,
-    val accountSubType: String,
+    val accountTypeCode: String,
     val currency: String,
-    val sortCode: String,
-    val accountNumber: String,
+    val identification: String = "",
+    val scheme: AccountScheme = AccountScheme.Other,
     val servicerIdentification: String = "",
     val statusUpdateDateTime: String = "",
-    val accountTypeCode: String = "",
     val description: String = "",
     val accountHolderName: String = "",
 ) {
@@ -54,12 +51,8 @@ data class AccountDetail(
      * HSBC's product classification, which decides what this account's endpoints will serve.
      *
      * Derived rather than stored — the inputs are already here, and a stored copy would be one more
-     * thing to keep in step. Follows the same shape as `AccountDetailWithBalances.hasNoBalances`.
+     * thing to keep in step.
      */
     val productType: HsbcProductType
-        get() = HsbcProductType.resolve(
-            accountSubType = accountSubType,
-            accountTypeCode = accountTypeCode,
-            description = description,
-        )
+        get() = HsbcProductType.resolve(accountTypeCode, description)
 }

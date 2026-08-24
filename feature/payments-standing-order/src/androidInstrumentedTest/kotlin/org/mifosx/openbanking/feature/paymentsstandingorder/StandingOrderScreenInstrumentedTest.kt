@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -52,11 +53,10 @@ class StandingOrderScreenInstrumentedTest {
     private val account = BankAccount(
         accountId = "acc-1",
         accountHolderName = "",
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "802001",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
+        identification = "80200110203349",
+        scheme = AccountScheme.SortCode,
     )
 
     private val accountRow = AccountWithBalance(
@@ -92,7 +92,7 @@ class StandingOrderScreenInstrumentedTest {
                 identification = "80200110203350",
             ),
             creditorLabel = "Mr Dharani C",
-            creditorSupporting = "Sort Code · 80-20-01 10203350",
+            creditorSupporting = "Sort Code · 80200110203350",
             amountInput = "250",
             amountLabel = "£250.00",
             today = LocalDate(2026, 8, 12),

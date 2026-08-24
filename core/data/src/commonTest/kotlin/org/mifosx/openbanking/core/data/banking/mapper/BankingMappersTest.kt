@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.network.model.ais.accounts.Account
 import org.mifosx.openbanking.core.network.model.ais.accounts.AccountsResponse
 import org.mifosx.openbanking.core.network.model.ais.balances.Balance
@@ -57,10 +58,9 @@ class BankingMappersTest {
         val account = accounts.first()
         assertEquals("acc-1", account.accountId)
         assertEquals("", account.accountHolderName)
-        assertEquals("400515", account.sortCode)
-        assertEquals("12345678", account.accountNumber)
+        assertEquals("40051512345678", account.identification)
+        assertEquals(AccountScheme.SortCode, account.scheme)
         assertEquals("GBP", account.currency)
-        assertEquals("40051512345678", account.rawIdentification)
     }
 
     /**
@@ -115,7 +115,8 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("GB29HBUK40051512345678", account.rawIdentification)
+        assertEquals("GB29HBUK40051512345678", account.identification)
+        assertEquals(AccountScheme.Iban, account.scheme)
     }
 
     @Test
@@ -137,7 +138,8 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("4111111111117654", account.rawIdentification)
+        assertEquals("4111111111117654", account.identification)
+        assertEquals(AccountScheme.Pan, account.scheme)
     }
 
     @Test
@@ -155,7 +157,7 @@ class BankingMappersTest {
     }
 
     @Test
-    fun accountMapperUsesFirstSubAccountIdentificationWhenNoSortCodeScheme() {
+    fun accountMapperUsesTheNestedIdentificationWhenNoSortCodeScheme() {
         val response = AccountsResponse(
             data = AccountsData(
                 account = listOf(
@@ -171,8 +173,8 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("GB1234", account.sortCode)
-        assertEquals("567890", account.accountNumber)
+        assertEquals("GB1234567890", account.identification)
+        assertEquals(AccountScheme.Iban, account.scheme)
     }
 
     @Test
@@ -194,12 +196,12 @@ class BankingMappersTest {
         val account = response.toBankAccounts().single()
 
         // Description is free text, not an account name — the holder name is blank so the UI renders
-        // a type + last-4 label instead. (Description still feeds the subtype classification chain.)
+        // a type + last-4 label instead.
         assertEquals("", account.accountHolderName)
-        assertEquals("Current account", account.accountSubType)
+        assertEquals("Current account", account.description)
         assertEquals("", account.currency)
-        assertEquals("998877", account.sortCode)
-        assertEquals("66554433", account.accountNumber)
+        assertEquals("99887766554433", account.identification)
+        assertEquals(AccountScheme.Other, account.scheme)
     }
 
     @Test
@@ -211,40 +213,10 @@ class BankingMappersTest {
         val account = response.toBankAccounts().single()
 
         assertEquals("", account.accountHolderName)
-        assertEquals("", account.accountSubType)
+        assertEquals("", account.accountTypeCode)
         assertEquals("", account.currency)
-        assertEquals("", account.sortCode)
-        assertEquals("", account.accountNumber)
-    }
-
-    @Test
-    fun accountMapperSubTypeFallsBackThroughCategoryThenTypeCode() {
-        val response = AccountsResponse(
-            data = AccountsData(
-                account = listOf(
-                    Account(accountId = "cat", accountCategory = "Personal"),
-                    Account(accountId = "tc", accountTypeCode = "CACC"),
-                ),
-            ),
-        )
-
-        val accounts = response.toBankAccounts()
-
-        assertEquals("Personal", accounts[0].accountSubType)
-        assertEquals("CACC", accounts[1].accountSubType)
-    }
-
-    @Test
-    fun accountMapperPrefersObieAccountSubTypeOverDescription() {
-        val response = AccountsResponse(
-            data = AccountsData(
-                account = listOf(
-                    Account(accountId = "acc-1", accountSubType = "CreditCard", description = "My card"),
-                ),
-            ),
-        )
-
-        assertEquals("CreditCard", response.toBankAccounts().single().accountSubType)
+        assertEquals("", account.identification)
+        assertEquals(AccountScheme.Other, account.scheme)
     }
 
     @Test

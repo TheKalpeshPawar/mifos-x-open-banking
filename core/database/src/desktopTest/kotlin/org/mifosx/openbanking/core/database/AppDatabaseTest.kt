@@ -60,8 +60,9 @@ class AppDatabaseTest {
         // since a mandate cannot be found again through the AIS read side; 9 added the VRP consent
         // and payment tables — a consent is the only handle on a standing authority, because no
         // endpoint lists them; 10 renamed accounts.nickname to accountHolderName, which is the name
-        // the bank actually returns.
-        assertEquals(10, AppDatabase.VERSION)
+        // the bank actually returns; 11 collapsed the split identifier and type columns into
+        // identification, scheme and accountTypeCode.
+        assertEquals(11, AppDatabase.VERSION)
     }
 
     /**

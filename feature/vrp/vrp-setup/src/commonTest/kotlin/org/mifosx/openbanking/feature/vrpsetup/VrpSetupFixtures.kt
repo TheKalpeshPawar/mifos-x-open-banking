@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.vrpsetup
 
 import kotlinx.datetime.LocalDate
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -39,11 +40,10 @@ object VrpSetupFixtures {
             account = BankAccount(
                 accountId = CURRENT_ACCOUNT_ID,
                 accountHolderName = "Everyday Current Account",
-                accountSubType = "CurrentAccount",
+                accountTypeCode = "CACC",
                 currency = "GBP",
-                sortCode = "802001",
-                accountNumber = "10204021",
-                rawIdentification = "80200110204021",
+                identification = "80200110204021",
+                scheme = AccountScheme.SortCode,
             ),
             balance = AccountBalance(CURRENT_ACCOUNT_ID, "GBP", "3482.19", "3482.19"),
         ),
@@ -51,11 +51,10 @@ object VrpSetupFixtures {
             account = BankAccount(
                 accountId = SAVINGS_ACCOUNT_ID,
                 accountHolderName = "BMM ACCOUNT",
-                accountSubType = "Savings",
+                accountTypeCode = "SVGS",
                 currency = "GBP",
-                sortCode = "801225",
-                accountNumber = "90953695",
-                rawIdentification = "80122590953695",
+                identification = "80122590953695",
+                scheme = AccountScheme.SortCode,
             ),
             balance = AccountBalance(SAVINGS_ACCOUNT_ID, "GBP", "482.10", "482.10"),
         ),

@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.ui.account
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,45 +17,47 @@ import kotlin.test.assertTrue
 
 /**
  * Covers [accountFallbackLabel] — the non-composable identifier fallback shown when the bank supplies
- * no nickname. The `@Composable accountDisplayName` only resolves the localized type label and delegates
- * here, so this is where the credit-card-vs-account-number behaviour is asserted.
+ * no holder name. The `@Composable accountDisplayName` only resolves the localized type label and
+ * delegates here, so this is where the card-vs-account behaviour is asserted.
  */
 class AccountDisplayNameTest {
 
     @Test
-    fun aCreditCardShowsTheRealMaskedLastFourNotTheMidPanSlice() {
-        // The mapper flattens a PAN into a mid-PAN accountNumber ("34123412"); the label must ignore it
-        // and mask the real last four of the raw card number instead.
+    fun aCreditCardShowsTheBankMaskedIdentification() {
         val label = accountFallbackLabel(
             typeLabel = "Credit card",
-            accountSubType = "CreditCard",
-            accountNumber = "34123412",
-            rawIdentification = "4111111111117654",
+            accountTypeCode = "CARD",
+            scheme = AccountScheme.Pan,
+            identification = "xxxx-xxxx-xxxx-3456",
         )
 
-        assertEquals("Credit card •••• 7654", label)
+        assertEquals("Credit card xxxx-xxxx-xxxx-3456", label)
     }
 
     @Test
-    fun everyCreditCardSubtypeTokenIsMasked() {
-        listOf("creditcard", "credit", "card", "ccrd", "CreditCard", "CARD").forEach { subType ->
+    fun aCardTypeCodeIsTreatedAsACardEvenWithoutThePanScheme() {
+        listOf("card", "ccrd", "CARD", "CCRD").forEach { typeCode ->
             val label = accountFallbackLabel(
                 typeLabel = "Credit card",
-                accountSubType = subType,
-                accountNumber = "34123412",
-                rawIdentification = "4111111111117654",
+                accountTypeCode = typeCode,
+                scheme = AccountScheme.SortCode,
+                identification = "xxxx-xxxx-xxxx-3456",
             )
-            assertEquals("Credit card •••• 7654", label, "subtype $subType should mask the last four")
+            assertEquals(
+                "Credit card xxxx-xxxx-xxxx-3456",
+                label,
+                "type code $typeCode should be treated as a card",
+            )
         }
     }
 
     @Test
-    fun aCreditCardWithNoRawIdentificationFallsBackToJustTheTypeLabel() {
+    fun aCreditCardWithNoIdentificationFallsBackToJustTheTypeLabel() {
         val label = accountFallbackLabel(
             typeLabel = "Credit card",
-            accountSubType = "CreditCard",
-            accountNumber = "",
-            rawIdentification = "",
+            accountTypeCode = "CARD",
+            scheme = AccountScheme.Pan,
+            identification = "",
         )
 
         assertEquals("Credit card", label)
@@ -64,46 +67,45 @@ class AccountDisplayNameTest {
     fun aCurrentAccountKeepsTheTypeAndLastFourForm() {
         val label = accountFallbackLabel(
             typeLabel = "Current account",
-            accountSubType = "CurrentAccount",
-            accountNumber = "12343349",
-            rawIdentification = "40051512343349",
+            accountTypeCode = "CACC",
+            scheme = AccountScheme.SortCode,
+            identification = "40051512343349",
         )
 
         assertEquals("Current account ·· 3349", label)
     }
 
     @Test
-    fun aNonCardWithoutAnAccountNumberUsesTheRawIdentificationLastFour() {
+    fun aNonCardUsesTheIdentificationLastFour() {
         val label = accountFallbackLabel(
             typeLabel = "Global money",
-            accountSubType = "GlobalMoney",
-            accountNumber = "",
-            rawIdentification = "GB29HBUK40051512345678",
+            accountTypeCode = "CACC",
+            scheme = AccountScheme.SortCode,
+            identification = "80119770009652",
         )
 
-        assertEquals("Global money ·· 5678", label)
+        assertEquals("Global money ·· 9652", label)
     }
 
     @Test
-    fun aNonCardWithNoDigitsAtAllFallsBackToJustTheTypeLabel() {
+    fun aNonCardWithNoIdentificationFallsBackToJustTheTypeLabel() {
         val label = accountFallbackLabel(
             typeLabel = "Account",
-            accountSubType = "Other",
-            accountNumber = "",
-            rawIdentification = "",
+            accountTypeCode = "",
+            scheme = AccountScheme.Other,
+            identification = "",
         )
 
         assertEquals("Account", label)
     }
 
     @Test
-    fun isCreditCardSubTypeRecognisesTheObieTokensCaseInsensitivelyAndRejectsOthers() {
-        assertTrue(isCreditCardSubType("CreditCard"))
-        assertTrue(isCreditCardSubType("credit"))
-        assertTrue(isCreditCardSubType("CARD"))
-        assertTrue(isCreditCardSubType("ccrd"))
-        assertFalse(isCreditCardSubType("CurrentAccount"))
-        assertFalse(isCreditCardSubType("Savings"))
-        assertFalse(isCreditCardSubType(""))
+    fun isCreditCardRecognisesThePanSchemeAndCardTypeCodes() {
+        assertTrue(isCreditCard(AccountScheme.Pan, ""))
+        assertTrue(isCreditCard(AccountScheme.SortCode, "CARD"))
+        assertTrue(isCreditCard(AccountScheme.SortCode, "ccrd"))
+        assertFalse(isCreditCard(AccountScheme.SortCode, "CACC"))
+        assertFalse(isCreditCard(AccountScheme.SortCode, "SVGS"))
+        assertFalse(isCreditCard(AccountScheme.Other, ""))
     }
 }

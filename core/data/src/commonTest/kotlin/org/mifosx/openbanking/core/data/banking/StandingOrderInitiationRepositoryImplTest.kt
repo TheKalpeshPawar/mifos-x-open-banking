@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.TestSigningKey
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrderInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
@@ -94,11 +95,10 @@ class StandingOrderInitiationRepositoryImplTest {
         debtor: BankAccount? = BankAccount(
             accountId = "acc-1",
             accountHolderName = "",
-            accountSubType = "CurrentAccount",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
+            identification = "80200110203349",
+            scheme = AccountScheme.SortCode,
         ),
     ) = StandingOrderDraft(
         debtorAccount = debtor,

@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
@@ -47,11 +48,10 @@ class StandingOrderInitiationMapperTest {
         debtor: BankAccount? = BankAccount(
             accountId = "acc-1",
             accountHolderName = "",
-            accountSubType = "CurrentAccount",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
+            identification = "80200110203349",
+            scheme = AccountScheme.SortCode,
         ),
         finalPaymentDate: String? = "2026-12-11",
         recurring: Long? = null,

@@ -28,13 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailTestTags
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_header_accessibility
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_last_updated
-import org.mifosx.openbanking.feature.accountdetail.ui.buildIdentificationLabel
 import org.mifosx.openbanking.feature.accountdetail.ui.formatStatusTimestamp
 
 private val CARD_RADIUS = 12.dp
@@ -43,8 +43,8 @@ private val BADGE_RADIUS = 8.dp
 private val SUBTYPE_TRACKING = 0.6.sp
 
 /**
- * Identity card at the top of the account-detail screen: account type, nickname, the sort-code and
- * account-number pair, currency and servicer badges, and the status timestamp.
+ * Identity card at the top of the account-detail screen: account type, account holder name, the
+ * identification, currency and servicer badges, and the status timestamp.
  *
  * The identification is monospaced so digits align, and the subtype is upper-cased with wide
  * tracking to read as a label rather than a heading.
@@ -66,7 +66,7 @@ internal fun AccountHeaderCard(detail: AccountDetail, modifier: Modifier = Modif
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = detail.accountSubType.uppercase(),
+                text = detail.accountTypeCode.uppercase(),
                 style = MaterialTheme.typography.labelMedium.copy(letterSpacing = SUBTYPE_TRACKING),
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.testTag(AccountDetailTestTags.SUBTYPE_LABEL),
@@ -74,15 +74,16 @@ internal fun AccountHeaderCard(detail: AccountDetail, modifier: Modifier = Modif
             Text(
                 text = accountDisplayName(
                     accountHolderName = detail.accountHolderName,
-                    accountSubType = detail.accountSubType,
-                    accountNumber = detail.accountNumber,
+                    accountTypeCode = detail.accountTypeCode,
+                    scheme = detail.scheme,
+                    identification = detail.identification,
                 ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag(AccountDetailTestTags.DISPLAY_NAME),
             )
             Text(
-                text = buildIdentificationLabel(detail.sortCode, detail.accountNumber),
+                text = formatAccountIdentifier(detail.scheme, detail.identification),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(AccountDetailTestTags.IDENTIFICATION),

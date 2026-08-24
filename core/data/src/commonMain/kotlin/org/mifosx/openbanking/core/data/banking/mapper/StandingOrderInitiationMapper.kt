@@ -113,7 +113,7 @@ internal fun StandingOrderDraft.toStandingOrderRequest(consentId: String): Domes
 
 private fun BankAccount.toStandingOrderObieDebtor(): DebtorAccount = DebtorAccount(
     schemeName = SCHEME_SORT_CODE,
-    identification = rawIdentification.takeIf { it.isNotBlank() } ?: (sortCode + accountNumber),
+    identification = identification,
     name = accountHolderName.takeIf { it.isNotBlank() },
 )
 

@@ -15,28 +15,6 @@ import kotlin.test.assertEquals
 class FormatAccountTest {
 
     @Test
-    fun groupsSixDigitSortCode() {
-        assertEquals("40-05-15", formatSortCode("400515"))
-    }
-
-    @Test
-    fun returnsInputUnchangedWhenNotSixDigits() {
-        assertEquals("4005", formatSortCode("4005"))
-        assertEquals("", formatSortCode(""))
-    }
-
-    @Test
-    fun masksAllButTheLastFourCardDigits() {
-        assertEquals("•••• 7654", maskCardNumber("4111111111117654"))
-    }
-
-    @Test
-    fun maskCardNumberKeepsWhateverShortInputHas() {
-        assertEquals("•••• 654", maskCardNumber("654"))
-        assertEquals("•••• ", maskCardNumber(""))
-    }
-
-    @Test
     fun groupsIbanIntoBlocksOfFour() {
         assertEquals("GB29 HBUK 4005 1512 3456 78", formatIban("GB29HBUK40051512345678"))
     }
@@ -48,30 +26,13 @@ class FormatAccountTest {
     }
 
     @Test
-    fun formatsAccountIdentifierPerSubtype() {
-        assertEquals(
-            "40-05-15  12345678",
-            formatAccountIdentifier("CurrentAccount", "40051512345678", "400515", "12345678"),
-        )
-        assertEquals(
-            "40-05-15  87654321",
-            formatAccountIdentifier("Savings", "40051587654321", "400515", "87654321"),
-        )
-        assertEquals(
-            "•••• 7654",
-            formatAccountIdentifier("CreditCard", "4111111111117654", "", ""),
-        )
+    fun formatsAccountIdentifierPerScheme() {
+        assertEquals("40051512345678", formatAccountIdentifier(AccountScheme.SortCode, "40051512345678"))
         assertEquals(
             "GB29 HBUK 4005 1512 3456 78",
-            formatAccountIdentifier("GlobalMoney", "GB29HBUK40051512345678", "", ""),
+            formatAccountIdentifier(AccountScheme.Iban, "GB29HBUK40051512345678"),
         )
-        assertEquals(
-            "GB29 HBUK 4005 1512 3456 78",
-            formatAccountIdentifier("GlobalWallet", "GB29HBUK40051512345678", "", ""),
-        )
-        assertEquals(
-            "raw-fallback",
-            formatAccountIdentifier("SomethingElse", "raw-fallback", "400515", "12345678"),
-        )
+        assertEquals("xxxx-xxxx-xxxx-3456", formatAccountIdentifier(AccountScheme.Pan, "xxxx-xxxx-xxxx-3456"))
+        assertEquals("raw-fallback", formatAccountIdentifier(AccountScheme.Other, "raw-fallback"))
     }
 }

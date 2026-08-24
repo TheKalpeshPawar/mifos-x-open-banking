@@ -107,7 +107,7 @@ internal fun ScheduledPaymentDraft.toScheduledPaymentRequest(consentId: String):
 
 private fun BankAccount.toScheduledObieDebtor(): DebtorAccount = DebtorAccount(
     schemeName = SCHEME_SORT_CODE,
-    identification = rawIdentification.takeIf { it.isNotBlank() } ?: (sortCode + accountNumber),
+    identification = identification,
     name = accountHolderName.takeIf { it.isNotBlank() },
 )
 

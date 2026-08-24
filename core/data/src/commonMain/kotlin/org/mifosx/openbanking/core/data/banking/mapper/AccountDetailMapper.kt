@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.network.model.ais.accountDetails.Account
@@ -16,9 +17,8 @@ import org.mifosx.openbanking.core.network.model.ais.accountDetails.AccountDetai
 import org.mifosx.openbanking.core.network.model.ais.balances.Balance
 import org.mifosx.openbanking.core.network.model.ais.balances.BalancesResponse
 
-private const val SORT_CODE_LENGTH = 6
-private const val ACCOUNT_NUMBER_LENGTH = 8
 private const val SORT_CODE_SCHEME = "SortCode"
+private const val PAN_SCHEME = "PAN"
 
 /**
  * Flattens the OBIE `OBReadAccount6` detail payload into a single [AccountDetail].
@@ -32,42 +32,32 @@ fun AccountDetailsResponse.toAccountDetail(): AccountDetail? =
 
 private fun Account.toAccountDetailOrNull(): AccountDetail? {
     val id = accountId ?: return null
-    val flattened = resolveIdentification()
+    val (identification, scheme) = resolveIdentification()
     return AccountDetail(
         accountId = id,
-        accountHolderName = account?.firstOrNull()?.name.orEmpty(),
-        accountSubType = resolveSubType(),
+        accountTypeCode = accountTypeCode ?: "",
         currency = currency ?: "",
-        sortCode = flattened.take(SORT_CODE_LENGTH),
-        accountNumber = flattened.drop(SORT_CODE_LENGTH).take(ACCOUNT_NUMBER_LENGTH),
+        identification = identification,
+        scheme = scheme,
         servicerIdentification = servicer?.identification ?: "",
         statusUpdateDateTime = statusUpdateDateTime ?: "",
-        // Carried verbatim, deliberately bypassing resolveSubType()'s fallback chain: product
-        // classification has to know whether a value came from AccountTypeCode or Description, and
-        // the chain collapses that distinction away.
-        accountTypeCode = accountTypeCode ?: "",
         description = description ?: "",
+        accountHolderName = account?.firstOrNull()?.name.orEmpty(),
     )
 }
 
 /**
- * Picks the sort-code-scheme sub-account identification when the bank tags one, otherwise the
- * first sub-account, otherwise the top-level value.
+ * Picks the identifier and its scheme, preferring the sort-code entry, then the PAN, then whatever
+ * the bank sent first.
  */
-private fun Account.resolveIdentification(): String {
-    val subAccounts = account.orEmpty()
-    val bySortCodeScheme = subAccounts
-        .firstOrNull { it.schemeName?.contains(SORT_CODE_SCHEME, ignoreCase = true) == true }
-        ?.identification
-    return bySortCodeScheme
-        ?: subAccounts.firstOrNull()?.identification
-        ?: identification
-        ?: ""
+private fun Account.resolveIdentification(): Pair<String, AccountScheme> {
+    val entries = account.orEmpty()
+    val entry = entries.firstOrNull { it.schemeName?.contains(SORT_CODE_SCHEME, ignoreCase = true) == true }
+        ?: entries.firstOrNull { it.schemeName?.contains(PAN_SCHEME, ignoreCase = true) == true }
+        ?: entries.firstOrNull()
+    val value = entry?.identification ?: identification ?: ""
+    return value to AccountScheme.fromSchemeName(entry?.schemeName)
 }
-
-/** `AccountSubType` is the precise value; the coarser type and category stand in when it is absent. */
-private fun Account.resolveSubType(): String =
-    accountSubType ?: accountTypeCode ?: accountCategory ?: description ?: ""
 
 /**
  * Maps the OBIE `OBReadBalance1` payload into one [AccountBalanceLine] per typed row, preserving

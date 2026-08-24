@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -37,27 +38,26 @@ class AccountsViewModelTest {
     private fun accountWith(
         id: String,
         available: String,
-        subType: String = "CurrentAccount",
+        typeCode: String = "CACC",
         currency: String = "GBP",
     ) = AccountWithBalance(
         account = BankAccount(
             accountId = id,
             accountHolderName = "Nickname $id",
-            accountSubType = subType,
+            accountTypeCode = typeCode,
             currency = currency,
-            sortCode = "400515",
-            accountNumber = "12345678",
-            rawIdentification = "40051512345678",
+            identification = "40051512345678",
+            scheme = AccountScheme.SortCode,
         ),
         balance = AccountBalance(id, currency, "0", available),
     )
 
     private fun sampleAccounts() = listOf(
-        accountWith("acc-current", "2847.63", "CurrentAccount"),
-        accountWith("acc-savings", "12450.00", "Savings"),
-        accountWith("acc-credit", "342.18", "CreditCard"),
-        accountWith("acc-global", "500.00", "GlobalMoney"),
-        accountWith("acc-wallet", "250.00", "GlobalWallet", currency = "USD"),
+        accountWith("acc-current", "2847.63", "CACC"),
+        accountWith("acc-savings", "12450.00", "SVGS"),
+        accountWith("acc-credit", "342.18", "CARD"),
+        accountWith("acc-global", "500.00", "CACC"),
+        accountWith("acc-wallet", "250.00", "CACC", currency = "USD"),
     )
 
     private fun content(state: ScreenState<*>) = state as ScreenState.Content
@@ -123,7 +123,7 @@ class AccountsViewModelTest {
     fun `an account reporting the CACC type code is matched by the Current filter`() = runTest {
         val vm = createViewModel()
         repo.emissions.value = ScreenState.Content(
-            listOf(accountWith("acc-global-money", "500.00", subType = "CACC")),
+            listOf(accountWith("acc-global-money", "500.00", typeCode = "CACC")),
             DataFreshness.FRESH,
         )
         vm.stateFlow.first { it.uiState is ScreenState.Content }

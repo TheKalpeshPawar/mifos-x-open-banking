@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.feature.home.components.AccountSelectorSheetContent
 import org.mifosx.openbanking.feature.home.ui.HomeData
@@ -107,18 +108,18 @@ private fun sampleAccounts(): List<BankAccount> = listOf(
     BankAccount(
         accountId = "acc-1",
         accountHolderName = "Everyday",
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "12345678",
+        identification = "40051512345678",
+        scheme = AccountScheme.SortCode,
     ),
     BankAccount(
         accountId = "acc-2",
         accountHolderName = "Savings",
-        accountSubType = "Savings",
+        accountTypeCode = "SVGS",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "87654321",
+        identification = "40051587654321",
+        scheme = AccountScheme.SortCode,
     ),
 )
 
@@ -129,7 +130,7 @@ private fun sampleHomeData(): HomeData = HomeData(
     accountHolderName = "Everyday",
     balanceLabel = "£2,900.00",
     availableAmountLabel = "£2,847.63",
-    accountNumberLabel = "40-05-15  12345678",
+    accountNumberLabel = "40051512345678",
     recentTransactions = listOf(
         TransactionRowUi(
             id = "t1",

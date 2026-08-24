@@ -15,6 +15,7 @@ import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.banking.store.FakeFetchedAtRepository
 import org.mifosx.openbanking.core.data.banking.store.FakeNetworkMonitor
 import org.mifosx.openbanking.core.model.banking.AccountBalance
@@ -41,10 +42,10 @@ class AccountsOverviewRepositoryImplTest {
     private fun account(id: String) = BankAccount(
         accountId = id,
         accountHolderName = id,
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "12345678",
+        identification = "40051512345678",
+        scheme = AccountScheme.SortCode,
     )
 
     private fun balance(id: String) = AccountBalance(

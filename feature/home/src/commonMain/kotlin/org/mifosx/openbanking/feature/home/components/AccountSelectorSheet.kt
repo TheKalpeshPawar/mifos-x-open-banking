@@ -111,9 +111,9 @@ internal fun AccountSelectorSheetContent(
                 Text(
                     text = accountDisplayName(
                         accountHolderName = account.accountHolderName,
-                        accountSubType = account.accountSubType,
-                        accountNumber = account.accountNumber,
-                        rawIdentification = account.rawIdentification,
+                        accountTypeCode = account.accountTypeCode,
+                        scheme = account.scheme,
+                        identification = account.identification,
                     ),
                     style = KptTheme.typography.bodyLarge,
                     color = if (selected) {

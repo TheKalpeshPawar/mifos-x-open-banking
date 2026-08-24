@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.TransactionItem
@@ -40,13 +41,13 @@ class HomeViewModelTest {
         return HomeViewModel(accountsRepo, balancesRepo, transactionsRepo, userDataRepo)
     }
 
-    private fun account(id: String, subType: String = "CurrentAccount") =
+    private fun account(id: String, typeCode: String = "CACC") =
         BankAccount(
             accountId = id,
-            accountSubType = subType,
+            accountTypeCode = typeCode,
             currency = "GBP",
-            sortCode = "400515",
-            accountNumber = "12345678",
+            identification = "40051512345678",
+            scheme = AccountScheme.SortCode,
             accountHolderName = "Nickname $id",
         )
 
@@ -73,7 +74,7 @@ class HomeViewModelTest {
         assertEquals(2, data.accounts.size)
         assertEquals("Nickname acc-1", data.accountHolderName)
         assertEquals("£2,900.00", data.balanceLabel)
-        assertEquals("40-05-15  12345678", data.accountNumberLabel)
+        assertEquals("40051512345678", data.accountNumberLabel)
         assertEquals(5, data.recentTransactions.size)
     }
 

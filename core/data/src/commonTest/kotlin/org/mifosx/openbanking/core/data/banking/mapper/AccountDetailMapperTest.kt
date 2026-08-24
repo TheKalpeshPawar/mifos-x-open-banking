@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.network.model.ais.accountDetails.Account
 import org.mifosx.openbanking.core.network.model.ais.accountDetails.AccountDetailsResponse
 import org.mifosx.openbanking.core.network.model.ais.accountDetails.Servicer
@@ -26,8 +27,8 @@ import org.mifosx.openbanking.core.network.model.ais.balances.Data as BalancesDa
 /**
  * Covers the OBIE detail and balance payload mappers.
  *
- * Both are defensive by design: fields the bank may omit fall back down a documented chain, and a
- * row that cannot render is dropped rather than surfaced half-built. Each fallback rung is asserted
+ * Both are defensive by design: fields the bank may omit fall back to an empty string, and a row that
+ * cannot render is dropped rather than surfaced half-built. Each fallback rung is asserted
  * separately, because a chain that silently skips a rung produces a plausible-looking wrong value.
  */
 class AccountDetailMapperTest {
@@ -44,7 +45,7 @@ class AccountDetailMapperTest {
             Account(
                 accountId = "acc-1",
                 currency = "GBP",
-                accountSubType = "CurrentAccount",
+                accountTypeCode = "CACC",
                 nickname = "Everyday Current",
                 statusUpdateDateTime = "2026-06-28T18:30:00Z",
                 servicer = Servicer(schemeName = "UK.OBIE.BICFI", identification = "MIDLGB2105V"),
@@ -56,10 +57,10 @@ class AccountDetailMapperTest {
 
         assertEquals("acc-1", detail?.accountId)
         assertEquals("", detail?.accountHolderName)
-        assertEquals("CurrentAccount", detail?.accountSubType)
+        assertEquals("CACC", detail?.accountTypeCode)
         assertEquals("GBP", detail?.currency)
-        assertEquals("400515", detail?.sortCode)
-        assertEquals("12345678", detail?.accountNumber)
+        assertEquals("40051512345678", detail?.identification)
+        assertEquals(AccountScheme.SortCode, detail?.scheme)
         assertEquals("MIDLGB2105V", detail?.servicerIdentification)
         assertEquals("2026-06-28T18:30:00Z", detail?.statusUpdateDateTime)
     }
@@ -81,32 +82,9 @@ class AccountDetailMapperTest {
     }
 
     @Test
-    fun toAccountDetailFallsBackThroughTheSubTypeChain() {
-        val withSubType = Account(accountId = "a", accountSubType = "CurrentAccount", accountTypeCode = "TC")
-        assertEquals("CurrentAccount", response(withSubType).toAccountDetail()?.accountSubType)
-
-        val withTypeCode = Account(accountId = "a", accountTypeCode = "TC", accountCategory = "Personal")
-        assertEquals("TC", response(withTypeCode).toAccountDetail()?.accountSubType)
-
-        val withCategory = Account(accountId = "a", accountCategory = "Personal", description = "Desc")
-        assertEquals("Personal", response(withCategory).toAccountDetail()?.accountSubType)
-
-        assertEquals("Desc", response(Account(accountId = "a", description = "Desc")).toAccountDetail()?.accountSubType)
-        assertEquals("", response(Account(accountId = "a")).toAccountDetail()?.accountSubType)
-    }
-
-    /**
-     * Carried verbatim, deliberately bypassing the fallback chain above.
-     *
-     * Product classification has to know which field a value came from — `CACC` in `AccountTypeCode`
-     * means something different from `CACC` arriving via `resolveSubType`'s fallback — and the chain
-     * collapses exactly that distinction.
-     */
-    @Test
     fun toAccountDetailCarriesTheAccountTypeCodeAndDescriptionVerbatim() {
         val account = Account(
             accountId = "a",
-            accountSubType = "CurrentAccount",
             accountTypeCode = "CACC",
             description = "GLOBAL MONEY ACCOUNT",
         )
@@ -114,8 +92,6 @@ class AccountDetailMapperTest {
 
         assertEquals("CACC", detail?.accountTypeCode)
         assertEquals("GLOBAL MONEY ACCOUNT", detail?.description)
-        // The lossy chain still wins for accountSubType — the two live side by side.
-        assertEquals("CurrentAccount", detail?.accountSubType)
     }
 
     @Test
@@ -138,8 +114,8 @@ class AccountDetailMapperTest {
             ),
         ).toAccountDetail()
 
-        assertEquals("400515", detail?.sortCode)
-        assertEquals("12345678", detail?.accountNumber)
+        assertEquals("40051512345678", detail?.identification)
+        assertEquals(AccountScheme.SortCode, detail?.scheme)
     }
 
     @Test
@@ -153,11 +129,12 @@ class AccountDetailMapperTest {
             ),
         ).toAccountDetail()
 
-        assertEquals("400515", detail?.sortCode)
+        assertEquals("40051512345678", detail?.identification)
+        assertEquals(AccountScheme.SortCode, detail?.scheme)
     }
 
     @Test
-    fun toAccountDetailUsesTheFirstNestedEntryWhenNoSortCodeSchemeIsPresent() {
+    fun toAccountDetailPrefersPanWhenNoSortCodeSchemeIsPresent() {
         val detail = response(
             Account(
                 accountId = "acc-1",
@@ -168,32 +145,47 @@ class AccountDetailMapperTest {
             ),
         ).toAccountDetail()
 
-        assertEquals("111111", detail?.sortCode)
-        assertEquals("22222222", detail?.accountNumber)
+        assertEquals("99999988888888", detail?.identification)
+        assertEquals(AccountScheme.Pan, detail?.scheme)
+    }
+
+    @Test
+    fun toAccountDetailUsesTheFirstNestedEntryWhenNoSortCodeOrPanSchemeIsPresent() {
+        val detail = response(
+            Account(
+                accountId = "acc-1",
+                account = listOf(
+                    Account(schemeName = "UK.OBIE.IBAN", identification = "11111122222222"),
+                    Account(schemeName = "UK.OBIE.IBAN", identification = "33333344444444"),
+                ),
+            ),
+        ).toAccountDetail()
+
+        assertEquals("11111122222222", detail?.identification)
+        assertEquals(AccountScheme.Iban, detail?.scheme)
     }
 
     @Test
     fun toAccountDetailFallsBackToTheTopLevelIdentification() {
         val detail = response(Account(accountId = "acc-1", identification = "40051512345678")).toAccountDetail()
 
-        assertEquals("400515", detail?.sortCode)
-        assertEquals("12345678", detail?.accountNumber)
+        assertEquals("40051512345678", detail?.identification)
+        assertEquals(AccountScheme.Other, detail?.scheme)
     }
 
     @Test
-    fun toAccountDetailLeavesBothIdentificationHalvesBlankWhenNoIdentificationIsPresent() {
+    fun toAccountDetailLeavesTheIdentificationBlankWhenNoIdentificationIsPresent() {
         val detail = response(Account(accountId = "acc-1")).toAccountDetail()
 
-        assertEquals("", detail?.sortCode)
-        assertEquals("", detail?.accountNumber)
+        assertEquals("", detail?.identification)
+        assertEquals(AccountScheme.Other, detail?.scheme)
     }
 
     @Test
-    fun toAccountDetailTruncatesAnOverlongIdentification() {
+    fun toAccountDetailKeepsTheIdentificationVerbatim() {
         val detail = response(Account(accountId = "acc-1", identification = "400515123456789999")).toAccountDetail()
 
-        assertEquals("400515", detail?.sortCode)
-        assertEquals("12345678", detail?.accountNumber)
+        assertEquals("400515123456789999", detail?.identification)
     }
 
     @Test

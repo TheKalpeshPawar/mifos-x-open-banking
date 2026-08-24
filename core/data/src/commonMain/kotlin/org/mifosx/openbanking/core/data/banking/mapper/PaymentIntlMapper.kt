@@ -55,7 +55,7 @@ internal fun PaymentDraft.toIntlInitiation(): IntlInitiationReq = IntlInitiation
 )
 
 private fun BankAccount?.toIntlObieDebtor(): IntlDebtorAccount? = this?.let { account ->
-    account.rawIdentification
+    account.identification
         .takeIf { it.isNotBlank() }
         ?.let { identification ->
             IntlDebtorAccount(

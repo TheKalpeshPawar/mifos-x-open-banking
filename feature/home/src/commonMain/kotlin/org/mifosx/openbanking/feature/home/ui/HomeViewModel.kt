@@ -21,10 +21,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.common.formatShortMonthDay
 import org.mifosx.openbanking.core.common.formatSignedMoney
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.data.banking.AccountsRepository
 import org.mifosx.openbanking.core.data.banking.BalancesRepository
 import org.mifosx.openbanking.core.data.banking.TransactionsRepository
@@ -56,9 +57,9 @@ data class HomeData(
     val accountTypeLabel: String,
     val accountHolderName: String,
     /** Selected account's raw fields, so the hero card can fall back to a "type ·· last 4" label. */
-    val accountSubType: String = "",
-    val accountNumber: String = "",
-    val rawIdentification: String = "",
+    val accountTypeCode: String = "",
+    val scheme: AccountScheme = AccountScheme.Other,
+    val identification: String = "",
     val balanceLabel: String,
     val availableAmountLabel: String,
     val accountNumberLabel: String,
@@ -180,14 +181,14 @@ class HomeViewModel(
         return HomeData(
             accounts = accounts,
             selectedAccountId = selectedId,
-            accountTypeLabel = selected?.accountSubType.orEmpty().uppercase(),
+            accountTypeLabel = selected?.accountTypeCode.orEmpty().uppercase(),
             accountHolderName = selected?.accountHolderName.orEmpty(),
-            accountSubType = selected?.accountSubType.orEmpty(),
-            accountNumber = selected?.accountNumber.orEmpty(),
-            rawIdentification = selected?.rawIdentification.orEmpty(),
+            accountTypeCode = selected?.accountTypeCode.orEmpty(),
+            scheme = selected?.scheme ?: AccountScheme.Other,
+            identification = selected?.identification.orEmpty(),
             balanceLabel = formatMoney(balance.currentAmount, balance.currency),
             availableAmountLabel = formatMoney(balance.availableAmount, balance.currency),
-            accountNumberLabel = selected?.let { "${formatSortCode(it.sortCode)}  ${it.accountNumber}" }.orEmpty(),
+            accountNumberLabel = selected?.let { formatAccountIdentifier(it.scheme, it.identification) }.orEmpty(),
             recentTransactions = transactions.take(RECENT_TRANSACTIONS_LIMIT).map { it.toRowUi() },
         )
     }

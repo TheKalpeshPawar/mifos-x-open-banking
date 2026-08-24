@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.banking.store.FakeFetchedAtRepository
 import org.mifosx.openbanking.core.data.banking.store.FakeNetworkMonitor
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
@@ -49,10 +50,10 @@ class AccountDetailRepositoryImplTest {
     private val detail = AccountDetail(
         accountId = "acc-1",
         accountHolderName = "Everyday Current",
-        accountSubType = "CurrentAccount",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "12345678",
+        identification = "40051512345678",
+        scheme = AccountScheme.SortCode,
         servicerIdentification = "MIDLGB2105V",
         statusUpdateDateTime = "2026-06-28T18:30:00Z",
     )

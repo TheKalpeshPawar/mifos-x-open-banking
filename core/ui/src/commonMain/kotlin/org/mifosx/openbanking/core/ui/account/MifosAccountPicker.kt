@@ -179,8 +179,8 @@ private fun AccountRow(
 private fun AccountWithBalance.Lines(emphasised: Boolean = false) {
     AccountLines(
         name = account.accountHolderName,
-        headline = maskedAccountNumber(account.accountSubType, account.accountNumber, account.rawIdentification),
-        type = accountTypeLabel(account.accountSubType),
+        headline = maskedAccountNumber(account.scheme, account.identification),
+        type = accountTypeLabel(account.accountTypeCode),
         balance = balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
         emphasised = emphasised,
     )

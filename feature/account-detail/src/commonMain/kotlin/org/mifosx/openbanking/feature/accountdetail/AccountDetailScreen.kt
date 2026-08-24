@@ -72,8 +72,9 @@ private fun AccountDetailState.topBarTitle(): String = when (val current = uiSta
 private fun AccountDetail.displayName(): String =
     accountDisplayName(
         accountHolderName = accountHolderName,
-        accountSubType = accountSubType,
-        accountNumber = accountNumber,
+        accountTypeCode = accountTypeCode,
+        scheme = scheme,
+        identification = identification,
     )
 
 @Composable

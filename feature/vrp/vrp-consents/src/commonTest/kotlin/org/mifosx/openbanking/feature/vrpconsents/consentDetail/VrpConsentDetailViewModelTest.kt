@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.vrp.AccountIdentity
@@ -282,8 +283,8 @@ class VrpConsentDetailViewModelTest {
 
         val payer = assertNotNull(content(vm).payer)
         assertEquals(
-            "XXXX4021",
-            maskedAccountNumber(payer.name, payer.identification.takeLast(8), payer.identification),
+            "XXXXXXXXXX4021",
+            maskedAccountNumber(AccountScheme.fromSchemeName(payer.schemeName), payer.identification),
         )
     }
 
@@ -307,8 +308,8 @@ class VrpConsentDetailViewModelTest {
 
         val payer = assertNotNull(content(vm).payer)
         assertEquals(
-            "XXXX3349",
-            maskedAccountNumber(payer.name, payer.identification.takeLast(8), payer.identification),
+            "XXXXXXXXXX3349",
+            maskedAccountNumber(AccountScheme.fromSchemeName(payer.schemeName), payer.identification),
         )
         assertEquals("CACC", payer.name)
     }
