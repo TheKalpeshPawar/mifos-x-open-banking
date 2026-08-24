@@ -17,9 +17,6 @@ internal object DirectDebitsTestTags {
 
     /** The scrolling mandate list itself — the node the suites scroll to reach later cards. */
     const val CONTENT = "directDebits:content"
-    const val SUMMARY_CHIPS = "directDebits:summaryChips"
-    const val ACTIVE_CHIP = "directDebits:activeChip"
-    const val INACTIVE_CHIP = "directDebits:inactiveChip"
 
     /** Tag for one mandate card, keyed by its OBIE `MandateIdentification`. */
     fun card(mandateId: String): String = "directDebits:card:$mandateId"
@@ -30,9 +27,6 @@ internal object DirectDebitsTestTags {
     /** Tag for one mandate's previous-payment amount, keyed by its `MandateIdentification`. */
     fun amount(mandateId: String): String = "directDebits:amount:$mandateId"
 
-    /** Tag for one mandate's last-collected line, keyed by its `MandateIdentification`. */
-    fun lastCollected(mandateId: String): String = "directDebits:lastCollected:$mandateId"
-
-    /** Tag for one mandate's reference line, keyed by its `MandateIdentification`. */
-    fun mandateReference(mandateId: String): String = "directDebits:mandateReference:$mandateId"
+    /** Tag for one mandate's collection-time line, keyed by its `MandateIdentification`. */
+    fun collectionTime(mandateId: String): String = "directDebits:collectionTime:$mandateId"
 }

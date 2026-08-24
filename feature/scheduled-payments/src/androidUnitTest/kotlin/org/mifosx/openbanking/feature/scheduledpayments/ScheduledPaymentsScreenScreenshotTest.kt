@@ -34,14 +34,13 @@ private const val FRAME_WIDTH = 412
 private const val FRAME_HEIGHT = 892
 
 /**
- * Golden-image coverage for [ScheduledPaymentsScreenContent] across its four rendered states,
- * captured with Roborazzi under Robolectric's native graphics (no device). Goldens are committed
- * under `build/outputs/roborazzi/`; the record task writes them and the verify task fails
- * the build on any pixel drift.
+ * Golden-image coverage for the [ScheduledPaymentsScreenContent] content state, captured with
+ * Roborazzi under Robolectric's native graphics (no device). Goldens are committed under
+ * `build/outputs/roborazzi/`; the record task writes them and the verify task fails the build on any
+ * pixel drift.
  *
- * Capture is driven through [createComposeRule]'s `onRoot()` rather than the standalone
- * `captureRoboImage { }` content overload — the latter silently skipped alternate captures when
- * several run in one class, whereas the rule stands up a fresh composition per test.
+ * The loading, empty and error states are the shared state components, covered by their own
+ * `core/ui` suites, so this feature only goldens the screen it owns.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,25 +51,16 @@ class ScheduledPaymentsScreenScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun contentGolden() = capture("content", ScheduledPaymentsFixtures.contentState())
+    fun contentGolden() = capture(ScheduledPaymentsFixtures.contentState())
 
-    @Test
-    fun loadingGolden() = capture("loading", ScheduledPaymentsFixtures.loadingState())
-
-    @Test
-    fun emptyGolden() = capture("empty", ScheduledPaymentsFixtures.emptyState())
-
-    @Test
-    fun errorGolden() = capture("error", ScheduledPaymentsFixtures.errorState())
-
-    private fun capture(state: String, screenState: ScheduledPaymentsState) {
+    private fun capture(screenState: ScheduledPaymentsState) {
         composeRule.setContent {
             Themed {
                 ScheduledPaymentsScreenContent(state = screenState, onAction = {})
             }
         }
         composeRule.onRoot()
-            .captureRoboImage("build/outputs/roborazzi/scheduled_payments_$state.png")
+            .captureRoboImage("build/outputs/roborazzi/scheduled_payments_content.png")
     }
 
     @Composable

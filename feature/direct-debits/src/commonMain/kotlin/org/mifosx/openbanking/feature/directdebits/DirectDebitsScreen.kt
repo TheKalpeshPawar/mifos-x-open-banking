@@ -72,8 +72,6 @@ internal fun DirectDebitsScreenContent(
 
         is DirectDebitsUiState.Content -> DirectDebitsContent(
             mandates = current.mandates,
-            activeCount = current.activeCount,
-            inactiveCount = current.inactiveCount,
             modifier = modifier,
         )
 

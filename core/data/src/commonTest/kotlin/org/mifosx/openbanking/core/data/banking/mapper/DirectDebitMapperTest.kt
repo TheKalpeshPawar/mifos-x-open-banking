@@ -27,7 +27,7 @@ class DirectDebitMapperTest {
 
     private fun mandate(
         name: String? = "British Gas",
-        status: String? = "Active",
+        status: String? = "ACTV",
         mandateId: String? = "DD-BG-44120",
         amount: String? = "78.00",
         currency: String? = "GBP",
@@ -51,7 +51,7 @@ class DirectDebitMapperTest {
 
         assertEquals("DD-BG-44120", item.mandateId)
         assertEquals("British Gas", item.name)
-        assertEquals("Active", item.statusCode)
+        assertEquals("ACTV", item.statusCode)
         assertEquals("78.00", item.previousPaymentAmount)
         assertEquals("GBP", item.currency)
         assertEquals("2026-06-15T00:00:00Z", item.previousPaymentDateTime)
@@ -62,9 +62,9 @@ class DirectDebitMapperTest {
     fun sortsActiveMandatesBeforeInactiveOnes() {
         val mapped = response(
             mandate(name = "TV Licensing", status = "Inactive"),
-            mandate(name = "British Gas", status = "Active"),
+            mandate(name = "British Gas", status = "ACTV"),
             mandate(name = "Cancelled Co", status = "Inactive"),
-            mandate(name = "Vodafone", status = "Active"),
+            mandate(name = "Vodafone", status = "ACTV"),
         ).toDirectDebitItems()
 
         assertEquals(
@@ -76,9 +76,9 @@ class DirectDebitMapperTest {
     @Test
     fun sortIsStableSoBankOrderSurvivesWithinEachStatusGroup() {
         val mapped = response(
-            mandate(name = "Aviva Insurance", status = "Active"),
-            mandate(name = "British Gas", status = "Active"),
-            mandate(name = "Vodafone", status = "Active"),
+            mandate(name = "Aviva Insurance", status = "ACTV"),
+            mandate(name = "British Gas", status = "ACTV"),
+            mandate(name = "Vodafone", status = "ACTV"),
         ).toDirectDebitItems()
 
         assertEquals(listOf("Aviva Insurance", "British Gas", "Vodafone"), mapped.map { it.name })
@@ -87,9 +87,9 @@ class DirectDebitMapperTest {
     @Test
     fun summaryCountsActiveAndInactiveMandates() {
         val summary = response(
-            mandate(name = "British Gas", status = "Active"),
-            mandate(name = "Vodafone", status = "Active"),
-            mandate(name = "Aviva Insurance", status = "Active"),
+            mandate(name = "British Gas", status = "ACTV"),
+            mandate(name = "Vodafone", status = "ACTV"),
+            mandate(name = "Aviva Insurance", status = "ACTV"),
             mandate(name = "TV Licensing", status = "Inactive"),
         ).toDirectDebitsSummary()
 
@@ -101,7 +101,7 @@ class DirectDebitMapperTest {
 
     @Test
     fun statusMatchingIgnoresCase() {
-        val mapped = response(mandate(status = "ACTIVE")).toDirectDebitItems().single()
+        val mapped = response(mandate(status = "actv")).toDirectDebitItems().single()
         assertTrue(mapped.isActive)
     }
 

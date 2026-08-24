@@ -127,7 +127,7 @@ class ScheduledPaymentsViewModelTest {
         val execution = payments.first()
         assertEquals("SP-001", execution.scheduledPaymentId)
         assertEquals("HMRC Self Assessment", execution.payeeName)
-        assertEquals("GBP 842.00", execution.amountLabel)
+        assertEquals("£842.00", execution.amountLabel)
         assertEquals("Fri 31 Jul 2026", execution.scheduledDateLabel)
         assertEquals(ScheduledPaymentType.Execution, execution.scheduledType)
         assertEquals("08-32-00 12001039", execution.creditorIdentification)
@@ -137,7 +137,7 @@ class ScheduledPaymentsViewModelTest {
     @Test
     fun arrivalPaymentCarriesTheArrivalTypeAndItsOwnFormatting() {
         val arrival = content(viewModel(contentRepository())).payments[1]
-        assertEquals("GBP 412.50", arrival.amountLabel)
+        assertEquals("£412.50", arrival.amountLabel)
         assertEquals("Sat 15 Aug 2026", arrival.scheduledDateLabel)
         assertEquals(ScheduledPaymentType.Arrival, arrival.scheduledType)
     }

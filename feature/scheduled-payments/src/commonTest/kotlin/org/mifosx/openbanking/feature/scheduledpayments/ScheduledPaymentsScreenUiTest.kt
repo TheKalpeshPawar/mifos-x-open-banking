@@ -39,49 +39,6 @@ class ScheduledPaymentsScreenUiTest {
 
         onNodeWithTag(ScheduledPaymentsTestTags.CONTENT_LIST).assertExists()
         onNodeWithTag(ScheduledPaymentsTestTags.card(ScheduledPaymentsFixtures.EXECUTION_ID)).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.typeChip(ScheduledPaymentsFixtures.EXECUTION_ID)).assertExists()
         onNodeWithTag(ScheduledPaymentsTestTags.card(ScheduledPaymentsFixtures.ARRIVAL_ID)).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.typeChip(ScheduledPaymentsFixtures.ARRIVAL_ID)).assertExists()
-    }
-
-    @Test
-    fun loadingRendersTheSpinnerNotTheList() = runComposeUiTest {
-        setContent {
-            ScheduledPaymentsScreenContent(
-                state = ScheduledPaymentsFixtures.loadingState(),
-                onAction = {},
-            )
-        }
-
-        onNodeWithTag(ScheduledPaymentsTestTags.LOADING).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() = runComposeUiTest {
-        setContent {
-            ScheduledPaymentsScreenContent(
-                state = ScheduledPaymentsFixtures.emptyState(),
-                onAction = {},
-            )
-        }
-
-        onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_STATE).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun errorRendersItsTitleAndRetry() = runComposeUiTest {
-        setContent {
-            ScheduledPaymentsScreenContent(
-                state = ScheduledPaymentsFixtures.errorState(),
-                onAction = {},
-            )
-        }
-
-        onNodeWithTag(ScheduledPaymentsTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.ERROR_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(ScheduledPaymentsTestTags.RETRY_BUTTON).assertExists()
     }
 }

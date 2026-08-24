@@ -12,17 +12,14 @@ package org.mifosx.openbanking.feature.directdebits
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitRowUi
-import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsAction
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsState
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsUiState
-import kotlin.test.assertTrue
 
 private const val ACCOUNT_ID = "40051512345678"
 
@@ -35,38 +32,38 @@ private fun rows(): List<DirectDebitRowUi> = listOf(
         name = "British Gas",
         statusLabel = "Active",
         isActive = true,
-        amountLabel = "£78.00",
-        lastCollectedLabel = "15 Jun 2026",
+        previousPaymentAmount = "£78.00",
+        previousPaymentDateTime = "2026-06-15 00:00:00",
     ),
     DirectDebitRowUi(
         mandateId = "DD-VF-88301",
         name = "Vodafone",
         statusLabel = "Active",
         isActive = true,
-        amountLabel = "£29.00",
-        lastCollectedLabel = "20 Jun 2026",
+        previousPaymentAmount = "£29.00",
+        previousPaymentDateTime = "2026-06-20 00:00:00",
     ),
     DirectDebitRowUi(
         mandateId = "DD-AV-10293",
         name = "Aviva Insurance",
         statusLabel = "Active",
         isActive = true,
-        amountLabel = "£41.50",
-        lastCollectedLabel = "5 Jun 2026",
+        previousPaymentAmount = "£41.50",
+        previousPaymentDateTime = "2026-06-05 00:00:00",
     ),
     DirectDebitRowUi(
         mandateId = "DD-TVL-55667",
         name = "TV Licensing",
         statusLabel = "Inactive",
         isActive = false,
-        amountLabel = "£13.25",
-        lastCollectedLabel = "1 Mar 2026",
+        previousPaymentAmount = "£13.25",
+        previousPaymentDateTime = "2026-03-01 00:00:00",
     ),
 )
 
 private fun contentState(): DirectDebitsState = DirectDebitsState(
     accountId = ACCOUNT_ID,
-    uiState = DirectDebitsUiState.Content(mandates = rows(), activeCount = 3, inactiveCount = 1),
+    uiState = DirectDebitsUiState.Content(mandates = rows()),
 )
 
 /**
@@ -79,21 +76,17 @@ class DirectDebitsScreenInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val actions = mutableListOf<DirectDebitsAction>()
-
     private fun render(state: DirectDebitsState) {
         composeRule.setContent {
-            DirectDebitsScreenContent(state = state, onAction = { actions.add(it) })
+            DirectDebitsScreenContent(state = state, onAction = {})
         }
     }
 
     @Test
-    fun contentStateRendersSummaryChipsAndEveryMandateCard() {
+    fun contentStateRendersEveryMandateCard() {
         render(contentState())
 
         composeRule.onNodeWithTag(DirectDebitsTestTags.CONTENT).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ACTIVE_CHIP, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.INACTIVE_CHIP, useUnmergedTree = true).assertExists()
         rows().forEach { row ->
             composeRule.onNodeWithTag(DirectDebitsTestTags.CONTENT)
                 .performScrollToNode(hasTestTag(DirectDebitsTestTags.card(row.mandateId)))
@@ -102,7 +95,7 @@ class DirectDebitsScreenInstrumentedTest {
     }
 
     @Test
-    fun eachCardRendersItsBadgeAmountDateAndMandateReference() {
+    fun eachCardRendersItsBadgeAmountAndCollectionTime() {
         render(contentState())
 
         val first = rows().first()
@@ -110,12 +103,8 @@ class DirectDebitsScreenInstrumentedTest {
             .assertExists()
         composeRule.onNodeWithTag(DirectDebitsTestTags.amount(first.mandateId), useUnmergedTree = true)
             .assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.lastCollected(first.mandateId), useUnmergedTree = true)
+        composeRule.onNodeWithTag(DirectDebitsTestTags.collectionTime(first.mandateId), useUnmergedTree = true)
             .assertExists()
-        composeRule.onNodeWithTag(
-            DirectDebitsTestTags.mandateReference(first.mandateId),
-            useUnmergedTree = true,
-        ).assertExists()
     }
 
     @Test
@@ -131,42 +120,26 @@ class DirectDebitsScreenInstrumentedTest {
     }
 
     @Test
-    fun summaryChipsAreDisplayOnlyAndDispatchNothingWhenTapped() {
-        render(contentState())
-
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ACTIVE_CHIP, useUnmergedTree = true).performClick()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.INACTIVE_CHIP, useUnmergedTree = true).performClick()
-
-        assertTrue(actions.isEmpty())
-    }
-
-    @Test
-    fun aMandateWithNoAmountDateOrReferenceOmitsThoseLines() {
+    fun aMandateWithBlankValuesStillRendersItsCard() {
         val bare = DirectDebitRowUi(
             mandateId = "",
             name = "Unknown Originator",
             statusLabel = "",
             isActive = false,
-            amountLabel = "",
-            lastCollectedLabel = "",
+            previousPaymentAmount = "",
+            previousPaymentDateTime = "",
         )
         render(
             DirectDebitsState(
                 accountId = ACCOUNT_ID,
-                uiState = DirectDebitsUiState.Content(
-                    mandates = listOf(bare),
-                    activeCount = 0,
-                    inactiveCount = 1,
-                ),
+                uiState = DirectDebitsUiState.Content(mandates = listOf(bare)),
             ),
         )
 
         composeRule.onNodeWithTag(DirectDebitsTestTags.card("")).assertExists()
         composeRule.onNodeWithTag(DirectDebitsTestTags.amount(""), useUnmergedTree = true)
-            .assertDoesNotExist()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.lastCollected(""), useUnmergedTree = true)
-            .assertDoesNotExist()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.mandateReference(""), useUnmergedTree = true)
-            .assertDoesNotExist()
+            .assertExists()
+        composeRule.onNodeWithTag(DirectDebitsTestTags.collectionTime(""), useUnmergedTree = true)
+            .assertExists()
     }
 }

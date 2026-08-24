@@ -11,7 +11,7 @@ package org.mifosx.openbanking.feature.scheduledpayments
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.lifecycle.SavedStateHandle
@@ -81,7 +81,7 @@ class ScheduledPaymentsActionTest {
             )
         }
 
-        onNodeWithTag(ScheduledPaymentsTestTags.RETRY_BUTTON).performClick()
+        onNodeWithText("Retry").performClick()
 
         assertEquals(listOf<ScheduledPaymentsAction>(ScheduledPaymentsAction.RetryLoad), actions)
         assertTrue(actions.isNotEmpty())

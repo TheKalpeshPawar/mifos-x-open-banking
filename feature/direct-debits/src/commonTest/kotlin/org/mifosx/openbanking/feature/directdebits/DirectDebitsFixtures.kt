@@ -85,32 +85,32 @@ object DirectDebitsFixtures {
             name = "British Gas",
             statusLabel = "Active",
             isActive = true,
-            amountLabel = "£78.00",
-            lastCollectedLabel = "15 Jun 2026",
+            previousPaymentAmount = "£78.00",
+            previousPaymentDateTime = "2026-06-15 00:00:00",
         ),
         DirectDebitRowUi(
             mandateId = "DD-VF-88301",
             name = "Vodafone",
             statusLabel = "Active",
             isActive = true,
-            amountLabel = "£29.00",
-            lastCollectedLabel = "20 Jun 2026",
+            previousPaymentAmount = "£29.00",
+            previousPaymentDateTime = "2026-06-20 00:00:00",
         ),
         DirectDebitRowUi(
             mandateId = "DD-AV-10293",
             name = "Aviva Insurance",
             statusLabel = "Active",
             isActive = true,
-            amountLabel = "£41.50",
-            lastCollectedLabel = "5 Jun 2026",
+            previousPaymentAmount = "£41.50",
+            previousPaymentDateTime = "2026-06-05 00:00:00",
         ),
         DirectDebitRowUi(
             mandateId = "DD-TVL-55667",
             name = "TV Licensing",
             statusLabel = "Inactive",
             isActive = false,
-            amountLabel = "£13.25",
-            lastCollectedLabel = "1 Mar 2026",
+            previousPaymentAmount = "£13.25",
+            previousPaymentDateTime = "2026-03-01 00:00:00",
         ),
     )
 
@@ -118,8 +118,6 @@ object DirectDebitsFixtures {
         accountId = ACCOUNT_ID,
         uiState = DirectDebitsUiState.Content(
             mandates = rows(),
-            activeCount = 3,
-            inactiveCount = 1,
         ),
     )
 }

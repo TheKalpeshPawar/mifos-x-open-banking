@@ -75,22 +75,22 @@ object ScheduledPaymentsFixtures {
 
     // ── Rendered UI states for the Compose suites ────────────────────────────────
 
-    /** The execution payment as the view model formats it — `GBP 842.00`, `Fri 31 Jul 2026`. */
+    /** The execution payment as the view model formats it — `£842.00`, `Fri 31 Jul 2026`. */
     fun executionUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
         scheduledPaymentId = EXECUTION_ID,
         payeeName = "HMRC Self Assessment",
-        amountLabel = "GBP 842.00",
+        amountLabel = "£842.00",
         scheduledDateLabel = "Fri 31 Jul 2026",
         scheduledType = ScheduledPaymentType.Execution,
         creditorIdentification = "08-32-00 12001039",
         reference = "HMRC-SA-2526",
     )
 
-    /** The arrival payment as the view model formats it — `GBP 412.50`, `Sat 15 Aug 2026`. */
+    /** The arrival payment as the view model formats it — `£412.50`, `Sat 15 Aug 2026`. */
     fun arrivalUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
         scheduledPaymentId = ARRIVAL_ID,
         payeeName = "Direct Line Insurance",
-        amountLabel = "GBP 412.50",
+        amountLabel = "£412.50",
         scheduledDateLabel = "Sat 15 Aug 2026",
         scheduledType = ScheduledPaymentType.Arrival,
         creditorIdentification = "20-00-00 73428901",
@@ -100,13 +100,6 @@ object ScheduledPaymentsFixtures {
     fun contentState(): ScheduledPaymentsState = ScheduledPaymentsState(
         accountId = ACCOUNT_ID,
         uiState = ScheduledPaymentsUiState.Content(listOf(executionUiModel(), arrivalUiModel())),
-    )
-
-    fun loadingState(): ScheduledPaymentsState = ScheduledPaymentsState(accountId = ACCOUNT_ID)
-
-    fun emptyState(): ScheduledPaymentsState = ScheduledPaymentsState(
-        accountId = ACCOUNT_ID,
-        uiState = ScheduledPaymentsUiState.Empty,
     )
 
     fun errorState(
