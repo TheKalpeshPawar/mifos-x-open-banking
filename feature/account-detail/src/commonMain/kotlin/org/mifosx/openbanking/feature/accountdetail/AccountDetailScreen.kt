@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
@@ -23,7 +24,6 @@ import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailAction
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailUiState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailViewModel
-import org.mifosx.openbanking.feature.accountdetail.ui.AccountHeaderUi
 
 /**
  * Account-detail hub. Reached by tapping an account, and the sole entry point to the account's
@@ -69,7 +69,7 @@ private fun AccountDetailState.topBarTitle(): String = when (val current = uiSta
 }
 
 @Composable
-private fun AccountHeaderUi.displayName(): String =
+private fun AccountDetail.displayName(): String =
     accountDisplayName(
         accountHolderName = accountHolderName,
         accountSubType = accountSubType,
@@ -87,7 +87,7 @@ internal fun AccountDetailScreenContent(
         AccountDetailUiState.Loading -> AccountDetailSkeleton(modifier = modifier)
 
         is AccountDetailUiState.Content -> AccountDetailContent(
-            header = current.header,
+            detail = current.header,
             balances = current.balances,
             availableChips = state.availableChips,
             onChipClick = onChipClick,
@@ -95,7 +95,7 @@ internal fun AccountDetailScreenContent(
         )
 
         is AccountDetailUiState.Empty -> AccountDetailContent(
-            header = current.header,
+            detail = current.header,
             balances = emptyList(),
             availableChips = state.availableChips,
             onChipClick = onChipClick,

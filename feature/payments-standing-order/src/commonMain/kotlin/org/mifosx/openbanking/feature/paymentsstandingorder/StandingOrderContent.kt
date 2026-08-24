@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
@@ -50,6 +51,7 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeOption
+import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.MifosPaymentHistoryList
 import org.mifosx.openbanking.core.ui.payment.toRowUi
 import org.mifosx.openbanking.feature.paymentsstandingorder.components.DateField
@@ -96,9 +98,9 @@ import org.mifosx.openbanking.feature.paymentsstandingorder.ui.OFFERED_CHARGE_BE
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAction
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAmountProblem
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderDateRole
-import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderPickerRow
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderStep
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderUiState
+import org.mifosx.openbanking.feature.paymentsstandingorder.ui.shortNameOf
 import template.core.base.designsystem.theme.KptTheme
 import org.mifosx.openbanking.core.ui.generated.resources.Res as CoreRes
 
@@ -708,10 +710,10 @@ private fun ChargesSection(
     }
 }
 
-private fun StandingOrderPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
-    payeeId = id,
-    shortName = shortName.ifBlank { headline },
-    initials = initials,
+private fun BeneficiaryItem.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = identification,
+    shortName = shortNameOf(creditorName),
+    initials = initialsOf(creditorName),
 )
 
 private fun StandingOrderAmountProblem.messageResource(): StringResource = when (this) {

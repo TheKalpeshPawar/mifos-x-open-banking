@@ -21,7 +21,7 @@ import androidx.room3.PrimaryKey
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey val accountId: String,
-    val nickname: String,
+    val accountHolderName: String,
     val accountSubType: String,
     val currency: String,
     val sortCode: String,

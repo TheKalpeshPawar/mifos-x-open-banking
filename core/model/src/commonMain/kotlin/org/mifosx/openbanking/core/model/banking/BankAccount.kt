@@ -19,8 +19,8 @@ import kotlinx.serialization.Serializable
  * values so the UI never has to null-check.
  *
  * @property accountId OBIE `AccountId`, the key for balance and transaction lookups.
- * @property nickname Human-readable account name (OBIE `Nickname`/`Name`).
- * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`).
+ * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`) — the single
+ *   display-name field; the bank never returns a `Nickname`/top-level `Name`.
  * @property accountSubType OBIE `AccountSubType` (e.g. `CurrentAccount`, `Savings`).
  * @property currency ISO-4217 currency code.
  * @property sortCode Six-digit UK sort code, unformatted (e.g. `400515`).
@@ -37,7 +37,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BankAccount(
     val accountId: String,
-    val nickname: String,
     val accountSubType: String,
     val currency: String,
     val sortCode: String,

@@ -24,13 +24,11 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.OFFERED_CURRENCIES
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAmountProblem
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderDateRole
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderErrorKind
-import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderPickerRow
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderStage
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderState
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderStep
@@ -77,7 +75,7 @@ object StandingOrderFixtures {
     /** £21,530.92 available — comfortably covers the fixture payment. */
     fun currentAccount(): BankAccount = BankAccount(
         accountId = CURRENT_ACCOUNT_ID,
-        nickname = "Current account ·· 3349",
+        accountHolderName = "Current account ·· 3349",
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "802001",
@@ -88,7 +86,7 @@ object StandingOrderFixtures {
     /** £482.10 available — the account TC-SEND-003 overdraws. */
     fun savingsAccount(): BankAccount = BankAccount(
         accountId = SAVINGS_ACCOUNT_ID,
-        nickname = "BMM ACCOUNT ·· 3695",
+        accountHolderName = "BMM ACCOUNT ·· 3695",
         accountSubType = "Savings",
         currency = "GBP",
         sortCode = "801225",
@@ -103,7 +101,7 @@ object StandingOrderFixtures {
      */
     fun creditCard(): BankAccount = BankAccount(
         accountId = CREDIT_CARD_ID,
-        nickname = "",
+        accountHolderName = "",
         // "CARD", not "CreditCard": v4.0 has no AccountSubType, so AccountMapper falls through to
         // AccountTypeCode, which HSBC sends as CARD. Both resolve, but the fixture mirrors the bank.
         accountSubType = "CARD",
@@ -122,7 +120,7 @@ object StandingOrderFixtures {
      */
     fun globalMoneyWallet(): BankAccount = BankAccount(
         accountId = GLOBAL_MONEY_ID,
-        nickname = "",
+        accountHolderName = "",
         accountSubType = "CACC",
         currency = "GBP",
         sortCode = "801197",
@@ -220,30 +218,9 @@ object StandingOrderFixtures {
      * `accountDisplayName`, exactly as it is in production. A fixture that pre-baked the label would
      * have passed while the live screen rendered blank rows, which is what happened.
      */
-    private fun debtorRows(): List<MifosAccountOption> = listOf(
-        MifosAccountOption(
-            accountId = CURRENT_ACCOUNT_ID,
-            accountHolderName = "",
-            accountSubType = "CurrentAccount",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
-            availableBalance = "£21,530.92",
-        ),
-        MifosAccountOption(
-            accountId = SAVINGS_ACCOUNT_ID,
-            accountHolderName = "",
-            accountSubType = "Savings",
-            accountNumber = "90953695",
-            rawIdentification = "80122590953695",
-            availableBalance = "£482.10",
-        ),
-    )
-
-    private fun creditorRows(): List<StandingOrderPickerRow> = listOf(
-        StandingOrderPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310", "Jameson L."),
-        StandingOrderPickerRow(SHARMA_ID, "JS", "John Sharma", "Sort Code · 23-05-80 11223344", "John S."),
-        StandingOrderPickerRow(EDF_ID, "EE", "EDF Energy", "Sort Code · 60-00-01 99887766", "EDF E."),
-    )
+    private fun debtorRows(): List<AccountWithBalance> = accounts()
+        .filter { it.account.accountId == CURRENT_ACCOUNT_ID || it.account.accountId == SAVINGS_ACCOUNT_ID }
+        .map { it.copy(account = it.account.copy(accountHolderName = "")) }
 
     /**
      * IBAN payees, which is all the international rail ever lists.
@@ -252,20 +229,28 @@ object StandingOrderFixtures {
      * international form would depict a screen the app cannot produce — and a golden of it would
      * document the wrong thing.
      */
-    private fun internationalCreditorRows(): List<StandingOrderPickerRow> = listOf(
-        StandingOrderPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
-        StandingOrderPickerRow(
+    private fun internationalCreditorRows(): List<BeneficiaryItem> = listOf(
+        BeneficiaryItem(
+            WEISS_ID,
+            CURRENT_ACCOUNT_ID,
+            "Klara Weiss",
+            BeneficiaryScheme.Iban,
+            "DE89370400440532013000",
+            "",
+        ),
+        BeneficiaryItem(
             DUPONT_ID,
-            "MD",
+            CURRENT_ACCOUNT_ID,
             "Marie Dupont",
-            "IBAN · FR14 2004 1010 0505 0001 3M02 606",
-            "Marie D.",
+            BeneficiaryScheme.Iban,
+            "FR1420041010050500013M02606",
+            "",
         ),
     )
 
     /** Whichever scheme the rail lists. */
-    private fun payeesFor(rail: PaymentRail): List<StandingOrderPickerRow> = when (rail) {
-        PaymentRail.Domestic -> creditorRows()
+    private fun payeesFor(rail: PaymentRail): List<BeneficiaryItem> = when (rail) {
+        PaymentRail.Domestic -> beneficiaries()
         PaymentRail.International -> internationalCreditorRows()
     }
 
@@ -282,7 +267,7 @@ object StandingOrderFixtures {
         frequency: StandingOrderFrequency = StandingOrderFrequency.Monthly,
         firstPaymentDate: LocalDate? = null,
         datePickerVisible: Boolean = false,
-        beneficiaries: List<StandingOrderPickerRow> = payeesFor(rail),
+        beneficiaries: List<BeneficiaryItem> = payeesFor(rail),
         manualEntryVisible: Boolean = false,
         creditor: CreditorSelection? = null,
         creditorLabel: String = "",
@@ -402,7 +387,7 @@ object StandingOrderFixtures {
     fun reviewState(
         reference: String = "RENT-FLAT12",
         rail: PaymentRail = PaymentRail.Domestic,
-        debtorAccountRow: MifosAccountOption? = debtorRows().first(),
+        debtorAccountRow: AccountWithBalance? = debtorRows().first(),
         instructedCurrency: String = "GBP",
         chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
     ): StandingOrderState = StandingOrderState(

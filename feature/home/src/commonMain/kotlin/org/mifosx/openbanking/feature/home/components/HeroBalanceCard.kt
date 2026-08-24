@@ -37,14 +37,14 @@ private val HeroCardHeight = 180.dp
 private val BankIconSize = 24.dp
 
 /**
- * Primary account card: account type, nickname, current balance, available balance, and the sort
+ * Primary account card: account type, display name, current balance, available balance, and the sort
  * code / account number. All values arrive pre-formatted; tapping opens the account selector sheet
  * via [onClick].
  */
 @Composable
 internal fun HeroBalanceCard(
     accountTypeLabel: String,
-    nickname: String,
+    displayName: String,
     balanceLabel: String,
     availableAmountLabel: String,
     accountNumberLabel: String,
@@ -75,7 +75,7 @@ internal fun HeroBalanceCard(
             )
         }
         Text(
-            text = nickname,
+            text = displayName,
             style = KptTheme.typography.titleLarge,
             color = KptTheme.colorScheme.onPrimaryContainer,
         )

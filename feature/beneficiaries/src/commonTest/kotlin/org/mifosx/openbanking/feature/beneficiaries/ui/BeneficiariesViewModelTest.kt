@@ -140,7 +140,7 @@ class BeneficiariesViewModelTest {
         val vm = viewModel(repository = contentRepository())
 
         val iban = content(vm).all.first { it.beneficiaryId == BeneficiariesFixtures.IBAN_ID }
-        assertEquals("DE89 3704 0044 0532 0130 00", iban.identification)
+        assertEquals("DE89 3704 0044 0532 0130 00", formatIdentification(iban.identification, iban.scheme))
         assertEquals(BeneficiaryScheme.Iban, iban.scheme)
     }
 

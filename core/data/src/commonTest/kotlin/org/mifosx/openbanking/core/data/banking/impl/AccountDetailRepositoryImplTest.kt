@@ -48,7 +48,7 @@ class AccountDetailRepositoryImplTest {
 
     private val detail = AccountDetail(
         accountId = "acc-1",
-        nickname = "Everyday Current",
+        accountHolderName = "Everyday Current",
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "400515",

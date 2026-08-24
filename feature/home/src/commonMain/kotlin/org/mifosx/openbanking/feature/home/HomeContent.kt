@@ -51,7 +51,7 @@ internal fun HomeContent(
     ) {
         HeroBalanceCard(
             accountTypeLabel = data.accountTypeLabel,
-            nickname = accountDisplayName(
+            displayName = accountDisplayName(
                 accountHolderName = data.accountHolderName,
                 accountSubType = data.accountSubType,
                 accountNumber = data.accountNumber,

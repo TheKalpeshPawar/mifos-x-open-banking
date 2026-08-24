@@ -18,7 +18,7 @@ object AccountDetailFixtures {
 
     fun detail(
         accountId: String = "acc-1",
-        nickname: String = "Everyday Current",
+        accountHolderName: String = "Everyday Current",
         accountSubType: String = "CurrentAccount",
         currency: String = "GBP",
         sortCode: String = "400515",
@@ -31,7 +31,7 @@ object AccountDetailFixtures {
         description: String = "Description of the account",
     ): AccountDetail = AccountDetail(
         accountId = accountId,
-        nickname = nickname,
+        accountHolderName = accountHolderName,
         accountSubType = accountSubType,
         currency = currency,
         sortCode = sortCode,

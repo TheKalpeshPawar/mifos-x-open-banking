@@ -18,12 +18,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
-import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyState
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
@@ -42,7 +44,7 @@ private const val WEISS_ID = "BEN-101"
  */
 private fun currentAccount(): BankAccount = BankAccount(
     accountId = CURRENT_ACCOUNT_ID,
-    nickname = "Current account ·· 3349",
+    accountHolderName = "Current account ·· 3349",
     accountSubType = "CurrentAccount",
     currency = "GBP",
     sortCode = "802001",
@@ -50,23 +52,26 @@ private fun currentAccount(): BankAccount = BankAccount(
     rawIdentification = "80200110203349",
 )
 
-private fun debtorRows(): List<MifosAccountOption> = listOf(
-    MifosAccountOption(
-        accountId = CURRENT_ACCOUNT_ID,
-        accountHolderName = "Current account ·· 3349",
-        accountSubType = "CurrentAccount",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
-        availableBalance = "£21,530.92 available",
+private fun debtorRows(): List<AccountWithBalance> = listOf(
+    AccountWithBalance(
+        account = currentAccount(),
+        balance = AccountBalance(CURRENT_ACCOUNT_ID, "GBP", "21530.92", "21530.92"),
     ),
 )
 
-private fun domesticPayees(): List<SendMoneyPickerRow> = listOf(
-    SendMoneyPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310", "Jameson L."),
+private fun domesticPayees(): List<BeneficiaryItem> = listOf(
+    BeneficiaryItem(
+        JAMESON_ID,
+        CURRENT_ACCOUNT_ID,
+        "Jameson Lettings",
+        BeneficiaryScheme.SortCode,
+        "40120965872310",
+        "",
+    ),
 )
 
-private fun internationalPayees(): List<SendMoneyPickerRow> = listOf(
-    SendMoneyPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
+private fun internationalPayees(): List<BeneficiaryItem> = listOf(
+    BeneficiaryItem(WEISS_ID, CURRENT_ACCOUNT_ID, "Klara Weiss", BeneficiaryScheme.Iban, "DE89370400440532013000", ""),
 )
 
 /**

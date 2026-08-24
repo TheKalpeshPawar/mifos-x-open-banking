@@ -34,10 +34,6 @@ private fun Account.toBankAccountOrNull(): BankAccount? {
         ?: ""
     return BankAccount(
         accountId = id,
-        // `nickname` carries only a bank-provided account name (`Name`/`Nickname`); `Description` is
-        // free text and not a name. The account holder's name lives in the nested `Account[].Name`
-        // and is carried separately as `accountHolderName`.
-        nickname = name ?: "",
         accountHolderName = account?.firstOrNull()?.name.orEmpty(),
         accountSubType = accountSubType ?: accountTypeCode ?: accountCategory ?: description ?: "",
         currency = currency ?: "",

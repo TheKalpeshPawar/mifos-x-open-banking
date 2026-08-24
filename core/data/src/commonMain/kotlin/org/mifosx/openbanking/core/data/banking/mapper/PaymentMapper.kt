@@ -114,7 +114,7 @@ internal fun PaymentDraft.toPaymentRequest(consentId: String): DomesticPaymentRe
 private fun BankAccount.toObieDebtor(): DebtorAccount = DebtorAccount(
     schemeName = SCHEME_SORT_CODE,
     identification = rawIdentification.takeIf { it.isNotBlank() } ?: (sortCode + accountNumber),
-    name = nickname.takeIf { it.isNotBlank() },
+    name = accountHolderName.takeIf { it.isNotBlank() },
 )
 
 private fun CreditorSelection.toObieCreditor(): CreditorAccount = CreditorAccount(

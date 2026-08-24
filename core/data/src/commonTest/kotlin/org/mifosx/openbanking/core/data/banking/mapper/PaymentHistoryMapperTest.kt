@@ -26,7 +26,7 @@ class PaymentHistoryMapperTest {
 
     private fun payerAccount() = BankAccount(
         accountId = "123456791",
-        nickname = "",
+        accountHolderName = "",
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "802001",
@@ -106,7 +106,7 @@ class PaymentHistoryMapperTest {
     @Test
     fun usesNicknameWhenAvailable() {
         val d = draft().copy(
-            debtorAccount = payerAccount().copy(nickname = "My Current"),
+            debtorAccount = payerAccount().copy(accountHolderName = "My Current"),
         )
         val entity = receipt().toEntity(d)
 

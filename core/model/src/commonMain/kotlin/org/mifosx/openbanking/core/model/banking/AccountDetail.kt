@@ -20,8 +20,8 @@ import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
  * [AccountBalanceLine].
  *
  * @property accountId OBIE `AccountId`, the key for balance, direct-debit and standing-order lookups.
- * @property nickname Human-readable account name (OBIE `Nickname`, falling back to `Name`).
- * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`).
+ * @property accountHolderName The account holder's name (OBIE nested `Account[].Name`) — the single
+ *   display-name field; the bank never returns a `Nickname`/top-level `Name`.
  * @property accountSubType OBIE `AccountSubType` (e.g. `CurrentAccount`), rendered uppercase.
  * @property currency ISO-4217 currency code.
  * @property sortCode Six-digit UK sort code, unformatted (e.g. `400515`).
@@ -40,7 +40,6 @@ import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 @Serializable
 data class AccountDetail(
     val accountId: String,
-    val nickname: String,
     val accountSubType: String,
     val currency: String,
     val sortCode: String,

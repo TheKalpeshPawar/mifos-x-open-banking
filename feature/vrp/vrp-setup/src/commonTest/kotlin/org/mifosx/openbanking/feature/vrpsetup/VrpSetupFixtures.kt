@@ -10,9 +10,12 @@
 package org.mifosx.openbanking.feature.vrpsetup
 
 import kotlinx.datetime.LocalDate
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.vrp.PeriodType
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
-import org.mifosx.openbanking.feature.vrpsetup.setup.PayeeOptionUi
 import org.mifosx.openbanking.feature.vrpsetup.setup.SetupFormUi
 import org.mifosx.openbanking.feature.vrpsetup.setup.SetupPhase
 import org.mifosx.openbanking.feature.vrpsetup.setup.StagingUi
@@ -31,37 +34,46 @@ object VrpSetupFixtures {
 
     val EARLIEST_END_DATE: LocalDate = LocalDate(2026, 8, 21)
 
-    fun payers(): List<MifosAccountOption> = listOf(
-        MifosAccountOption(
-            accountId = CURRENT_ACCOUNT_ID,
-            accountHolderName = "Everyday Current Account",
-            accountSubType = "CurrentAccount",
-            accountNumber = "10204021",
-            rawIdentification = "80200110204021",
-            availableBalance = "£3,482.19",
+    fun payers(): List<AccountWithBalance> = listOf(
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = CURRENT_ACCOUNT_ID,
+                accountHolderName = "Everyday Current Account",
+                accountSubType = "CurrentAccount",
+                currency = "GBP",
+                sortCode = "802001",
+                accountNumber = "10204021",
+                rawIdentification = "80200110204021",
+            ),
+            balance = AccountBalance(CURRENT_ACCOUNT_ID, "GBP", "3482.19", "3482.19"),
         ),
-        MifosAccountOption(
-            accountId = SAVINGS_ACCOUNT_ID,
-            accountHolderName = "BMM ACCOUNT",
-            accountSubType = "Savings",
-            accountNumber = "90953695",
-            rawIdentification = "80122590953695",
-            availableBalance = "£482.10",
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = SAVINGS_ACCOUNT_ID,
+                accountHolderName = "BMM ACCOUNT",
+                accountSubType = "Savings",
+                currency = "GBP",
+                sortCode = "801225",
+                accountNumber = "90953695",
+                rawIdentification = "80122590953695",
+            ),
+            balance = AccountBalance(SAVINGS_ACCOUNT_ID, "GBP", "482.10", "482.10"),
         ),
     )
 
-    fun payees(): List<PayeeOptionUi> = listOf(
+    fun payees(): List<BeneficiaryItem> = listOf(
         payee("40478412345678", "Sarah Chen"),
         payee("40478487654321", "Oakwood Property Ltd"),
         payee("40478411223344", "James Whitfield"),
     )
 
-    private fun payee(identification: String, name: String) = PayeeOptionUi(
-        payeeId = identification,
-        displayName = name,
-        shortName = shortPayeeName(name),
-        initials = initialsOf(name),
+    private fun payee(identification: String, name: String) = BeneficiaryItem(
+        beneficiaryId = identification,
+        accountId = CURRENT_ACCOUNT_ID,
+        creditorName = name,
+        scheme = BeneficiaryScheme.SortCode,
         identification = identification,
+        reference = "",
     )
 
     /** The form the mockup shows: a chosen payer, a saved payee, both ceilings and no end date. */

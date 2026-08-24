@@ -228,9 +228,13 @@ private fun ReviewHeading(text: String) {
 @Composable
 private fun SetupFormUi.payerHeadline(): String {
     val payer = selectedPayer ?: return stringResource(Res.string.feature_vrp_setup_payer_choose_at_bank)
-    val masked = maskedAccountNumber(payer.accountSubType, payer.accountNumber, payer.rawIdentification)
-    return "$masked · ${accountTypeLabel(payer.accountSubType)}"
+    val masked = maskedAccountNumber(
+        payer.account.accountSubType,
+        payer.account.accountNumber,
+        payer.account.rawIdentification,
+    )
+    return "$masked · ${accountTypeLabel(payer.account.accountSubType)}"
 }
 
 private fun SetupFormUi.payeeName(): String =
-    if (payNewSelected) newPayeeName else selectedPayee?.displayName.orEmpty()
+    if (payNewSelected) newPayeeName else selectedPayee?.creditorName.orEmpty()

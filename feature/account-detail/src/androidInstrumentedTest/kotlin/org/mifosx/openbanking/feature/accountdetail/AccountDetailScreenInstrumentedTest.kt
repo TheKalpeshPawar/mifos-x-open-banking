@@ -17,11 +17,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailAction
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailErrorKind
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailUiState
-import org.mifosx.openbanking.feature.accountdetail.ui.AccountHeaderUi
 import org.mifosx.openbanking.feature.accountdetail.ui.BalanceRowUi
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,13 +29,15 @@ import kotlin.test.assertTrue
 private const val ACCOUNT_ID = "acc-1"
 
 /** androidInstrumentedTest does not see commonTest, so the display fixtures are inlined here. */
-private val header = AccountHeaderUi(
-    nickname = "Everyday Current",
-    accountSubType = "CURRENTACCOUNT",
-    identificationLabel = "40-05-15 12345678",
+private val header = AccountDetail(
+    accountId = ACCOUNT_ID,
+    accountHolderName = "Everyday Current",
+    accountSubType = "CurrentAccount",
     currency = "GBP",
+    sortCode = "400515",
+    accountNumber = "12345678",
     servicerIdentification = "MIDLGB2105V",
-    lastUpdatedLabel = "28 Jun 2026, 18:30 UTC",
+    statusUpdateDateTime = "2026-06-28T18:30:00Z",
 )
 
 private val balances = listOf(
@@ -140,7 +142,7 @@ class AccountDetailScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(AccountDetailTestTags.HEADER_CARD).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.SUBTYPE_LABEL, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.NICKNAME, useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag(AccountDetailTestTags.DISPLAY_NAME, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.IDENTIFICATION, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.CURRENCY_BADGE, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.SERVICER_BADGE, useUnmergedTree = true).assertExists()
@@ -167,7 +169,7 @@ class AccountDetailScreenInstrumentedTest {
             AccountDetailState(
                 accountId = ACCOUNT_ID,
                 uiState = AccountDetailUiState.Content(
-                    header = header.copy(servicerIdentification = "", lastUpdatedLabel = ""),
+                    header = header.copy(servicerIdentification = "", statusUpdateDateTime = ""),
                     balances = balances,
                 ),
             ),

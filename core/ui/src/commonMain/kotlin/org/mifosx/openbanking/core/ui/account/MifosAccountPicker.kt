@@ -34,7 +34,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.ui.generated.resources.Res
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_available_balance
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_choose
@@ -48,39 +50,21 @@ private val RowMinHeight = DesignToken.sizes.rowTall
 private val BorderThickness = DesignToken.strokes.hairline
 
 /**
- * One account the picker offers.
- *
- * @property accountId The bank's identifier, and the value [MifosAccountPicker] reports on select.
- * @property accountHolderName The account holder's name (OBIE `Account[].Name`), shown as the headline.
- * @property accountSubType OBIE `AccountSubType` or `AccountTypeCode`, resolved to the type label.
- * @property accountNumber The flattened UK account number, masked for display.
- * @property rawIdentification Used for the mask when [accountNumber] is absent, as it is for cards.
- * @property availableBalance The spendable balance, already formatted, e.g. `£3,482.19`. Blank hides
- *   the balance line.
- */
-data class MifosAccountOption(
-    val accountId: String,
-    val accountSubType: String,
-    val accountNumber: String,
-    val rawIdentification: String = "",
-    val availableBalance: String = "",
-    val accountHolderName: String = "",
-)
-
-/**
  * An account chooser: one collapsed row that opens into the alternatives.
  *
  * Each row reads as the masked account number, the account type beneath it, and the balance. The
- * chosen account stays visible while the rest folds away, so a decision made once and then only
+ * chosen account stays visible while the rest fold away, so a decision made once and then only
  * looked at does not hold the screen open.
  *
+ * @param options The accounts to offer, each paired with its resolved balance (or null when the
+ *   balance could not be fetched).
  * @param selectedId The chosen account, or null when none has been chosen yet.
  * @param extraOptions Rendered inside the expansion after the accounts, for alternatives that are
  *   not accounts — deferring the choice to the bank, say.
  */
 @Composable
 fun MifosAccountPicker(
-    options: List<MifosAccountOption>,
+    options: List<AccountWithBalance>,
     selectedId: String?,
     expanded: Boolean,
     onToggle: () -> Unit,
@@ -105,7 +89,7 @@ fun MifosAccountPicker(
             .background(KptTheme.colorScheme.surfaceContainerLowest),
     ) {
         CollapsedRow(
-            option = options.firstOrNull { it.accountId == selectedId },
+            option = options.firstOrNull { it.account.accountId == selectedId },
             expanded = expanded,
             onToggle = onToggle,
             unselectedLabel = unselectedLabel ?: stringResource(Res.string.core_ui_account_picker_choose),
@@ -119,9 +103,9 @@ fun MifosAccountPicker(
                 options.forEach { option ->
                     AccountRow(
                         option = option,
-                        selected = option.accountId == selectedId,
-                        onClick = { onSelect(option.accountId) },
-                        testTag = rowTestTag(option.accountId),
+                        selected = option.account.accountId == selectedId,
+                        onClick = { onSelect(option.account.accountId) },
+                        testTag = rowTestTag(option.account.accountId),
                     )
                 }
                 extraOptions?.invoke(this)
@@ -133,7 +117,7 @@ fun MifosAccountPicker(
 /** What the picker says while it is shut: the chosen account, or an invitation to choose one. */
 @Composable
 private fun CollapsedRow(
-    option: MifosAccountOption?,
+    option: AccountWithBalance?,
     expanded: Boolean,
     onToggle: () -> Unit,
     unselectedLabel: String,
@@ -172,7 +156,7 @@ private fun CollapsedRow(
 
 @Composable
 private fun AccountRow(
-    option: MifosAccountOption,
+    option: AccountWithBalance,
     selected: Boolean,
     onClick: () -> Unit,
     testTag: String,
@@ -192,12 +176,12 @@ private fun AccountRow(
 
 /** The three lines an account reads as: masked number, type, then balance. */
 @Composable
-private fun MifosAccountOption.Lines(emphasised: Boolean = false) {
+private fun AccountWithBalance.Lines(emphasised: Boolean = false) {
     AccountLines(
-        name = accountHolderName,
-        headline = maskedAccountNumber(accountSubType, accountNumber, rawIdentification),
-        type = accountTypeLabel(accountSubType),
-        balance = availableBalance,
+        name = account.accountHolderName,
+        headline = maskedAccountNumber(account.accountSubType, account.accountNumber, account.rawIdentification),
+        type = accountTypeLabel(account.accountSubType),
+        balance = balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
         emphasised = emphasised,
     )
 }

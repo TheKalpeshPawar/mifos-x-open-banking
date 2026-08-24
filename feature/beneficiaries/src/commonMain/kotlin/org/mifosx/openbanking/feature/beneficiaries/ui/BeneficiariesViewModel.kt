@@ -74,7 +74,7 @@ class BeneficiariesViewModel(
     private fun ScreenState<List<BeneficiaryItem>>.toUiState(query: String): BeneficiariesUiState =
         when (this) {
             is ScreenState.Content -> {
-                val rows = data.map { it.toRowUi() }
+                val rows = data
                 BeneficiariesUiState.Content(all = rows, filtered = rows.matching(query), query = query)
             }
 
@@ -84,14 +84,6 @@ class BeneficiariesViewModel(
             ScreenState.Empty -> BeneficiariesUiState.Empty
             ScreenState.Loading -> BeneficiariesUiState.Loading
         }
-
-    private fun BeneficiaryItem.toRowUi(): BeneficiaryRowUi = BeneficiaryRowUi(
-        beneficiaryId = beneficiaryId,
-        name = creditorName,
-        scheme = scheme,
-        identification = formatIdentification(identification, scheme),
-        reference = reference,
-    )
 
     companion object {
         /** Must match the [BeneficiariesRoute] property name — type-safe nav uses it as the key. */
@@ -108,11 +100,11 @@ private const val IBAN_GROUP_SIZE = 4
  * surface an unrelated payee. A blank query matches everything, which is what makes clearing the
  * field restore the whole list.
  */
-internal fun List<BeneficiaryRowUi>.matching(query: String): List<BeneficiaryRowUi> {
+internal fun List<BeneficiaryItem>.matching(query: String): List<BeneficiaryItem> {
     val trimmed = query.trim()
     if (trimmed.isEmpty()) return this
     return filter {
-        it.name.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
+        it.creditorName.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
     }
 }
 

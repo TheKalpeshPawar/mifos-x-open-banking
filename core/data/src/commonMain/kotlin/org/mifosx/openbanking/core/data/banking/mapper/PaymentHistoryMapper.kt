@@ -299,5 +299,5 @@ private fun String?.toPaymentStatus(): PaymentStatus =
 private fun errorId(): String = Uuid.random().toString()
 
 private fun org.mifosx.openbanking.core.model.banking.BankAccount.displayName(): String =
-    nickname.takeIf { it.isNotBlank() }
+    accountHolderName.takeIf { it.isNotBlank() }
         ?: accountSubType.ifBlank { "Account" }

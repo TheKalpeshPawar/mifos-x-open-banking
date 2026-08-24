@@ -29,6 +29,7 @@ import org.mifosx.openbanking.core.model.vrp.ValidityWindow
 import org.mifosx.openbanking.core.model.vrp.VrpConsent
 import org.mifosx.openbanking.core.model.vrp.VrpControlParameters
 import org.mifosx.openbanking.core.model.vrp.VrpPayment
+import org.mifosx.openbanking.core.ui.account.maskedAccountNumber
 import org.mifosx.openbanking.feature.vrpconsents.FakeVrpConsentRepository
 import org.mifosx.openbanking.feature.vrpconsents.FakeVrpPaymentRepository
 import template.core.base.network.NetworkError
@@ -279,7 +280,11 @@ class VrpConsentDetailViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
 
-        assertEquals("XXXX4021", assertNotNull(content(vm).payer).maskedAccountNumber)
+        val payer = assertNotNull(content(vm).payer)
+        assertEquals(
+            "XXXX4021",
+            maskedAccountNumber(payer.name, payer.identification.takeLast(8), payer.identification),
+        )
     }
 
     /**
@@ -301,8 +306,11 @@ class VrpConsentDetailViewModelTest {
         advanceUntilIdle()
 
         val payer = assertNotNull(content(vm).payer)
-        assertEquals("XXXX3349", payer.maskedAccountNumber)
-        assertEquals("CACC", payer.accountSubType)
+        assertEquals(
+            "XXXX3349",
+            maskedAccountNumber(payer.name, payer.identification.takeLast(8), payer.identification),
+        )
+        assertEquals("CACC", payer.name)
     }
 
     /** A payer the customer chose at the bank is unknown until it is read back. */

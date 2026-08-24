@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.common.parseMinorUnits
 import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
@@ -45,7 +44,6 @@ import org.mifosx.openbanking.core.model.vrp.PeriodicLimit
 import org.mifosx.openbanking.core.model.vrp.ValidityWindow
 import org.mifosx.openbanking.core.model.vrp.VrpConsentDraft
 import org.mifosx.openbanking.core.model.vrp.VrpControlParameters
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.vrpsetup.AmountProblem
 import org.mifosx.openbanking.feature.vrpsetup.PayeeProblem
 import org.mifosx.openbanking.feature.vrpsetup.checkAccountNumber
@@ -56,9 +54,7 @@ import org.mifosx.openbanking.feature.vrpsetup.checkPayeeName
 import org.mifosx.openbanking.feature.vrpsetup.checkSortCode
 import org.mifosx.openbanking.feature.vrpsetup.combinedIdentification
 import org.mifosx.openbanking.feature.vrpsetup.earliestEndDate
-import org.mifosx.openbanking.feature.vrpsetup.initialsOf
 import org.mifosx.openbanking.feature.vrpsetup.isSelectableEndDate
-import org.mifosx.openbanking.feature.vrpsetup.shortPayeeName
 import org.mifosx.openbanking.feature.vrpsetup.todayUtc
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineContent
@@ -119,33 +115,17 @@ sealed interface VrpSetupUiState {
 }
 
 /**
- * One payee the customer has already saved.
- *
- * @property payeeId The destination account, which is what the picker selects by.
- * @property displayName The payee's full name.
- * @property shortName [displayName] cut to the length the avatar caption holds.
- * @property initials Up to two letters for the avatar.
- */
-data class PayeeOptionUi(
-    val payeeId: String,
-    val displayName: String,
-    val shortName: String,
-    val initials: String,
-    val identification: String,
-)
-
-/**
  * Everything the customer has entered, plus what is offered to them.
  *
  * Held privately by the view model and combined into the rendered state, so a list arriving late
  * cannot wipe what has been typed.
  */
 data class SetupFormUi(
-    val payerOptions: List<MifosAccountOption> = emptyList(),
+    val payerOptions: List<AccountWithBalance> = emptyList(),
     val selectedPayerId: String? = null,
     val chooseAtBank: Boolean = false,
     val payerExpanded: Boolean = false,
-    val payeeOptions: List<PayeeOptionUi> = emptyList(),
+    val payeeOptions: List<BeneficiaryItem> = emptyList(),
     val selectedPayeeId: String? = null,
     val payNewSelected: Boolean = false,
     val newPayeeName: String = "",
@@ -181,12 +161,12 @@ data class SetupFormUi(
         get() = combinedIdentification(newPayeeSortCode, newPayeeAccountNumber)
 
     /** The account paying, when it is named here rather than chosen at the bank. */
-    val selectedPayer: MifosAccountOption?
-        get() = payerOptions.firstOrNull { it.accountId == selectedPayerId }
+    val selectedPayer: AccountWithBalance?
+        get() = payerOptions.firstOrNull { it.account.accountId == selectedPayerId }
 
     /** The payee chosen from the saved list. */
-    val selectedPayee: PayeeOptionUi?
-        get() = payeeOptions.firstOrNull { it.payeeId == selectedPayeeId }
+    val selectedPayee: BeneficiaryItem?
+        get() = payeeOptions.firstOrNull { it.identification == selectedPayeeId }
 
     /** The account the money goes to, whichever route was taken. */
     val payeeIdentification: String
@@ -204,7 +184,7 @@ data class SetupFormUi(
             checkAmount(perPaymentAmount) == null &&
             checkAmount(periodicAmount) == null &&
             checkOrdering(perPaymentAmount, periodicAmount) == null &&
-            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.rawIdentification) == null &&
+            checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.rawIdentification) == null &&
             newPayeeIsUsable
 
     /** Whether a newly entered payee is complete. Vacuously true when a saved payee was chosen. */
@@ -349,7 +329,7 @@ class VrpSetupViewModel(
             .onEach { screen ->
                 payersScreen.value = screen
                 val payers = (screen as? ScreenState.Content)?.data ?: return@onEach
-                editForm { copy(payerOptions = payers.map { it.toOptionUi() }) }
+                editForm { copy(payerOptions = payers) }
             }
             .launchIn(viewModelScope)
     }
@@ -374,7 +354,7 @@ class VrpSetupViewModel(
                         .map { screen -> (screen as? ScreenState.Content)?.data.orEmpty() }
                 }
             }
-            .onEach { payees -> editForm { copy(payeeOptions = payees.map { it.toOptionUi() }) } }
+            .onEach { payees -> editForm { copy(payeeOptions = payees) } }
             .launchIn(viewModelScope)
     }
 
@@ -579,29 +559,12 @@ private fun BankAccount.canFundAVrp(): Boolean = HsbcProductCapability.supports(
     ),
 )
 
-private fun AccountWithBalance.toOptionUi(): MifosAccountOption = MifosAccountOption(
-    accountId = account.accountId,
-    accountHolderName = account.accountHolderName,
-    accountSubType = account.accountSubType,
-    accountNumber = account.accountNumber,
-    rawIdentification = account.rawIdentification,
-    availableBalance = balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
-)
-
-private fun BeneficiaryItem.toOptionUi(): PayeeOptionUi = PayeeOptionUi(
-    payeeId = identification,
-    displayName = creditorName,
-    shortName = shortPayeeName(creditorName),
-    initials = initialsOf(creditorName),
-    identification = identification,
-)
-
 /** The consent this form asks the bank to create. */
 private fun SetupFormUi.toDraft(): VrpConsentDraft = VrpConsentDraft(
     payee = AccountIdentity(
         schemeName = SORT_CODE_ACCOUNT_NUMBER,
         identification = payeeIdentification,
-        name = if (payNewSelected) newPayeeName else selectedPayee?.displayName.orEmpty(),
+        name = if (payNewSelected) newPayeeName else selectedPayee?.creditorName.orEmpty(),
     ),
     controlParameters = VrpControlParameters(
         maximumIndividualAmount = Money(parseMinorUnits(perPaymentAmount) ?: 0L, LIMIT_CURRENCY),
@@ -617,8 +580,8 @@ private fun SetupFormUi.toDraft(): VrpConsentDraft = VrpConsentDraft(
     payer = selectedPayer?.let {
         AccountIdentity(
             schemeName = SORT_CODE_ACCOUNT_NUMBER,
-            identification = it.rawIdentification,
-            name = it.accountHolderName,
+            identification = it.account.rawIdentification,
+            name = it.account.accountHolderName,
         )
     },
     payerAccountId = selectedPayerId,
@@ -650,7 +613,7 @@ private fun SetupFormUi.revalidateAmounts(): SetupFormUi {
  * against the sort code or the account number the customer happened to edit last.
  */
 private fun SetupFormUi.revalidatePayee(): SetupFormUi = copy(
-    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.rawIdentification),
+    payeeProblem = checkPayeeDiffersFromPayer(payeeIdentification, selectedPayer?.account?.rawIdentification),
 )
 
 /** Re-checks everything, for the moment the customer asks to continue. */

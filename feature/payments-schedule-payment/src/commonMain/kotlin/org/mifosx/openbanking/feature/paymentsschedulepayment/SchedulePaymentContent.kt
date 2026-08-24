@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
@@ -50,6 +51,7 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeOption
+import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.MifosPaymentHistoryList
 import org.mifosx.openbanking.core.ui.payment.toRowUi
 import org.mifosx.openbanking.feature.paymentsschedulepayment.components.DateField
@@ -84,9 +86,9 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.OFFERED_CHARGE_BEARERS
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAmountProblem
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentUiState
+import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.shortNameOf
 import template.core.base.designsystem.theme.KptTheme
 import org.mifosx.openbanking.core.ui.generated.resources.Res as CoreRes
 
@@ -612,10 +614,10 @@ private fun ChargesSection(
     }
 }
 
-private fun SchedulePaymentPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
-    payeeId = id,
-    shortName = shortName.ifBlank { headline },
-    initials = initials,
+private fun BeneficiaryItem.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = identification,
+    shortName = shortNameOf(creditorName),
+    initials = initialsOf(creditorName),
 )
 
 private fun SchedulePaymentAmountProblem.messageResource(): StringResource = when (this) {

@@ -61,7 +61,7 @@ private fun BankAccount?.toIntlObieDebtor(): IntlDebtorAccount? = this?.let { ac
             IntlDebtorAccount(
                 schemeName = SCHEME_SORT_CODE,
                 identification = identification,
-                name = account.nickname.takeIf { it.isNotBlank() },
+                name = account.accountHolderName.takeIf { it.isNotBlank() },
             )
         }
 }

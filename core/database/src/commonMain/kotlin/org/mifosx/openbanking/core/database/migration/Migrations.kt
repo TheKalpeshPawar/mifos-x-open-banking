@@ -151,9 +151,22 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/**
+ * Renames the account name column to match the domain.
+ *
+ * The bank never returns a `Nickname`/top-level `Name`, so the column was always blank in practice;
+ * the account holder's name (`Account[].Name`) is the value that exists and is carried separately.
+ * RENAME COLUMN keeps the rows and moves any legacy value over, so nothing is lost on upgrade.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.runSql("ALTER TABLE accounts RENAME COLUMN nickname TO accountHolderName")
+    }
+}
+
 /** Every migration the database knows about, in the order Room should consider them. */
 val ALL_MIGRATIONS: Array<Migration> =
-    arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+    arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
 
 /**
  * Registers every migration on a builder.

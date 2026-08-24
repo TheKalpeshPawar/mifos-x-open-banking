@@ -35,7 +35,6 @@ private fun Account.toAccountDetailOrNull(): AccountDetail? {
     val flattened = resolveIdentification()
     return AccountDetail(
         accountId = id,
-        nickname = resolveNickname(),
         accountHolderName = account?.firstOrNull()?.name.orEmpty(),
         accountSubType = resolveSubType(),
         currency = currency ?: "",
@@ -65,14 +64,6 @@ private fun Account.resolveIdentification(): String {
         ?: identification
         ?: ""
 }
-
-/**
- * OBIE `Nickname` is the user's own label and `Name` is the bank's account name. Neither `Description`
- * (free text) nor the nested `Account[].Name` (the account holder) is an account name, so when both
- * are absent this is left blank and the UI renders a "type ·· last 4" label instead.
- */
-private fun Account.resolveNickname(): String =
-    nickname ?: name ?: ""
 
 /** `AccountSubType` is the precise value; the coarser type and category stand in when it is absent. */
 private fun Account.resolveSubType(): String =

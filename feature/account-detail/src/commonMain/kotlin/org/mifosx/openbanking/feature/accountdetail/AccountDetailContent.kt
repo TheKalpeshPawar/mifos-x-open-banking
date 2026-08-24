@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.feature.accountdetail.components.AccountDescriptionCard
 import org.mifosx.openbanking.feature.accountdetail.components.AccountHeaderCard
 import org.mifosx.openbanking.feature.accountdetail.components.ExploreOptionsColumn
@@ -42,7 +43,6 @@ import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_balances_list_accessibility
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_section_balances
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_section_explore
-import org.mifosx.openbanking.feature.accountdetail.ui.AccountHeaderUi
 import org.mifosx.openbanking.feature.accountdetail.ui.BalanceRowUi
 
 private val SCREEN_PADDING = 16.dp
@@ -61,7 +61,7 @@ private val ROW_MIN_HEIGHT = 56.dp
  */
 @Composable
 internal fun AccountDetailContent(
-    header: AccountHeaderUi,
+    detail: AccountDetail,
     balances: List<BalanceRowUi>,
     availableChips: Set<AccountDetailChip>,
     onChipClick: (AccountDetailChip) -> Unit,
@@ -74,11 +74,11 @@ internal fun AccountDetailContent(
             .padding(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
     ) {
-        AccountHeaderCard(header = header)
+        AccountHeaderCard(detail = detail)
 
         // Omitted rather than drawn empty — several sandbox accounts carry no Description at all.
-        if (header.description.isNotBlank()) {
-            AccountDescriptionCard(description = header.description)
+        if (detail.description.isNotBlank()) {
+            AccountDescriptionCard(description = detail.description)
         }
 
         SectionHeader(

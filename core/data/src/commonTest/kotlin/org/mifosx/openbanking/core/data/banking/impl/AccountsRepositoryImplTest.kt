@@ -37,7 +37,7 @@ class AccountsRepositoryImplTest {
     private val accounts = listOf(
         BankAccount(
             accountId = "acc-1",
-            nickname = "Everyday",
+            accountHolderName = "Everyday",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "400515",

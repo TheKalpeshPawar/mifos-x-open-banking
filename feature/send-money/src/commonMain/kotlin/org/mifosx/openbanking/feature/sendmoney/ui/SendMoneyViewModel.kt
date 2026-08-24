@@ -43,8 +43,6 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
-import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.toHistoryEntry
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
@@ -648,15 +646,15 @@ class SendMoneyViewModel(
             step = entered.step,
             rail = entered.rail,
             debtorAccounts = accounts.map { it.account },
-            debtorRows = accounts.map { it.toAccountOption() },
-            beneficiaries = filteredPayees.map { it.toPickerRow() },
+            debtorRows = accounts,
+            beneficiaries = filteredPayees,
             debtorAccountId = entered.debtorAccountId,
             payerPickerExpanded = entered.payerPickerExpanded,
             letBankChoosePayer = entered.letBankChoosePayer,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
             creditorSupporting = entered.creditor?.let { schemeLabel(it) }.orEmpty(),
-            debtorAccountRow = selected?.toAccountOption(),
+            debtorAccountRow = selected,
             debtorCurrency = selected?.account?.currency.orEmpty(),
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
@@ -755,19 +753,6 @@ private fun ScreenState<*>.isFailure(): Boolean = when (this) {
 }
 
 /**
- * One selectable account, carrying the raw fields the picker resolves to a finished name at render.
- */
-private fun AccountWithBalance.toAccountOption(): MifosAccountOption = MifosAccountOption(
-    accountId = account.accountId,
-    accountHolderName = account.accountHolderName,
-    accountSubType = account.accountSubType,
-    accountNumber = account.accountNumber,
-    rawIdentification = account.rawIdentification,
-    availableBalance = balance?.let { formatMinorUnits(parseMinorUnits(it.availableAmount) ?: 0L, it.currency) }
-        .orEmpty(),
-)
-
-/**
  * Whether this account's PRODUCT is known to be unable to fund a payment.
  *
  * Catches both products the sandbox refuses as a named payer: the credit card, visible in
@@ -790,14 +775,6 @@ private fun BankAccount.canFundAPayment(): Boolean = HsbcProductCapability.suppo
         accountTypeCode = "",
         description = description,
     ),
-)
-
-private fun BeneficiaryItem.toPickerRow(): SendMoneyPickerRow = SendMoneyPickerRow(
-    id = identification,
-    initials = initialsOf(creditorName),
-    headline = creditorName,
-    supporting = schemeLabelFor(scheme, identification),
-    shortName = shortNameOf(creditorName),
 )
 
 /**

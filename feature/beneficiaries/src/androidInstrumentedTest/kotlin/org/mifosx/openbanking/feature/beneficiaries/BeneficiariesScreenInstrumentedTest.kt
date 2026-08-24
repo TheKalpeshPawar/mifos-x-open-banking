@@ -18,12 +18,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesAction
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesErrorKind
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesState
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiaryRowUi
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -36,17 +36,19 @@ private const val NO_MATCH_QUERY = "zzzmatch"
 /**
  * androidInstrumentedTest does not see commonTest, so the state fixtures are inlined here.
  */
-private fun rows(): List<BeneficiaryRowUi> = listOf(
-    BeneficiaryRowUi(
+private fun rows(): List<BeneficiaryItem> = listOf(
+    BeneficiaryItem(
         beneficiaryId = FIRST_ID,
-        name = "Jameson Lettings",
+        accountId = ACCOUNT_ID,
+        creditorName = "Jameson Lettings",
         scheme = BeneficiaryScheme.SortCode,
         identification = "40-12-09 65872310",
         reference = "RENT-FLAT12",
     ),
-    BeneficiaryRowUi(
+    BeneficiaryItem(
         beneficiaryId = ENERGY_ID,
-        name = "EDF Energy",
+        accountId = ACCOUNT_ID,
+        creditorName = "EDF Energy",
         scheme = BeneficiaryScheme.SortCode,
         identification = "60-00-01 99887766",
         reference = "ELEC-8841",

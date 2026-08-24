@@ -16,14 +16,14 @@ import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
-import org.mifosx.openbanking.feature.accounts.ui.AccountRowUi
-import org.mifosx.openbanking.feature.accounts.ui.AccountUiType
 import org.mifosx.openbanking.feature.accounts.ui.AccountsData
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * The accounts states against the real Android Compose runtime under Robolectric — JVM, no device.
@@ -37,38 +37,12 @@ class AccountsScreenRobolectricTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun contentRendersSummaryFilterCardsAndOwedBadge() {
+    fun contentRendersSummaryFilterAndCards() {
         composeRule.showContent()
 
         composeRule.onNodeWithTag(AccountsTestTags.CONTENT).assertExists()
         composeRule.onNodeWithTag(AccountsTestTags.FILTER_ROW).assertExists()
         composeRule.onNodeWithTag(AccountsTestTags.accountCard("acc-current")).assertExists()
-        composeRule.onNodeWithTag(AccountsTestTags.BALANCE_OWED_BADGE, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun skeletonStateRenders() {
-        composeRule.setContent { AccountsSkeleton() }
-
-        composeRule.onNodeWithTag(AccountsTestTags.SKELETON).assertExists()
-    }
-
-    @Test
-    fun emptyStateRenders() {
-        composeRule.setContent { AccountsEmpty() }
-
-        composeRule.onNodeWithTag(AccountsTestTags.EMPTY).assertExists()
-    }
-
-    @Test
-    fun errorStateRetryDispatches() {
-        var retried = false
-        composeRule.setContent { AccountsError(onRetry = { retried = true }) }
-
-        composeRule.onNodeWithTag(AccountsTestTags.ERROR).assertExists()
-        composeRule.onNodeWithTag(AccountsTestTags.ERROR_RETRY).performClick()
-
-        assertTrue(retried)
     }
 
     @Test
@@ -107,21 +81,28 @@ private fun ComposeContentTestRule.showContent(
 
 private fun sampleAccountsData(): AccountsData = AccountsData(
     rows = listOf(
-        AccountRowUi(
-            id = "acc-current",
-            type = AccountUiType.CURRENT,
-            nickname = "Everyday Current",
-            identifier = "40-05-15  12345678",
-            balanceLabel = "£2,847.63",
-            isBalanceOwed = false,
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = "acc-current",
+                accountHolderName = "Everyday Current",
+                accountSubType = "CurrentAccount",
+                currency = "GBP",
+                sortCode = "400515",
+                accountNumber = "12345678",
+            ),
+            balance = AccountBalance("acc-current", "GBP", "2847.63", "2847.63"),
         ),
-        AccountRowUi(
-            id = "acc-credit",
-            type = AccountUiType.CREDIT,
-            nickname = "Platinum Mastercard",
-            identifier = "•••• 7654",
-            balanceLabel = "£342.18",
-            isBalanceOwed = true,
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = "acc-credit",
+                accountHolderName = "Platinum Mastercard",
+                accountSubType = "CreditCard",
+                currency = "GBP",
+                sortCode = "",
+                accountNumber = "7654",
+                rawIdentification = "•••• 7654",
+            ),
+            balance = AccountBalance("acc-credit", "GBP", "342.18", "342.18"),
         ),
     ),
     activeFilter = AccountFilter.ALL,

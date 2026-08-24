@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.Res
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_list_a11y
@@ -57,7 +58,7 @@ import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_a11y
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_placeholder
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiaryRowUi
+import org.mifosx.openbanking.feature.beneficiaries.ui.formatIdentification
 
 private val SearchBarHeight = 52.dp
 private val SearchWrapVertical = 8.dp
@@ -149,7 +150,7 @@ private fun SearchField(
 
 @Composable
 private fun BeneficiaryList(
-    rows: List<BeneficiaryRowUi>,
+    rows: List<BeneficiaryItem>,
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(Res.string.feature_beneficiaries_list_a11y)
@@ -178,15 +179,15 @@ private fun BeneficiaryList(
  */
 @Composable
 private fun BeneficiaryRow(
-    row: BeneficiaryRowUi,
+    row: BeneficiaryItem,
     modifier: Modifier = Modifier,
 ) {
     val schemeLabel = stringResource(row.scheme.labelResource())
     val rowDescription = stringResource(
         Res.string.feature_beneficiaries_row_a11y,
-        row.name,
+        row.creditorName,
         schemeLabel,
-        row.identification,
+        formatIdentification(row.identification, row.scheme),
     )
     val referenceDescription = stringResource(Res.string.feature_beneficiaries_reference_a11y, row.reference)
 
@@ -202,13 +203,16 @@ private fun BeneficiaryRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = row.name,
+                text = row.creditorName,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            SupportingLine(schemeLabel = schemeLabel, identification = row.identification)
+            SupportingLine(
+                schemeLabel = schemeLabel,
+                identification = formatIdentification(row.identification, row.scheme),
+            )
         }
 
         Text(

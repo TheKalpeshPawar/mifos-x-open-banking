@@ -120,7 +120,7 @@ class BankingStoresTest {
         val dao = FakeAccountDao()
         val seeded = AccountEntity(
             accountId = "acc-9",
-            nickname = "Savings",
+            accountHolderName = "Savings",
             accountSubType = "Savings",
             currency = "EUR",
             sortCode = "112233",

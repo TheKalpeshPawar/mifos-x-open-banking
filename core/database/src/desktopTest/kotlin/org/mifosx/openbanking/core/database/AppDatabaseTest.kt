@@ -59,8 +59,9 @@ class AppDatabaseTest {
         // indistinguishable from a one-off payment — and that row is the only record the app keeps,
         // since a mandate cannot be found again through the AIS read side; 9 added the VRP consent
         // and payment tables — a consent is the only handle on a standing authority, because no
-        // endpoint lists them.
-        assertEquals(9, AppDatabase.VERSION)
+        // endpoint lists them; 10 renamed accounts.nickname to accountHolderName, which is the name
+        // the bank actually returns.
+        assertEquals(10, AppDatabase.VERSION)
     }
 
     /**

@@ -17,8 +17,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.feature.home.components.AccountSelectorSheetContent
-import org.mifosx.openbanking.feature.home.ui.AccountChipUi
 import org.mifosx.openbanking.feature.home.ui.HomeData
 import org.mifosx.openbanking.feature.home.ui.TransactionRowUi
 import kotlin.test.assertEquals
@@ -103,9 +103,23 @@ private fun ComposeContentTestRule.showHomeContent(
     )
 }
 
-private fun sampleAccounts(): List<AccountChipUi> = listOf(
-    AccountChipUi(id = "acc-1", nickname = "Everyday"),
-    AccountChipUi(id = "acc-2", nickname = "Savings"),
+private fun sampleAccounts(): List<BankAccount> = listOf(
+    BankAccount(
+        accountId = "acc-1",
+        accountHolderName = "Everyday",
+        accountSubType = "CurrentAccount",
+        currency = "GBP",
+        sortCode = "400515",
+        accountNumber = "12345678",
+    ),
+    BankAccount(
+        accountId = "acc-2",
+        accountHolderName = "Savings",
+        accountSubType = "Savings",
+        currency = "GBP",
+        sortCode = "400515",
+        accountNumber = "87654321",
+    ),
 )
 
 private fun sampleHomeData(): HomeData = HomeData(

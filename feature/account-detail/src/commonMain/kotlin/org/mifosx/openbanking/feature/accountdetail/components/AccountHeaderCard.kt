@@ -28,12 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailTestTags
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_header_accessibility
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_last_updated
-import org.mifosx.openbanking.feature.accountdetail.ui.AccountHeaderUi
+import org.mifosx.openbanking.feature.accountdetail.ui.buildIdentificationLabel
+import org.mifosx.openbanking.feature.accountdetail.ui.formatStatusTimestamp
 
 private val CARD_RADIUS = 12.dp
 private val CARD_PADDING = 16.dp
@@ -48,8 +50,9 @@ private val SUBTYPE_TRACKING = 0.6.sp
  * tracking to read as a label rather than a heading.
  */
 @Composable
-internal fun AccountHeaderCard(header: AccountHeaderUi, modifier: Modifier = Modifier) {
+internal fun AccountHeaderCard(detail: AccountDetail, modifier: Modifier = Modifier) {
     val cardDescription = stringResource(Res.string.feature_account_detail_header_accessibility)
+    val lastUpdatedLabel = formatStatusTimestamp(detail.statusUpdateDateTime)
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(CARD_RADIUS),
@@ -63,44 +66,44 @@ internal fun AccountHeaderCard(header: AccountHeaderUi, modifier: Modifier = Mod
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = header.accountSubType,
+                text = detail.accountSubType.uppercase(),
                 style = MaterialTheme.typography.labelMedium.copy(letterSpacing = SUBTYPE_TRACKING),
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.testTag(AccountDetailTestTags.SUBTYPE_LABEL),
             )
             Text(
                 text = accountDisplayName(
-                    accountHolderName = header.accountHolderName,
-                    accountSubType = header.accountSubType,
-                    accountNumber = header.accountNumber,
+                    accountHolderName = detail.accountHolderName,
+                    accountSubType = detail.accountSubType,
+                    accountNumber = detail.accountNumber,
                 ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.testTag(AccountDetailTestTags.NICKNAME),
+                modifier = Modifier.testTag(AccountDetailTestTags.DISPLAY_NAME),
             )
             Text(
-                text = header.identificationLabel,
+                text = buildIdentificationLabel(detail.sortCode, detail.accountNumber),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(AccountDetailTestTags.IDENTIFICATION),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(BADGE_RADIUS)) {
                 MetaBadge(
-                    text = header.currency,
+                    text = detail.currency,
                     testTag = AccountDetailTestTags.CURRENCY_BADGE,
                 )
-                if (header.servicerIdentification.isNotBlank()) {
+                if (detail.servicerIdentification.isNotBlank()) {
                     MetaBadge(
-                        text = header.servicerIdentification,
+                        text = detail.servicerIdentification,
                         testTag = AccountDetailTestTags.SERVICER_BADGE,
                         monospace = true,
                     )
                 }
             }
-            if (header.lastUpdatedLabel.isNotBlank()) {
+            if (lastUpdatedLabel.isNotBlank()) {
                 Text(
                     text = "${stringResource(Res.string.feature_account_detail_last_updated)} " +
-                        header.lastUpdatedLabel,
+                        lastUpdatedLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag(AccountDetailTestTags.LAST_UPDATED),

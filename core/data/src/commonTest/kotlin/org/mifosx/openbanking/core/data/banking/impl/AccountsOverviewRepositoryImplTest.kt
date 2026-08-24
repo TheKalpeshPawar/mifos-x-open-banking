@@ -40,7 +40,7 @@ class AccountsOverviewRepositoryImplTest {
 
     private fun account(id: String) = BankAccount(
         accountId = id,
-        nickname = id,
+        accountHolderName = id,
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "400515",

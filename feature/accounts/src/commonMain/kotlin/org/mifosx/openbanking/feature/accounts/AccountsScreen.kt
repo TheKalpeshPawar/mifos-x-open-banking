@@ -15,8 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.data.util.obieSupportReference
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.accounts.generated.resources.Res
+import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_empty_title
+import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_error_title
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_screen_title
 import org.mifosx.openbanking.feature.accounts.ui.AccountsAction
 import org.mifosx.openbanking.feature.accounts.ui.AccountsViewModel
@@ -43,9 +49,21 @@ internal fun AccountsScreen(
         ScreenContent(
             state = state.uiState,
             onRetry = { viewModel.trySendAction(AccountsAction.RetryLoad) },
-            loading = { AccountsSkeleton() },
-            empty = { AccountsEmpty() },
-            error = { AccountsError(onRetry = { viewModel.trySendAction(AccountsAction.RetryLoad) }) },
+            loading = { MifosProgressIndicator() },
+            empty = {
+                EmptyDataComponent(
+                    isEmptyData = true,
+                    message = stringResource(Res.string.feature_accounts_empty_title),
+                )
+            },
+            error = { throwable ->
+                MifosErrorComponent(
+                    message = stringResource(Res.string.feature_accounts_error_title),
+                    supportReference = throwable.obieSupportReference().orEmpty(),
+                    isRetryEnabled = true,
+                    onRetry = { viewModel.trySendAction(AccountsAction.RetryLoad) },
+                )
+            },
         ) { data, _ ->
             AccountsContent(
                 data = data,

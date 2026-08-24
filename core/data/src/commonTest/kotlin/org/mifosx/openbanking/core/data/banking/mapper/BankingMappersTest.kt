@@ -56,7 +56,7 @@ class BankingMappersTest {
         assertEquals(1, accounts.size)
         val account = accounts.first()
         assertEquals("acc-1", account.accountId)
-        assertEquals("Everyday Current", account.nickname)
+        assertEquals("", account.accountHolderName)
         assertEquals("400515", account.sortCode)
         assertEquals("12345678", account.accountNumber)
         assertEquals("GBP", account.currency)
@@ -193,9 +193,9 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        // Description is free text, not an account name — the nickname is blank so the UI renders a
-        // type + last-4 label instead. (Description still feeds the subtype classification chain.)
-        assertEquals("", account.nickname)
+        // Description is free text, not an account name — the holder name is blank so the UI renders
+        // a type + last-4 label instead. (Description still feeds the subtype classification chain.)
+        assertEquals("", account.accountHolderName)
         assertEquals("Current account", account.accountSubType)
         assertEquals("", account.currency)
         assertEquals("998877", account.sortCode)
@@ -210,7 +210,7 @@ class BankingMappersTest {
 
         val account = response.toBankAccounts().single()
 
-        assertEquals("", account.nickname)
+        assertEquals("", account.accountHolderName)
         assertEquals("", account.accountSubType)
         assertEquals("", account.currency)
         assertEquals("", account.sortCode)

@@ -30,12 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.feature.home.HomeTestTags
 import org.mifosx.openbanking.feature.home.generated.resources.Res
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_select_account
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_selected_account_desc
-import org.mifosx.openbanking.feature.home.ui.AccountChipUi
 import template.core.base.designsystem.theme.KptTheme
 
 private val CheckIconSize = 24.dp
@@ -50,7 +50,7 @@ private val CheckIconSize = 24.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AccountSelectorSheet(
-    accounts: List<AccountChipUi>,
+    accounts: List<BankAccount>,
     selectedAccountId: String,
     onSelectAccount: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -76,7 +76,7 @@ internal fun AccountSelectorSheet(
  */
 @Composable
 internal fun AccountSelectorSheetContent(
-    accounts: List<AccountChipUi>,
+    accounts: List<BankAccount>,
     selectedAccountId: String,
     onSelectAccount: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -98,13 +98,13 @@ internal fun AccountSelectorSheetContent(
             ),
         )
         accounts.forEachIndexed { index, account ->
-            val selected = account.id == selectedAccountId
+            val selected = account.accountId == selectedAccountId
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .selectable(selected = selected, onClick = { onSelectAccount(account.id) })
+                    .selectable(selected = selected, onClick = { onSelectAccount(account.accountId) })
                     .padding(horizontal = KptTheme.spacing.lg, vertical = KptTheme.spacing.md)
-                    .testTag(HomeTestTags.accountChip(account.id)),
+                    .testTag(HomeTestTags.accountChip(account.accountId)),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

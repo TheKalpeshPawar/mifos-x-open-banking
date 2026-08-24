@@ -17,13 +17,14 @@ import org.mifosx.openbanking.core.data.util.isFirstPaymentDateRefusal
 import org.mifosx.openbanking.core.data.util.isFrequencyRefusal
 import org.mifosx.openbanking.core.data.util.obieErrorCode
 import org.mifosx.openbanking.core.data.util.obieSupportReference
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import template.core.base.network.NetworkError
 
@@ -131,14 +132,6 @@ enum class StandingOrderAmountProblem {
     ExceedsAvailableBalance,
 }
 
-data class StandingOrderPickerRow(
-    val id: String,
-    val initials: String,
-    val headline: String,
-    val supporting: String,
-    val shortName: String = "",
-)
-
 sealed interface StandingOrderUiState {
 
     data object Loading : StandingOrderUiState
@@ -159,15 +152,15 @@ sealed interface StandingOrderUiState {
         val step: StandingOrderStep,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
-        val beneficiaries: List<StandingOrderPickerRow>,
-        val debtorRows: List<MifosAccountOption>,
+        val beneficiaries: List<BeneficiaryItem>,
+        val debtorRows: List<AccountWithBalance>,
         val debtorAccountId: String? = null,
         val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
-        val debtorAccountRow: MifosAccountOption? = null,
+        val debtorAccountRow: AccountWithBalance? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",

@@ -15,7 +15,6 @@ import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesErrorKind
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesState
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiaryRowUi
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
 import template.core.base.network.NetworkError
@@ -87,28 +86,8 @@ object BeneficiariesFixtures {
 
     // ── Rendered UI states for the Compose suites ────────────────────────────────
 
-    /** The five payees as the view model formats them — note the IBAN arrives grouped. */
-    fun rows(): List<BeneficiaryRowUi> = listOf(
-        row(FIRST_ID, "Jameson Lettings", BeneficiaryScheme.SortCode, "40-12-09 65872310", "RENT-FLAT12"),
-        row("BEN-002", "John Sharma", BeneficiaryScheme.SortCode, "23-05-80 11223344", "FAMILY"),
-        row(ENERGY_ID, "EDF Energy", BeneficiaryScheme.SortCode, "60-00-01 99887766", "ELEC-8841"),
-        row(ISA_ID, "Hargreaves Lansdown", BeneficiaryScheme.SortCode, "11-22-33 44556677", "ISA-TOPUP"),
-        row(IBAN_ID, "Priya Rajan N26 GmbH", BeneficiaryScheme.Iban, "DE89 3704 0044 0532 0130 00", "TRAVEL-EUR"),
-    )
-
-    fun row(
-        id: String,
-        name: String,
-        scheme: BeneficiaryScheme,
-        identification: String,
-        reference: String,
-    ): BeneficiaryRowUi = BeneficiaryRowUi(
-        beneficiaryId = id,
-        name = name,
-        scheme = scheme,
-        identification = identification,
-        reference = reference,
-    )
+    /** The five payees the stream hands the view model — the row groups the IBAN at render. */
+    fun rows(): List<BeneficiaryItem> = beneficiaryList()
 
     fun loadingState(): BeneficiariesState =
         BeneficiariesState(accountId = ACCOUNT_ID, uiState = BeneficiariesUiState.Loading)
@@ -124,7 +103,7 @@ object BeneficiariesFixtures {
         accountId = ACCOUNT_ID,
         uiState = BeneficiariesUiState.Content(
             all = rows(),
-            filtered = rows().filter { it.name.contains(query, ignoreCase = true) },
+            filtered = rows().filter { it.creditorName.contains(query, ignoreCase = true) },
             query = query,
         ),
     )

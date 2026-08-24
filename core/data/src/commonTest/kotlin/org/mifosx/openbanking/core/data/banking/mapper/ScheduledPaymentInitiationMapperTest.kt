@@ -39,7 +39,7 @@ class ScheduledPaymentInitiationMapperTest {
         reference: String? = "RENT-AUG",
         debtor: BankAccount? = BankAccount(
             accountId = "acc-1",
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "802001",

@@ -86,10 +86,10 @@ internal fun SendMoneyReviewPage(
 ) {
     val payerLabel = state.debtorAccountRow?.let { row ->
         accountDisplayName(
-            accountHolderName = row.accountHolderName,
-            accountSubType = row.accountSubType,
-            accountNumber = row.accountNumber,
-            rawIdentification = row.rawIdentification,
+            accountHolderName = row.account.accountHolderName,
+            accountSubType = row.account.accountSubType,
+            accountNumber = row.account.accountNumber,
+            rawIdentification = row.account.rawIdentification,
         )
     }.orEmpty()
 

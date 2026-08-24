@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.formatIsoDate
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
@@ -51,7 +52,9 @@ import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_s
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_periodic_label
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_hint
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_label
+import org.mifosx.openbanking.feature.vrpsetup.initialsOf
 import org.mifosx.openbanking.feature.vrpsetup.payeeErrorLabel
+import org.mifosx.openbanking.feature.vrpsetup.shortPayeeName
 import org.mifosx.openbanking.feature.vrpsetup.todayUtc
 import template.core.base.designsystem.theme.KptTheme
 
@@ -316,8 +319,8 @@ private fun SectionLabel(text: String) {
     )
 }
 
-private fun PayeeOptionUi.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
-    payeeId = payeeId,
-    shortName = shortName,
-    initials = initials,
+private fun BeneficiaryItem.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = identification,
+    shortName = shortPayeeName(creditorName),
+    initials = initialsOf(creditorName),
 )

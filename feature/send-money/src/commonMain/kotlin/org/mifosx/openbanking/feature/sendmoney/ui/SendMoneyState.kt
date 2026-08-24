@@ -13,12 +13,13 @@ import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.data.util.isDebtorAccountRefusal
 import org.mifosx.openbanking.core.data.util.obieErrorCode
 import org.mifosx.openbanking.core.data.util.obieSupportReference
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import template.core.base.network.NetworkError
 
@@ -145,20 +146,6 @@ enum class SendMoneyAmountProblem {
     ExceedsAvailableBalance,
 }
 
-/**
- * One selectable payee row. Its name comes from the bank and needs no resolving.
- *
- * @property shortName The name as the avatar caption carries it — "John S." — because a 56dp circle
- *   has room for two words at most. Shortened in the ViewModel, like every other display string.
- */
-data class SendMoneyPickerRow(
-    val id: String,
-    val initials: String,
-    val headline: String,
-    val supporting: String,
-    val shortName: String = "",
-)
-
 sealed interface SendMoneyUiState {
 
     data object Loading : SendMoneyUiState
@@ -180,15 +167,15 @@ sealed interface SendMoneyUiState {
         val step: SendMoneyStep,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
-        val beneficiaries: List<SendMoneyPickerRow>,
-        val debtorRows: List<MifosAccountOption>,
+        val beneficiaries: List<BeneficiaryItem>,
+        val debtorRows: List<AccountWithBalance>,
         val debtorAccountId: String? = null,
         val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
-        val debtorAccountRow: MifosAccountOption? = null,
+        val debtorAccountRow: AccountWithBalance? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",

@@ -46,8 +46,16 @@ internal fun AccountsContent(
             ),
             verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
         ) {
-            items(data.rows, key = { it.id }) { row ->
-                AccountCard(row = row, onClick = { onAccountClick(row.id) })
+            items(
+                data.rows,
+                key = { it.account.accountId },
+            ) { account ->
+                AccountCard(
+                    account = account,
+                    onClick = {
+                        onAccountClick(account.account.accountId)
+                    },
+                )
             }
         }
     }

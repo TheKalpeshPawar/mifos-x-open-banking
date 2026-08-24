@@ -38,7 +38,7 @@ class PaymentMapperTest {
     ) = PaymentDraft(
         debtorAccount = BankAccount(
             accountId = "123456791",
-            nickname = "Current account ·· 3349",
+            accountHolderName = "Current account ·· 3349",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "802001",

@@ -99,10 +99,10 @@ class SendMoneyViewModelTest {
 
         val state = content(vm)
         assertEquals(2, state.debtorRows.size)
-        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.id })
-        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in state.debtorRows.map { it.id })
+        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.account.accountId })
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in state.debtorRows.map { it.account.accountId })
         assertEquals(3, state.beneficiaries.size)
-        assertEquals("Jameson Lettings", state.beneficiaries.first().headline)
+        assertEquals("Jameson Lettings", state.beneficiaries.first().creditorName)
     }
 
     /**
@@ -119,7 +119,7 @@ class SendMoneyViewModelTest {
             initial = ScreenState.Content(
                 listOf(
                     AccountWithBalance(
-                        account = SendMoneyFixtures.currentAccount().copy(nickname = ""),
+                        account = SendMoneyFixtures.currentAccount().copy(accountHolderName = ""),
                         balance = null,
                     ),
                 ),
@@ -129,9 +129,9 @@ class SendMoneyViewModelTest {
 
         val row = content(viewModel(accounts = accounts)).debtorRows.single()
 
-        assertEquals("CurrentAccount", row.accountSubType)
-        assertEquals("10203349", row.accountNumber)
-        assertEquals("80200110203349", row.rawIdentification)
+        assertEquals("CurrentAccount", row.account.accountSubType)
+        assertEquals("10203349", row.account.accountNumber)
+        assertEquals("80200110203349", row.account.rawIdentification)
     }
 
     /**
@@ -624,7 +624,7 @@ class SendMoneyViewModelTest {
     fun aCreditCardIsNotOfferedAsAPayer() = runTest {
         val vm = viewModel()
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
 
         assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
@@ -644,7 +644,7 @@ class SendMoneyViewModelTest {
     fun aGlobalMoneyWalletIsNotOfferedAsAPayer() = runTest {
         val vm = viewModel()
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
 
         assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
@@ -670,22 +670,22 @@ class SendMoneyViewModelTest {
                 ScreenState.Content(undisclosed, DataFreshness.FRESH),
             ),
         )
-        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.account.accountId })
 
         registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.PaymentDebtor)
 
-        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.account.accountId })
     }
 
     /** The registry still removes any payer the bank refuses, matrix prediction or not. */
     @Test
     fun aRefusedPayerDisappearsFromThePicker() = runTest {
         val vm = viewModel()
-        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.account.accountId })
 
         registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.PaymentDebtor)
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
         assertFalse(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
     }
@@ -697,7 +697,7 @@ class SendMoneyViewModelTest {
 
         registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.DirectDebits)
 
-        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.account.accountId })
     }
 
     /**

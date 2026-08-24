@@ -72,13 +72,13 @@ object PaymentConsentFixtures {
         PaymentConsentState(uiState = PaymentConsentUiState.Error(kind), consentId = CONSENT_ID)
 
     /**
-     * A payer with no nickname, as HSBC actually returns them. Keeping the blank there stops a
+     * A payer with no holder name, as HSBC actually returns them. Keeping the blank there stops a
      * fixture from quietly asserting a field the live bank does not populate.
      */
     fun draft(): PaymentDraft = PaymentDraft(
         debtorAccount = BankAccount(
             accountId = "acc-1",
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "802001",

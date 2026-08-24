@@ -91,12 +91,12 @@ class AccountDetailViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<AccountDetailUiState.Content>(vm.stateFlow.value.uiState)
-        assertEquals("Everyday Current", state.header.nickname)
-        assertEquals("CURRENTACCOUNT", state.header.accountSubType)
-        assertEquals("40-05-15 12345678", state.header.identificationLabel)
+        assertEquals("Everyday Current", state.header.accountHolderName)
+        assertEquals("CurrentAccount", state.header.accountSubType)
+        assertEquals("40-05-15 12345678", buildIdentificationLabel(state.header.sortCode, state.header.accountNumber))
         assertEquals("GBP", state.header.currency)
         assertEquals("MIDLGB2105V", state.header.servicerIdentification)
-        assertEquals("28 Jun 2026, 18:30 UTC", state.header.lastUpdatedLabel)
+        assertEquals("28 Jun 2026, 18:30 UTC", formatStatusTimestamp(state.header.statusUpdateDateTime))
         assertEquals("Description of the account", state.header.description)
         assertEquals(2, state.balances.size)
         assertEquals("InterimAvailable", state.balances[0].type)
@@ -113,8 +113,8 @@ class AccountDetailViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<AccountDetailUiState.Empty>(vm.stateFlow.value.uiState)
-        assertEquals("Everyday Current", state.header.nickname)
-        assertEquals("40-05-15 12345678", state.header.identificationLabel)
+        assertEquals("Everyday Current", state.header.accountHolderName)
+        assertEquals("40-05-15 12345678", buildIdentificationLabel(state.header.sortCode, state.header.accountNumber))
     }
 
     @Test
@@ -236,8 +236,8 @@ class AccountDetailViewModelTest {
 
         val state = assertIs<AccountDetailUiState.Content>(vm.stateFlow.value.uiState)
         assertEquals("", state.header.servicerIdentification)
-        assertEquals("", state.header.lastUpdatedLabel)
-        assertEquals("12345678", state.header.identificationLabel)
+        assertEquals("", formatStatusTimestamp(state.header.statusUpdateDateTime))
+        assertEquals("12345678", buildIdentificationLabel(state.header.sortCode, state.header.accountNumber))
     }
 
     @Test

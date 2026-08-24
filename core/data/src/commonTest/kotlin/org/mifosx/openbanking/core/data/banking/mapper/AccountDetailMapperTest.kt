@@ -55,7 +55,7 @@ class AccountDetailMapperTest {
         ).toAccountDetail()
 
         assertEquals("acc-1", detail?.accountId)
-        assertEquals("Everyday Current", detail?.nickname)
+        assertEquals("", detail?.accountHolderName)
         assertEquals("CurrentAccount", detail?.accountSubType)
         assertEquals("GBP", detail?.currency)
         assertEquals("400515", detail?.sortCode)
@@ -65,15 +65,19 @@ class AccountDetailMapperTest {
     }
 
     @Test
-    fun toAccountDetailNicknameIsTheBankNameOrBlankNeverTheDescriptionOrId() {
-        fun nicknameOf(account: Account): String? = response(account).toAccountDetail()?.nickname
+    fun toAccountDetailAccountHolderNameIsTheNestedAccountName() {
+        fun holderNameOf(account: Account): String? = response(account).toAccountDetail()?.accountHolderName
 
-        assertEquals("Nick", nicknameOf(Account(accountId = "acc-1", nickname = "Nick", name = "Name")))
-        assertEquals("Name", nicknameOf(Account(accountId = "acc-1", name = "Name", description = "Desc")))
-        // Description is free text (the HSBC sandbox returns "Description of the account") — never a
-        // name. With no Nickname/Name the nickname is blank and the UI renders a type + last-4 label.
-        assertEquals("", nicknameOf(Account(accountId = "acc-1", description = "Desc")))
-        assertEquals("", nicknameOf(Account(accountId = "acc-1")))
+        assertEquals(
+            "Mr Robert",
+            holderNameOf(Account(accountId = "acc-1", account = listOf(Account(name = "Mr Robert")))),
+        )
+        assertEquals("", holderNameOf(Account(accountId = "acc-1", nickname = "Nick")))
+        val sortCodeOnly = Account(
+            accountId = "acc-1",
+            account = listOf(Account(schemeName = "UK.OBIE.SortCodeAccountNumber")),
+        )
+        assertEquals("", holderNameOf(sortCodeOnly))
     }
 
     @Test
@@ -217,7 +221,7 @@ class AccountDetailMapperTest {
         ).toAccountDetail()
 
         assertEquals("acc-2", detail?.accountId)
-        assertEquals("usable", detail?.nickname)
+        assertEquals("", detail?.accountHolderName)
     }
 
     @Test

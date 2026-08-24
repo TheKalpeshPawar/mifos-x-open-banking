@@ -17,13 +17,14 @@ import androidx.compose.ui.test.performScrollTo
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentState
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentUiState
@@ -49,7 +50,7 @@ class SchedulePaymentScreenInstrumentedTest {
 
     private val account = BankAccount(
         accountId = "acc-1",
-        nickname = "",
+        accountHolderName = "",
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "802001",
@@ -57,13 +58,9 @@ class SchedulePaymentScreenInstrumentedTest {
         rawIdentification = "80200110203349",
     )
 
-    private val accountRow = MifosAccountOption(
-        accountId = "acc-1",
-        accountHolderName = "",
-        accountSubType = "CurrentAccount",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
-        availableBalance = "£21,530.92",
+    private val accountRow = AccountWithBalance(
+        account = account,
+        balance = AccountBalance("acc-1", "GBP", "21530.92", "21530.92"),
     )
 
     private fun formState(
@@ -79,12 +76,13 @@ class SchedulePaymentScreenInstrumentedTest {
             debtorAccountRow = accountRow,
             debtorAccountId = "acc-1",
             beneficiaries = listOf(
-                SchedulePaymentPickerRow(
-                    id = "ben-1",
-                    initials = "DC",
-                    headline = "Mr Dharani C",
-                    supporting = "Sort Code · 80-20-01 10203350",
-                    shortName = "Dharani C",
+                BeneficiaryItem(
+                    beneficiaryId = "ben-1",
+                    accountId = "acc-1",
+                    creditorName = "Mr Dharani C",
+                    scheme = BeneficiaryScheme.SortCode,
+                    identification = "80200110203350",
+                    reference = "",
                 ),
             ),
             creditor = CreditorSelection(
@@ -127,7 +125,7 @@ class SchedulePaymentScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(SchedulePaymentTestTags.DATE_FIELD).performScrollTo().performClick()
 
-        assertEquals(listOf(SchedulePaymentAction.OpenDatePicker), actions)
+        assertEquals(listOf<SchedulePaymentAction>(SchedulePaymentAction.OpenDatePicker), actions)
     }
 
     @Test

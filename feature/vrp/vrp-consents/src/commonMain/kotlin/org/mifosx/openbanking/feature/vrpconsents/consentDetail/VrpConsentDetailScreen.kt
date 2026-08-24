@@ -53,7 +53,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
+import org.mifosx.openbanking.core.model.vrp.AccountIdentity
 import org.mifosx.openbanking.core.ui.account.accountTypeLabel
+import org.mifosx.openbanking.core.ui.account.maskedAccountNumber
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosSectionHeading
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
@@ -435,8 +437,11 @@ private fun LimitRow(
     }
 }
 
+/** The account-number half of a sort-code-and-account-number identification. */
+private const val ACCOUNT_NUMBER_LENGTH = 8
+
 @Composable
-private fun PayerCard(payer: PayerAccountUi?) {
+private fun PayerCard(payer: AccountIdentity?) {
     DetailCard {
         MifosSectionHeading(stringResource(Res.string.feature_vrp_consents_detail_payer))
 
@@ -462,13 +467,17 @@ private fun PayerCard(payer: PayerAccountUi?) {
             } else {
                 Column {
                     Text(
-                        text = payer.maskedAccountNumber,
+                        text = maskedAccountNumber(
+                            accountSubType = payer.name,
+                            accountNumber = payer.identification.takeLast(ACCOUNT_NUMBER_LENGTH),
+                            rawIdentification = payer.identification,
+                        ),
                         style = KptTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = KptTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = accountTypeLabel(payer.accountSubType),
+                        text = accountTypeLabel(payer.name),
                         style = KptTheme.typography.bodyMedium,
                         color = KptTheme.colorScheme.onSurfaceVariant,
                     )

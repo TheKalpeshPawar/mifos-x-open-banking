@@ -24,7 +24,6 @@ import template.core.base.common.screen.ScreenState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class AccountsViewModelTest {
 
@@ -41,7 +40,15 @@ class AccountsViewModelTest {
         subType: String = "CurrentAccount",
         currency: String = "GBP",
     ) = AccountWithBalance(
-        account = BankAccount(id, "Nickname $id", subType, currency, "400515", "12345678", "40051512345678"),
+        account = BankAccount(
+            accountId = id,
+            accountHolderName = "Nickname $id",
+            accountSubType = subType,
+            currency = currency,
+            sortCode = "400515",
+            accountNumber = "12345678",
+            rawIdentification = "40051512345678",
+        ),
         balance = AccountBalance(id, currency, "0", available),
     )
 
@@ -95,7 +102,7 @@ class AccountsViewModelTest {
 
         val data = content(vm.stateFlow.value.uiState).data as AccountsData
         assertEquals(1, data.rows.size)
-        assertEquals("acc-credit", data.rows.first().id)
+        assertEquals("acc-credit", data.rows.first().account.accountId)
         assertEquals(AccountFilter.CREDIT, data.activeFilter)
     }
 
@@ -126,18 +133,7 @@ class AccountsViewModelTest {
 
         val data = content(vm.stateFlow.value.uiState).data as AccountsData
         assertEquals(1, data.rows.size)
-        assertEquals("acc-global-money", data.rows.first().id)
-    }
-
-    @Test
-    fun `credit card row renders as balance owed`() = runTest {
-        val vm = createViewModel()
-        repo.emissions.value = ScreenState.Content(sampleAccounts(), DataFreshness.FRESH)
-
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
-        val creditRow = (content(state.uiState).data as AccountsData).rows.first { it.id == "acc-credit" }
-        assertTrue(creditRow.isBalanceOwed)
-        assertEquals(AccountUiType.CREDIT, creditRow.type)
+        assertEquals("acc-global-money", data.rows.first().account.accountId)
     }
 
     @Test

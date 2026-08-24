@@ -95,7 +95,7 @@ class SinglePaymentInitiationRepositoryImplTest {
     private fun draft() = PaymentDraft(
         debtorAccount = BankAccount(
             accountId = "acc-1",
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "802001",

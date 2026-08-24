@@ -43,7 +43,6 @@ class HomeViewModelTest {
     private fun account(id: String, subType: String = "CurrentAccount") =
         BankAccount(
             accountId = id,
-            nickname = "Nickname $id",
             accountSubType = subType,
             currency = "GBP",
             sortCode = "400515",

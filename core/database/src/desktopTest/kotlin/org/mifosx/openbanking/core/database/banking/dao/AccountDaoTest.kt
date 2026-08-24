@@ -27,9 +27,9 @@ class AccountDaoTest {
     private lateinit var database: AppDatabase
     private lateinit var accountDao: AccountDao
 
-    private fun account(id: String, nickname: String) = AccountEntity(
+    private fun account(id: String, accountHolderName: String) = AccountEntity(
         accountId = id,
-        nickname = nickname,
+        accountHolderName = accountHolderName,
         accountSubType = "CurrentAccount",
         currency = "GBP",
         sortCode = "400515",
@@ -65,7 +65,7 @@ class AccountDaoTest {
         accountDao.observeAll().test {
             val result = awaitItem()
             assertEquals(2, result.size)
-            assertEquals("Everyday Current", result.first { it.accountId == "acc-1" }.nickname)
+            assertEquals("Everyday Current", result.first { it.accountId == "acc-1" }.accountHolderName)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -78,7 +78,7 @@ class AccountDaoTest {
         accountDao.observeAll().test {
             val result = awaitItem()
             assertEquals(1, result.size)
-            assertEquals("Renamed", result.first().nickname)
+            assertEquals("Renamed", result.first().accountHolderName)
             cancelAndIgnoreRemainingEvents()
         }
     }

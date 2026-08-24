@@ -23,7 +23,7 @@ class EntityMapperTest {
     fun bankAccountRoundTripsThroughEntity() {
         val account = BankAccount(
             accountId = "a-1",
-            nickname = "Everyday",
+            accountHolderName = "Everyday",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "400515",
@@ -38,7 +38,7 @@ class EntityMapperTest {
     fun accountEntityMapsToDomain() {
         val entity = AccountEntity(
             accountId = "a-2",
-            nickname = "Savings",
+            accountHolderName = "Savings",
             accountSubType = "Savings",
             currency = "EUR",
             sortCode = "112233",
@@ -49,7 +49,7 @@ class EntityMapperTest {
         val domain = entity.toBankAccount()
 
         assertEquals("a-2", domain.accountId)
-        assertEquals("Savings", domain.nickname)
+        assertEquals("Savings", domain.accountHolderName)
         assertEquals("Savings", domain.accountSubType)
         assertEquals("EUR", domain.currency)
         assertEquals("112233", domain.sortCode)
@@ -110,7 +110,7 @@ class EntityMapperTest {
     fun accountDescriptionSurvivesTheRoundTripThroughTheDatabase() {
         val wallet = BankAccount(
             accountId = "1123456843",
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "CACC",
             currency = "GBP",
             sortCode = "801197",

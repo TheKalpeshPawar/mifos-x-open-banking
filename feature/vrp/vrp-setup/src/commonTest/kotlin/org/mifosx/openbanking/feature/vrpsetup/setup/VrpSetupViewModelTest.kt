@@ -104,7 +104,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -117,7 +117,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -131,7 +131,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -177,7 +177,7 @@ class VrpSetupViewModelTest {
         assertContentEquals(listOf(CURRENT_ACCOUNT_ID), beneficiaries.requestedAccountIds)
         assertContentEquals(
             listOf(PAYEE_IDENTIFICATION),
-            content(vm).form.payeeOptions.map { it.payeeId },
+            content(vm).form.payeeOptions.map { it.identification },
         )
     }
 
@@ -202,7 +202,7 @@ class VrpSetupViewModelTest {
         vm.trySendAction(VrpSetupAction.PayerSelected(CURRENT_ACCOUNT_ID))
         advanceUntilIdle()
 
-        assertEquals(PAYEE_IDENTIFICATION, content(vm).form.payeeOptions.single().payeeId)
+        assertEquals(PAYEE_IDENTIFICATION, content(vm).form.payeeOptions.single().identification)
     }
 
     // the form
@@ -436,7 +436,7 @@ class VrpSetupViewModelTest {
     private fun currentAccount() = AccountWithBalance(
         account = BankAccount(
             accountId = CURRENT_ACCOUNT_ID,
-            nickname = "Everyday Current Account",
+            accountHolderName = "Everyday Current Account",
             accountSubType = "CurrentAccount",
             currency = "GBP",
             sortCode = "802001",
@@ -454,7 +454,7 @@ class VrpSetupViewModelTest {
     private fun savingsAccount() = AccountWithBalance(
         account = BankAccount(
             accountId = SAVINGS_ACCOUNT_ID,
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "Savings",
             currency = "GBP",
             sortCode = "801225",
@@ -467,7 +467,7 @@ class VrpSetupViewModelTest {
     private fun creditCard() = AccountWithBalance(
         account = BankAccount(
             accountId = CREDIT_CARD_ID,
-            nickname = "",
+            accountHolderName = "",
             accountSubType = "CARD",
             currency = "GBP",
             sortCode = "",

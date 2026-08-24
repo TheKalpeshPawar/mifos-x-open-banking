@@ -22,7 +22,7 @@ import org.mifosx.openbanking.core.model.banking.TransactionItem
  */
 fun AccountEntity.toBankAccount(): BankAccount = BankAccount(
     accountId = accountId,
-    nickname = nickname,
+    accountHolderName = accountHolderName,
     accountSubType = accountSubType,
     currency = currency,
     sortCode = sortCode,
@@ -33,7 +33,7 @@ fun AccountEntity.toBankAccount(): BankAccount = BankAccount(
 
 fun BankAccount.toAccountEntity(): AccountEntity = AccountEntity(
     accountId = accountId,
-    nickname = nickname,
+    accountHolderName = accountHolderName,
     accountSubType = accountSubType,
     currency = currency,
     sortCode = sortCode,

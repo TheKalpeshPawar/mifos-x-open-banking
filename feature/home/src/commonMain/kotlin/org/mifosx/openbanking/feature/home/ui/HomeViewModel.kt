@@ -37,20 +37,6 @@ import template.core.base.common.screen.combineScreenStates
 import template.core.base.common.screen.dataOrNull
 import template.core.base.ui.viewmodel.BaseViewModel
 
-/**
- * An account chip in the switcher: stable id plus the display nickname. [accountSubType],
- * [accountNumber] and [rawIdentification] let the chip fall back to a "type ·· last 4" label via
- * `accountDisplayName` when the bank supplied no nickname.
- */
-data class AccountChipUi(
-    val id: String,
-    val nickname: String,
-    val accountSubType: String = "",
-    val accountNumber: String = "",
-    val rawIdentification: String = "",
-    val accountHolderName: String = "",
-)
-
 /** A recent-transaction row, pre-formatted for display. */
 data class TransactionRowUi(
     val id: String,
@@ -65,7 +51,7 @@ data class TransactionRowUi(
  * the screen only renders these strings.
  */
 data class HomeData(
-    val accounts: List<AccountChipUi>,
+    val accounts: List<BankAccount>,
     val selectedAccountId: String,
     val accountTypeLabel: String,
     val accountHolderName: String,
@@ -192,16 +178,7 @@ class HomeViewModel(
         val selectedId = balance.accountId
         val selected = accounts.firstOrNull { it.accountId == selectedId }
         return HomeData(
-            accounts = accounts.map {
-                AccountChipUi(
-                    id = it.accountId,
-                    nickname = it.nickname,
-                    accountHolderName = it.accountHolderName,
-                    accountSubType = it.accountSubType,
-                    accountNumber = it.accountNumber,
-                    rawIdentification = it.rawIdentification,
-                )
-            },
+            accounts = accounts,
             selectedAccountId = selectedId,
             accountTypeLabel = selected?.accountSubType.orEmpty().uppercase(),
             accountHolderName = selected?.accountHolderName.orEmpty(),

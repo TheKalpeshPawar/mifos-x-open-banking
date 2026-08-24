@@ -35,44 +35,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.common.formatMoney
+import org.mifosx.openbanking.core.common.formatSortCode
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.feature.accounts.AccountsTestTags
 import org.mifosx.openbanking.feature.accounts.generated.resources.Res
-import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_balance_owed
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_credit
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_current
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_global_money
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_global_wallet
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_other
 import org.mifosx.openbanking.feature.accounts.generated.resources.feature_accounts_type_savings
-import org.mifosx.openbanking.feature.accounts.ui.AccountRowUi
 import org.mifosx.openbanking.feature.accounts.ui.AccountUiType
 import template.core.base.designsystem.theme.KptTheme
 
 private val AccountIconSize = 40.dp
 private val AccountIconInnerSize = 22.dp
 private val CardBorderWidth = 1.dp
-private val SubtypeLetterSpacing = 0.5.sp
 
 /**
- * A single account row: type icon in a tinted circle, subtype label, nickname, identifier, and the
- * balance. Credit-card balances render in the error colour with a "Balance owed" badge. The card is
- * flat with a hairline border, matching the design mockup. Tapping opens account detail.
+ * A single account: type icon in a tinted circle, subtype label, account number, sort code and
+ * balance. The card is flat with a hairline border. Tapping opens account detail.
  */
 @Composable
 internal fun AccountCard(
-    row: AccountRowUi,
+    account: AccountWithBalance,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val type = AccountUiType.fromSubtype(account.account.accountSubType)
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().testTag(AccountsTestTags.accountCard(row.id)),
+        modifier = modifier.fillMaxWidth().testTag(AccountsTestTags.accountCard(account.account.accountId)),
         shape = KptTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = KptTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -81,47 +79,34 @@ internal fun AccountCard(
         Row(
             modifier = Modifier.fillMaxWidth().padding(KptTheme.spacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            AccountTypeIcon(row.type)
+            AccountTypeIcon(type)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             ) {
                 Text(
-                    text = stringResource(row.type.labelRes()).uppercase(),
-                    style = KptTheme.typography.labelSmall.copy(letterSpacing = SubtypeLetterSpacing),
+                    text = stringResource(type.labelRes()),
+                    style = KptTheme.typography.bodySmall,
                     color = KptTheme.colorScheme.secondary,
                 )
                 Text(
-                    text = accountDisplayName(
-                        accountHolderName = row.accountHolderName,
-                        accountSubType = row.accountSubType,
-                        accountNumber = row.accountNumber,
-                        rawIdentification = row.rawIdentification,
-                    ),
-                    style = KptTheme.typography.titleMedium,
-                    color = KptTheme.colorScheme.onSurface,
+                    text = account.account.accountNumber,
+                    style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = KptTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = row.identifier,
-                    style = KptTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    text = formatSortCode(account.account.sortCode),
+                    style = KptTheme.typography.labelSmall,
                     color = KptTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
-            ) {
-                Text(
-                    text = row.balanceLabel,
-                    style = KptTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
-                    color = if (row.isBalanceOwed) KptTheme.colorScheme.error else KptTheme.colorScheme.onSurface,
-                )
-                if (row.isBalanceOwed) {
-                    BalanceOwedBadge()
-                }
-            }
+            Text(
+                text = account.balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
+                style = KptTheme.typography.labelSmall,
+                color = KptTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -141,22 +126,6 @@ private fun AccountTypeIcon(type: AccountUiType, modifier: Modifier = Modifier) 
                 modifier = Modifier.size(AccountIconInnerSize),
             )
         }
-    }
-}
-
-@Composable
-private fun BalanceOwedBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.testTag(AccountsTestTags.BALANCE_OWED_BADGE),
-        color = KptTheme.colorScheme.errorContainer,
-        shape = KptTheme.shapes.small,
-    ) {
-        Text(
-            text = stringResource(Res.string.feature_accounts_balance_owed),
-            style = KptTheme.typography.labelSmall,
-            color = KptTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm, vertical = KptTheme.spacing.xs),
-        )
     }
 }
 
