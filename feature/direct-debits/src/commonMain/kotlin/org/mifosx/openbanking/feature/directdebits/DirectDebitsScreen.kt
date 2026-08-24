@@ -13,12 +13,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.directdebits.generated.resources.Res
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_empty_title
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_error_consent_revoked
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_error_network
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_error_rate_limited
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_error_server
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_error_token_expired
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_screen_title
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_unsupported_title
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsAction
+import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsErrorKind
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsState
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsUiState
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsViewModel
@@ -26,8 +38,7 @@ import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsViewModel
 /**
  * Direct-debits list for one account, pushed from the account-detail Explore row.
  *
- * Back navigation is delegated upward through [onBack]; the feature never sees the host route
- * table.
+ * Back navigation is delegated upward through [onBack]; the feature never sees the host route table.
  */
 @Composable
 internal fun DirectDebitsScreen(
@@ -57,7 +68,7 @@ internal fun DirectDebitsScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        DirectDebitsUiState.Loading -> DirectDebitsSkeleton(modifier = modifier)
+        DirectDebitsUiState.Loading -> MifosProgressIndicator()
 
         is DirectDebitsUiState.Content -> DirectDebitsContent(
             mandates = current.mandates,
@@ -66,17 +77,29 @@ internal fun DirectDebitsScreenContent(
             modifier = modifier,
         )
 
-        DirectDebitsUiState.Empty -> DirectDebitsEmpty(modifier = modifier)
-
-        is DirectDebitsUiState.Unsupported -> DirectDebitsUnsupported(
-            message = current.message,
-            modifier = modifier,
+        DirectDebitsUiState.Empty -> EmptyDataComponent(
+            isEmptyData = true,
+            message = stringResource(Res.string.feature_direct_debits_empty_title),
         )
 
-        is DirectDebitsUiState.Error -> DirectDebitsError(
-            kind = current.kind,
+        is DirectDebitsUiState.Unsupported -> MifosErrorComponent(
+            message = current.message.ifBlank {
+                stringResource(Res.string.feature_direct_debits_unsupported_title)
+            },
+        )
+
+        is DirectDebitsUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = current.kind.isRetriable,
             onRetry = { onAction(DirectDebitsAction.RetryLoad) },
-            modifier = modifier,
         )
     }
+}
+
+private fun DirectDebitsErrorKind.bodyResource(): StringResource = when (this) {
+    DirectDebitsErrorKind.TokenExpired -> Res.string.feature_direct_debits_error_token_expired
+    DirectDebitsErrorKind.ConsentRevoked -> Res.string.feature_direct_debits_error_consent_revoked
+    DirectDebitsErrorKind.RateLimited -> Res.string.feature_direct_debits_error_rate_limited
+    DirectDebitsErrorKind.ServerError -> Res.string.feature_direct_debits_error_server
+    DirectDebitsErrorKind.NetworkError -> Res.string.feature_direct_debits_error_network
 }

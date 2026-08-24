@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,9 +29,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.directdebits.generated.resources.Res
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_active_count
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_active_count_accessibility
@@ -47,22 +44,9 @@ import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_d
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_status_accessibility
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_summary_accessibility
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitRowUi
+import template.core.base.designsystem.theme.KptTheme
 
-private val SCREEN_PADDING = 16.dp
-private val CARD_GAP = 12.dp
-private val CARD_RADIUS = 12.dp
-private val CARD_PADDING = 16.dp
-private val CARD_LINE_GAP = 6.dp
-private val CHIP_GAP = 8.dp
-private val CHIP_HORIZONTAL_PADDING = 16.dp
-private val CHIP_VERTICAL_PADDING = 6.dp
-private val BADGE_HORIZONTAL_PADDING = 10.dp
-private val BADGE_VERTICAL_PADDING = 3.dp
-private val PILL_RADIUS = 999.dp
-private val AMOUNT_SIZE = 24.sp
-private val MANDATE_REFERENCE_SIZE = 11.sp
 private const val INACTIVE_CARD_ALPHA = 0.82f
-private const val BORDER_WIDTH = 1
 
 /**
  * The direct-debits body: the two summary chips above the mandate list.
@@ -84,8 +68,8 @@ internal fun DirectDebitsContent(
             .fillMaxWidth()
             .testTag(DirectDebitsTestTags.CONTENT)
             .semantics { contentDescription = listDescription },
-        contentPadding = PaddingValues(SCREEN_PADDING),
-        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+        contentPadding = PaddingValues(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         item {
             MandateSummaryChips(activeCount = activeCount, inactiveCount = inactiveCount)
@@ -115,7 +99,7 @@ private fun MandateSummaryChips(
             .fillMaxWidth()
             .testTag(DirectDebitsTestTags.SUMMARY_CHIPS)
             .semantics { contentDescription = groupDescription },
-        horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         SummaryChip(
             label = stringResource(Res.string.feature_direct_debits_active_count, activeCount),
@@ -146,30 +130,30 @@ private fun SummaryChip(
     testTag: String,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(PILL_RADIUS)
+    val shape = DesignToken.shapes.pill
     val base = modifier
         .testTag(testTag)
         .semantics { contentDescription = description }
     Surface(
-        color = if (tonal) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        color = if (tonal) KptTheme.colorScheme.primaryContainer else Color.Transparent,
         shape = shape,
         modifier = if (tonal) {
             base
         } else {
-            base.border(width = BORDER_WIDTH.dp, color = MaterialTheme.colorScheme.outline, shape = shape)
+            base.border(width = DesignToken.strokes.hairline, color = KptTheme.colorScheme.outline, shape = shape)
         },
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = KptTheme.typography.labelLarge,
             color = if (tonal) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                KptTheme.colorScheme.onPrimaryContainer
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                KptTheme.colorScheme.onSurfaceVariant
             },
             modifier = Modifier.padding(
-                horizontal = CHIP_HORIZONTAL_PADDING,
-                vertical = CHIP_VERTICAL_PADDING,
+                horizontal = KptTheme.spacing.md,
+                vertical = KptTheme.spacing.xs,
             ),
         )
     }
@@ -191,8 +175,8 @@ private fun MandateCard(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
         mandate.statusLabel,
     )
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (mandate.isActive) 1f else INACTIVE_CARD_ALPHA)
@@ -200,8 +184,8 @@ private fun MandateCard(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
             .semantics { contentDescription = cardDescription },
     ) {
         Column(
-            modifier = Modifier.padding(CARD_PADDING),
-            verticalArrangement = Arrangement.spacedBy(CARD_LINE_GAP),
+            modifier = Modifier.padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             MandateCardHeader(mandate = mandate)
             MandateAmount(mandate = mandate)
@@ -219,8 +203,8 @@ private fun MandateCardHeader(mandate: DirectDebitRowUi, modifier: Modifier = Mo
     ) {
         Text(
             text = mandate.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
         )
         StatusBadge(mandate = mandate)
     }
@@ -234,7 +218,7 @@ private fun MandateCardHeader(mandate: DirectDebitRowUi, modifier: Modifier = Mo
  */
 @Composable
 private fun StatusBadge(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(PILL_RADIUS)
+    val shape = DesignToken.shapes.pill
     val description = stringResource(
         Res.string.feature_direct_debits_status_accessibility,
         mandate.statusLabel,
@@ -243,25 +227,25 @@ private fun StatusBadge(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
         .testTag(DirectDebitsTestTags.statusBadge(mandate.mandateId))
         .semantics { contentDescription = description }
     Surface(
-        color = if (mandate.isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        color = if (mandate.isActive) KptTheme.colorScheme.primaryContainer else Color.Transparent,
         shape = shape,
         modifier = if (mandate.isActive) {
             base
         } else {
-            base.border(width = BORDER_WIDTH.dp, color = MaterialTheme.colorScheme.outline, shape = shape)
+            base.border(width = DesignToken.strokes.hairline, color = KptTheme.colorScheme.outline, shape = shape)
         },
     ) {
         Text(
             text = mandate.statusLabel,
-            style = MaterialTheme.typography.labelSmall,
+            style = KptTheme.typography.labelSmall,
             color = if (mandate.isActive) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                KptTheme.colorScheme.onPrimaryContainer
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                KptTheme.colorScheme.onSurfaceVariant
             },
             modifier = Modifier.padding(
-                horizontal = BADGE_HORIZONTAL_PADDING,
-                vertical = BADGE_VERTICAL_PADDING,
+                horizontal = KptTheme.spacing.sm,
+                vertical = KptTheme.spacing.xs,
             ),
         )
     }
@@ -276,14 +260,11 @@ private fun MandateAmount(mandate: DirectDebitRowUi, modifier: Modifier = Modifi
     )
     Text(
         text = mandate.amountLabel,
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontFamily = FontFamily.Monospace,
-            fontSize = AMOUNT_SIZE,
-        ),
+        style = KptTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Monospace),
         color = if (mandate.isActive) {
-            MaterialTheme.colorScheme.onSurface
+            KptTheme.colorScheme.onSurface
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            KptTheme.colorScheme.onSurfaceVariant
         },
         modifier = modifier
             .testTag(DirectDebitsTestTags.amount(mandate.mandateId))
@@ -297,15 +278,15 @@ private fun MandateAmount(mandate: DirectDebitRowUi, modifier: Modifier = Modifi
  */
 @Composable
 private fun MandateMetaLines(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CARD_LINE_GAP)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
         if (mandate.lastCollectedLabel.isNotBlank()) {
             Text(
                 text = stringResource(
                     Res.string.feature_direct_debits_last_collected,
                     mandate.lastCollectedLabel,
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(DirectDebitsTestTags.lastCollected(mandate.mandateId)),
             )
         }
@@ -315,11 +296,8 @@ private fun MandateMetaLines(mandate: DirectDebitRowUi, modifier: Modifier = Mod
                     Res.string.feature_direct_debits_mandate_reference,
                     mandate.mandateId,
                 ),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = MANDATE_REFERENCE_SIZE,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                color = KptTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(DirectDebitsTestTags.mandateReference(mandate.mandateId)),
             )
         }

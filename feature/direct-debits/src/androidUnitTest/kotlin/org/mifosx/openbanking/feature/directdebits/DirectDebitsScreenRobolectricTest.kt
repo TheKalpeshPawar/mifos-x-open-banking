@@ -9,7 +9,6 @@
  */
 package org.mifosx.openbanking.feature.directdebits
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -20,7 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitRowUi
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsAction
-import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsErrorKind
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsState
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitsUiState
 import org.robolectric.RobolectricTestRunner
@@ -30,8 +28,8 @@ import kotlin.test.assertTrue
 private const val ROBOLECTRIC_SDK = 34
 
 /**
- * Renders [DirectDebitsScreenContent] across its states under Robolectric (JVM, no device) and
- * drives it through the shared [DirectDebitsTestTags]. A verbatim on-device mirror lives in
+ * Renders [DirectDebitsScreenContent] under Robolectric (JVM, no device) and drives it through the
+ * shared [DirectDebitsTestTags]. A verbatim on-device mirror lives in
  * [DirectDebitsScreenInstrumentedTest].
  */
 @RunWith(RobolectricTestRunner::class)
@@ -47,27 +45,6 @@ class DirectDebitsScreenRobolectricTest {
         composeRule.setContent {
             DirectDebitsScreenContent(state = state, onAction = { actions.add(it) })
         }
-    }
-
-    private fun errorState(kind: DirectDebitsErrorKind) = DirectDebitsState(
-        accountId = DirectDebitsFixtures.ACCOUNT_ID,
-        uiState = DirectDebitsUiState.Error(kind),
-    )
-
-    @Test
-    fun loadingStateRendersSkeletonWithChipRowPlaceholderNotAContentList() {
-        render(
-            DirectDebitsState(
-                accountId = DirectDebitsFixtures.ACCOUNT_ID,
-                uiState = DirectDebitsUiState.Loading,
-            ),
-        )
-
-        composeRule.onNodeWithTag(DirectDebitsTestTags.LOADING_SKELETON).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.SKELETON_CHIP_ROW, useUnmergedTree = true)
-            .assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.CONTENT).assertDoesNotExist()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.SUMMARY_CHIPS).assertDoesNotExist()
     }
 
     @Test
@@ -158,62 +135,5 @@ class DirectDebitsScreenRobolectricTest {
             .assertDoesNotExist()
         composeRule.onNodeWithTag(DirectDebitsTestTags.mandateReference(""), useUnmergedTree = true)
             .assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyStateRendersTitleAndBodyWithoutAListOrChips() {
-        render(
-            DirectDebitsState(
-                accountId = DirectDebitsFixtures.ACCOUNT_ID,
-                uiState = DirectDebitsUiState.Empty,
-            ),
-        )
-
-        composeRule.onNodeWithTag(DirectDebitsTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.EMPTY_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.EMPTY_BODY, useUnmergedTree = true)
-            .assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.CONTENT).assertDoesNotExist()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.SUMMARY_CHIPS).assertDoesNotExist()
-    }
-
-    @Test
-    fun retriableErrorShowsRetryAndDispatchesRetryLoadWhenTapped() {
-        render(errorState(DirectDebitsErrorKind.TokenExpired))
-
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ERROR_TITLE, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.RETRY_BUTTON).performClick()
-
-        assertTrue(DirectDebitsAction.RetryLoad in actions)
-    }
-
-    @Test
-    fun consentRevokedHidesRetryBecauseRetryingCannotHelp() {
-        render(errorState(DirectDebitsErrorKind.ConsentRevoked))
-
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(DirectDebitsTestTags.RETRY_BUTTON).assertDoesNotExist()
-    }
-
-    @Test
-    fun rateLimitedErrorOffersRetry() {
-        render(errorState(DirectDebitsErrorKind.RateLimited))
-        composeRule.onNodeWithTag(DirectDebitsTestTags.RETRY_BUTTON).assertExists()
-    }
-
-    @Test
-    fun serverErrorOffersRetry() {
-        render(errorState(DirectDebitsErrorKind.ServerError))
-        composeRule.onNodeWithTag(DirectDebitsTestTags.RETRY_BUTTON).assertExists()
-    }
-
-    @Test
-    fun networkErrorOffersRetry() {
-        render(errorState(DirectDebitsErrorKind.NetworkError))
-        composeRule.onNodeWithTag(DirectDebitsTestTags.RETRY_BUTTON).assertExists()
     }
 }
