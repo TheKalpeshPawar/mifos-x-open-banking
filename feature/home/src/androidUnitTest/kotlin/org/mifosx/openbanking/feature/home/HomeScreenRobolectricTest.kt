@@ -47,23 +47,6 @@ class HomeScreenRobolectricTest {
     }
 
     @Test
-    fun skeletonStateRenders() {
-        composeRule.setContent { HomeSkeleton() }
-
-        composeRule.onNodeWithTag(HomeTestTags.SKELETON).assertExists()
-    }
-
-    @Test
-    fun errorStateRetryDispatches() {
-        var retried = false
-        composeRule.setContent { HomeError(onRetry = { retried = true }) }
-
-        composeRule.onNodeWithTag(HomeTestTags.ERROR_RETRY).performClick()
-
-        assertTrue(retried)
-    }
-
-    @Test
     fun heroCardTapOpensTheAccountSelector() {
         var opened = false
         composeRule.showHomeContent(onOpenAccountSelector = { opened = true })

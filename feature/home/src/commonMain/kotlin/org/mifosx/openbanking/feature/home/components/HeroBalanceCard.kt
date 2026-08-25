@@ -25,16 +25,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.home.HomeTestTags
 import org.mifosx.openbanking.feature.home.generated.resources.Res
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_account_icon_desc
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_available
 import template.core.base.designsystem.theme.KptTheme
-
-private val HeroCardHeight = 180.dp
-private val BankIconSize = 24.dp
 
 /**
  * Primary account card: account type, display name, current balance, available balance, and the
@@ -54,7 +51,7 @@ internal fun HeroBalanceCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(HeroCardHeight)
+            .height(DesignToken.sizes.heroCard)
             .background(KptTheme.colorScheme.primaryContainer, KptTheme.shapes.large)
             .clickable(onClick = onClick)
             .padding(KptTheme.spacing.lg)
@@ -71,7 +68,7 @@ internal fun HeroBalanceCard(
                 imageVector = Icons.Filled.AccountBalance,
                 contentDescription = stringResource(Res.string.feature_home_account_icon_desc),
                 tint = KptTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(BankIconSize),
+                modifier = Modifier.size(DesignToken.sizes.iconMedium),
             )
         }
         Text(

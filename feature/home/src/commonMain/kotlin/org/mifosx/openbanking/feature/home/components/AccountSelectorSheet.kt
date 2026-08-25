@@ -18,36 +18,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.components.MifosBottomSheet
 import org.mifosx.openbanking.feature.home.HomeTestTags
 import org.mifosx.openbanking.feature.home.generated.resources.Res
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_select_account
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_selected_account_desc
 import template.core.base.designsystem.theme.KptTheme
 
-private val CheckIconSize = 24.dp
-
 /**
  * Modal bottom sheet for switching the selected account, opened by tapping the hero balance card.
  *
- * This is a thin wrapper around [ModalBottomSheet] so that [AccountSelectorSheetContent] — which
- * holds every interactive surface — stays a plain composable the UI tests can render directly,
- * without reaching into the sheet's own window.
+ * A thin wrapper around [MifosBottomSheet] so [AccountSelectorSheetContent] — which holds every
+ * interactive surface — stays a plain composable the UI tests can render directly, without reaching
+ * into the sheet's own window.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AccountSelectorSheet(
     accounts: List<BankAccount>,
@@ -56,11 +51,7 @@ internal fun AccountSelectorSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        modifier = modifier,
-    ) {
+    MifosBottomSheet(onDismiss = onDismiss, modifier = modifier) {
         AccountSelectorSheetContent(
             accounts = accounts,
             selectedAccountId = selectedAccountId,
@@ -127,7 +118,7 @@ internal fun AccountSelectorSheetContent(
                         imageVector = Icons.Filled.Check,
                         contentDescription = stringResource(Res.string.feature_home_selected_account_desc),
                         tint = KptTheme.colorScheme.primary,
-                        modifier = Modifier.size(CheckIconSize),
+                        modifier = Modifier.size(DesignToken.sizes.iconMedium),
                     )
                 }
             }

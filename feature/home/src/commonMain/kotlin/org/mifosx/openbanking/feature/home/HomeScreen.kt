@@ -13,8 +13,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
+import org.mifosx.openbanking.feature.home.generated.resources.Res
+import org.mifosx.openbanking.feature.home.generated.resources.feature_home_empty_title
+import org.mifosx.openbanking.feature.home.generated.resources.feature_home_error_title
 import org.mifosx.openbanking.feature.home.ui.HomeAction
 import org.mifosx.openbanking.feature.home.ui.HomeViewModel
 import template.core.base.ui.screen.ScreenContent
@@ -37,9 +44,20 @@ internal fun HomeScreen(
         ScreenContent(
             state = state.uiState,
             onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) },
-            loading = { HomeSkeleton() },
-            empty = { HomeEmpty() },
-            error = { HomeError(onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) }) },
+            loading = { MifosProgressIndicator() },
+            empty = {
+                EmptyDataComponent(
+                    isEmptyData = true,
+                    message = stringResource(Res.string.feature_home_empty_title),
+                )
+            },
+            error = {
+                MifosErrorComponent(
+                    message = stringResource(Res.string.feature_home_error_title),
+                    isRetryEnabled = true,
+                    onRetry = { viewModel.trySendAction(HomeAction.RetryLoad) },
+                )
+            },
         ) { data, _ ->
             HomeContent(
                 data = data,

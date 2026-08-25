@@ -15,10 +15,8 @@ package org.mifosx.openbanking.feature.home
  */
 internal object HomeTestTags {
     const val CONTENT = "home_content"
-    const val SKELETON = "home_skeleton"
     const val HERO_CARD = "home_hero_card"
     const val RECENT_TRANSACTIONS = "home_recent_transactions"
-    const val ERROR_RETRY = "home_error_retry"
     const val ACCOUNT_SELECTOR_SHEET = "home_account_selector_sheet"
 
     private const val ACCOUNT_CHIP_PREFIX = "home_account_chip_"

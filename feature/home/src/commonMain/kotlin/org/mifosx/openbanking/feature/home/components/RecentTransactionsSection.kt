@@ -27,16 +27,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.home.HomeTestTags
 import org.mifosx.openbanking.feature.home.generated.resources.Res
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_recent_transactions
 import org.mifosx.openbanking.feature.home.generated.resources.feature_home_view_all
 import org.mifosx.openbanking.feature.home.ui.TransactionRowUi
 import template.core.base.designsystem.theme.KptTheme
-
-private val CategoryIconSize = 40.dp
 
 /**
  * The recent-transactions section: a header with a "View all" action, followed by a short list of
@@ -92,7 +90,7 @@ private fun TransactionRow(
             contentDescription = null,
             tint = KptTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .size(CategoryIconSize)
+                .size(DesignToken.sizes.iconExtraLarge)
                 .background(KptTheme.colorScheme.surfaceContainerHighest, CircleShape)
                 .padding(KptTheme.spacing.sm),
         )
