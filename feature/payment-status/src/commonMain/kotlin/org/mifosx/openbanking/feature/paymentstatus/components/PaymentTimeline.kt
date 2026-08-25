@@ -21,12 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.paymentstatus.PaymentStatusTestTags
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_step_approved
@@ -52,18 +51,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineEntry
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
-
-private val CardShape = RoundedCornerShape(12.dp)
-private val CardPadding = 16.dp
-private val TitleGap = 8.dp
-private val MarkerColumnWidth = 24.dp
-private val MarkerSize = 20.dp
-private val MarkerIconSize = 12.dp
-private val MarkerRingWidth = 2.dp
-private val ConnectorWidth = 2.dp
-private val ConnectorHeight = 20.dp
-private val RowGap = 12.dp
-private val LabelGap = 2.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The four stages a payment passes through, newest first.
@@ -83,19 +71,19 @@ internal fun PaymentTimeline(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(TitleGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Text(
             text = stringResource(Res.string.feature_payment_status_timeline).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .padding(CardPadding)
+                .clip(KptTheme.shapes.medium)
+                .background(KptTheme.colorScheme.surfaceContainerLow)
+                .padding(KptTheme.spacing.md)
                 .testTag(PaymentStatusTestTags.TIMELINE),
         ) {
             entries.forEachIndexed { index, entry ->
@@ -111,19 +99,19 @@ private fun TimelineRow(entry: PaymentTimelineEntry, hasOlderBelow: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag(PaymentStatusTestTags.timelineStep(entry.step)),
-        horizontalArrangement = Arrangement.spacedBy(RowGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Column(
-            modifier = Modifier.width(MarkerColumnWidth),
+            modifier = Modifier.width(DesignToken.sizes.iconMedium),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             StepMarker(entry)
             if (hasOlderBelow) {
                 Box(
                     modifier = Modifier
-                        .width(ConnectorWidth)
-                        .height(ConnectorHeight)
-                        .background(MaterialTheme.colorScheme.outlineVariant),
+                        .width(DesignToken.strokes.thick)
+                        .height(DesignToken.sizes.iconSmall)
+                        .background(KptTheme.colorScheme.outlineVariant),
                 )
             }
         }
@@ -131,21 +119,21 @@ private fun TimelineRow(entry: PaymentTimelineEntry, hasOlderBelow: Boolean) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = if (hasOlderBelow) RowGap else 0.dp),
-            verticalArrangement = Arrangement.spacedBy(LabelGap),
+                .padding(bottom = if (hasOlderBelow) KptTheme.spacing.md else 0.dp),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = stringResource(entry.labelResource()),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurface,
             )
             // Omitted, not blanked: a stage nothing observed is undated, and an empty value beside a
             // label reads as data we lost rather than data we were never given.
             if (entry.timestamp.isNotBlank()) {
                 Text(
                     text = entry.timestamp,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = KptTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = KptTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -154,7 +142,7 @@ private fun TimelineRow(entry: PaymentTimelineEntry, hasOlderBelow: Boolean) {
 
 @Composable
 private fun StepMarker(entry: PaymentTimelineEntry) {
-    val scheme = MaterialTheme.colorScheme
+    val scheme = KptTheme.colorScheme
     val fill: Color = when (entry.state) {
         PaymentStepState.Done -> scheme.tertiary
         PaymentStepState.Current -> scheme.secondary
@@ -164,10 +152,10 @@ private fun StepMarker(entry: PaymentTimelineEntry) {
 
     Box(
         modifier = Modifier
-            .size(MarkerSize)
+            .size(DesignToken.sizes.iconSmall)
             .clip(CircleShape)
             .background(fill)
-            .border(MarkerRingWidth, scheme.outlineVariant, CircleShape)
+            .border(DesignToken.strokes.thick, scheme.outlineVariant, CircleShape)
             .testTag(PaymentStatusTestTags.timelineState(entry.step, entry.state)),
         contentAlignment = Alignment.Center,
     ) {
@@ -187,7 +175,7 @@ private fun MarkerIcon(icon: ImageVector, tint: Color) {
         imageVector = icon,
         contentDescription = null,
         tint = tint,
-        modifier = Modifier.size(MarkerIconSize),
+        modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
     )
 }
 

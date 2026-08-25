@@ -22,13 +22,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.core.ui.scaffold.rememberKptPullToRefreshState
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_back_a11y
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_consent_revoked
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_network
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_not_found
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_token_expired
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
@@ -129,7 +137,7 @@ internal fun PaymentStatusScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        PaymentStatusUiState.Loading -> PaymentStatusSkeleton(modifier = modifier)
+        PaymentStatusUiState.Loading -> MifosProgressIndicator()
 
         is PaymentStatusUiState.Content -> PaymentStatusContent(
             state = current,
@@ -137,10 +145,21 @@ internal fun PaymentStatusScreenContent(
             modifier = modifier,
         )
 
-        is PaymentStatusUiState.Error -> PaymentStatusError(
-            kind = current.kind,
+        is PaymentStatusUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = true,
             onRetry = { onAction(PaymentStatusAction.RefreshStatus) },
-            modifier = modifier,
         )
     }
+}
+
+private fun PaymentStatusErrorKind.bodyResource(): StringResource = when (this) {
+    PaymentStatusErrorKind.PaymentNotFound ->
+        Res.string.feature_payment_status_error_not_found
+    PaymentStatusErrorKind.TokenExpired ->
+        Res.string.feature_payment_status_error_token_expired
+    PaymentStatusErrorKind.ConsentRevoked ->
+        Res.string.feature_payment_status_error_consent_revoked
+    PaymentStatusErrorKind.NetworkError ->
+        Res.string.feature_payment_status_error_network
 }

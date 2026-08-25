@@ -35,15 +35,6 @@ private const val REJECTED_AT = "3 Aug 2026, 16:40"
 class PaymentStatusScreenUiTest {
 
     @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            PaymentStatusScreenContent(PaymentStatusFixtures.loadingState(), {})
-        }
-        onNodeWithTag(PaymentStatusTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertDoesNotExist()
-    }
-
-    @Test
     fun contentRendersTheSummaryAndEveryDetailRow() = runComposeUiTest {
         setContent {
             PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
@@ -103,15 +94,6 @@ class PaymentStatusScreenUiTest {
     }
 
     @Test
-    fun errorRendersRetry() = runComposeUiTest {
-        setContent {
-            PaymentStatusScreenContent(PaymentStatusFixtures.errorState(), {})
-        }
-        onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.RETRY_BUTTON).assertIsDisplayed()
-    }
-
-    @Test
     fun tappingRetryRereadsTheStatus() {
         val actions = mutableListOf<PaymentStatusAction>()
         runComposeUiTest {
@@ -121,7 +103,7 @@ class PaymentStatusScreenUiTest {
                     onAction = { actions += it },
                 )
             }
-            onNodeWithTag(PaymentStatusTestTags.RETRY_BUTTON).performClick()
+            onNodeWithText("Retry").performClick()
         }
 
         assertEquals<List<PaymentStatusAction>>(listOf(PaymentStatusAction.RefreshStatus), actions)
@@ -246,7 +228,6 @@ class PaymentStatusScreenUiTest {
         }
         onNodeWithTag(PaymentStatusTestTags.REFRESH_FAILURE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertDoesNotExist()
     }
 
     @Test

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,11 +38,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
@@ -93,16 +91,12 @@ import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentEvent
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentState
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentUiState
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentViewModel
+import template.core.base.designsystem.theme.KptTheme
 import template.core.base.ui.effects.EventsEffect
 
-private val ContentPadding = 24.dp
-private val LineGap = 16.dp
-private val IndicatorSize = 56.dp
-private val IconWellSize = 96.dp
-private val IconSize = 44.dp
-private val IconBottomGap = 8.dp
-private val BodyMaxWidth = 320.dp
-private val ButtonTopGap = 8.dp
+private val IndicatorSize = DesignToken.sizes.cardRow
+private val IconWellSize = DesignToken.sizes.avatarXLarge
+private val IconSize = DesignToken.sizes.iconExtraLarge
 
 /**
  * The authorisation return leg, and the screen that finishes the payment.
@@ -216,24 +210,23 @@ private fun ReturningState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(stateTag),
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator(
             modifier = Modifier
                 .size(IndicatorSize)
                 .testTag(PaymentConsentTestTags.PROGRESS_INDICATOR),
-            color = MaterialTheme.colorScheme.primary,
+            color = KptTheme.colorScheme.primary,
         )
         Text(
             text = stringResource(detail),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.PROGRESS_DETAIL),
         )
         extraContent()
@@ -258,17 +251,16 @@ private fun CheckingState(
         if (canCheckAgain) {
             Text(
                 text = stringResource(Res.string.feature_payment_consent_checking_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .widthIn(max = BodyMaxWidth)
                     .testTag(PaymentConsentTestTags.CHECKING_HINT),
             )
             MifosTonalPillButton(
                 label = stringResource(Res.string.feature_payment_consent_check_again),
                 onClick = onCheckAgain,
-                modifier = Modifier.padding(top = ButtonTopGap),
+                modifier = Modifier.padding(top = KptTheme.spacing.sm),
                 testTag = PaymentConsentTestTags.CHECK_AGAIN_BUTTON,
             )
         }
@@ -288,31 +280,30 @@ private fun ApprovedState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(PaymentConsentTestTags.AUTHORISED_STATE)
             .semantics { contentDescription = title },
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         IconWell(
             icon = Icons.Filled.CheckCircle,
-            container = MaterialTheme.colorScheme.primaryContainer,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            container = KptTheme.colorScheme.primaryContainer,
+            tint = KptTheme.colorScheme.onPrimaryContainer,
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(PaymentConsentTestTags.OUTCOME_TITLE),
         )
         Text(
             text = stringResource(Res.string.feature_payment_consent_approved_detail),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.OUTCOME_BODY),
         )
     }
@@ -335,37 +326,36 @@ private fun AlreadySubmittedState(onDone: () -> Unit, modifier: Modifier = Modif
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(PaymentConsentTestTags.ALREADY_SUBMITTED_STATE)
             .semantics { contentDescription = title },
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         IconWell(
             icon = Icons.Filled.CheckCircle,
-            container = MaterialTheme.colorScheme.surfaceVariant,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            container = KptTheme.colorScheme.surfaceVariant,
+            tint = KptTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(PaymentConsentTestTags.OUTCOME_TITLE),
         )
         Text(
             text = stringResource(Res.string.feature_payment_consent_already_sent_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.OUTCOME_BODY),
         )
         MifosFilledPillButton(
             label = stringResource(Res.string.feature_payment_consent_done),
             onClick = onDone,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = PaymentConsentTestTags.ABANDON_BUTTON,
         )
     }
@@ -387,11 +377,10 @@ private fun SubmittingState(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(Res.string.feature_payment_consent_submitting_warning),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.SUBMITTING_WARNING),
         )
     }
@@ -420,60 +409,57 @@ private fun OutcomeState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(visual.stateTag)
             .semantics { contentDescription = title },
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         IconWell(
             icon = visual.icon,
             container = if (visual.blameworthy) {
-                MaterialTheme.colorScheme.errorContainer
+                KptTheme.colorScheme.errorContainer
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                KptTheme.colorScheme.surfaceVariant
             },
             tint = if (visual.blameworthy) {
-                MaterialTheme.colorScheme.onErrorContainer
+                KptTheme.colorScheme.onErrorContainer
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                KptTheme.colorScheme.onSurfaceVariant
             },
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(PaymentConsentTestTags.OUTCOME_TITLE),
         )
         Text(
             text = detail?.message ?: stringResource(visual.body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .widthIn(max = BodyMaxWidth)
                 .testTag(PaymentConsentTestTags.OUTCOME_BODY),
         )
         detail?.reference()?.let { reference ->
             Text(
                 text = reference,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .widthIn(max = BodyMaxWidth)
                     .testTag(PaymentConsentTestTags.OUTCOME_DETAIL),
             )
         }
         if (visual.reassures) {
             Text(
                 text = stringResource(Res.string.feature_payment_consent_no_money_moved),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .widthIn(max = BodyMaxWidth)
                     .testTag(PaymentConsentTestTags.NO_MONEY_MOVED),
             )
         }
@@ -481,7 +467,7 @@ private fun OutcomeState(
             MifosFilledPillButton(
                 label = stringResource(Res.string.feature_payment_consent_restart),
                 onClick = onRestart,
-                modifier = Modifier.padding(top = ButtonTopGap),
+                modifier = Modifier.padding(top = KptTheme.spacing.sm),
                 testTag = PaymentConsentTestTags.RESTART_BUTTON,
             )
             MifosTonalPillButton(
@@ -495,7 +481,7 @@ private fun OutcomeState(
             MifosFilledPillButton(
                 label = stringResource(Res.string.feature_payment_consent_done),
                 onClick = onAbandon,
-                modifier = Modifier.padding(top = ButtonTopGap),
+                modifier = Modifier.padding(top = KptTheme.spacing.sm),
                 testTag = PaymentConsentTestTags.ABANDON_BUTTON,
             )
         }
@@ -512,7 +498,7 @@ private fun IconWell(
     Box(
         modifier = modifier
             .size(IconWellSize)
-            .padding(bottom = IconBottomGap)
+            .padding(bottom = KptTheme.spacing.sm)
             .background(color = container, shape = CircleShape),
         contentAlignment = Alignment.Center,
     ) {
