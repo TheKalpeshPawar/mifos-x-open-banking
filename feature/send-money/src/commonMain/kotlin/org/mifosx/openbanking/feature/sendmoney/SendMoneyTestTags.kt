@@ -17,8 +17,6 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
  * whichever assertions referenced it.
  */
 internal object SendMoneyTestTags {
-    const val SKELETON = "sendMoney:skeleton"
-
     const val FORM_PAGE = "sendMoney:formPage"
     const val REVIEW_PAGE = "sendMoney:reviewPage"
     const val RAIL_TOGGLE = "sendMoney:railToggle"

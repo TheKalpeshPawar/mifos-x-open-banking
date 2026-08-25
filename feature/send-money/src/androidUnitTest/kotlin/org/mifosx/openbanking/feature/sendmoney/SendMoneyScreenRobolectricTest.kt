@@ -218,12 +218,4 @@ class SendMoneyScreenRobolectricTest {
         composeRule.onNodeWithTag(SendMoneyTestTags.RAIL_TOGGLE).assertDoesNotExist()
         composeRule.onNodeWithTag(SendMoneyTestTags.FORM_ACTIONS).assertDoesNotExist()
     }
-
-    @Test
-    fun loadingRendersTheSkeletonNotTheForm() {
-        render(SendMoneyFixtures.loadingState())
-
-        composeRule.onNodeWithTag(SendMoneyTestTags.SKELETON).assertExists()
-        composeRule.onNodeWithTag(SendMoneyTestTags.FORM_PAGE).assertDoesNotExist()
-    }
 }

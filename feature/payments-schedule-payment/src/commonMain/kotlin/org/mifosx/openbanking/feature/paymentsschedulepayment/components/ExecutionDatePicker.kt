@@ -20,7 +20,6 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
@@ -33,6 +32,7 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.epochMillisOf
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.isSelectableExecutionDate
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.selectableExecutionYears
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.utcDateOf
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The execution-date dialog.
@@ -85,7 +85,7 @@ internal fun ExecutionDatePickerDialog(
             title = {
                 Text(
                     text = stringResource(Res.string.feature_payments_schedule_payment_date_picker_title),
-                    modifier = Modifier.padding(TitlePadding),
+                    modifier = Modifier.padding(KptTheme.spacing.lg),
                 )
             },
         )
@@ -116,6 +116,3 @@ private class ExecutionSelectableDates(
      */
     override fun isSelectableYear(year: Int): Boolean = year in selectableExecutionYears(today)
 }
-
-/** Material3 lays the title out itself; this only restores the inset the dialog expects. */
-private val TitlePadding = 24.dp

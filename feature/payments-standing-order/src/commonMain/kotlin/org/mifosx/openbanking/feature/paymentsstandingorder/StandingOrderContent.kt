@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
@@ -47,6 +48,7 @@ import org.mifosx.openbanking.core.ui.components.MifosDropdownField
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosOutlinedTextField
 import org.mifosx.openbanking.core.ui.components.MifosRailToggle
+import org.mifosx.openbanking.core.ui.components.MifosTextFieldConfig
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
@@ -159,8 +161,8 @@ private fun StandingOrderFormPage(
                 modifier = Modifier
                     .widthIn(max = FormMaxWidth)
                     .fillMaxWidth()
-                    .padding(ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(SectionGap),
+                    .padding(KptTheme.spacing.md),
+                verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
             ) {
                 MifosRailToggle(
                     rail = state.rail,
@@ -170,9 +172,6 @@ private fun StandingOrderFormPage(
                 )
                 PayerSection(state, onAction)
                 PayeeSection(state, onAction)
-                // Before the amount, and after the payee, exactly as the mockups place it. The date
-                // is what makes this a different journey from sending money now, so it sits in the
-                // flow rather than tucked under the amount as an afterthought.
                 DateSection(state, onAction)
                 AmountSection(state, onAction)
                 RecentPaymentsSection(state, onOpenPayment, onShowAllPayments)
@@ -205,7 +204,7 @@ private fun DateSection(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_standing_order_date_heading))
         FrequencyField(
             selected = state.frequency,
@@ -219,8 +218,7 @@ private fun DateSection(
             testTag = StandingOrderTestTags.FIRST_DATE_FIELD,
             onClick = { onAction(StandingOrderAction.OpenDatePicker(StandingOrderDateRole.First)) },
         )
-        // Empty is a meaningful value here — it means the mandate runs until the customer stops it —
-        // so this field carries a clear affordance where the first one has none.
+
         DateField(
             label = stringResource(Res.string.feature_payments_standing_order_final_payment_label),
             dateLabel = state.finalPaymentDateLabel,
@@ -267,7 +265,7 @@ private fun PayerSection(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_standing_order_debtor_heading))
         MifosAccountPicker(
             options = state.debtorRows,
@@ -310,17 +308,17 @@ private fun ConversionNotice(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag(StandingOrderTestTags.NON_GBP_NOTICE)
-            .clip(RoundedCornerShape(NoticeCorner))
+            .clip(KptTheme.shapes.medium)
             .background(KptTheme.colorScheme.surfaceContainer)
-            .padding(NoticePadding),
-        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+            .padding(KptTheme.spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.Info,
             contentDescription = null,
             tint = KptTheme.colorScheme.outline,
-            modifier = Modifier.size(NoticeIconSize),
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = stringResource(Res.string.feature_payments_standing_order_non_gbp_notice, instructedCurrency),
@@ -352,13 +350,9 @@ private fun PayeeSection(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_standing_order_creditor_heading))
         MifosPayeeAvatarRow(
-            // Empty whenever there is no payer, whatever the list happens to hold. Beneficiaries are
-            // an account-scoped resource: with no account they are not "not loaded yet", they are
-            // the previous account's, and showing them under a payer that no longer exists is the
-            // defect this guard closes.
             payees = if (state.payeesUnavailable) {
                 emptyList()
             } else {
@@ -403,8 +397,8 @@ private fun FormActions(
             modifier = Modifier
                 .widthIn(max = FormMaxWidth)
                 .fillMaxWidth()
-                .padding(ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(HeroGap),
+                .padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MifosFilledPillButton(
@@ -414,7 +408,7 @@ private fun FormActions(
                 enabled = state.canReview,
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+                horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.testTag(StandingOrderTestTags.FORM_TRUST_NOTE),
             ) {
@@ -422,7 +416,7 @@ private fun FormActions(
                     imageVector = Icons.Filled.Lock,
                     contentDescription = null,
                     tint = KptTheme.colorScheme.outline,
-                    modifier = Modifier.size(NoticeIconSize),
+                    modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
                 )
                 Text(
                     text = stringResource(Res.string.feature_payments_standing_order_form_trust_note),
@@ -439,57 +433,62 @@ private fun ManualCreditorFields(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosOutlinedTextField(
             value = state.manualName,
             onValueChange = { onAction(StandingOrderAction.EnterManualName(it)) },
             label = stringResource(Res.string.feature_payments_standing_order_manual_name),
-            testTag = StandingOrderTestTags.MANUAL_NAME,
+            modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_NAME),
         )
-        // The rails identify a creditor differently — sort code and account number against an IBAN —
-        // and each refuses the other's scheme with U027, so only one set is ever offered.
+
         if (state.rail == PaymentRail.Domestic) {
             MifosOutlinedTextField(
                 value = state.manualSortCode,
                 onValueChange = { onAction(StandingOrderAction.EnterManualSortCode(it)) },
                 label = stringResource(Res.string.feature_payments_standing_order_manual_sort_code),
-                error = state.fieldErrors.sortCodeInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = StandingOrderTestTags.MANUAL_SORT_CODE,
-                supportingText = {
-                    if (state.fieldErrors.sortCodeInvalid) {
-                        Text(stringResource(Res.string.feature_payments_standing_order_manual_sort_code_error))
-                    }
-                },
+                modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_SORT_CODE),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.sortCodeInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.sortCodeInvalid) {
+                            Text(stringResource(Res.string.feature_payments_standing_order_manual_sort_code_error))
+                        }
+                    },
+                ),
             )
             MifosOutlinedTextField(
                 value = state.manualAccountNumber,
                 onValueChange = { onAction(StandingOrderAction.EnterManualAccountNumber(it)) },
                 label = stringResource(Res.string.feature_payments_standing_order_manual_account_number),
-                error = state.fieldErrors.accountNumberInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = StandingOrderTestTags.MANUAL_ACCOUNT_NUMBER,
-                supportingText = {
-                    if (state.fieldErrors.accountNumberInvalid) {
-                        Text(stringResource(Res.string.feature_payments_standing_order_manual_account_number_error))
-                    }
-                },
+                modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_ACCOUNT_NUMBER),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.accountNumberInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.accountNumberInvalid) {
+                            Text(stringResource(Res.string.feature_payments_standing_order_manual_account_number_error))
+                        }
+                    },
+                ),
             )
         } else {
             MifosOutlinedTextField(
                 value = state.manualIban,
                 onValueChange = { onAction(StandingOrderAction.EnterManualIban(it)) },
                 label = stringResource(Res.string.feature_payments_standing_order_manual_iban),
-                error = state.fieldErrors.ibanInvalid,
-                testTag = StandingOrderTestTags.MANUAL_IBAN,
-                supportingText = {
-                    if (state.fieldErrors.ibanInvalid) {
-                        Text(
-                            text = stringResource(Res.string.feature_payments_standing_order_manual_iban_error),
-                            modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_IBAN_ERROR),
-                        )
-                    }
-                },
+                modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_IBAN),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.ibanInvalid,
+                    supportingText = {
+                        if (state.fieldErrors.ibanInvalid) {
+                            Text(
+                                text = stringResource(Res.string.feature_payments_standing_order_manual_iban_error),
+                                modifier = Modifier.testTag(StandingOrderTestTags.MANUAL_IBAN_ERROR),
+                            )
+                        }
+                    },
+                ),
             )
         }
         MifosFilledPillButton(
@@ -505,7 +504,7 @@ private fun AmountSection(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosAmountCard(
             amount = state.amountInput,
             balanceLabel = state.availableBalanceLabel,
@@ -516,27 +515,12 @@ private fun AmountSection(
             errorTestTag = StandingOrderTestTags.AMOUNT_ERROR,
             balanceTestTag = StandingOrderTestTags.AMOUNT_BALANCE,
         ) {
-            // Both rails fill the slot, so the figure begins at the same x-position on each and
-            // switching rails does not shift it. What differs is only whether the box can be
-            // opened: domestically sterling is the only option there is to open it onto.
             when (state.rail) {
                 PaymentRail.Domestic -> StaticCurrencyBox(state.instructedCurrency)
                 PaymentRail.International -> InstructedCurrencyControl(state, onAction)
             }
         }
 
-        // The three fields only the domestic rail has wire members for, shown only on that rail.
-        //
-        // The two amounts are overrides on the figure above rather than fields of their own: OBIE asks
-        // for the recurring and final amounts only where they differ from the first, and HSBC accepts
-        // three unequal figures (1.00/2.00/3.00 → 201). The reference maps to `RemittanceInformation`,
-        // which the international rail refuses outright with U005.
-        //
-        // Hidden rather than disabled on international. Note what that costs: a test asserting these
-        // are absent passes just as happily against fields that were never built, which is exactly how
-        // the two amount overrides went missing unnoticed once already. The guard is on the other side
-        // — the domestic cases assert they are present and enabled, so a field that stops rendering
-        // fails there instead.
         if (state.recurringAmountEnabled) {
             OptionalAmountField(
                 label = stringResource(Res.string.feature_payments_standing_order_recurring_amount_label),
@@ -558,10 +542,12 @@ private fun AmountSection(
                 value = state.reference,
                 onValueChange = { onAction(StandingOrderAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
                 label = stringResource(Res.string.feature_payments_standing_order_reference_label),
-                testTag = StandingOrderTestTags.REFERENCE_FIELD,
-                supportingText = {
-                    Text(stringResource(Res.string.feature_payments_standing_order_reference_helper))
-                },
+                modifier = Modifier.testTag(StandingOrderTestTags.REFERENCE_FIELD),
+                config = MifosTextFieldConfig(
+                    supportingText = {
+                        Text(stringResource(Res.string.feature_payments_standing_order_reference_helper))
+                    },
+                ),
             )
         }
 
@@ -596,9 +582,11 @@ private fun OptionalAmountField(
         value = value,
         onValueChange = onValueChange,
         label = label,
-        placeholder = stringResource(Res.string.feature_payments_standing_order_amount_placeholder),
-        keyboardType = KeyboardType.Decimal,
-        testTag = fieldTag,
+        modifier = Modifier.testTag(fieldTag),
+        config = MifosTextFieldConfig(
+            placeholder = stringResource(Res.string.feature_payments_standing_order_amount_placeholder),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        ),
     )
 }
 
@@ -653,11 +641,11 @@ private fun StaticCurrencyBox(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxSize()
             .testTag(StandingOrderTestTags.STATIC_CURRENCY_BOX)
-            .clip(RoundedCornerShape(CardCorner))
+            .clip(KptTheme.shapes.medium)
             .border(
-                width = CardBorder,
+                width = DesignToken.strokes.hairline,
                 color = KptTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(CardCorner),
+                shape = KptTheme.shapes.medium,
             )
             .background(KptTheme.colorScheme.surfaceContainer),
         contentAlignment = Alignment.Center,
@@ -686,7 +674,7 @@ private fun ChargesSection(
     state: StandingOrderUiState.Content,
     onAction: (StandingOrderAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_standing_order_charges_heading))
         // No caption: the section heading above already names this control.
         MifosDropdownField(

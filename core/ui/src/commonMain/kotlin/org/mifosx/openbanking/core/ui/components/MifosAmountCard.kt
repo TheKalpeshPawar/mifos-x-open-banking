@@ -118,10 +118,6 @@ fun MifosAmountCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(RowGap),
         ) {
-            // A definite height rather than fillMaxHeight: this row sits inside a vertical scroll,
-            // so its own height constraint is unbounded and fillMaxHeight would silently do
-            // nothing. Cutting the box to the figure row's height is what makes the two look like
-            // one control split in half rather than a small thing parked beside a big one.
             Box(
                 modifier = Modifier.weight(CURRENCY_WEIGHT).height(FigureRowMinHeight),
                 contentAlignment = Alignment.Center,
@@ -137,8 +133,6 @@ fun MifosAmountCard(
             )
         }
 
-        // Only when there is something under it. With no payer there is no balance to state and no
-        // problem to report, and a rule with nothing beneath it reads as a card that failed to load.
         if (errorMessage != null || balanceLabel.isNotBlank()) {
             HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             AmountFooter(

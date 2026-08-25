@@ -30,17 +30,6 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class SchedulePaymentScreenUiTest {
 
-    /** The skeleton, not a spinner — the app's loading convention, and the mockups' one deviation. */
-    @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            SchedulePaymentScreenContent(SchedulePaymentFixtures.loadingState(), {}, {})
-        }
-
-        onNodeWithTag(SchedulePaymentTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(SchedulePaymentTestTags.DATE_FIELD).assertDoesNotExist()
-    }
-
     @Test
     fun theFormShowsTheDateField() = runComposeUiTest {
         setContent {

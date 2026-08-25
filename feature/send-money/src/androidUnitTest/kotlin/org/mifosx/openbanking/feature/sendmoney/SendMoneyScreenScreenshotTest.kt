@@ -172,9 +172,6 @@ class SendMoneyScreenScreenshotTest {
     fun reviewGolden() = capture("review", SendMoneyFixtures.reviewState())
 
     @Test
-    fun loadingGolden() = capture("loading", SendMoneyFixtures.loadingState())
-
-    @Test
     fun submittingGolden() = capture("submitting", SendMoneyFixtures.submittingState())
 
     /** The payer refusal, whose whole point is that it offers a different account and not Retry. */

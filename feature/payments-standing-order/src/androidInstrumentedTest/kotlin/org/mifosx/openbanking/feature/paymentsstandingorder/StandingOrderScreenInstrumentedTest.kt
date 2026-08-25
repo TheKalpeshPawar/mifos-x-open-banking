@@ -92,7 +92,7 @@ class StandingOrderScreenInstrumentedTest {
                 identification = "80200110203350",
             ),
             creditorLabel = "Mr Dharani C",
-            creditorSupporting = "Sort Code · 80200110203350",
+            creditorSupporting = "Identification · 80200110203350",
             amountInput = "250",
             amountLabel = "£250.00",
             today = LocalDate(2026, 8, 12),

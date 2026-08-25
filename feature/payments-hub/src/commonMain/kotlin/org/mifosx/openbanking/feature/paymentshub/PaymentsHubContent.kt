@@ -44,12 +44,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import template.core.base.designsystem.theme.KptTheme
-
-private val QuickActionCardMinHeight = 120.dp
-private val QuickActionIconSize = 24.dp
-private val CardBorderThickness = 1.dp
 
 private fun quickActionIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) =
     @Composable {
@@ -57,7 +53,7 @@ private fun quickActionIcon(icon: androidx.compose.ui.graphics.vector.ImageVecto
             imageVector = icon,
             contentDescription = null,
             tint = KptTheme.colorScheme.primary,
-            modifier = Modifier.size(QuickActionIconSize),
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
         )
     }
 
@@ -189,8 +185,6 @@ private fun quickActionRows(
     ),
 )
 
-private val QuickActionIconCircleSize = 48.dp
-
 @Composable
 private fun QuickActionCard(
     icon: @Composable () -> Unit,
@@ -201,10 +195,10 @@ private fun QuickActionCard(
 ) {
     Card(
         modifier = modifier
-            .heightIn(min = QuickActionCardMinHeight)
+            .heightIn(min = DesignToken.sizes.cardMin)
             .fillMaxHeight()
             .border(
-                CardBorderThickness,
+                DesignToken.strokes.hairline,
                 KptTheme.colorScheme.outlineVariant,
                 KptTheme.shapes.medium,
             )
@@ -219,7 +213,7 @@ private fun QuickActionCard(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(QuickActionIconCircleSize)
+                        .size(DesignToken.sizes.iconHuge)
                         .clip(CircleShape)
                         .background(KptTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,

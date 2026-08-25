@@ -16,12 +16,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,9 +29,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
@@ -59,14 +57,7 @@ import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyErrorKind
 import org.mifosx.openbanking.feature.sendmoney.ui.isRetryable
 import org.mifosx.openbanking.feature.sendmoney.ui.needsAmountChange
 import org.mifosx.openbanking.feature.sendmoney.ui.needsReauthorisation
-
-private val ContentPadding = 24.dp
-private val LineGap = 16.dp
-private val IconWellSize = 96.dp
-private val IconSize = 44.dp
-private val IconBottomGap = 8.dp
-private val BodyMaxWidth = 320.dp
-private val ButtonTopGap = 8.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The payment failed, and which recoveries appear depends on why.
@@ -91,47 +82,46 @@ internal fun SendMoneyError(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(SendMoneyTestTags.ERROR_STATE)
             .semantics { contentDescription = title },
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(IconWellSize)
-                .padding(bottom = IconBottomGap)
-                .background(color = MaterialTheme.colorScheme.errorContainer, shape = CircleShape),
+                .size(DesignToken.sizes.avatarXLarge)
+                .padding(bottom = KptTheme.spacing.sm)
+                .background(color = KptTheme.colorScheme.errorContainer, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.ErrorOutline,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(IconSize),
+                tint = KptTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(DesignToken.sizes.iconHuge),
             )
         }
 
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
 
         Text(
             text = stringResource(kind.bodyResource()),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = BodyMaxWidth),
         )
 
         if (supportReference != null) {
             Text(
                 text = stringResource(Res.string.feature_send_money_error_reference, supportReference),
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                color = KptTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.testTag(SendMoneyTestTags.ERROR_SUPPORT_REFERENCE),
             )
@@ -161,7 +151,7 @@ private fun SendMoneyErrorActions(
         MifosFilledPillButton(
             label = stringResource(Res.string.feature_send_money_retry),
             onClick = onRetry,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = SendMoneyTestTags.RETRY_BUTTON,
         )
     }
@@ -169,7 +159,7 @@ private fun SendMoneyErrorActions(
         MifosTonalPillButton(
             label = stringResource(Res.string.feature_send_money_reauthorise),
             onClick = onReauthorise,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = SendMoneyTestTags.REAUTHORISE_BUTTON,
         )
     }
@@ -177,7 +167,7 @@ private fun SendMoneyErrorActions(
         MifosTonalPillButton(
             label = stringResource(Res.string.feature_send_money_view_consents),
             onClick = onViewConsents,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = SendMoneyTestTags.VIEW_CONSENTS_BUTTON,
         )
     }
@@ -185,7 +175,7 @@ private fun SendMoneyErrorActions(
         MifosTonalPillButton(
             label = stringResource(Res.string.feature_send_money_edit_amount),
             onClick = onEditAmount,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = SendMoneyTestTags.EDIT_AMOUNT_BUTTON,
         )
     }
@@ -195,7 +185,7 @@ private fun SendMoneyErrorActions(
         MifosFilledPillButton(
             label = stringResource(Res.string.feature_send_money_change_payer),
             onClick = onChangePayer,
-            modifier = Modifier.padding(top = ButtonTopGap),
+            modifier = Modifier.padding(top = KptTheme.spacing.sm),
             testTag = SendMoneyTestTags.CHANGE_PAYER_BUTTON,
         )
     }

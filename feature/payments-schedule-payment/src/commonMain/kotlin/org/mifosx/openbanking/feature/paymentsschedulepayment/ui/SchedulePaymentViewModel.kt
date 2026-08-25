@@ -891,7 +891,7 @@ private fun schemeLabel(creditor: CreditorSelection): String =
  * The payee's identifier with its scheme label, kept raw as the PSU entered or the bank returned it.
  */
 private fun schemeLabelFor(scheme: BeneficiaryScheme, identification: String): String = when (scheme) {
-    BeneficiaryScheme.SortCode -> "Sort Code · $identification"
+    BeneficiaryScheme.SortCode -> "Identification · $identification"
     BeneficiaryScheme.Iban -> "IBAN · $identification"
     BeneficiaryScheme.Paym -> "Paym · $identification"
     BeneficiaryScheme.Card -> "Card · $identification"

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_screen_title
@@ -78,7 +79,7 @@ internal fun SendMoneyScreenContent(
     onShowAllPayments: () -> Unit = {},
 ) {
     when (val current = state.uiState) {
-        SendMoneyUiState.Loading -> SendMoneySkeleton(modifier = modifier)
+        SendMoneyUiState.Loading -> MifosProgressIndicator()
 
         is SendMoneyUiState.Content -> SendMoneyContent(
             state = current,

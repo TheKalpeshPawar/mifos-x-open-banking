@@ -12,7 +12,7 @@
     <!-- One title serves the form and the review, which are two steps of one route — so it names the
          product rather than the step. "Schedule a payment" was left here by the copy of
          payments-schedule-payment this module started from, and named the wrong product outright. -->
-    <string name="feature_payments_standing_order_screen_title">Set up standing order</string>
+    <string name="feature_payments_standing_order_screen_title">Set Up Standing Order</string>
     <string name="feature_payments_standing_order_loading_a11y">Loading your accounts and payees</string>
 
     <string name="feature_payments_standing_order_rail_domestic">Domestic</string>

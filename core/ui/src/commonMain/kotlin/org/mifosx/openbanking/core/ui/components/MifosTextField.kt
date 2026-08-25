@@ -62,6 +62,9 @@ data class MifosTextFieldConfig(
     val keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
     val trailingIcon: @Composable (() -> Unit)? = null,
     val leadingIcon: @Composable (() -> Unit)? = null,
+    val placeholder: String? = null,
+    val prefix: String? = null,
+    val supportingText: (@Composable () -> Unit)? = null,
 )
 
 /**
@@ -72,8 +75,8 @@ data class MifosTextFieldConfig(
 fun MifosOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
     modifier: Modifier = Modifier,
+    label: String? = null,
     shape: Shape = KptTheme.shapes.medium,
     colors: TextFieldColors = mifosOutlinedTextFieldColors(),
     textStyle: TextStyle = LocalTextStyle.current,
@@ -88,7 +91,9 @@ fun MifosOutlinedTextField(
         shape = shape,
         colors = colors,
         value = value,
-        label = { Text(text = label) },
+        label = label?.let { { Text(text = it) } },
+        placeholder = config.placeholder?.let { { Text(it) } },
+        prefix = config.prefix?.let { { Text(text = it, style = KptTheme.typography.titleMedium) } },
         onValueChange = onValueChange,
         textStyle = textStyle,
         modifier = modifier.fillMaxWidth(),
@@ -118,7 +123,7 @@ fun MifosOutlinedTextField(
                 }
             }
         },
-        supportingText = config.errorText?.let {
+        supportingText = config.supportingText ?: config.errorText?.let {
             {
                 Text(
                     modifier = Modifier.testTag("errorTag"),
@@ -149,6 +154,7 @@ fun MifosTextField(
     OutlinedTextField(
         value = value,
         label = { Text(text = label) },
+        placeholder = config.placeholder?.let { { Text(it) } },
         onValueChange = onValueChange,
         textStyle = textStyle,
         modifier = modifier.fillMaxWidth(),
@@ -178,7 +184,7 @@ fun MifosTextField(
                 }
             }
         },
-        supportingText = config.errorText.let {
+        supportingText = config.supportingText ?: config.errorText.let {
             {
                 Text(
                     modifier = Modifier.testTag("errorTag"),

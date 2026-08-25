@@ -406,7 +406,7 @@ object StandingOrderFixtures {
             creditorSupporting = if (rail == PaymentRail.International) {
                 "IBAN · DE89 3704 0044 0532 0130 00"
             } else {
-                "Sort Code · 40-12-09 65872310"
+                "Identification · 40-12-09 65872310"
             },
             amountInput = "850",
             // In the instructed currency, as the ViewModel formats it — the review's hero figure and

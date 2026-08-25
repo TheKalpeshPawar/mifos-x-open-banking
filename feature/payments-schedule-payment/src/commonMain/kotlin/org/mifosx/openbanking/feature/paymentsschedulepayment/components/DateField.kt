@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
@@ -32,14 +31,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.feature.paymentsschedulepayment.CardBorder
-import org.mifosx.openbanking.feature.paymentsschedulepayment.CardCorner
-import org.mifosx.openbanking.feature.paymentsschedulepayment.CardPadding
-import org.mifosx.openbanking.feature.paymentsschedulepayment.GlyphSize
-import org.mifosx.openbanking.feature.paymentsschedulepayment.HeroGap
 import org.mifosx.openbanking.feature.paymentsschedulepayment.SchedulePaymentTestTags
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_date_content_description
@@ -85,25 +79,25 @@ internal fun DateField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(CardCorner))
+                .clip(KptTheme.shapes.medium)
                 .border(
-                    width = CardBorder,
+                    width = DesignToken.strokes.hairline,
                     color = KptTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(CardCorner),
+                    shape = KptTheme.shapes.medium,
                 )
                 .background(KptTheme.colorScheme.surfaceContainerLowest)
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(CardPadding)
+                .padding(KptTheme.spacing.md)
                 .semantics { contentDescription = spoken }
                 .testTag(SchedulePaymentTestTags.DATE_FIELD),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(HeroGap),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Icon(
                 imageVector = Icons.Filled.CalendarToday,
                 contentDescription = null,
                 tint = KptTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(GlyphSize),
+                modifier = Modifier.size(DesignToken.sizes.iconExtraLarge),
             )
             Text(
                 text = if (chosen) dateLabel else placeholder,
@@ -120,7 +114,7 @@ internal fun DateField(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = KptTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(GlyphSize),
+                modifier = Modifier.size(DesignToken.sizes.iconExtraLarge),
             )
         }
 
@@ -128,9 +122,7 @@ internal fun DateField(
             text = helper,
             style = KptTheme.typography.bodySmall,
             color = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = HelperTopGap, start = CardPadding),
+            modifier = Modifier.padding(top = KptTheme.spacing.xs, start = KptTheme.spacing.md),
         )
     }
 }
-
-private val HelperTopGap = 6.dp

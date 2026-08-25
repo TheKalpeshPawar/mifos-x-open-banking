@@ -18,8 +18,6 @@ import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
  * whichever assertions referenced it.
  */
 internal object StandingOrderTestTags {
-    const val SKELETON = "standingOrder:skeleton"
-
     const val FORM_PAGE = "standingOrder:formPage"
     const val REVIEW_PAGE = "standingOrder:reviewPage"
     const val RAIL_TOGGLE = "standingOrder:railToggle"

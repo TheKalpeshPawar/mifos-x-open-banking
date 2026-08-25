@@ -205,13 +205,4 @@ class StandingOrderScreenRobolectricTest {
         composeRule.onNodeWithTag(StandingOrderTestTags.CHANGE_DATE_BUTTON).assertIsDisplayed()
         composeRule.onNodeWithTag(StandingOrderTestTags.RETRY_BUTTON).assertDoesNotExist()
     }
-
-    /** The loading convention: a shimmer skeleton, not the spinner the mockups draw. */
-    @Test
-    fun loadingRendersTheSkeletonRatherThanASpinner() {
-        render(StandingOrderFixtures.loadingState())
-
-        composeRule.onNodeWithTag(StandingOrderTestTags.SKELETON).assertIsDisplayed()
-        composeRule.onNodeWithTag(StandingOrderTestTags.FIRST_DATE_FIELD).assertDoesNotExist()
-    }
 }

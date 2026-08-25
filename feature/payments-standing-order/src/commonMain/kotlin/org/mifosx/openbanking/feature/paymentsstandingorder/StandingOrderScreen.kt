@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.feature_payments_standing_order_screen_title
@@ -78,7 +79,7 @@ internal fun StandingOrderScreenContent(
     onShowAllPayments: () -> Unit = {},
 ) {
     when (val current = state.uiState) {
-        StandingOrderUiState.Loading -> StandingOrderSkeleton(modifier = modifier)
+        StandingOrderUiState.Loading -> MifosProgressIndicator()
 
         is StandingOrderUiState.Content -> StandingOrderContent(
             state = current,

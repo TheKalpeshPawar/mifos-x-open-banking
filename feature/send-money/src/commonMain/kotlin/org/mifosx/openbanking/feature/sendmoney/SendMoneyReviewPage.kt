@@ -19,12 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
@@ -98,8 +97,8 @@ internal fun SendMoneyReviewPage(
             .fillMaxWidth()
             .testTag(SendMoneyTestTags.REVIEW_PAGE)
             .verticalScroll(rememberScrollState())
-            .padding(ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(SectionGap),
+            .padding(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         // The page lead. It earns a line of its own now that Review is a page rather than a step
         // behind an indicator that already said where the customer was.
@@ -114,7 +113,7 @@ internal fun SendMoneyReviewPage(
 
         Column(
             modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REVIEW_SUMMARY),
-            verticalArrangement = Arrangement.spacedBy(RowGap),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         ) {
             SectionHeading(stringResource(Res.string.feature_send_money_review_details_heading))
             ReviewRow(
@@ -189,18 +188,18 @@ private fun ReviewHero(amountLabel: String, creditorName: String) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag(SendMoneyTestTags.REVIEW_HERO),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(HeroGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Text(
             text = amountLabel,
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary,
+            style = KptTheme.typography.displaySmall,
+            color = KptTheme.colorScheme.primary,
             modifier = Modifier.testTag(SendMoneyTestTags.REVIEW_AMOUNT),
         )
         Text(
             text = stringResource(Res.string.feature_send_money_review_hero_caption),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         if (creditorName.isNotBlank()) {
             PayeeChip(creditorName)
@@ -213,30 +212,30 @@ private fun ReviewHero(amountLabel: String, creditorName: String) {
 private fun PayeeChip(creditorName: String) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(ChipCorner))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = ChipPaddingHorizontal, vertical = ChipPaddingVertical)
+            .clip(KptTheme.shapes.large)
+            .background(KptTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = KptTheme.spacing.sm, vertical = KptTheme.spacing.xs)
             .testTag(SendMoneyTestTags.REVIEW_PAYEE_CHIP),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ChipGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Box(
             modifier = Modifier
-                .size(ChipAvatarSize)
+                .size(DesignToken.sizes.iconMedium)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(KptTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = initialsOf(creditorName),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = KptTheme.typography.labelSmall,
+                color = KptTheme.colorScheme.onPrimaryContainer,
             )
         }
         Text(
             text = creditorName,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurface,
         )
     }
 }
@@ -253,23 +252,23 @@ private fun AuthorisationNotice() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(NoticeCorner))
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(NoticePadding)
+            .clip(KptTheme.shapes.medium)
+            .background(KptTheme.colorScheme.secondaryContainer)
+            .padding(KptTheme.spacing.md)
             .testTag(SendMoneyTestTags.REVIEW_AUTH_NOTICE),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Icon(
             imageVector = Icons.Filled.Lock,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(NoticeIconSize),
+            tint = KptTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = stringResource(Res.string.feature_send_money_review_auth_notice),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
@@ -286,23 +285,23 @@ private fun ReviewRow(
     Column(modifier = modifier.fillMaxWidth().testTag(tag)) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
             style = if (emphasis) {
-                MaterialTheme.typography.headlineSmall
+                KptTheme.typography.headlineSmall
             } else {
-                MaterialTheme.typography.bodyLarge
+                KptTheme.typography.bodyLarge
             },
-            color = MaterialTheme.colorScheme.onSurface,
+            color = KptTheme.colorScheme.onSurface,
         )
         if (secondary.isNotBlank()) {
             Text(
                 text = secondary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

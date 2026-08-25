@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
@@ -47,6 +48,7 @@ import org.mifosx.openbanking.core.ui.components.MifosDropdownField
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosOutlinedTextField
 import org.mifosx.openbanking.core.ui.components.MifosRailToggle
+import org.mifosx.openbanking.core.ui.components.MifosTextFieldConfig
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
@@ -171,8 +173,8 @@ private fun SchedulePaymentFormPage(
                 modifier = Modifier
                     .widthIn(max = FormMaxWidth)
                     .fillMaxWidth()
-                    .padding(ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(SectionGap),
+                    .padding(KptTheme.spacing.md),
+                verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
             ) {
                 MifosRailToggle(
                     rail = state.rail,
@@ -182,9 +184,6 @@ private fun SchedulePaymentFormPage(
                 )
                 PayerSection(state, onAction)
                 PayeeSection(state, onAction)
-                // Before the amount, and after the payee, exactly as the mockups place it. The date
-                // is what makes this a different journey from sending money now, so it sits in the
-                // flow rather than tucked under the amount as an afterthought.
                 DateSection(state, onAction)
                 AmountSection(state, onAction)
                 RecentPaymentsSection(state, onOpenPayment, onShowAllPayments)
@@ -193,9 +192,6 @@ private fun SchedulePaymentFormPage(
         FormActions(state, onAction)
     }
 
-    // The picker has no route of its own — it is a dialog over the form, so nothing about it belongs
-    // in the back stack. Rendered here rather than inside DateSection so the calendar is not nested
-    // in the scrolling column that opened it.
     if (state.datePickerVisible) {
         ExecutionDatePickerDialog(
             today = state.today,
@@ -212,7 +208,7 @@ private fun DateSection(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_date_heading))
         DateField(
             dateLabel = state.executionDateLabel,
@@ -227,7 +223,7 @@ private fun PayerSection(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_debtor_heading))
         MifosAccountPicker(
             options = state.debtorRows,
@@ -270,17 +266,17 @@ private fun ConversionNotice(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag(SchedulePaymentTestTags.NON_GBP_NOTICE)
-            .clip(RoundedCornerShape(NoticeCorner))
+            .clip(KptTheme.shapes.medium)
             .background(KptTheme.colorScheme.surfaceContainer)
-            .padding(NoticePadding),
-        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+            .padding(KptTheme.spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.Info,
             contentDescription = null,
             tint = KptTheme.colorScheme.outline,
-            modifier = Modifier.size(NoticeIconSize),
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = stringResource(Res.string.feature_payments_schedule_payment_non_gbp_notice, instructedCurrency),
@@ -312,13 +308,9 @@ private fun PayeeSection(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_creditor_heading))
         MifosPayeeAvatarRow(
-            // Empty whenever there is no payer, whatever the list happens to hold. Beneficiaries are
-            // an account-scoped resource: with no account they are not "not loaded yet", they are
-            // the previous account's, and showing them under a payer that no longer exists is the
-            // defect this guard closes.
             payees = if (state.payeesUnavailable) {
                 emptyList()
             } else {
@@ -350,8 +342,6 @@ private fun FormActions(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    // The bar itself spans the window so the surface behind it is unbroken; only its contents are
-    // held to the form's width, which is what keeps the CTA above the fields it acts on.
     Column(
         modifier = Modifier
             .testTag(SchedulePaymentTestTags.FORM_ACTIONS)
@@ -363,8 +353,8 @@ private fun FormActions(
             modifier = Modifier
                 .widthIn(max = FormMaxWidth)
                 .fillMaxWidth()
-                .padding(ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(HeroGap),
+                .padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MifosFilledPillButton(
@@ -374,7 +364,7 @@ private fun FormActions(
                 enabled = state.canReview,
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+                horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.testTag(SchedulePaymentTestTags.FORM_TRUST_NOTE),
             ) {
@@ -382,7 +372,7 @@ private fun FormActions(
                     imageVector = Icons.Filled.Lock,
                     contentDescription = null,
                     tint = KptTheme.colorScheme.outline,
-                    modifier = Modifier.size(NoticeIconSize),
+                    modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
                 )
                 Text(
                     text = stringResource(Res.string.feature_payments_schedule_payment_form_trust_note),
@@ -399,57 +389,66 @@ private fun ManualCreditorFields(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosOutlinedTextField(
             value = state.manualName,
             onValueChange = { onAction(SchedulePaymentAction.EnterManualName(it)) },
             label = stringResource(Res.string.feature_payments_schedule_payment_manual_name),
-            testTag = SchedulePaymentTestTags.MANUAL_NAME,
+            modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_NAME),
         )
-        // The rails identify a creditor differently — sort code and account number against an IBAN —
-        // and each refuses the other's scheme with U027, so only one set is ever offered.
+
         if (state.rail == PaymentRail.Domestic) {
             MifosOutlinedTextField(
                 value = state.manualSortCode,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualSortCode(it)) },
                 label = stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code),
-                error = state.fieldErrors.sortCodeInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = SchedulePaymentTestTags.MANUAL_SORT_CODE,
-                supportingText = {
-                    if (state.fieldErrors.sortCodeInvalid) {
-                        Text(stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code_error))
-                    }
-                },
+                modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_SORT_CODE),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.sortCodeInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.sortCodeInvalid) {
+                            Text(stringResource(Res.string.feature_payments_schedule_payment_manual_sort_code_error))
+                        }
+                    },
+                ),
             )
             MifosOutlinedTextField(
                 value = state.manualAccountNumber,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualAccountNumber(it)) },
                 label = stringResource(Res.string.feature_payments_schedule_payment_manual_account_number),
-                error = state.fieldErrors.accountNumberInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = SchedulePaymentTestTags.MANUAL_ACCOUNT_NUMBER,
-                supportingText = {
-                    if (state.fieldErrors.accountNumberInvalid) {
-                        Text(stringResource(Res.string.feature_payments_schedule_payment_manual_account_number_error))
-                    }
-                },
+                modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_ACCOUNT_NUMBER),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.accountNumberInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.accountNumberInvalid) {
+                            Text(
+                                stringResource(
+                                    Res.string.feature_payments_schedule_payment_manual_account_number_error,
+                                ),
+                            )
+                        }
+                    },
+                ),
             )
         } else {
             MifosOutlinedTextField(
                 value = state.manualIban,
                 onValueChange = { onAction(SchedulePaymentAction.EnterManualIban(it)) },
                 label = stringResource(Res.string.feature_payments_schedule_payment_manual_iban),
-                error = state.fieldErrors.ibanInvalid,
-                testTag = SchedulePaymentTestTags.MANUAL_IBAN,
-                supportingText = {
-                    if (state.fieldErrors.ibanInvalid) {
-                        Text(
-                            text = stringResource(Res.string.feature_payments_schedule_payment_manual_iban_error),
-                            modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_IBAN_ERROR),
-                        )
-                    }
-                },
+                modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_IBAN),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.ibanInvalid,
+                    supportingText = {
+                        if (state.fieldErrors.ibanInvalid) {
+                            Text(
+                                text = stringResource(Res.string.feature_payments_schedule_payment_manual_iban_error),
+                                modifier = Modifier.testTag(SchedulePaymentTestTags.MANUAL_IBAN_ERROR),
+                            )
+                        }
+                    },
+                ),
             )
         }
         MifosFilledPillButton(
@@ -465,7 +464,7 @@ private fun AmountSection(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosAmountCard(
             amount = state.amountInput,
             balanceLabel = state.availableBalanceLabel,
@@ -476,31 +475,26 @@ private fun AmountSection(
             errorTestTag = SchedulePaymentTestTags.AMOUNT_ERROR,
             balanceTestTag = SchedulePaymentTestTags.AMOUNT_BALANCE,
         ) {
-            // Both rails fill the slot, so the figure begins at the same x-position on each and
-            // switching rails does not shift it. What differs is only whether the box can be
-            // opened: domestically sterling is the only option there is to open it onto.
             when (state.rail) {
                 PaymentRail.Domestic -> StaticCurrencyBox(state.instructedCurrency)
                 PaymentRail.International -> InstructedCurrencyControl(state, onAction)
             }
         }
 
-        // Domestic only. International refuses RemittanceInformation outright with U005, so showing
-        // the field there would invite someone to type a reference the recipient never sees.
         if (state.rail == PaymentRail.Domestic) {
             MifosOutlinedTextField(
                 value = state.reference,
                 onValueChange = { onAction(SchedulePaymentAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
                 label = stringResource(Res.string.feature_payments_schedule_payment_reference_label),
-                testTag = SchedulePaymentTestTags.REFERENCE_FIELD,
-                supportingText = {
-                    Text(stringResource(Res.string.feature_payments_schedule_payment_reference_helper))
-                },
+                modifier = Modifier.testTag(SchedulePaymentTestTags.REFERENCE_FIELD),
+                config = MifosTextFieldConfig(
+                    supportingText = {
+                        Text(stringResource(Res.string.feature_payments_schedule_payment_reference_helper))
+                    },
+                ),
             )
         }
 
-        // International only, and required there: ChargeBearer is refused on the domestic rail, and
-        // omitting it on the international one earns U004.
         if (state.rail == PaymentRail.International) {
             ChargesSection(state, onAction)
         }
@@ -558,11 +552,11 @@ private fun StaticCurrencyBox(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxSize()
             .testTag(SchedulePaymentTestTags.STATIC_CURRENCY_BOX)
-            .clip(RoundedCornerShape(CardCorner))
+            .clip(KptTheme.shapes.medium)
             .border(
-                width = CardBorder,
+                width = DesignToken.strokes.hairline,
                 color = KptTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(CardCorner),
+                shape = KptTheme.shapes.medium,
             )
             .background(KptTheme.colorScheme.surfaceContainer),
         contentAlignment = Alignment.Center,
@@ -591,7 +585,7 @@ private fun ChargesSection(
     state: SchedulePaymentUiState.Content,
     onAction: (SchedulePaymentAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_charges_heading))
         MifosDropdownField(
             label = chargeBearerLabel(state.chargeBearer),

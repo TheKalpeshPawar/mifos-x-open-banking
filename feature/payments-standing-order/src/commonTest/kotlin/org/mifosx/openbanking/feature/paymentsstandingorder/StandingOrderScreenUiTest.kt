@@ -30,17 +30,6 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class StandingOrderScreenUiTest {
 
-    /** The skeleton, not a spinner — the app's loading convention, and the mockups' one deviation. */
-    @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            StandingOrderScreenContent(StandingOrderFixtures.loadingState(), {}, {})
-        }
-
-        onNodeWithTag(StandingOrderTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(StandingOrderTestTags.FIRST_DATE_FIELD).assertDoesNotExist()
-    }
-
     @Test
     fun theFormShowsTheDateField() = runComposeUiTest {
         setContent {
