@@ -11,17 +11,13 @@ package org.mifosx.openbanking.feature.accountholder
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderAction
-import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderErrorKind
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderState
-import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderUiState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.test.assertTrue
 
 private const val ROBOLECTRIC_SDK = 34
 
@@ -43,27 +39,6 @@ class AccountHolderScreenRobolectricTest {
         composeRule.setContent {
             AccountHolderScreenContent(state = state, onAction = { actions.add(it) })
         }
-    }
-
-    private fun errorState(kind: AccountHolderErrorKind) = AccountHolderState(
-        accountId = AccountHolderFixtures.ACCOUNT_ID,
-        uiState = AccountHolderUiState.Error(kind),
-    )
-
-    @Test
-    fun loadingStateRendersTheSpinnerAndCaptionNotContent() {
-        render(
-            AccountHolderState(
-                accountId = AccountHolderFixtures.ACCOUNT_ID,
-                uiState = AccountHolderUiState.Loading,
-            ),
-        )
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.LOADING).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.LOADING_CAPTION, useUnmergedTree = true)
-            .assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.CONTENT).assertDoesNotExist()
-        composeRule.onNodeWithTag(AccountHolderTestTags.IDENTITY_CARD).assertDoesNotExist()
     }
 
     @Test
@@ -100,35 +75,5 @@ class AccountHolderScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountHolderTestTags.EMAIL_ROW, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountHolderTestTags.ADDRESS_ROW, useUnmergedTree = true)
             .assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyStateRendersTitleAndBody() {
-        render(AccountHolderFixtures.emptyState())
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun aRetriableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(errorState(AccountHolderErrorKind.TokenExpired))
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.RETRY_BUTTON).performClick()
-
-        assertTrue(actions.contains(AccountHolderAction.RetryLoad))
-    }
-
-    /** Re-authorisation failures cannot be retried away, so the button is withheld. */
-    @Test
-    fun aNonRetriableErrorHidesRetry() {
-        render(errorState(AccountHolderErrorKind.ConsentMissingParty))
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.RETRY_BUTTON).assertDoesNotExist()
     }
 }

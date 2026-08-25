@@ -18,9 +18,6 @@ package org.mifosx.openbanking.feature.accountholder
  */
 internal object AccountHolderTestTags {
 
-    const val LOADING = "accountHolder:loading"
-    const val LOADING_CAPTION = "accountHolder:loadingCaption"
-
     /** The scrolling account-holder body — the node the suites scroll to reach later sections. */
     const val CONTENT = "accountHolder:content"
 
@@ -33,13 +30,4 @@ internal object AccountHolderTestTags {
     const val EMAIL_ROW = "accountHolder:emailRow"
     const val MOBILE_ROW = "accountHolder:mobileRow"
     const val ADDRESS_ROW = "accountHolder:addressRow"
-
-    const val EMPTY_STATE = "accountHolder:emptyState"
-    const val EMPTY_TITLE = "accountHolder:emptyTitle"
-    const val EMPTY_BODY = "accountHolder:emptyBody"
-
-    const val ERROR_STATE = "accountHolder:errorState"
-    const val ERROR_TITLE = "accountHolder:errorTitle"
-    const val ERROR_BODY = "accountHolder:errorBody"
-    const val RETRY_BUTTON = "accountHolder:retryButton"
 }

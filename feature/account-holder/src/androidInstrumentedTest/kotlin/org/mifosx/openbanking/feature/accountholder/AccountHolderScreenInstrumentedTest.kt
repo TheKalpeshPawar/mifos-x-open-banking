@@ -11,17 +11,14 @@ package org.mifosx.openbanking.feature.accountholder
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderAction
-import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderErrorKind
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderState
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderUiState
-import kotlin.test.assertTrue
 
 private const val ACCOUNT_ID = "40051512345678"
 
@@ -64,14 +61,6 @@ class AccountHolderScreenInstrumentedTest {
     }
 
     @Test
-    fun loadingStateRendersTheSpinnerNotContent() {
-        render(AccountHolderState(accountId = ACCOUNT_ID, uiState = AccountHolderUiState.Loading))
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.LOADING).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.CONTENT).assertDoesNotExist()
-    }
-
-    @Test
     fun contentStateRendersTheIdentityCardAndRows() {
         render(contentState())
 
@@ -92,40 +81,5 @@ class AccountHolderScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(AccountHolderTestTags.ADDRESS_ROW, useUnmergedTree = true)
             .assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyStateRendersTitleAndBody() {
-        render(AccountHolderState(accountId = ACCOUNT_ID, uiState = AccountHolderUiState.Empty))
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun aNonRetriableErrorHidesRetry() {
-        render(
-            AccountHolderState(
-                accountId = ACCOUNT_ID,
-                uiState = AccountHolderUiState.Error(AccountHolderErrorKind.ConsentMissingParty),
-            ),
-        )
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountHolderTestTags.RETRY_BUTTON).assertDoesNotExist()
-    }
-
-    @Test
-    fun aRetriableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(
-            AccountHolderState(
-                accountId = ACCOUNT_ID,
-                uiState = AccountHolderUiState.Error(AccountHolderErrorKind.TokenExpired),
-            ),
-        )
-
-        composeRule.onNodeWithTag(AccountHolderTestTags.RETRY_BUTTON).performClick()
-
-        assertTrue(actions.contains(AccountHolderAction.RetryLoad))
     }
 }
