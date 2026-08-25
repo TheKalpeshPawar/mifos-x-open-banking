@@ -19,14 +19,12 @@ import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailAction
-import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailErrorKind
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailUiState
 import org.mifosx.openbanking.feature.accountdetail.ui.BalanceRowUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 private const val ROBOLECTRIC_SDK = 34
 
@@ -72,11 +70,6 @@ private fun emptyState(
     availableChips = availableChips,
 )
 
-private fun errorState(kind: AccountDetailErrorKind) = AccountDetailState(
-    accountId = ACCOUNT_ID,
-    uiState = AccountDetailUiState.Error(kind = kind, recoverable = kind.recoverable),
-)
-
 /**
  * Renders [AccountDetailScreenContent] across its states under Robolectric (JVM, no device) and
  * drives it through the shared [AccountDetailTestTags]. A verbatim on-device mirror lives in
@@ -103,13 +96,6 @@ class AccountDetailScreenRobolectricTest {
     }
 
     @Test
-    fun loadingStateRendersSpinnerAndSkeleton() {
-        render(AccountDetailState(accountId = ACCOUNT_ID))
-        composeRule.onNodeWithTag(AccountDetailTestTags.LOADING_SKELETON).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.LOADING_SPINNER, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
     fun contentStateRendersHeaderBadgesBalancesAndChips() {
         render(contentState())
 
@@ -119,7 +105,6 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.IDENTIFICATION, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.CURRENCY_BADGE, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.SERVICER_BADGE, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.LAST_UPDATED, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.BALANCES_HEADER, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.BALANCES_LIST).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.EXPLORE_HEADER, useUnmergedTree = true).assertExists()
@@ -137,12 +122,12 @@ class AccountDetailScreenRobolectricTest {
     }
 
     @Test
-    fun aHeaderWithoutAServicerOrTimestampDropsThoseTwoRowsOnly() {
+    fun aHeaderWithoutAServicerDropsTheServicerBadgeOnly() {
         render(
             AccountDetailState(
                 accountId = ACCOUNT_ID,
                 uiState = AccountDetailUiState.Content(
-                    header = header.copy(servicerIdentification = "", statusUpdateDateTime = ""),
+                    header = header.copy(servicerIdentification = ""),
                     balances = balances,
                 ),
             ),
@@ -151,7 +136,6 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.HEADER_CARD).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.CURRENCY_BADGE, useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag(AccountDetailTestTags.SERVICER_BADGE).assertDoesNotExist()
-        composeRule.onNodeWithTag(AccountDetailTestTags.LAST_UPDATED).assertDoesNotExist()
     }
 
     @Test
@@ -280,34 +264,5 @@ class AccountDetailScreenRobolectricTest {
         composeRule.onNodeWithTag(AccountDetailTestTags.chip(AccountDetailChip.Transactions)).performClick()
 
         assertEquals(listOf(AccountDetailChip.Transactions to ACCOUNT_ID), chipClicks)
-    }
-
-    @Test
-    fun recoverableErrorShowsTheRetryButtonAndDispatchesRetry() {
-        render(errorState(AccountDetailErrorKind.Network))
-
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_TITLE, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.RETRY_BUTTON).performClick()
-
-        assertTrue(AccountDetailAction.RetryLoad in actions)
-    }
-
-    @Test
-    fun consentWithdrawnHidesRetry() {
-        render(errorState(AccountDetailErrorKind.ConsentWithdrawn))
-
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.RETRY_BUTTON).assertDoesNotExist()
-    }
-
-    @Test
-    fun accountNotFoundHidesRetry() {
-        render(errorState(AccountDetailErrorKind.AccountNotFound))
-
-        composeRule.onNodeWithTag(AccountDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(AccountDetailTestTags.RETRY_BUTTON).assertDoesNotExist()
     }
 }

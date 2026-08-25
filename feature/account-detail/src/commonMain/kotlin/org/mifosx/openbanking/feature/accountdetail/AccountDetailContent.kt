@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.accountdetail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +17,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,8 +29,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.feature.accountdetail.components.AccountDescriptionCard
 import org.mifosx.openbanking.feature.accountdetail.components.AccountHeaderCard
@@ -44,11 +43,7 @@ import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_section_balances
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_section_explore
 import org.mifosx.openbanking.feature.accountdetail.ui.BalanceRowUi
-
-private val SCREEN_PADDING = 16.dp
-private val SECTION_GAP = 8.dp
-private val CARD_RADIUS = 12.dp
-private val ROW_MIN_HEIGHT = 56.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The account-detail body: header card, Open Banking assurance badge, the typed balance rows and
@@ -71,8 +66,8 @@ internal fun AccountDetailContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(SCREEN_PADDING),
-        verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+            .padding(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         AccountHeaderCard(detail = detail)
 
@@ -105,10 +100,10 @@ internal fun AccountDetailContent(
 private fun SectionHeader(text: String, testTag: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = KptTheme.typography.labelLarge,
+        color = KptTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
-            .padding(top = SECTION_GAP, bottom = 4.dp)
+            .padding(top = KptTheme.spacing.sm, bottom = KptTheme.spacing.xs)
             .testTag(testTag),
     )
 }
@@ -121,8 +116,9 @@ private fun SectionHeader(text: String, testTag: String, modifier: Modifier = Mo
 private fun BalancesList(balances: List<BalanceRowUi>, modifier: Modifier = Modifier) {
     val listDescription = stringResource(Res.string.feature_account_detail_balances_list_accessibility)
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .testTag(AccountDetailTestTags.BALANCES_LIST)
@@ -132,7 +128,7 @@ private fun BalancesList(balances: List<BalanceRowUi>, modifier: Modifier = Modi
             balances.forEachIndexed { index, row ->
                 BalanceRow(row = row)
                 if (index != balances.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 }
             }
         }
@@ -144,24 +140,24 @@ private fun BalanceRow(row: BalanceRowUi, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = ROW_MIN_HEIGHT)
-            .padding(horizontal = SCREEN_PADDING, vertical = 14.dp)
+            .defaultMinSize(minHeight = DesignToken.sizes.cardRow)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md)
             .testTag(AccountDetailTestTags.balanceRow(row.type)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = row.type,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurface,
         )
         Text(
             text = row.amountLabel,
-            style = MaterialTheme.typography.bodyLarge.copy(
+            style = KptTheme.typography.bodyLarge.copy(
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Medium,
             ),
-            color = MaterialTheme.colorScheme.primary,
+            color = KptTheme.colorScheme.primary,
         )
     }
 }
@@ -170,26 +166,27 @@ private fun BalanceRow(row: BalanceRowUi, modifier: Modifier = Modifier) {
 private fun BalancesEmptyBlock(modifier: Modifier = Modifier) {
     val description = stringResource(Res.string.feature_account_detail_balances_empty_accessibility)
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .testTag(AccountDetailTestTags.BALANCES_EMPTY_STATE)
             .semantics { contentDescription = description },
     ) {
         Column(
-            modifier = Modifier.padding(SCREEN_PADDING),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = stringResource(Res.string.feature_account_detail_balances_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.titleMedium,
+                color = KptTheme.colorScheme.onSurface,
             )
             Text(
                 text = stringResource(Res.string.feature_account_detail_balances_empty_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

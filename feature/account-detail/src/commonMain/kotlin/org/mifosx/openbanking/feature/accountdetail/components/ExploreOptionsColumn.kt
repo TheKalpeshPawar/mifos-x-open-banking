@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,9 +36,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailTestTags
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
@@ -62,12 +61,7 @@ import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_chip_statements_accessibility
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_chip_transactions
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_chip_transactions_accessibility
-
-private val OPTION_HORIZONTAL_PADDING = 16.dp
-private val OPTION_VERTICAL_PADDING = 14.dp
-private val LEADING_ICON_SIZE = 24.dp
-private val TRAILING_ICON_SIZE = 20.dp
-private val OPTION_GAP = 16.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * Full-width, edge-to-edge column of the account sub-screens this account can reach.
@@ -99,7 +93,7 @@ internal fun ExploreOptionsColumn(
         chips.forEachIndexed { index, chip ->
             ExploreOption(chip = chip, onClick = { onChipClick(chip) })
             if (index != chips.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -119,27 +113,27 @@ private fun ExploreOption(
             .clickable(onClick = onClick)
             .testTag(AccountDetailTestTags.chip(chip))
             .semantics { contentDescription = description }
-            .padding(horizontal = OPTION_HORIZONTAL_PADDING, vertical = OPTION_VERTICAL_PADDING),
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(OPTION_GAP),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Icon(
             imageVector = chip.icon(),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(LEADING_ICON_SIZE),
+            tint = KptTheme.colorScheme.primary,
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(TRAILING_ICON_SIZE),
+            tint = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(DesignToken.sizes.iconSmall),
         )
     }
 }

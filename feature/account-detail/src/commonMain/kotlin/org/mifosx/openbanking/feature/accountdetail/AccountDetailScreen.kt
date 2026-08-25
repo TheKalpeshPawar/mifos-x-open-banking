@@ -13,14 +13,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
+import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_error_consent_withdrawn
+import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_error_network
+import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_error_not_found
+import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_error_token_expired
+import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_error_unexpected
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_screen_title
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailAction
+import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailErrorKind
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailUiState
 import org.mifosx.openbanking.feature.accountdetail.ui.AccountDetailViewModel
@@ -85,7 +94,7 @@ internal fun AccountDetailScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        AccountDetailUiState.Loading -> AccountDetailSkeleton(modifier = modifier)
+        AccountDetailUiState.Loading -> MifosProgressIndicator()
 
         is AccountDetailUiState.Content -> AccountDetailContent(
             detail = current.header,
@@ -103,11 +112,23 @@ internal fun AccountDetailScreenContent(
             modifier = modifier,
         )
 
-        is AccountDetailUiState.Error -> AccountDetailError(
-            kind = current.kind,
-            showRetry = current.recoverable,
+        is AccountDetailUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = current.recoverable,
             onRetry = { onAction(AccountDetailAction.RetryLoad) },
-            modifier = modifier,
         )
     }
+}
+
+private fun AccountDetailErrorKind.bodyResource(): StringResource = when (this) {
+    AccountDetailErrorKind.TokenExpired ->
+        Res.string.feature_account_detail_error_token_expired
+    AccountDetailErrorKind.ConsentWithdrawn ->
+        Res.string.feature_account_detail_error_consent_withdrawn
+    AccountDetailErrorKind.AccountNotFound ->
+        Res.string.feature_account_detail_error_not_found
+    AccountDetailErrorKind.Network ->
+        Res.string.feature_account_detail_error_network
+    AccountDetailErrorKind.Unexpected ->
+        Res.string.feature_account_detail_error_unexpected
 }
