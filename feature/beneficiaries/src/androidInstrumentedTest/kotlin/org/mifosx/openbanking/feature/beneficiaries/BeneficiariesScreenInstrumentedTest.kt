@@ -21,7 +21,6 @@ import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesAction
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesErrorKind
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesState
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
 import kotlin.test.assertEquals
@@ -31,7 +30,6 @@ private const val ACCOUNT_ID = "40051512345678"
 private const val FIRST_ID = "BEN-001"
 private const val ENERGY_ID = "BEN-003"
 private const val NAME_QUERY = "ener"
-private const val NO_MATCH_QUERY = "zzzmatch"
 
 /**
  * androidInstrumentedTest does not see commonTest, so the state fixtures are inlined here.
@@ -60,20 +58,6 @@ private fun contentState(): BeneficiariesState = BeneficiariesState(
     uiState = BeneficiariesUiState.Content(all = rows(), filtered = rows(), query = ""),
 )
 
-private fun searchWithoutMatchesState(): BeneficiariesState = BeneficiariesState(
-    accountId = ACCOUNT_ID,
-    uiState = BeneficiariesUiState.Content(all = rows(), filtered = emptyList(), query = NO_MATCH_QUERY),
-)
-
-private fun loadingState(): BeneficiariesState =
-    BeneficiariesState(accountId = ACCOUNT_ID, uiState = BeneficiariesUiState.Loading)
-
-private fun emptyState(): BeneficiariesState =
-    BeneficiariesState(accountId = ACCOUNT_ID, uiState = BeneficiariesUiState.Empty)
-
-private fun errorState(kind: BeneficiariesErrorKind): BeneficiariesState =
-    BeneficiariesState(accountId = ACCOUNT_ID, uiState = BeneficiariesUiState.Error(kind))
-
 /**
  * On-device mirror of [BeneficiariesScreenRobolectricTest], driving the same
  * [BeneficiariesTestTags] so a divergence between the JVM and device renderers is visible.
@@ -85,14 +69,12 @@ class BeneficiariesScreenInstrumentedTest {
     val composeRule = createComposeRule()
 
     private val actions = mutableListOf<BeneficiariesAction>()
-    private var navigatedToConsents = false
 
     private fun render(state: BeneficiariesState) {
         composeRule.setContent {
             BeneficiariesScreenContent(
                 state = state,
                 onAction = { actions.add(it) },
-                onNavigateToConsents = { navigatedToConsents = true },
             )
         }
     }
@@ -122,50 +104,5 @@ class BeneficiariesScreenInstrumentedTest {
         composeRule.onNodeWithTag(BeneficiariesTestTags.row(FIRST_ID)).performClick()
 
         assertTrue(actions.isEmpty())
-    }
-
-    @Test
-    fun loadingRendersTheSpinnerNotTheList() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.LOADING).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyHidesTheSearchFieldAndTheList() {
-        render(emptyState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertDoesNotExist()
-    }
-
-    @Test
-    fun aSearchWithoutMatchesKeepsTheFieldAndSwapsInTheNoResultsBlock() {
-        render(searchWithoutMatchesState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertIsDisplayed()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun aRetriableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(errorState(BeneficiariesErrorKind.RateLimited))
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.VIEW_CONSENTS_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<BeneficiariesAction>(BeneficiariesAction.RetryLoad), actions)
-    }
-
-    @Test
-    fun aRevokedConsentShowsViewConsentsAndRaisesTheHostRoute() {
-        render(errorState(BeneficiariesErrorKind.ConsentRevoked))
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.RETRY_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.VIEW_CONSENTS_BUTTON).performClick()
-
-        assertTrue(navigatedToConsents)
     }
 }

@@ -254,10 +254,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             )
             transactionDetailScreen(onBack = { navController.popBackStack() })
             scheduledPaymentsScreen(onBack = { navController.popBackStack() })
-            beneficiariesScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToConsents = { navController.navigate(ConsentListRoute) },
-            )
+            beneficiariesScreen(onBack = { navController.popBackStack() })
             consentListScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToDetail = { consentId -> navController.navigate(ConsentDetailRoute(consentId)) },

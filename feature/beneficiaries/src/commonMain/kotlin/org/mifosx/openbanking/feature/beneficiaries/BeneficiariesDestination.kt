@@ -28,18 +28,13 @@ data class BeneficiariesRoute(val accountId: String)
 
 /**
  * Registers the beneficiaries screen in the host graph.
- *
- * [onNavigateToConsents] is the recovery route offered when the consent behind this account has been
- * revoked; the feature raises it without knowing where consents live.
  */
 fun NavGraphBuilder.beneficiariesScreen(
     onBack: () -> Unit,
-    onNavigateToConsents: () -> Unit,
 ) {
     composableWithStayTransitions<BeneficiariesRoute> {
         BeneficiariesScreen(
             onBack = onBack,
-            onNavigateToConsents = onNavigateToConsents,
         )
     }
 }

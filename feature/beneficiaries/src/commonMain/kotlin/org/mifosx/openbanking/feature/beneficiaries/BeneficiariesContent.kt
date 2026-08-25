@@ -21,13 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -41,11 +39,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.Res
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_list_a11y
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_reference_a11y
@@ -56,18 +55,11 @@ import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_scheme_paym
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_scheme_sort_code
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_a11y
+import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_empty_title
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_placeholder
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
 import org.mifosx.openbanking.feature.beneficiaries.ui.formatIdentification
-
-private val SearchBarHeight = 52.dp
-private val SearchWrapVertical = 8.dp
-private val SearchWrapHorizontal = 16.dp
-private val RowMinHeight = 72.dp
-private val RowVerticalPadding = 8.dp
-private val RowHorizontalPadding = 16.dp
-private val RowGap = 16.dp
-private val ReferenceMaxWidth = 96.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * Content state: the search field, then the payee list.
@@ -87,10 +79,13 @@ internal fun BeneficiariesContent(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         SearchField(query = content.query, onSearch = onSearch)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
 
         if (content.isSearchWithoutMatches) {
-            BeneficiariesSearchEmpty()
+            EmptyDataComponent(
+                isEmptyData = true,
+                message = stringResource(Res.string.feature_beneficiaries_search_empty_title),
+            )
         } else {
             BeneficiaryList(rows = content.filtered)
         }
@@ -107,8 +102,8 @@ private fun SearchField(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = SearchWrapHorizontal, vertical = SearchWrapVertical),
+            .background(KptTheme.colorScheme.surface)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.sm),
     ) {
         TextField(
             value = query,
@@ -118,30 +113,30 @@ private fun SearchField(
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = KptTheme.colorScheme.onSurfaceVariant,
                 )
             },
             placeholder = {
                 Text(
                     text = stringResource(Res.string.feature_beneficiaries_search_placeholder),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = KptTheme.typography.bodyLarge,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            textStyle = MaterialTheme.typography.bodyLarge,
+            textStyle = KptTheme.typography.bodyLarge,
             keyboardOptions = KeyboardOptions.Default,
-            shape = RoundedCornerShape(percent = PILL_CORNER_PERCENT),
+            shape = DesignToken.shapes.pill,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+                disabledContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = SearchBarHeight)
+                .heightIn(min = DesignToken.sizes.cardRow)
                 .testTag(BeneficiariesTestTags.SEARCH_FIELD)
                 .semantics { contentDescription = description },
         )
@@ -163,7 +158,7 @@ private fun BeneficiaryList(
         items(items = rows, key = { it.beneficiaryId }) { row ->
             BeneficiaryRow(row = row)
             if (row != rows.last()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -194,18 +189,18 @@ private fun BeneficiaryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
-            .padding(horizontal = RowHorizontalPadding, vertical = RowVerticalPadding)
+            .heightIn(min = DesignToken.sizes.rowTall)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.sm)
             .testTag(BeneficiariesTestTags.row(row.beneficiaryId))
             .semantics(mergeDescendants = true) { contentDescription = "$rowDescription, $referenceDescription" },
-        horizontalArrangement = Arrangement.spacedBy(RowGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.creditorName,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -217,12 +212,12 @@ private fun BeneficiaryRow(
 
         Text(
             text = row.reference,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelSmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.End,
-            modifier = Modifier.widthIn(max = ReferenceMaxWidth),
+            modifier = Modifier.widthIn(max = DesignToken.sizes.badge),
         )
     }
 }
@@ -241,19 +236,19 @@ private fun SupportingLine(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(SupportingGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = "$schemeLabel ·",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )
         Text(
             text = identification,
-            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -267,6 +262,3 @@ private fun BeneficiaryScheme.labelResource(): StringResource = when (this) {
     BeneficiaryScheme.Card -> Res.string.feature_beneficiaries_scheme_card
     BeneficiaryScheme.Account -> Res.string.feature_beneficiaries_scheme_account
 }
-
-private val SupportingGap = 4.dp
-private const val PILL_CORNER_PERCENT = 50

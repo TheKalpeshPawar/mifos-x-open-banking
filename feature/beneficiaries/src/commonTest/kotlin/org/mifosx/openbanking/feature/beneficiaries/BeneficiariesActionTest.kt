@@ -12,6 +12,7 @@ package org.mifosx.openbanking.feature.beneficiaries
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
@@ -28,9 +29,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * One case per `ui.yaml` action_contract, proving each interactive surface routes the action it
- * declares (`filter_beneficiaries`, `retry_load`, `navigate` to consent-list, and the absence of a
- * row `on_click`) — the 100% on_click coverage the behaviour gate requires.
+ * One case per `ui.yaml` action_contract: the search filter, the retry action, and the absence of a
+ * row `on_click` — the 100% on_click coverage the behaviour gate requires.
  *
  * `navigate_back` is the screen's own `onBack` lambda rather than a routed action, so it is covered
  * by the Robolectric suite against the real scaffold instead.
@@ -56,7 +56,6 @@ class BeneficiariesActionTest {
             BeneficiariesScreenContent(
                 state = BeneficiariesFixtures.contentState(),
                 onAction = { actions.add(it) },
-                onNavigateToConsents = {},
             )
         }
 
@@ -68,42 +67,20 @@ class BeneficiariesActionTest {
         )
     }
 
-    /** retry_load — the Retry button dispatches RetryLoad and does not navigate. */
+    /** retry_load — the shared Retry button dispatches RetryLoad. */
     @Test
     fun theRetryButtonDispatchesRetryLoad() = runComposeUiTest {
         val actions = mutableListOf<BeneficiariesAction>()
-        var navigatedToConsents = false
         setContent {
             BeneficiariesScreenContent(
                 state = BeneficiariesFixtures.errorState(BeneficiariesErrorKind.TokenExpired),
                 onAction = { actions.add(it) },
-                onNavigateToConsents = { navigatedToConsents = true },
             )
         }
 
-        onNodeWithTag(BeneficiariesTestTags.RETRY_BUTTON).performClick()
+        onNodeWithText("Retry").performClick()
 
         assertEquals(listOf<BeneficiariesAction>(BeneficiariesAction.RetryLoad), actions)
-        assertTrue(!navigatedToConsents)
-    }
-
-    /** navigate — View Consents raises the host route and dispatches no view-model action. */
-    @Test
-    fun theViewConsentsButtonRaisesTheConsentRouteWithoutDispatchingAnAction() = runComposeUiTest {
-        val actions = mutableListOf<BeneficiariesAction>()
-        var navigatedToConsents = false
-        setContent {
-            BeneficiariesScreenContent(
-                state = BeneficiariesFixtures.errorState(BeneficiariesErrorKind.ConsentRevoked),
-                onAction = { actions.add(it) },
-                onNavigateToConsents = { navigatedToConsents = true },
-            )
-        }
-
-        onNodeWithTag(BeneficiariesTestTags.VIEW_CONSENTS_BUTTON).performClick()
-
-        assertTrue(navigatedToConsents)
-        assertTrue(actions.isEmpty())
     }
 
     /**
@@ -116,12 +93,10 @@ class BeneficiariesActionTest {
     @Test
     fun tappingAPayeeRowRoutesNothing() = runComposeUiTest {
         val actions = mutableListOf<BeneficiariesAction>()
-        var navigatedToConsents = false
         setContent {
             BeneficiariesScreenContent(
                 state = BeneficiariesFixtures.contentState(),
                 onAction = { actions.add(it) },
-                onNavigateToConsents = { navigatedToConsents = true },
             )
         }
 
@@ -129,6 +104,5 @@ class BeneficiariesActionTest {
         onNodeWithTag(BeneficiariesTestTags.row(BeneficiariesFixtures.FIRST_ID)).performClick()
 
         assertTrue(actions.isEmpty())
-        assertTrue(!navigatedToConsents)
     }
 }

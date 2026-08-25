@@ -23,7 +23,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesErrorKind
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -35,13 +34,12 @@ private const val FRAME_WIDTH = 412
 private const val FRAME_HEIGHT = 892
 
 /**
- * Golden-image coverage for [BeneficiariesScreenContent], captured with Roborazzi under Robolectric's
- * native graphics (no device). Goldens are written under `build/outputs/roborazzi/`;
+ * Golden-image coverage for the [BeneficiariesScreenContent] content state, captured with Roborazzi
+ * under Robolectric's native graphics (no device). Goldens are written under `build/outputs/roborazzi/`;
  * `recordRoborazziDebug` writes them and `verifyRoborazziDebug` fails the build on any pixel drift.
  *
- * Six states rather than the usual four: this screen has two mutually exclusive error variants
- * (Retry versus View Consents) and an in-content no-results block that is distinct from the empty
- * state, and each of those is a rendering a reviewer should be able to see change.
+ * The loading, empty and error states are the shared state components, covered by their own
+ * `core/ui` suites, so this feature only goldens the screen it owns.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,35 +50,15 @@ class BeneficiariesScreenScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun contentGolden() = capture("content", BeneficiariesFixtures.contentState())
+    fun contentGolden() = capture(BeneficiariesFixtures.contentState())
 
-    @Test
-    fun loadingGolden() = capture("loading", BeneficiariesFixtures.loadingState())
-
-    @Test
-    fun emptyGolden() = capture("empty", BeneficiariesFixtures.emptyState())
-
-    @Test
-    fun errorGolden() = capture("error", BeneficiariesFixtures.errorState(BeneficiariesErrorKind.TokenExpired))
-
-    @Test
-    fun consentRevokedGolden() =
-        capture("consent_revoked", BeneficiariesFixtures.errorState(BeneficiariesErrorKind.ConsentRevoked))
-
-    @Test
-    fun searchNoResultsGolden() = capture("search_no_results", BeneficiariesFixtures.searchWithoutMatchesState())
-
-    private fun capture(state: String, screenState: BeneficiariesState) {
+    private fun capture(screenState: BeneficiariesState) {
         composeRule.setContent {
             Themed {
-                BeneficiariesScreenContent(
-                    state = screenState,
-                    onAction = {},
-                    onNavigateToConsents = {},
-                )
+                BeneficiariesScreenContent(state = screenState, onAction = {})
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/beneficiaries_$state.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/beneficiaries_content.png")
     }
 
     @Composable
