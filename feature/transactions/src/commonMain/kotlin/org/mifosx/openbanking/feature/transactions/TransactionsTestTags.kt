@@ -18,7 +18,6 @@ import org.mifosx.openbanking.feature.transactions.ui.TransactionFilter
 internal object TransactionsTestTags {
     const val CONTENT = "transactions_content"
     const val LIST = "transactions_list"
-    const val SKELETON = "transactions_skeleton"
 
     const val PERIOD_SUMMARY = "transactions_period_summary"
     const val MONEY_IN = "transactions_money_in"
@@ -35,10 +34,6 @@ internal object TransactionsTestTags {
 
     const val EMPTY = "transactions_empty"
     const val CLEAR_FILTERS = "transactions_clear_filters"
-
-    const val ERROR = "transactions_error"
-    const val ERROR_STATUS = "transactions_error_status"
-    const val ERROR_RETRY = "transactions_error_retry"
 
     private const val ROW_PREFIX = "transactions_row_"
     private const val FILTER_PREFIX = "transactions_filter_"

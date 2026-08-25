@@ -18,8 +18,6 @@ package org.mifosx.openbanking.feature.transactiondetail
  */
 internal object TransactionDetailTestTags {
 
-    const val LOADING_INDICATOR = "transactionDetail:loading"
-
     const val CONTENT_ROOT = "transactionDetail:content"
     const val AMOUNT = "transactionDetail:amount"
     const val CURRENCY = "transactionDetail:currency"
@@ -35,12 +33,6 @@ internal object TransactionDetailTestTags {
     const val REFERENCE_ROW = "transactionDetail:referenceRow"
     const val REFERENCE_COPY_ICON = "transactionDetail:referenceCopyIcon"
     const val BANK_CODE_ROW = "transactionDetail:bankCodeRow"
-
-    const val ERROR_STATE = "transactionDetail:errorState"
-    const val ERROR_TITLE = "transactionDetail:errorTitle"
-    const val ERROR_BODY = "transactionDetail:errorBody"
-    const val RETRY_BUTTON = "transactionDetail:retryButton"
-    const val GO_BACK_BUTTON = "transactionDetail:goBackButton"
 
     const val EMPTY_STATE = "transactionDetail:emptyState"
     const val EMPTY_TITLE = "transactionDetail:emptyTitle"

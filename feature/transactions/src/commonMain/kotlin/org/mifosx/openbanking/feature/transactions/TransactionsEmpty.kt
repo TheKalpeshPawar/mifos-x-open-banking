@@ -24,15 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.transactions.generated.resources.Res
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_clear_filters
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_empty_body
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_empty_title
 import template.core.base.designsystem.theme.KptTheme
-
-private val EmptyIconSize = 64.dp
 
 /** Empty state: no transactions match the current filters — offers to clear them. */
 @Composable
@@ -52,7 +50,7 @@ internal fun TransactionsEmpty(
             imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
             contentDescription = null,
             tint = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(EmptyIconSize),
+            modifier = Modifier.size(DesignToken.sizes.avatarLarge),
         )
         Text(
             text = stringResource(Res.string.feature_transactions_empty_title),

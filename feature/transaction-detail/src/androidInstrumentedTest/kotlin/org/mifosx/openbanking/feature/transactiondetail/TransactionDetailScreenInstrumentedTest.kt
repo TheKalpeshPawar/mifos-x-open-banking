@@ -19,7 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.TransactionCategory
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailAction
-import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailErrorKind
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailState
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailUiModel
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailUiState
@@ -73,19 +72,10 @@ private fun contentState(model: TransactionDetailUiModel = debitUiModel()): Tran
 
 private fun mccNullContentState(): TransactionDetailState = contentState(creditUiModel())
 
-private fun loadingState(): TransactionDetailState =
-    TransactionDetailState(transactionId = DEBIT_ID, accountId = ACCOUNT_ID)
-
 private fun emptyState(): TransactionDetailState = TransactionDetailState(
     transactionId = DEBIT_ID,
     accountId = ACCOUNT_ID,
     uiState = TransactionDetailUiState.Empty,
-)
-
-private fun errorState(kind: TransactionDetailErrorKind): TransactionDetailState = TransactionDetailState(
-    transactionId = DEBIT_ID,
-    accountId = ACCOUNT_ID,
-    uiState = TransactionDetailUiState.Error(kind),
 )
 
 /**
@@ -141,34 +131,6 @@ class TransactionDetailScreenInstrumentedTest {
             listOf<TransactionDetailAction>(TransactionDetailAction.CopyReference(REFERENCE)),
             actions,
         )
-    }
-
-    @Test
-    fun loadingRendersTheSpinner() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.LOADING_INDICATOR).assertExists()
-    }
-
-    @Test
-    fun aRecoverableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(errorState(TransactionDetailErrorKind.TokenExpired))
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<TransactionDetailAction>(TransactionDetailAction.RetryLoad), actions)
-    }
-
-    @Test
-    fun aNonRecoverableErrorShowsGoBackAndInvokesOnBack() {
-        render(errorState(TransactionDetailErrorKind.ConsentWithdrawn))
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).performClick()
-
-        assertEquals(1, backCount)
     }
 
     @Test

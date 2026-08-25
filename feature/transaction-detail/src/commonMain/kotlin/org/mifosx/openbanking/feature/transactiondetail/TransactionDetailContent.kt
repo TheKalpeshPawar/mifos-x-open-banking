@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.transactiondetail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,15 +19,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,9 +33,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.TransactionCategory
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.Res
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_balance_after
@@ -58,22 +55,7 @@ import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feat
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_reference
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_value_date
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailUiModel
-
-private val ScreenPadding = 16.dp
-private val HeroTopPadding = 24.dp
-private val SectionGap = 16.dp
-private val ChipHeight = 32.dp
-private val ChipHorizontalPadding = 12.dp
-private val CardCornerRadius = 12.dp
-private val ChipCornerRadius = 8.dp
-private val RowMinHeight = 48.dp
-private val RowVerticalPadding = 12.dp
-private val RowTextGap = 2.dp
-private val CardHeaderTopPadding = 16.dp
-private val CardHeaderBottomPadding = 8.dp
-private val CopyIconSize = 20.dp
-private val DividerInsetStart = 16.dp
-private val ElementGap = 12.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The content state: an amount hero (colour-coded by credit/debit), the merchant and status, then a
@@ -94,8 +76,8 @@ internal fun TransactionDetailContent(
         AmountHero(transaction)
         MerchantSection(transaction)
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant,
-            modifier = Modifier.padding(horizontal = ScreenPadding),
+            color = KptTheme.colorScheme.outlineVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
         )
         DetailCard(transaction = transaction, onCopyReference = onCopyReference)
     }
@@ -105,28 +87,28 @@ internal fun TransactionDetailContent(
 private fun AmountHero(transaction: TransactionDetailUiModel) {
     Column(
         modifier = Modifier.padding(
-            start = ScreenPadding,
-            end = ScreenPadding,
-            top = HeroTopPadding,
-            bottom = SectionGap,
+            start = KptTheme.spacing.md,
+            end = KptTheme.spacing.md,
+            top = KptTheme.spacing.lg,
+            bottom = KptTheme.spacing.md,
         ),
-        verticalArrangement = Arrangement.spacedBy(RowTextGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Text(
             text = transaction.amountLabel,
-            style = MaterialTheme.typography.displaySmall,
+            style = KptTheme.typography.displaySmall,
             fontFamily = FontFamily.Monospace,
             color = if (transaction.isCredit) {
-                MaterialTheme.colorScheme.primary
+                KptTheme.colorScheme.primary
             } else {
-                MaterialTheme.colorScheme.error
+                KptTheme.colorScheme.error
             },
             modifier = Modifier.testTag(TransactionDetailTestTags.AMOUNT),
         )
         Text(
             text = transaction.currencyLabel,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag(TransactionDetailTestTags.CURRENCY),
         )
     }
@@ -135,13 +117,17 @@ private fun AmountHero(transaction: TransactionDetailUiModel) {
 @Composable
 private fun MerchantSection(transaction: TransactionDetailUiModel) {
     Column(
-        modifier = Modifier.padding(start = ScreenPadding, end = ScreenPadding, bottom = SectionGap),
-        verticalArrangement = Arrangement.spacedBy(ElementGap),
+        modifier = Modifier.padding(
+            start = KptTheme.spacing.md,
+            end = KptTheme.spacing.md,
+            bottom = KptTheme.spacing.md,
+        ),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Text(
             text = transaction.merchantLabel,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.headlineMedium,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.testTag(TransactionDetailTestTags.MERCHANT),
         )
         StatusChip(status = transaction.status, isBooked = transaction.isBooked)
@@ -151,27 +137,27 @@ private fun MerchantSection(transaction: TransactionDetailUiModel) {
 @Composable
 private fun StatusChip(status: String, isBooked: Boolean) {
     val container = if (isBooked) {
-        MaterialTheme.colorScheme.primaryContainer
+        KptTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.secondaryContainer
+        KptTheme.colorScheme.secondaryContainer
     }
     val onContainer = if (isBooked) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        KptTheme.colorScheme.onPrimaryContainer
     } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        KptTheme.colorScheme.onSecondaryContainer
     }
     Surface(
         color = container,
         contentColor = onContainer,
-        shape = RoundedCornerShape(ChipCornerRadius),
+        shape = KptTheme.shapes.small,
         modifier = Modifier.testTag(TransactionDetailTestTags.STATUS_CHIP),
     ) {
         Text(
             text = status,
-            style = MaterialTheme.typography.labelLarge,
+            style = KptTheme.typography.labelLarge,
             modifier = Modifier
-                .heightIn(min = ChipHeight)
-                .padding(horizontal = ChipHorizontalPadding, vertical = RowTextGap),
+                .heightIn(min = KptTheme.spacing.xl)
+                .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.xs),
         )
     }
 }
@@ -181,26 +167,24 @@ private fun DetailCard(
     transaction: TransactionDetailUiModel,
     onCopyReference: (String) -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(CardCornerRadius),
+    Surface(
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = ScreenPadding, vertical = SectionGap)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md)
             .testTag(TransactionDetailTestTags.DETAIL_CARD),
     ) {
         Text(
             text = stringResource(Res.string.feature_transaction_detail_card_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.titleSmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(
-                start = ScreenPadding,
-                end = ScreenPadding,
-                top = CardHeaderTopPadding,
-                bottom = CardHeaderBottomPadding,
+                start = KptTheme.spacing.md,
+                end = KptTheme.spacing.md,
+                top = KptTheme.spacing.md,
+                bottom = KptTheme.spacing.sm,
             ),
         )
         SupportingRow(
@@ -254,20 +238,20 @@ private fun SupportingRow(label: String, supporting: String, testTag: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
-            .padding(horizontal = ScreenPadding, vertical = RowVerticalPadding)
+            .heightIn(min = DesignToken.sizes.rowMin)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md)
             .testTag(testTag),
-        verticalArrangement = Arrangement.spacedBy(RowTextGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurface,
         )
         Text(
             text = supporting,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -278,22 +262,22 @@ private fun TrailingRow(label: String, trailing: String, testTag: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
-            .padding(horizontal = ScreenPadding, vertical = RowVerticalPadding)
+            .heightIn(min = DesignToken.sizes.rowMin)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md)
             .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = trailing,
-            style = MaterialTheme.typography.bodyMedium,
+            style = KptTheme.typography.bodyMedium,
             fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = KptTheme.colorScheme.onSurface,
         )
     }
 }
@@ -306,34 +290,34 @@ private fun ReferenceRow(reference: String, onCopyReference: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
+            .heightIn(min = DesignToken.sizes.rowMin)
             .clickable { onCopyReference(reference) }
-            .padding(horizontal = ScreenPadding, vertical = RowVerticalPadding)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.md)
             .testTag(TransactionDetailTestTags.REFERENCE_ROW)
             .semantics { contentDescription = "$label: $reference. $copyHint" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(RowTextGap),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
             )
             Text(
                 text = reference,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
         Icon(
             imageVector = Icons.Filled.ContentCopy,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = KptTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .size(CopyIconSize)
+                .size(DesignToken.sizes.iconSmall)
                 .testTag(TransactionDetailTestTags.REFERENCE_COPY_ICON),
         )
     }
@@ -342,8 +326,8 @@ private fun ReferenceRow(reference: String, onCopyReference: (String) -> Unit) {
 @Composable
 private fun InsetDivider() {
     HorizontalDivider(
-        color = MaterialTheme.colorScheme.outlineVariant,
-        modifier = Modifier.padding(start = DividerInsetStart),
+        color = KptTheme.colorScheme.outlineVariant,
+        modifier = Modifier.padding(start = KptTheme.spacing.md),
     )
 }
 
