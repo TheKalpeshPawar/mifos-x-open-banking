@@ -10,45 +10,34 @@
 -->
 <resources>
     <string name="feature_standing_orders_screen_title">Standing Orders</string>
-    <string name="feature_standing_orders_loading_accessibility">Loading standing orders</string>
     <string name="feature_standing_orders_navigate_back">Navigate back to Account Detail</string>
     <string name="feature_standing_orders_pull_refresh_accessibility">Pull down to refresh standing orders</string>
 
-    <string name="feature_standing_orders_summary">%1$d Active · %2$d Inactive</string>
-    <string name="feature_standing_orders_summary_accessibility">%1$d active and %2$d inactive standing orders</string>
-
     <string name="feature_standing_orders_list_accessibility">Standing orders list</string>
     <string name="feature_standing_orders_card_accessibility">Standing order for %1$s, %2$s</string>
-    <string name="feature_standing_orders_payee_accessibility">Payee: %s</string>
-    <string name="feature_standing_orders_status_accessibility">Status: %s</string>
+    <string name="feature_standing_orders_payee_accessibility">Payee: </string>
+    <string name="feature_standing_orders_status_accessibility">Status: </string>
     <string name="feature_standing_orders_amount_accessibility">Next payment: %1$s %2$s</string>
-    <string name="feature_standing_orders_frequency_accessibility">Frequency: %s</string>
-    <string name="feature_standing_orders_next_payment">Next: %s</string>
-    <string name="feature_standing_orders_next_payment_accessibility">Next payment date: %s</string>
-    <string name="feature_standing_orders_final_payment">Final: %s</string>
-    <string name="feature_standing_orders_final_payment_accessibility">Final payment date: %s</string>
-    <string name="feature_standing_orders_sort_code_accessibility">Sort code / Account: %s</string>
-    <string name="feature_standing_orders_reference">Ref: %s</string>
-    <string name="feature_standing_orders_reference_accessibility">Payment reference: %s</string>
+    <string name="feature_standing_orders_frequency_accessibility">Frequency: </string>
+    <string name="feature_standing_orders_next_payment">Next: </string>
+    <string name="feature_standing_orders_next_payment_accessibility">Next payment date: </string>
+    <string name="feature_standing_orders_final_payment">Final: </string>
+    <string name="feature_standing_orders_final_payment_accessibility">Final payment date: </string>
+    <string name="feature_standing_orders_sort_code_accessibility">Identification: </string>
+    <string name="feature_standing_orders_reference">Ref: </string>
+    <string name="feature_standing_orders_reference_accessibility">Payment reference: </string>
 
     <string name="feature_standing_orders_empty_title">No standing orders</string>
-    <string name="feature_standing_orders_empty_body">No standing orders are set up for this account.</string>
-    <string name="feature_standing_orders_empty_accessibility">No standing orders found for this account</string>
     <!--
       Title and accessibility label only. The body of the unsupported state is the bank's own
       message, rendered verbatim from the API response rather than authored here — HSBC knows why
       it refused, and restating it would mean maintaining a translation of their error catalogue.
     -->
     <string name="feature_standing_orders_unsupported_title">Not available for this account</string>
-    <string name="feature_standing_orders_unsupported_accessibility">Standing orders are not available for this account</string>
 
-    <string name="feature_standing_orders_error_title">Could not load standing orders</string>
-    <string name="feature_standing_orders_error_accessibility">Error loading standing orders</string>
     <string name="feature_standing_orders_error_token_expired">Session expired. Please log in again.</string>
     <string name="feature_standing_orders_error_consent_revoked">Account access consent has been revoked.</string>
     <string name="feature_standing_orders_error_rate_limited">Too many requests. Please wait a moment and try again.</string>
     <string name="feature_standing_orders_error_server">Something went wrong. Please try again later.</string>
     <string name="feature_standing_orders_error_network">No network connection. Check your connection and retry.</string>
-    <string name="feature_standing_orders_retry">Retry</string>
-    <string name="feature_standing_orders_retry_accessibility">Retry loading standing orders</string>
 </resources>

@@ -24,15 +24,13 @@ import template.core.base.common.screen.emptyIfContent
 import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * Drives the standing-orders list: the order cards and the active/inactive summary line.
+ * Drives the standing-orders list: the order cards.
  *
  * Navigation is not modelled as an action — the screen owns back through its `onBack` lambda,
  * matching direct-debits — so this stays a pure state machine over the order stream.
  *
  * All display formatting happens here. The composables receive finished strings, which keeps
- * currency and date rendering testable on the JVM without a Compose runtime. The one thing left to
- * the composable is the summary wording, because `4 Active · 1 Inactive` is a localised template
- * and only the composable can reach the string resources.
+ * currency and date rendering testable on the JVM without a Compose runtime.
  */
 class StandingOrdersViewModel(
     savedStateHandle: SavedStateHandle,
@@ -83,8 +81,6 @@ class StandingOrdersViewModel(
     } else {
         StandingOrdersUiState.Content(
             orders = items.map { it.toRowUi() },
-            activeCount = activeCount,
-            inactiveCount = inactiveCount,
         )
     }
 

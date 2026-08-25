@@ -26,10 +26,6 @@ data class StandingOrdersState(
 /**
  * The five rendered states.
  *
- * [Content] carries the two summary counts alongside the rows because the summary line is a
- * display-only readout of this exact payload — deriving it again in the composable would let the
- * summary and the list disagree.
- *
  * [Unsupported] is a sibling of [Empty], not an [Error]: the bank has not failed, it has told us
  * this product does not have standing orders at all. Modelling it as an error kind would be wrong
  * on both counts — every [StandingOrdersErrorKind] offers Retry, and retrying can never change
@@ -41,8 +37,6 @@ sealed interface StandingOrdersUiState {
 
     data class Content(
         val orders: List<StandingOrderRowUi>,
-        val activeCount: Int,
-        val inactiveCount: Int,
     ) : StandingOrdersUiState
 
     data object Empty : StandingOrdersUiState

@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.standingorders
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,9 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,46 +29,28 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.standingorders.generated.resources.Res
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_amount_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_card_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_final_payment
-import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_final_payment_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_frequency_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_list_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_next_payment
-import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_next_payment_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_payee_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_reference
-import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_reference_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_sort_code_accessibility
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_status_accessibility
-import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_summary
-import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_summary_accessibility
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrderRowUi
+import template.core.base.designsystem.theme.KptTheme
 
-private val SCREEN_PADDING = 16.dp
-private val CARD_GAP = 12.dp
-private val CARD_RADIUS = 12.dp
-private val CARD_PADDING = 16.dp
-private val CARD_LINE_GAP = 8.dp
-private val META_LINE_GAP = 4.dp
-private val DIVIDER_MARGIN = 4.dp
-private val DIVIDER_THICKNESS = 1.dp
-private val BADGE_HORIZONTAL_PADDING = 8.dp
-private val BADGE_VERTICAL_PADDING = 2.dp
-private val AMOUNT_CURRENCY_GAP = 6.dp
-private val PILL_RADIUS = 999.dp
-private val AMOUNT_SIZE = 24.sp
-private val CURRENCY_SIZE = 14.sp
-private val SORT_CODE_SIZE = 12.sp
 private const val INACTIVE_CARD_ALPHA = 0.72f
 
 /**
- * The standing-orders body: the summary line above the order list.
+ * The standing-orders body: a lazy list of one order card per instruction.
  *
  * The list is lazy because an account's order count is bank-decided and unbounded — OBIE returns
  * the full set in one unpaginated response, so the composition, not the request, is where this is
@@ -78,8 +59,6 @@ private const val INACTIVE_CARD_ALPHA = 0.72f
 @Composable
 internal fun StandingOrdersContent(
     orders: List<StandingOrderRowUi>,
-    activeCount: Int,
-    inactiveCount: Int,
     modifier: Modifier = Modifier,
 ) {
     val listDescription = stringResource(Res.string.feature_standing_orders_list_accessibility)
@@ -88,45 +67,13 @@ internal fun StandingOrdersContent(
             .fillMaxWidth()
             .testTag(StandingOrdersTestTags.CONTENT)
             .semantics { contentDescription = listDescription },
-        contentPadding = PaddingValues(SCREEN_PADDING),
-        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+        contentPadding = PaddingValues(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
-        item {
-            SummaryRow(activeCount = activeCount, inactiveCount = inactiveCount)
-        }
         items(items = orders, key = { it.standingOrderId.ifBlank { it.payeeName } }) { order ->
             StandingOrderCard(order = order)
         }
     }
-}
-
-/**
- * The `4 Active · 1 Inactive` readout.
- *
- * A single line rather than the pair of chips direct debits uses. The counts here are context for
- * the list below, not a control surface, and one sentence says that more plainly than two pills
- * that look tappable.
- */
-@Composable
-private fun SummaryRow(
-    activeCount: Int,
-    inactiveCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    val description = stringResource(
-        Res.string.feature_standing_orders_summary_accessibility,
-        activeCount,
-        inactiveCount,
-    )
-    Text(
-        text = stringResource(Res.string.feature_standing_orders_summary, activeCount, inactiveCount),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(StandingOrdersTestTags.SUMMARY_ROW)
-            .semantics { contentDescription = description },
-    )
 }
 
 /**
@@ -145,8 +92,9 @@ private fun StandingOrderCard(order: StandingOrderRowUi, modifier: Modifier = Mo
         order.statusLabel,
     )
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (order.isActive) 1f else INACTIVE_CARD_ALPHA)
@@ -154,8 +102,8 @@ private fun StandingOrderCard(order: StandingOrderRowUi, modifier: Modifier = Mo
             .semantics { contentDescription = cardDescription },
     ) {
         Column(
-            modifier = Modifier.padding(CARD_PADDING),
-            verticalArrangement = Arrangement.spacedBy(CARD_LINE_GAP),
+            modifier = Modifier.padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
         ) {
             StandingOrderCardHeader(order = order)
             StandingOrderAmount(order = order)
@@ -177,8 +125,10 @@ private fun StandingOrderCardHeader(order: StandingOrderRowUi, modifier: Modifie
     ) {
         Text(
             text = order.payeeName,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.semantics { contentDescription = payeeDescription },
         )
         StatusBadge(order = order)
@@ -201,26 +151,26 @@ private fun StatusBadge(order: StandingOrderRowUi, modifier: Modifier = Modifier
     )
     Surface(
         color = if (order.isActive) {
-            MaterialTheme.colorScheme.primaryContainer
+            KptTheme.colorScheme.primaryContainer
         } else {
-            MaterialTheme.colorScheme.secondaryContainer
+            KptTheme.colorScheme.secondaryContainer
         },
-        shape = RoundedCornerShape(PILL_RADIUS),
+        shape = DesignToken.shapes.pill,
         modifier = modifier
             .testTag(StandingOrdersTestTags.statusBadge(order.standingOrderId))
             .semantics { contentDescription = description },
     ) {
         Text(
             text = order.statusLabel,
-            style = MaterialTheme.typography.labelMedium,
+            style = KptTheme.typography.labelMedium,
             color = if (order.isActive) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                KptTheme.colorScheme.onPrimaryContainer
             } else {
-                MaterialTheme.colorScheme.onSecondaryContainer
+                KptTheme.colorScheme.onSecondaryContainer
             },
             modifier = Modifier.padding(
-                horizontal = BADGE_HORIZONTAL_PADDING,
-                vertical = BADGE_VERTICAL_PADDING,
+                horizontal = KptTheme.spacing.sm,
+                vertical = KptTheme.spacing.xs,
             ),
         )
     }
@@ -245,26 +195,23 @@ private fun StandingOrderAmount(order: StandingOrderRowUi, modifier: Modifier = 
         modifier = modifier
             .testTag(StandingOrdersTestTags.amount(order.standingOrderId))
             .semantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(AMOUNT_CURRENCY_GAP),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         verticalAlignment = Alignment.Bottom,
     ) {
         Text(
             text = order.amountLabel,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontSize = AMOUNT_SIZE,
-            ),
+            style = KptTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Monospace),
             color = if (order.isActive) {
-                MaterialTheme.colorScheme.onSurface
+                KptTheme.colorScheme.onSurface
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                KptTheme.colorScheme.onSurfaceVariant
             },
         )
         if (order.currencyLabel.isNotBlank()) {
             Text(
                 text = order.currencyLabel,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = CURRENCY_SIZE),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -280,12 +227,12 @@ private fun StandingOrderAmount(order: StandingOrderRowUi, modifier: Modifier = 
  */
 @Composable
 private fun StandingOrderMetaLines(order: StandingOrderRowUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(META_LINE_GAP)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
         StandingOrderScheduleLines(order = order)
         HorizontalDivider(
-            modifier = Modifier.padding(vertical = DIVIDER_MARGIN),
-            thickness = DIVIDER_THICKNESS,
-            color = MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.padding(vertical = KptTheme.spacing.xs),
+            thickness = DesignToken.strokes.hairline,
+            color = KptTheme.colorScheme.outlineVariant,
         )
         StandingOrderDestinationLines(order = order)
     }
@@ -293,40 +240,25 @@ private fun StandingOrderMetaLines(order: StandingOrderRowUi, modifier: Modifier
 
 @Composable
 private fun StandingOrderScheduleLines(order: StandingOrderRowUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(META_LINE_GAP)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
         if (order.frequencyLabel.isNotBlank()) {
             MetaLine(
-                text = order.frequencyLabel,
-                description = stringResource(
-                    Res.string.feature_standing_orders_frequency_accessibility,
-                    order.frequencyLabel,
-                ),
+                label = stringResource(Res.string.feature_standing_orders_frequency_accessibility),
+                value = order.frequencyLabel,
                 testTag = StandingOrdersTestTags.frequency(order.standingOrderId),
             )
         }
         if (order.nextDateLabel.isNotBlank()) {
             MetaLine(
-                text = stringResource(
-                    Res.string.feature_standing_orders_next_payment,
-                    order.nextDateLabel,
-                ),
-                description = stringResource(
-                    Res.string.feature_standing_orders_next_payment_accessibility,
-                    order.nextDateLabel,
-                ),
+                label = stringResource(Res.string.feature_standing_orders_next_payment),
+                value = order.nextDateLabel,
                 testTag = StandingOrdersTestTags.nextDate(order.standingOrderId),
             )
         }
         if (order.hasFinalPayment) {
             MetaLine(
-                text = stringResource(
-                    Res.string.feature_standing_orders_final_payment,
-                    order.finalDateLabel,
-                ),
-                description = stringResource(
-                    Res.string.feature_standing_orders_final_payment_accessibility,
-                    order.finalDateLabel,
-                ),
+                label = stringResource(Res.string.feature_standing_orders_final_payment),
+                value = order.finalDateLabel,
                 testTag = StandingOrdersTestTags.finalDate(order.standingOrderId),
             )
         }
@@ -335,28 +267,19 @@ private fun StandingOrderScheduleLines(order: StandingOrderRowUi, modifier: Modi
 
 @Composable
 private fun StandingOrderDestinationLines(order: StandingOrderRowUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(META_LINE_GAP)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
         if (order.sortCodeLabel.isNotBlank()) {
             MetaLine(
-                text = order.sortCodeLabel,
-                description = stringResource(
-                    Res.string.feature_standing_orders_sort_code_accessibility,
-                    order.sortCodeLabel,
-                ),
+                label = stringResource(Res.string.feature_standing_orders_sort_code_accessibility),
+                value = order.sortCodeLabel,
                 testTag = StandingOrdersTestTags.sortCode(order.standingOrderId),
                 monospace = true,
             )
         }
         if (order.referenceLabel.isNotBlank()) {
             MetaLine(
-                text = stringResource(
-                    Res.string.feature_standing_orders_reference,
-                    order.referenceLabel,
-                ),
-                description = stringResource(
-                    Res.string.feature_standing_orders_reference_accessibility,
-                    order.referenceLabel,
-                ),
+                label = stringResource(Res.string.feature_standing_orders_reference),
+                value = order.referenceLabel,
                 testTag = StandingOrdersTestTags.reference(order.standingOrderId),
             )
         }
@@ -364,28 +287,37 @@ private fun StandingOrderDestinationLines(order: StandingOrderRowUi, modifier: M
 }
 
 /**
- * One small caption line on a card. [monospace] is set for the sort code and account number, where
- * the fixed-width digits are what make the grouping readable as an account identifier.
+ * One label + value line on a card. [monospace] renders the value in fixed-width digits for the
+ * identification line, where the grouping stays readable as an account identifier.
  */
 @Composable
 private fun MetaLine(
-    text: String,
-    description: String,
+    label: String,
+    value: String,
     testTag: String,
     modifier: Modifier = Modifier,
     monospace: Boolean = false,
 ) {
-    val base = MaterialTheme.typography.bodySmall
-    Text(
-        text = text,
-        style = if (monospace) {
-            base.copy(fontFamily = FontFamily.Monospace, fontSize = SORT_CODE_SIZE)
-        } else {
-            base
-        },
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Row(
         modifier = modifier
-            .testTag(testTag)
-            .semantics { contentDescription = description },
-    )
+            .fillMaxWidth()
+            .padding(top = KptTheme.spacing.xs)
+            .testTag(testTag),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
+    ) {
+        Text(
+            text = label,
+            style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = if (monospace) {
+                KptTheme.typography.titleSmall.copy(fontFamily = FontFamily.Monospace)
+            } else {
+                KptTheme.typography.titleSmall
+            },
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
