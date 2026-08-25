@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.statementdetail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,16 +23,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,9 +39,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_action_download_pdf
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_created
@@ -61,24 +59,7 @@ import org.mifosx.openbanking.feature.statementdetail.ui.StatementAmountColor
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailUiModel
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementLineUiModel
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementTxnRowUiModel
-
-private val ScreenPadding = 16.dp
-private val ListBottomPadding = 100.dp
-private val CardCornerRadius = 12.dp
-private val CardElevation = 2.dp
-private val HeaderInnerPadding = 16.dp
-private val HeaderLineGap = 4.dp
-private val SectionHeaderTopPadding = 20.dp
-private val SectionHeaderBottomPadding = 8.dp
-private val RowMinHeight = 52.dp
-private val RowVerticalPadding = 10.dp
-private val RowTrailingGap = 12.dp
-private val TxnTextGap = 2.dp
-private val DownloadTopPadding = 24.dp
-private val DownloadButtonHeight = 40.dp
-private val DownloadIconSize = 18.dp
-private val DownloadIconGap = 8.dp
-private val ProgressTopPadding = 10.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The statement-detail content body: the period header card, the money sections (Fees and Interest
@@ -100,9 +81,9 @@ internal fun StatementDetailContent(
             .fillMaxSize()
             .testTag(StatementDetailTestTags.CONTENT_LIST),
         contentPadding = PaddingValues(
-            start = ScreenPadding,
-            end = ScreenPadding,
-            bottom = ListBottomPadding,
+            start = KptTheme.spacing.md,
+            end = KptTheme.spacing.md,
+            bottom = DesignToken.sizes.badge,
         ),
     ) {
         statementSections(statement)
@@ -166,41 +147,41 @@ internal fun LazyListScope.statementSections(statement: StatementDetailUiModel) 
 @Composable
 private fun StatementHeaderCard(statement: StatementDetailUiModel, modifier: Modifier = Modifier) {
     val description = stringResource(Res.string.feature_statement_detail_header_card_a11y)
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = CardElevation),
-        shape = RoundedCornerShape(CardCornerRadius),
+    Surface(
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .testTag(StatementDetailTestTags.HEADER_CARD)
             .semantics { contentDescription = description },
     ) {
         Column(
-            modifier = Modifier.padding(HeaderInnerPadding),
-            verticalArrangement = Arrangement.spacedBy(HeaderLineGap),
+            modifier = Modifier.padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = statement.reference,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                style = KptTheme.typography.labelMedium,
+                color = KptTheme.colorScheme.secondary,
             )
             Text(
                 text = statement.periodLabel,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.titleMedium,
+                color = KptTheme.colorScheme.onSurface,
             )
             Text(
                 text = statement.type,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = stringResource(
                     Res.string.feature_statement_detail_created,
                     statement.createdDateLabel,
                 ),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.labelSmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -214,11 +195,11 @@ internal fun StatementSectionHeader(
 ) {
     Text(
         text = stringResource(labelRes),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = KptTheme.typography.titleSmall,
+        color = KptTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = SectionHeaderTopPadding, bottom = SectionHeaderBottomPadding)
+            .padding(top = KptTheme.spacing.lg, bottom = KptTheme.spacing.sm)
             .testTag(sectionTag),
     )
 }
@@ -235,7 +216,7 @@ private fun StatementLineSection(
         lines.forEachIndexed { index, line ->
             StatementLineRow(line = line)
             if (index < lines.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -251,23 +232,23 @@ private fun StatementLineRow(line: StatementLineUiModel, modifier: Modifier = Mo
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
-            .padding(vertical = RowVerticalPadding)
+            .heightIn(min = DesignToken.sizes.cardRow)
+            .padding(vertical = KptTheme.spacing.sm)
             .semantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = line.label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = line.amountFormatted,
-            style = MaterialTheme.typography.titleMedium,
+            style = KptTheme.typography.titleMedium,
             fontFamily = FontFamily.Monospace,
             color = line.color.toAmountColor(),
-            modifier = Modifier.padding(start = RowTrailingGap),
+            modifier = Modifier.padding(start = KptTheme.spacing.md),
         )
     }
 }
@@ -287,39 +268,39 @@ private fun StatementTransactionRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
+            .heightIn(min = DesignToken.sizes.cardRow)
             .clickable { onRowClick(row.transactionId, row.accountId) }
-            .padding(vertical = RowVerticalPadding)
+            .padding(vertical = KptTheme.spacing.sm)
             .testTag(StatementDetailTestTags.txnRow(row.transactionId))
             .semantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(TxnTextGap),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = row.dateLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.labelSmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = row.info,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
         }
         Text(
             text = row.amountFormatted,
-            style = MaterialTheme.typography.titleSmall,
+            style = KptTheme.typography.titleSmall,
             fontFamily = FontFamily.Monospace,
             color = if (row.isCredit) {
-                MaterialTheme.colorScheme.tertiary
+                KptTheme.colorScheme.tertiary
             } else {
-                MaterialTheme.colorScheme.error
+                KptTheme.colorScheme.error
             },
-            modifier = Modifier.padding(start = RowTrailingGap),
+            modifier = Modifier.padding(start = KptTheme.spacing.md),
         )
     }
 }
@@ -336,20 +317,22 @@ internal fun StatementDownloadSection(
 ) {
     val downloadDescription = stringResource(Res.string.feature_statement_detail_download_pdf_a11y)
     val progressDescription = stringResource(Res.string.feature_statement_detail_downloading)
-    Column(modifier = modifier.fillMaxWidth().padding(top = DownloadTopPadding)) {
+    Column(modifier = modifier.fillMaxWidth().padding(top = KptTheme.spacing.lg)) {
         OutlinedButton(
             onClick = onDownload,
             enabled = !isDownloading,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = DownloadButtonHeight)
+                .heightIn(min = DesignToken.sizes.iconExtraLarge)
                 .testTag(StatementDetailTestTags.DOWNLOAD_BUTTON)
                 .semantics { contentDescription = downloadDescription },
         ) {
             Icon(
                 imageVector = Icons.Filled.FileDownload,
                 contentDescription = null,
-                modifier = Modifier.padding(end = DownloadIconGap).size(DownloadIconSize),
+                modifier = Modifier
+                    .padding(end = KptTheme.spacing.sm)
+                    .size(DesignToken.sizes.iconExtraSmall),
             )
             Text(text = stringResource(Res.string.feature_statement_detail_action_download_pdf))
         }
@@ -357,7 +340,7 @@ internal fun StatementDownloadSection(
             LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = ProgressTopPadding)
+                    .padding(top = KptTheme.spacing.sm)
                     .testTag(StatementDetailTestTags.DOWNLOAD_PROGRESS)
                     .semantics { contentDescription = progressDescription },
             )
@@ -367,7 +350,7 @@ internal fun StatementDownloadSection(
 
 @Composable
 private fun StatementAmountColor.toAmountColor(): Color = when (this) {
-    StatementAmountColor.Credit -> MaterialTheme.colorScheme.tertiary
-    StatementAmountColor.Debit -> MaterialTheme.colorScheme.error
-    StatementAmountColor.Neutral -> MaterialTheme.colorScheme.onSurface
+    StatementAmountColor.Credit -> KptTheme.colorScheme.tertiary
+    StatementAmountColor.Debit -> KptTheme.colorScheme.error
+    StatementAmountColor.Neutral -> KptTheme.colorScheme.onSurface
 }

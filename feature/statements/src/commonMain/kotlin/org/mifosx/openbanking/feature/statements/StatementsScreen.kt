@@ -17,14 +17,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.statements.generated.resources.Res
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_download_error
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_download_unavailable
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_empty_title
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_error_consent_scope
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_error_network
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_error_rate_limited
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_error_server
+import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_error_token_expired
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_screen_title
 import org.mifosx.openbanking.feature.statements.ui.StatementsAction
+import org.mifosx.openbanking.feature.statements.ui.StatementsErrorKind
 import org.mifosx.openbanking.feature.statements.ui.StatementsEvent
 import org.mifosx.openbanking.feature.statements.ui.StatementsState
 import org.mifosx.openbanking.feature.statements.ui.StatementsUiState
@@ -82,7 +93,7 @@ internal fun StatementsScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        StatementsUiState.Loading -> StatementsSkeleton(modifier = modifier)
+        StatementsUiState.Loading -> MifosProgressIndicator()
 
         is StatementsUiState.Content -> StatementsContent(
             statements = current.statements,
@@ -92,12 +103,23 @@ internal fun StatementsScreenContent(
             modifier = modifier,
         )
 
-        StatementsUiState.Empty -> StatementsEmpty(modifier = modifier)
+        StatementsUiState.Empty -> EmptyDataComponent(
+            isEmptyData = true,
+            message = stringResource(Res.string.feature_statements_empty_title),
+        )
 
-        is StatementsUiState.Error -> StatementsError(
-            kind = current.kind,
+        is StatementsUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = true,
             onRetry = { onAction(StatementsAction.RetryLoad) },
-            modifier = modifier,
         )
     }
+}
+
+private fun StatementsErrorKind.bodyResource(): StringResource = when (this) {
+    StatementsErrorKind.TokenExpired -> Res.string.feature_statements_error_token_expired
+    StatementsErrorKind.ConsentScope -> Res.string.feature_statements_error_consent_scope
+    StatementsErrorKind.RateLimited -> Res.string.feature_statements_error_rate_limited
+    StatementsErrorKind.ServerError -> Res.string.feature_statements_error_server
+    StatementsErrorKind.NetworkError -> Res.string.feature_statements_error_network
 }

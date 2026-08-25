@@ -18,19 +18,8 @@ package org.mifosx.openbanking.feature.statements
  */
 internal object StatementsTestTags {
 
-    const val LOADING_SKELETON = "statements:loadingSkeleton"
-
     /** The scrolling statement list itself — the node the suites scroll to reach later rows. */
     const val CONTENT_LIST = "statements:contentList"
-
-    const val EMPTY_STATE = "statements:emptyState"
-    const val EMPTY_TITLE = "statements:emptyTitle"
-    const val EMPTY_BODY = "statements:emptyBody"
-
-    const val ERROR_STATE = "statements:errorState"
-    const val ERROR_TITLE = "statements:errorTitle"
-    const val ERROR_BODY = "statements:errorBody"
-    const val RETRY_BUTTON = "statements:retryButton"
 
     /** Tag for one statement row, keyed by its OBIE `StatementId`. */
     fun row(id: String): String = "statements_row_$id"

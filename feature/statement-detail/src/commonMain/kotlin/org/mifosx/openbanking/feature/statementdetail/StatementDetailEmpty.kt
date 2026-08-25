@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,21 +31,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_empty_txns_a11y
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_empty_txns_body
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_empty_txns_title
 import org.mifosx.openbanking.feature.statementdetail.ui.DownloadState
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailUiModel
-
-private val ScreenPadding = 16.dp
-private val ListBottomPadding = 100.dp
-private val IconWellSize = 72.dp
-private val IconSize = 36.dp
-private val BlockTopPadding = 24.dp
-private val LineGap = 8.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * Empty state: the statement loaded but its period held no transactions. The header card, balances,
@@ -65,9 +58,9 @@ internal fun StatementDetailEmpty(
             .fillMaxSize()
             .testTag(StatementDetailTestTags.EMPTY_LIST),
         contentPadding = PaddingValues(
-            start = ScreenPadding,
-            end = ScreenPadding,
-            bottom = ListBottomPadding,
+            start = KptTheme.spacing.md,
+            end = KptTheme.spacing.md,
+            bottom = DesignToken.sizes.badge,
         ),
     ) {
         statementSections(statement)
@@ -87,36 +80,36 @@ private fun StatementEmptyTransactions(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = BlockTopPadding)
+            .padding(top = KptTheme.spacing.lg)
             .testTag(StatementDetailTestTags.EMPTY_TRANSACTIONS)
             .semantics { contentDescription = description },
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(IconWellSize)
-                .background(color = MaterialTheme.colorScheme.surfaceContainer, shape = CircleShape),
+                .size(DesignToken.sizes.avatarLarge)
+                .background(color = KptTheme.colorScheme.surfaceContainer, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(IconSize),
+                tint = KptTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(DesignToken.sizes.iconLarge),
             )
         }
         Text(
             text = stringResource(Res.string.feature_statement_detail_empty_txns_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(StatementDetailTestTags.EMPTY_TRANSACTIONS_TITLE),
         )
         Text(
             text = stringResource(Res.string.feature_statement_detail_empty_txns_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(StatementDetailTestTags.EMPTY_TRANSACTIONS_BODY),
         )
