@@ -76,6 +76,7 @@ import org.mifosx.openbanking.feature.sendmoney.SendMoneyHistoryRoute
 import org.mifosx.openbanking.feature.sendmoney.SendMoneyRoute
 import org.mifosx.openbanking.feature.sendmoney.sendMoneyGraph
 import org.mifosx.openbanking.feature.settings.LicencesRoute
+import org.mifosx.openbanking.feature.settings.SettingsRoute
 import org.mifosx.openbanking.feature.settings.licencesScreen
 import org.mifosx.openbanking.feature.settings.settingsScreen
 import org.mifosx.openbanking.feature.standingorders.StandingOrdersRoute
@@ -171,10 +172,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             popExitTransition = RootTransitionProviders.Exit.fadeOut,
         ) {
             homeGraph(
-                onNavigateToTransactions = { accountId -> navController.navigate(TransactionsRoute(accountId)) },
-                onNavigateToTransactionDetail = { transactionId, accountId ->
-                    navController.navigate(TransactionDetailRoute(transactionId, accountId))
-                },
+                onNavigateToSendMoney = { navController.navigate(SendMoneyRoute) },
+                onNavigateToSchedulePayment = { navController.navigate(SchedulePaymentRoute) },
+                onNavigateToStandingOrder = { navController.navigate(StandingOrderRoute) },
+                onNavigateToVrp = { navController.navigateToVrpConsentList() },
+                onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
+                onNavigateToSettings = { navController.navigate(SettingsRoute) },
             )
             accountsGraph(
                 onNavigateToAccountDetail = { accountId -> navController.navigate(AccountDetailRoute(accountId)) },
@@ -185,9 +188,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToStandingOrder = { navController.navigate(StandingOrderRoute) },
                 onNavigateToVrp = { navController.navigateToVrpConsentList() },
             )
-
-            // The VRP destinations. Siblings of the hub graph, like the payment flows — but only
-            // setup hands off to the browser, and its return leg lands at the root navigator.
             vrpConsentsDestination(
                 navController = navController,
                 onBack = { navController.popBackStack() },
@@ -208,8 +208,6 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToHistory = { navController.navigate(SendMoneyHistoryRoute) },
                 onBack = { navController.popBackStack() },
             )
-            // A sibling of the hub graph, like send-money: the scheduled rails own their own browser
-            // hand-off, and the return leg lands at the root navigator, not here.
             schedulePaymentGraph(
                 onLaunchAuthorisation = { url -> runCatching { browserLauncher.launch(url) } },
                 onNavigateToConsents = {},
@@ -231,16 +229,7 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
                 onNavigateToHistory = { navController.navigate(StandingOrderHistoryRoute) },
                 onBack = { navController.popBackStack() },
             )
-            // Registered here as well as at the root, because a route has to exist in the host that
-            // navigates to it. The root copy serves the authorisation return leg, which lands outside
-            // this NavHost entirely.
-            //
-            // This copy is currently unreachable: it existed for the hub's Recent list, and tapping a
-            // row there threw "Destination with route PaymentStatusRoute cannot be found in
-            // navigation graph" until it was added. The list is gone, so nothing inside this host
-            // navigates here any more. Kept deliberately — the two hosts cannot see each other's
-            // destinations in either direction, so the next screen in this host that wants to show a
-            // payment needs this entry to already exist rather than to rediscover the crash.
+
             paymentStatusScreen(onBack = { navController.popBackStack() })
             accountDetailScreen(
                 onNavigateToChip = { chip, accountId -> navController.navigateFromChip(chip, accountId) },
@@ -258,16 +247,12 @@ internal fun AuthenticatedNavbarNavigationScreenContent(
             consentListScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToDetail = { consentId -> navController.navigate(ConsentDetailRoute(consentId)) },
-                // Connecting and re-authenticating both stage a fresh consent, which is the login
-                // screen's job — reached here without the onboarding intro via LoginRenewRoute.
                 onConnectBank = { navController.navigate(LoginRenewRoute) },
                 onReauthenticate = { navController.navigate(LoginRenewRoute) },
             )
             consentDetailScreen(
                 onBack = { navController.popBackStack() },
-                // Reconfirm re-runs the consent authorisation on the same login screen.
                 onReconfirm = { navController.navigate(LoginRenewRoute) },
-                // Revoke is a full logout; the root navigator takes the user to onboarding.
                 onLoggedOut = onLoggedOut,
             )
             loginRenewScreen(onBack = { navController.popBackStack() })
@@ -319,12 +304,6 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
 }
 
 private fun NavHostController.navigateToTab(tab: NavigationItem) {
-    // Navigate to the tab's graph route, not its inner start-destination route. For the Home tab
-    // those differ (`HomeDestination` graph vs `HomeRoute`), and `HomeRoute` is also the NavHost's
-    // start destination — the same id this `popUpTo` targets. Navigating to that id with
-    // `restoreState = true` restored the sibling tab's just-saved back stack instead of Home, so the
-    // Home tab was unreachable. Targeting the graph route decouples the two. (Flat tabs — Transactions
-    // placeholder, More — have graphRoute == startDestinationRoute, so they are unaffected.)
     navigate(route = tab.graphRoute) {
         popUpTo(graph.findStartDestination().id) {
             saveState = true

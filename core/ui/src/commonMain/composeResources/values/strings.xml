@@ -9,11 +9,11 @@
     See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
 -->
 <resources>
-    <string name="core_ui_account_type_current">Current account</string>
+    <string name="core_ui_account_type_current">Current Account</string>
     <string name="core_ui_account_type_savings">Savings</string>
-    <string name="core_ui_account_type_credit">Credit card</string>
-    <string name="core_ui_account_type_global_money">Global money</string>
-    <string name="core_ui_account_type_global_wallet">Global wallet</string>
+    <string name="core_ui_account_type_credit">Credit Card</string>
+    <string name="core_ui_account_type_global_money">Global Money</string>
+    <string name="core_ui_account_type_global_wallet">Global Wallet</string>
     <string name="core_ui_account_type_other">Account</string>
 
     <string name="core_ui_account_picker_available_balance">Available Balance: %1$s</string>

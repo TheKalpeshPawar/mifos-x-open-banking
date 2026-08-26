@@ -33,8 +33,12 @@ import template.core.base.ui.screen.ScreenContent
  */
 @Composable
 internal fun HomeScreen(
-    onNavigateToTransactions: (accountId: String) -> Unit,
-    onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
+    onNavigateToSendMoney: () -> Unit,
+    onNavigateToSchedulePayment: () -> Unit,
+    onNavigateToStandingOrder: () -> Unit,
+    onNavigateToVrp: () -> Unit,
+    onNavigateToAccountDetail: (accountId: String) -> Unit,
+    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -61,14 +65,12 @@ internal fun HomeScreen(
         ) { data, _ ->
             HomeContent(
                 data = data,
-                onSelectAccount = { viewModel.trySendAction(HomeAction.SelectAccount(it)) },
-                onNavigateToTransactions = onNavigateToTransactions,
-                onNavigateToTransactionDetail = onNavigateToTransactionDetail,
-                isAccountSelectorVisible = state.isAccountSelectorVisible,
-                onOpenAccountSelector = { viewModel.trySendAction(HomeAction.OpenAccountSelector) },
-                onDismissAccountSelector = {
-                    viewModel.trySendAction(HomeAction.DismissAccountSelector)
-                },
+                onSendMoney = onNavigateToSendMoney,
+                onSchedule = onNavigateToSchedulePayment,
+                onStandingOrder = onNavigateToStandingOrder,
+                onVrp = onNavigateToVrp,
+                onAccountClick = onNavigateToAccountDetail,
+                onAvatarClick = onNavigateToSettings,
             )
         }
     }

@@ -59,6 +59,7 @@ fun NavGraphBuilder.standingOrderGraph(
                 onNavigateToConsents = onNavigateToConsents,
                 onNavigateToPayment = onNavigateToPayment,
                 onNavigateToHistory = onNavigateToHistory,
+                onBack = onBack,
             )
         }
         composableWithStayTransitions<StandingOrderHistoryRoute> {

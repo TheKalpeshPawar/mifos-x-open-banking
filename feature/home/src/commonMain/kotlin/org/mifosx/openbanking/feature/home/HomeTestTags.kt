@@ -9,18 +9,23 @@
  */
 package org.mifosx.openbanking.feature.home
 
-/**
- * Stable Compose `testTag` identifiers for the home dashboard surfaces. Shared by the Robolectric
- * and on-device instrumented UI tests so both drive the screen through the same vocabulary.
- */
+/** Stable `testTag` values for the home screen, shared by every home test suite. */
 internal object HomeTestTags {
     const val CONTENT = "home_content"
-    const val HERO_CARD = "home_hero_card"
-    const val RECENT_TRANSACTIONS = "home_recent_transactions"
-    const val ACCOUNT_SELECTOR_SHEET = "home_account_selector_sheet"
+    const val HEADER = "home_header"
+    const val GREETING = "home_greeting"
+    const val AVATAR = "home_avatar"
+    const val QUICK_ACTIONS = "home_quick_actions"
+    const val CARDS_SECTION = "home_cards_section"
+    const val ACCOUNTS_SECTION = "home_accounts_section"
 
-    private const val ACCOUNT_CHIP_PREFIX = "home_account_chip_"
+    private const val QUICK_ACTION_PREFIX = "home_quick_action_"
+    private const val CARD_FACE_PREFIX = "home_card_face_"
+    private const val ACCOUNT_ROW_PREFIX = "home_account_row_"
 
-    /** Per-account row tag inside the account selector sheet, e.g. `home_account_chip_acc-1`. */
-    fun accountChip(accountId: String): String = ACCOUNT_CHIP_PREFIX + accountId
+    fun quickAction(key: String): String = QUICK_ACTION_PREFIX + key
+
+    fun cardFace(accountId: String): String = CARD_FACE_PREFIX + accountId
+
+    fun accountRow(accountId: String): String = ACCOUNT_ROW_PREFIX + accountId
 }

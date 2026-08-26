@@ -19,15 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import org.mifosx.openbanking.feature.accounts.components.AccountCard
+import org.mifosx.openbanking.core.ui.components.MifosAccountRow
 import org.mifosx.openbanking.feature.accounts.components.AccountTypeFilterRow
 import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
 import org.mifosx.openbanking.feature.accounts.ui.AccountsData
 import template.core.base.designsystem.theme.KptTheme
 
 /**
- * Content state: the net-balance summary and type-filter chips pinned above a scrolling list of
- * account cards.
+ * Content state: the type-filter chips pinned above a scrolling list of account rows.
  */
 @Composable
 internal fun AccountsContent(
@@ -50,11 +49,12 @@ internal fun AccountsContent(
                 data.rows,
                 key = { it.account.accountId },
             ) { account ->
-                AccountCard(
+                MifosAccountRow(
                     account = account,
                     onClick = {
                         onAccountClick(account.account.accountId)
                     },
+                    testTag = AccountsTestTags.accountCard(account.account.accountId),
                 )
             }
         }

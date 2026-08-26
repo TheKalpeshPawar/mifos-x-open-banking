@@ -42,6 +42,7 @@ internal fun SendMoneyScreen(
     onNavigateToConsents: () -> Unit,
     onNavigateToPayment: (String) -> Unit,
     onNavigateToHistory: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SendMoneyViewModel = koinViewModel(),
 ) {
@@ -54,7 +55,8 @@ internal fun SendMoneyScreen(
     }
 
     KptScaffold(
-        showNavigationIcon = false,
+        showNavigationIcon = true,
+        onNavigationIconClick = onBack,
         title = stringResource(Res.string.feature_send_money_screen_title),
         modifier = modifier,
     ) {

@@ -14,7 +14,6 @@ import android.graphics.Color
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
@@ -28,9 +27,6 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
-
-@ColorInt
-private val SCRIM_COLOR: Int = Color.TRANSPARENT
 
 /**
  * Helper method to handle edge-to-edge logic for dark mode.
@@ -53,14 +49,12 @@ fun ComponentActivity.setupEdgeToEdge(
             }
                 .distinctUntilChanged()
                 .collect { isDarkMode ->
-                    // This handles all the settings to go edge-to-edge. We are using a transparent
-                    // scrim for system bars and switching between "light" and "dark" based on the
-                    // system and internal app theme settings.
                     val style = SystemBarStyle.auto(
-                        darkScrim = SCRIM_COLOR,
-                        lightScrim = SCRIM_COLOR,
-                        // Disabling Dark Mode for this app
-                        detectDarkMode = { false },
+                        darkScrim = Color.TRANSPARENT,
+                        lightScrim = Color.TRANSPARENT,
+                        detectDarkMode = {
+                            isDarkMode
+                        },
                     )
                     enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 }

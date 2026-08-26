@@ -7,6 +7,8 @@
  *
  * See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
+import org.jetbrains.compose.ExperimentalComposeLibrary
+
 plugins {
     alias(libs.plugins.cmp.feature.convention)
 }
@@ -24,6 +26,7 @@ kotlin {
             implementation(projects.core.ui)
             implementation(projects.coreBase.store)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
 
             implementation(compose.ui)
             implementation(compose.material3)
@@ -34,9 +37,13 @@ kotlin {
         }
 
         commonTest.dependencies {
-            // The TransactionsRepository fake implements the cursor pager, whose signatures
-            // are typed on NetworkResult / NetworkError.
-            implementation(projects.coreBase.network)
+            @OptIn(ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
+        }
+
+        desktopTest.dependencies {
+            implementation(compose.desktop.uiTestJUnit4)
+            implementation(compose.desktop.currentOs)
         }
 
         androidUnitTest.dependencies {
@@ -62,6 +69,16 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+        }
+    }
+}
+
+// Compose UI suites run on the desktop runner only.
+tasks.withType<Test>().configureEach {
+    if (name.endsWith("UnitTest")) {
+        filter {
+            excludeTestsMatching("*ScreenUiTest")
+            isFailOnNoMatchingTests = false
         }
     }
 }
