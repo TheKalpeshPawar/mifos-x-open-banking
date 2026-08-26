@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package cmp.navigation.authenticatednavbar
+package cmp.navigation.authenticatednavhost
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.SnackbarDuration.Indefinite
@@ -22,24 +22,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
 import cmp.navigation.generated.resources.Res
 import cmp.navigation.generated.resources.not_connected
 import cmp.navigation.placeholder.AtmLocatorRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
-import cmp.navigation.ui.ScaffoldNavigationData
 import cmp.navigation.ui.rememberKptNavController
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import org.mifosx.openbanking.core.ui.NavigationItem
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailChip
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailRoute
 import org.mifosx.openbanking.feature.accountdetail.accountDetailScreen
@@ -98,13 +92,13 @@ import org.mifosx.openbanking.feature.vrpsetup.setup.vrpSetupScreen
 import template.core.base.ui.util.RootTransitionProviders
 
 @Composable
-internal fun AuthenticatedNavbarNavigationScreen(
+internal fun AuthenticatedNavHostScreen(
     onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberKptNavController(
-        name = "AuthenticatedNavbarScreen",
+        name = "AuthenticatedNavHostScreen",
     ),
-    viewModel: AuthenticatedNavbarNavigationViewModel = koinViewModel(),
+    viewModel: AuthenticatedNavHostViewModel = koinViewModel(),
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -122,7 +116,7 @@ internal fun AuthenticatedNavbarNavigationScreen(
         }
     }
 
-    AuthenticatedNavbarNavigationScreenContent(
+    AuthenticatedNavHostScreenContent(
         navController = navController,
         snackbarHostState = snackbarHostState,
         onLoggedOut = onLoggedOut,
@@ -131,33 +125,18 @@ internal fun AuthenticatedNavbarNavigationScreen(
 }
 
 @Composable
-internal fun AuthenticatedNavbarNavigationScreenContent(
+internal fun AuthenticatedNavHostScreenContent(
     navController: NavHostController,
     onLoggedOut: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val navigationItems = consumerNavBarTabs
     val startDestination: Any = HomeDestination
     val uriHandler = LocalUriHandler.current
     val browserLauncher: BrowserLauncher = koinInject()
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-
     KptRootScaffold(
         contentWindowInsets = WindowInsets(0.dp),
-        navigationData = ScaffoldNavigationData(
-            navigationItems = navigationItems,
-            selectedNavigationItem = navigationItems.find {
-                navBackStackEntry.isCurrentRoute(route = it.graphRoute)
-            },
-            onNavigationClick = { navigationItem ->
-                navController.navigateToTab(navigationItem)
-            },
-            shouldShowNavigation = navigationItems.any {
-                navBackStackEntry.isCurrentRoute(route = it.startDestinationRoute)
-            },
-        ),
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
@@ -302,19 +281,3 @@ private fun NavHostController.navigateFromChip(chip: AccountDetailChip, accountI
         AccountDetailChip.Party -> navigate(AccountHolderRoute(accountId))
     }
 }
-
-private fun NavHostController.navigateToTab(tab: NavigationItem) {
-    navigate(route = tab.graphRoute) {
-        popUpTo(graph.findStartDestination().id) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-}
-
-private fun NavBackStackEntry?.isCurrentRoute(route: String): Boolean =
-    this
-        ?.destination
-        ?.hierarchy
-        ?.any { it.route == route } == true

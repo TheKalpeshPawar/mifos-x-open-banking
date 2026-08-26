@@ -10,7 +10,7 @@
 package cmp.navigation.di
 
 import cmp.navigation.AppViewModel
-import cmp.navigation.authenticatednavbar.AuthenticatedNavbarNavigationViewModel
+import cmp.navigation.authenticatednavhost.AuthenticatedNavHostViewModel
 import cmp.navigation.rootnav.RootNavViewModel
 import cmp.navigation.statements.platformStatementFileHandler
 import org.koin.core.module.dsl.viewModelOf
@@ -65,7 +65,7 @@ object KoinModules {
         includes(platformModule)
 
         viewModelOf(::AppViewModel)
-        viewModelOf(::AuthenticatedNavbarNavigationViewModel)
+        viewModelOf(::AuthenticatedNavHostViewModel)
         viewModelOf(::RootNavViewModel)
     }
 
@@ -100,8 +100,6 @@ object KoinModules {
             VrpPaymentModule,
         )
 
-        // App-layer binding for the statements feature's platform delivery seam; the impl is
-        // supplied per-platform (real FileKit on nonJs, no-op on web) via the expect/actual factory.
         single<StatementFileHandler> { platformStatementFileHandler() }
     }
 

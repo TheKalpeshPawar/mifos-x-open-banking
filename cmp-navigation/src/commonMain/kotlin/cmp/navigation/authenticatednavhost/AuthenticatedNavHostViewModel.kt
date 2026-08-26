@@ -7,7 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-package cmp.navigation.authenticatednavbar
+package cmp.navigation.authenticatednavhost
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,14 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import template.core.base.ui.viewmodel.BaseViewModel
 
-/**
- * Navbar shell ViewModel. Bottom-nav navigation is handled directly in the
- * Compose layer against the active flavor's tab set; this VM only exposes the
- * connectivity state that drives the offline snackbar.
- */
-internal class AuthenticatedNavbarNavigationViewModel(
+/** Exposes the connectivity state that drives the host's offline snackbar. */
+internal class AuthenticatedNavHostViewModel(
     networkMonitor: NetworkMonitor,
-) : BaseViewModel<Unit, Nothing, AuthenticatedNavBarAction>(
+) : BaseViewModel<Unit, Nothing, AuthenticatedNavHostAction>(
     initialState = Unit,
 ) {
 
@@ -36,8 +32,8 @@ internal class AuthenticatedNavbarNavigationViewModel(
         )
 
     @Suppress("EmptyFunctionBlock")
-    override fun handleAction(action: AuthenticatedNavBarAction) {
+    override fun handleAction(action: AuthenticatedNavHostAction) {
     }
 }
 
-internal sealed interface AuthenticatedNavBarAction
+internal sealed interface AuthenticatedNavHostAction

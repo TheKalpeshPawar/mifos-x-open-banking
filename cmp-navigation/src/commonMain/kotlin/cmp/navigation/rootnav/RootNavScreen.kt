@@ -110,8 +110,8 @@ fun RootNavScreen(
         authGraph(navController)
         paymentConsentScreen(
             // A submitted payment goes to its receipt; an abandoned or restarted one goes back into
-            // the app. Payment-status is registered here, at the root, rather than inside the navbar
-            // graph — the navbar hosts its own NavHost, which this navigator cannot reach into.
+            // the app. Payment-status is registered here, at the root, rather than inside the host
+            // graph — the host owns its own NavHost, which this navigator cannot reach into.
             onPaymentSubmitted = { paymentId ->
                 navController.navigate(PaymentStatusRoute(paymentId), rootNavOptions())
             },
@@ -127,7 +127,7 @@ fun RootNavScreen(
             },
             onNavigateToLogin = { navController.navigateToAuthGraph(rootNavOptions()) },
         )
-        // The VRP return leg. Registered here rather than in the navbar because the redirect arrives
+        // The VRP return leg. Registered here rather than in the host because the redirect arrives
         // from outside the Compose tree; both outcomes route back into the authenticated graph,
         // which then resolves the VRP list.
         vrpCallbackScreen(

@@ -7,9 +7,7 @@
  *
  * See See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
  */
-@file:Suppress("MatchingDeclarationName")
-
-package cmp.navigation.authenticatednavbar
+package cmp.navigation.authenticatednavhost
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -18,14 +16,14 @@ import kotlinx.serialization.Serializable
 import template.core.base.ui.nav.composableWithStayTransitions
 
 @Serializable
-data object AuthenticatedNavbarRoute
+data object AuthenticatedNavHostRoute
 
-internal fun NavController.navigateToAuthenticatedNavBar(navOptions: NavOptions? = null) {
-    navigate(route = AuthenticatedNavbarRoute, navOptions = navOptions)
+internal fun NavController.navigateToAuthenticatedNavHost(navOptions: NavOptions? = null) {
+    navigate(route = AuthenticatedNavHostRoute, navOptions = navOptions)
 }
 
-internal fun NavGraphBuilder.authenticatedNavbarGraph(onLoggedOut: () -> Unit) {
-    composableWithStayTransitions<AuthenticatedNavbarRoute> {
-        AuthenticatedNavbarNavigationScreen(onLoggedOut = onLoggedOut)
+internal fun NavGraphBuilder.authenticatedNavHostGraph(onLoggedOut: () -> Unit) {
+    composableWithStayTransitions<AuthenticatedNavHostRoute> {
+        AuthenticatedNavHostScreen(onLoggedOut = onLoggedOut)
     }
 }
