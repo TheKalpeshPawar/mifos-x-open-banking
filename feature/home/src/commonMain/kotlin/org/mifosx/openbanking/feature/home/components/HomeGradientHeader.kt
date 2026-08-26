@@ -81,7 +81,10 @@ internal fun HomeGradientHeader(
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(KptTheme.spacing.lg),
+                .padding(
+                    horizontal = KptTheme.spacing.lg,
+                    vertical = KptTheme.spacing.sm,
+                ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {

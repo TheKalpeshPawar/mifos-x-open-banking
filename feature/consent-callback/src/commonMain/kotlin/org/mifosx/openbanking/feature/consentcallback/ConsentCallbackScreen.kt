@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.consentcallback
 
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,12 +53,13 @@ internal fun ConsentCallbackScreen(
         }
     }
 
+    val content = modifier.statusBarsPadding()
     when (state) {
-        is ConsentCallbackUiState.Loading -> LoadingStep(modifier)
-        is ConsentCallbackUiState.Content -> SuccessStep(modifier)
-        is ConsentCallbackUiState.Awaiting -> AwaitingStep(viewModel::trySendAction, modifier)
-        is ConsentCallbackUiState.Error -> CallbackErrorStep(viewModel::trySendAction, modifier)
-        is ConsentCallbackUiState.AccessDenied -> AccessDeniedStep(viewModel::trySendAction, modifier)
-        is ConsentCallbackUiState.SecurityError -> SecurityErrorStep(viewModel::trySendAction, modifier)
+        is ConsentCallbackUiState.Loading -> LoadingStep(content)
+        is ConsentCallbackUiState.Content -> SuccessStep(content)
+        is ConsentCallbackUiState.Awaiting -> AwaitingStep(viewModel::trySendAction, content)
+        is ConsentCallbackUiState.Error -> CallbackErrorStep(viewModel::trySendAction, content)
+        is ConsentCallbackUiState.AccessDenied -> AccessDeniedStep(viewModel::trySendAction, content)
+        is ConsentCallbackUiState.SecurityError -> SecurityErrorStep(viewModel::trySendAction, content)
     }
 }
