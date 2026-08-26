@@ -9,13 +9,13 @@
  */
 package org.mifosx.openbanking.core.data.banking.impl
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.transform
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.data.banking.store.BankingStores
 import org.mifosx.openbanking.core.data.banking.store.getOnce
@@ -66,9 +66,8 @@ internal class AccountsOverviewRepositoryImpl(
             scope = scope,
         ).also { accountsStream = it }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun overviewState(scope: CoroutineScope): Flow<ScreenState<List<AccountWithBalance>>> =
-        accountsStream(scope).state.transformLatest { state ->
+        accountsStream(scope).state.transform { state ->
             if (state is ScreenState.Content) {
                 if (state.data.isEmpty()) {
                     emit(ScreenState.Empty)
@@ -95,13 +94,23 @@ internal class AccountsOverviewRepositoryImpl(
                 async {
                     AccountWithBalance(
                         account = account,
-                        balance = runCatching {
-                            balancesStore.getOnce(account.accountId, refresh)
-                        }.getOrNull(),
+                        balance = balanceOrNull(account.accountId, refresh),
                     )
                 }
             }.awaitAll()
         }
+
+    /**
+     * This account's balance, or null when the bank refuses or the read fails. Cancellation is not a
+     * failure and propagates.
+     */
+    private suspend fun balanceOrNull(accountId: String, refresh: Boolean): AccountBalance? = try {
+        balancesStore.getOnce(accountId, refresh)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        null
+    }
 
     override fun refresh() {
         refreshBalances = true

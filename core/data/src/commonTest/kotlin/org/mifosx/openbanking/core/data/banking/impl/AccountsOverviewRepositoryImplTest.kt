@@ -12,6 +12,7 @@ package org.mifosx.openbanking.core.data.banking.impl
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkInfo
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkStatus
 import io.github.mobilebytelabs.kmptoolkit.networkmonitor.NetworkType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -29,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Verifies [AccountsOverviewRepositoryImpl] fans the accounts stream out over per-account balances:
@@ -113,6 +115,45 @@ class AccountsOverviewRepositoryImplTest {
         val repo = repo(accounts = { error("accounts down") })
 
         assertIs<ScreenState.Error>(repo.overviewState(backgroundScope).first { it is ScreenState.Error })
+    }
+
+    @Test
+    fun aCancelledBalanceReadIsNotReportedAsAMissingBalance() = runTest(UnconfinedTestDispatcher()) {
+        val repo = repo(
+            accounts = { listOf(account("acc-1")) },
+            balances = { throw CancellationException("balance read cancelled") },
+        )
+
+        val outcome = runCatching {
+            repo.overviewState(backgroundScope).first { it is ScreenState.Content }
+        }
+
+        assertTrue(
+            outcome.isFailure,
+            "cancellation must propagate, not collapse into a null balance the screen renders as blank",
+        )
+    }
+
+    @Test
+    fun refreshMakesTheNextBalanceReadBypassTheCache() = runTest(UnconfinedTestDispatcher()) {
+        var fetches = 0
+        val repo = repo(
+            accounts = { listOf(account("acc-1")) },
+            balances = { id ->
+                fetches++
+                balance(id)
+            },
+        )
+
+        repo.overviewState(backgroundScope).first { it is ScreenState.Content }
+        assertEquals(1, fetches, "the first read populates the memory-only balances store")
+
+        repo.overviewState(backgroundScope).first { it is ScreenState.Content }
+        assertEquals(1, fetches, "without refresh the cached figure is reused")
+
+        repo.refresh()
+        repo.overviewState(backgroundScope).first { it is ScreenState.Content }
+        assertEquals(2, fetches, "refresh() must carry through to the balance read, not just the accounts read")
     }
 
     @Test
