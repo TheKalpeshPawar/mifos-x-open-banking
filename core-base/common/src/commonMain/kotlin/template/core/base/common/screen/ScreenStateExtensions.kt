@@ -225,7 +225,8 @@ fun <A, B, C, D, E, R> combineScreenStates(
  * Resolves N [ScreenState]s to a single result, applying the standard priority rule.
  *
  * Priority: NoNetwork > Loading > Unauthenticated > Error > Empty > Content
- * Freshness: worst across all Content sources (STALE > UPDATING > FRESH).
+ * Freshness: worst across all Content sources, taken as the maximum over [DataFreshness]'s
+ * declaration order (STALE_OFFLINE > STALE_FAILED > UPDATING > FRESH).
  * fetchedAt: null if any Content source has null fetchedAt; otherwise the minimum (oldest).
  */
 @OptIn(ExperimentalTime::class)
@@ -234,13 +235,7 @@ private fun <R> resolveScreenStates(
     buildResult: () -> R,
 ): ScreenState<R> {
     val contents = states.filterIsInstance<ScreenState.Content<*>>()
-    val worstFreshness = contents.fold(DataFreshness.FRESH) { acc, c ->
-        when {
-            acc == DataFreshness.STALE || c.freshness == DataFreshness.STALE -> DataFreshness.STALE
-            acc == DataFreshness.UPDATING || c.freshness == DataFreshness.UPDATING -> DataFreshness.UPDATING
-            else -> DataFreshness.FRESH
-        }
-    }
+    val worstFreshness = contents.fold(DataFreshness.FRESH) { acc, c -> maxOf(acc, c.freshness) }
     val combinedFetchedAt: Instant? = if (contents.any { it.fetchedAt == null }) {
         null
     } else {

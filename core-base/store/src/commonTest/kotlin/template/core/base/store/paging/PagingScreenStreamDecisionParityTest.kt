@@ -143,19 +143,19 @@ class PagingScreenStreamDecisionParityTest {
     }
 
     @Test
-    fun hasData_offline_returnsContentStale() {
+    fun hasData_offline_returnsContentStaleOffline() {
         val items = listOf("a", "b")
         val result = decideForPaging(items, unavailable, isInitialLoading = false)
         assertIs<ScreenState.Content<*>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_OFFLINE, result.freshness)
     }
 
     @Test
-    fun hasData_captive_returnsContentStale() {
+    fun hasData_captive_returnsContentStaleOffline() {
         val items = listOf("a")
         val result = decideForPaging(items, captive, isInitialLoading = false)
         assertIs<ScreenState.Content<*>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_OFFLINE, result.freshness)
     }
 
     @Test
@@ -177,14 +177,14 @@ class PagingScreenStreamDecisionParityTest {
     }
 
     @Test
-    fun hasData_errorAfterRefresh_returnsContentStale() {
+    fun hasData_errorAfterRefresh_returnsContentStaleFailed() {
         val items = listOf("a")
         val result = decideForPaging(
             items, available, isInitialLoading = false,
             error = RuntimeException("refresh failed"),
         )
         assertIs<ScreenState.Content<*>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_FAILED, result.freshness)
     }
 }
 

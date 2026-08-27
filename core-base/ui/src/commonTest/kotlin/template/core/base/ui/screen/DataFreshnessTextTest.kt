@@ -58,28 +58,37 @@ class DataFreshnessTextTest {
         assertEquals("7d ago", formatDurationAgo(7.days))
     }
 
-    // ── buildStaleText: indicator copy when offline ───────────────────────
+    // ── buildOfflineText: indicator copy when there is no connectivity ────
 
     @Test
-    fun buildStaleText_nullFetchedAt_isPlainOffline_notMisleadingCachedDataMessage() {
+    fun buildOfflineText_nullFetchedAt_isPlainOffline_notMisleadingCachedDataMessage() {
         // Regression guard: previous copy was "Offline — showing cached data" which
         // the user found confusing because (a) it implies we have a timestamp we
         // don't, and (b) appears even when serving from cold-restart SoT (the
         // common case where lastFetchedAt is null). Plain "Offline" is honest.
-        assertEquals("Offline", buildStaleText(fetchedAt = null))
+        assertEquals("Offline", buildOfflineText(fetchedAt = null))
     }
 
     @Test
-    fun buildStaleText_recentFetch_showsTimestamp() {
+    fun buildOfflineText_recentFetch_showsTimestamp() {
         val fiveMinutesAgo = Clock.System.now() - 5.minutes
-        val text = buildStaleText(fiveMinutesAgo)
+        val text = buildOfflineText(fiveMinutesAgo)
         assertEquals("Offline · Updated 5m ago", text)
     }
 
     @Test
-    fun buildStaleText_justNow_showsJustNow() {
+    fun buildOfflineText_justNow_showsJustNow() {
         val tenSecondsAgo = Clock.System.now() - 10.seconds
-        assertEquals("Offline · Updated just now", buildStaleText(tenSecondsAgo))
+        assertEquals("Offline · Updated just now", buildOfflineText(tenSecondsAgo))
+    }
+
+    // ── buildRefreshFailedText: online, but the refresh failed ────────────
+
+    @Test
+    fun buildRefreshFailedText_neverSaysOffline() {
+        val fiveMinutesAgo = Clock.System.now() - 5.minutes
+        assertEquals("Couldn't refresh · Updated 5m ago", buildRefreshFailedText(fiveMinutesAgo))
+        assertEquals("Couldn't refresh", buildRefreshFailedText(fetchedAt = null))
     }
 
     // ── buildUpdatingText: indicator copy during refresh ──────────────────

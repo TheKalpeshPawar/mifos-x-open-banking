@@ -32,8 +32,19 @@ class DataFreshnessIndicatorStateTest {
     }
 
     @Test
-    fun staleFalseReconnectedIsStale() {
-        assertEquals(DisplayState.Stale, deriveDisplayState(DataFreshness.STALE, showReconnected = false))
+    fun staleOfflineFalseReconnectedIsOffline() {
+        assertEquals(
+            DisplayState.Offline,
+            deriveDisplayState(DataFreshness.STALE_OFFLINE, showReconnected = false),
+        )
+    }
+
+    @Test
+    fun staleFailedFalseReconnectedIsRefreshFailed() {
+        assertEquals(
+            DisplayState.RefreshFailed,
+            deriveDisplayState(DataFreshness.STALE_FAILED, showReconnected = false),
+        )
     }
 
     @Test
@@ -51,9 +62,12 @@ class DataFreshnessIndicatorStateTest {
     @Test
     fun staleTrueReconnectedIsReconnected() {
         // Edge case: shouldn't happen via the state machine (we only set
-        // showReconnected after STALE → non-STALE), but the helper must be
+        // showReconnected after stale → non-stale), but the helper must be
         // correct in isolation.
-        assertEquals(DisplayState.Reconnected, deriveDisplayState(DataFreshness.STALE, showReconnected = true))
+        assertEquals(
+            DisplayState.Reconnected,
+            deriveDisplayState(DataFreshness.STALE_OFFLINE, showReconnected = true),
+        )
     }
 
     @Test

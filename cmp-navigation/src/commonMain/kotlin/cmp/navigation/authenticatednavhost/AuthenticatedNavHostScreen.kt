@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
@@ -30,7 +29,6 @@ import cmp.navigation.placeholder.AtmLocatorRoute
 import cmp.navigation.placeholder.bankingPlaceholderDestinations
 import cmp.navigation.ui.KptRootScaffold
 import cmp.navigation.ui.rememberKptNavController
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -100,19 +98,16 @@ internal fun AuthenticatedNavHostScreen(
     ),
     viewModel: AuthenticatedNavHostViewModel = koinViewModel(),
 ) {
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
 
     val message = stringResource(Res.string.not_connected)
     LaunchedEffect(isOffline) {
         if (isOffline) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    duration = Indefinite,
-                )
-            }
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = Indefinite,
+            )
         }
     }
 

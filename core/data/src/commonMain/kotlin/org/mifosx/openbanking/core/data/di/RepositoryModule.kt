@@ -40,6 +40,7 @@ import org.mifosx.openbanking.core.data.callback.SettingsPaymentAuthSession
 import org.mifosx.openbanking.core.data.callback.SettingsPendingAuthStore
 import org.mifosx.openbanking.core.data.callback.impl.ConsentCallbackRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.impl.PaymentAuthRepositoryImpl
+import org.mifosx.openbanking.core.data.infra.DebouncedNetworkMonitor
 import org.mifosx.openbanking.core.data.infra.NetworkMonitor
 import org.mifosx.openbanking.core.data.infra.impl.RoomFetchedAtRepository
 import org.mifosx.openbanking.core.data.login.LoginRepository
@@ -71,7 +72,7 @@ import kotlin.time.Clock
 val DataModule = module {
     includes(platformModule, CommonModule, DatabaseModule, DatastoreModule, NetworkModule, BankingModule)
 
-    single<NetworkMonitor> { NetworkMonitorProvider.install() }
+    single<NetworkMonitor> { DebouncedNetworkMonitor(NetworkMonitorProvider.install(), get()) }
     singleOf(::UserDataRepositoryImpl) bind UserDataRepository::class
 
     single<LoginRepository> {

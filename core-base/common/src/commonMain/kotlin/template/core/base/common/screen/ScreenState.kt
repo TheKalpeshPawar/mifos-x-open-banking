@@ -62,11 +62,23 @@ sealed interface ScreenState<out T> {
 /**
  * Indicates how fresh the data in [ScreenState.Content] is.
  */
+/**
+ * How current the displayed data is.
+ *
+ * Declared least to most severe. [combineScreenStates] folds several sources with `maxOf`, so the
+ * declaration order is the severity order and moving a value changes that result.
+ */
 enum class DataFreshness {
     /** Online, data is the latest from server. */
     FRESH,
-    /** Showing cached data — offline or refresh failed. */
-    STALE,
     /** Has cached data, network refresh currently in flight. */
     UPDATING,
+    /** Online, but the last refresh failed. Showing cached data. */
+    STALE_FAILED,
+    /** No connectivity. Showing cached data. */
+    STALE_OFFLINE,
 }
+
+/** Whether this is either of the two stale states. */
+val DataFreshness.isStale: Boolean
+    get() = this == DataFreshness.STALE_FAILED || this == DataFreshness.STALE_OFFLINE

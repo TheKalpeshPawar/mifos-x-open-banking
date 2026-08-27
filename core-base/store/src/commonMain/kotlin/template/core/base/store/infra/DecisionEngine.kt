@@ -62,8 +62,10 @@ object DecisionEngine {
         val fetchedAt = storeData.fetchedAtInstant
         return when {
             storeData.isRefreshing -> ScreenState.Content(storeData.data, DataFreshness.UPDATING, fetchedAt)
-            !isOnline || isCaptivePortal -> ScreenState.Content(storeData.data, DataFreshness.STALE, fetchedAt)
-            error != null -> ScreenState.Content(storeData.data, DataFreshness.STALE, fetchedAt)
+            !isOnline || isCaptivePortal ->
+                ScreenState.Content(storeData.data, DataFreshness.STALE_OFFLINE, fetchedAt)
+
+            error != null -> ScreenState.Content(storeData.data, DataFreshness.STALE_FAILED, fetchedAt)
             else -> ScreenState.Content(storeData.data, DataFreshness.FRESH, fetchedAt)
         }
     }

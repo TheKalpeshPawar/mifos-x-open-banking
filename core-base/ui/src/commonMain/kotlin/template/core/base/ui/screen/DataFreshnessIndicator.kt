@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -37,9 +38,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import template.core.base.common.screen.DataFreshness
+import template.core.base.common.screen.isStale
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -83,16 +86,17 @@ fun DataFreshnessIndicator(
     var showReconnected by remember { mutableStateOf(false) }
     var prevFreshness by remember { mutableStateOf(freshness) }
 
-    // STALE → non-STALE means we just came back online. Re-keying on `freshness`
-    // ensures rapid offline→online→offline cycles cancel the previous timer
-    // (Compose's coroutine cancellation), so the Stale banner returns immediately.
     LaunchedEffect(freshness) {
-        if (prevFreshness == DataFreshness.STALE && freshness != DataFreshness.STALE) {
-            showReconnected = true
-            delay(reconnectedVisibilityDuration)
-            showReconnected = false
-        }
+        val previous = prevFreshness
         prevFreshness = freshness
+        if (previous.isStale && !freshness.isStale) {
+            showReconnected = true
+            try {
+                delay(reconnectedVisibilityDuration)
+            } finally {
+                showReconnected = false
+            }
+        }
     }
 
     val display = deriveDisplayState(freshness, showReconnected)
@@ -104,7 +108,8 @@ fun DataFreshnessIndicator(
         modifier = modifier,
     ) {
         when (display) {
-            DisplayState.Stale -> StaleBanner(fetchedAt = fetchedAt, customLabel = staleLabel)
+            DisplayState.Offline -> OfflineBanner(fetchedAt = fetchedAt, customLabel = staleLabel)
+            DisplayState.RefreshFailed -> RefreshFailedBanner(fetchedAt = fetchedAt, customLabel = staleLabel)
             DisplayState.Updating -> UpdatingBanner(fetchedAt = fetchedAt, customLabel = updatingLabel)
             DisplayState.Reconnected -> ReconnectedBanner(customLabel = reconnectedLabel)
             DisplayState.Hidden -> Unit
@@ -119,7 +124,8 @@ fun DataFreshnessIndicator(
  */
 internal enum class DisplayState {
     Hidden,
-    Stale,
+    Offline,
+    RefreshFailed,
     Updating,
     Reconnected,
 }
@@ -130,16 +136,40 @@ internal fun deriveDisplayState(
     showReconnected: Boolean,
 ): DisplayState = when {
     showReconnected -> DisplayState.Reconnected
-    freshness == DataFreshness.STALE -> DisplayState.Stale
+    freshness == DataFreshness.STALE_OFFLINE -> DisplayState.Offline
+    freshness == DataFreshness.STALE_FAILED -> DisplayState.RefreshFailed
     freshness == DataFreshness.UPDATING -> DisplayState.Updating
     else -> DisplayState.Hidden
 }
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun StaleBanner(
+private fun OfflineBanner(
     fetchedAt: Instant?,
     customLabel: String?,
+) {
+    StaleBanner(
+        icon = Icons.Default.CloudOff,
+        text = customLabel ?: buildOfflineText(fetchedAt),
+    )
+}
+
+@OptIn(ExperimentalTime::class)
+@Composable
+private fun RefreshFailedBanner(
+    fetchedAt: Instant?,
+    customLabel: String?,
+) {
+    StaleBanner(
+        icon = Icons.Default.SyncProblem,
+        text = customLabel ?: buildRefreshFailedText(fetchedAt),
+    )
+}
+
+@Composable
+private fun StaleBanner(
+    icon: ImageVector,
+    text: String,
 ) {
     Row(
         modifier = Modifier
@@ -150,14 +180,14 @@ private fun StaleBanner(
         horizontalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = Icons.Default.CloudOff,
+            imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(14.dp),
             tint = MaterialTheme.colorScheme.onErrorContainer,
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = customLabel ?: buildStaleText(fetchedAt),
+            text = text,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onErrorContainer,
         )
@@ -226,10 +256,17 @@ private fun ReconnectedBanner(customLabel: String?) {
 }
 
 @OptIn(ExperimentalTime::class)
-internal fun buildStaleText(fetchedAt: Instant?): String {
+internal fun buildOfflineText(fetchedAt: Instant?): String {
     if (fetchedAt == null) return "Offline"
     val age = kotlin.time.Clock.System.now() - fetchedAt
     return "Offline · Updated ${formatDurationAgo(age)}"
+}
+
+@OptIn(ExperimentalTime::class)
+internal fun buildRefreshFailedText(fetchedAt: Instant?): String {
+    if (fetchedAt == null) return "Couldn't refresh"
+    val age = kotlin.time.Clock.System.now() - fetchedAt
+    return "Couldn't refresh · Updated ${formatDurationAgo(age)}"
 }
 
 @OptIn(ExperimentalTime::class)
