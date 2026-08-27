@@ -13,6 +13,7 @@ import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.data.util.obieErrorCode
 import org.mifosx.openbanking.core.data.util.obieMessage
 import org.mifosx.openbanking.core.data.util.obieSupportReference
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import template.core.base.network.NetworkError
 import template.core.base.ui.viewmodel.BackgroundEvent
 
@@ -208,9 +209,16 @@ sealed interface PaymentConsentUiState {
     ) : PaymentConsentUiState
 }
 
+/**
+ * @property consentType the rail being authorised, which selects the screen's copy. Null until the
+ *   callback validates, and on a rail this screen cannot name — the copy then falls back to the
+ *   immediate-payment wording. It lives here rather than on [PaymentConsentUiState] so that the
+ *   state model stays rail-agnostic.
+ */
 data class PaymentConsentState(
     val uiState: PaymentConsentUiState = PaymentConsentUiState.Validating,
     val consentId: String = "",
+    val consentType: ConsentType? = null,
 )
 
 sealed interface PaymentConsentAction {

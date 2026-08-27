@@ -11,9 +11,11 @@ package org.mifosx.openbanking.feature.paymentconsent
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentAction
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentErrorKind
 import org.mifosx.openbanking.feature.paymentconsent.ui.PaymentConsentState
@@ -370,5 +372,100 @@ class PaymentConsentScreenUiTest {
         )
 
         assertEquals<List<PaymentConsentAction>>(listOf(PaymentConsentAction.AbandonPayment), actions)
+    }
+
+    /**
+     * A standing order is set up and a scheduled payment is scheduled; neither is sent. Every rail
+     * shared the immediate payment's wording before the consent type reached this screen, and no
+     * assertion here would have caught it.
+     */
+    @Test
+    fun submittingSaysTheStandingOrderIsBeingSetUp() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.submittingState(ConsentType.DomesticStandingOrder),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_DETAIL)
+            .assertTextEquals("Setting up your standing order…")
+    }
+
+    @Test
+    fun submittingSaysTheScheduledPaymentIsBeingScheduled() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.submittingState(ConsentType.InternationalScheduledPayment),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_DETAIL)
+            .assertTextEquals("Scheduling your payment…")
+    }
+
+    @Test
+    fun submittingStillSaysSendingForAnImmediatePayment() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.submittingState(ConsentType.DomesticSinglePayment),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_DETAIL)
+            .assertTextEquals("Sending your payment…")
+    }
+
+    /** The fallback: a rail this screen cannot name must not claim an instruction was set up. */
+    @Test
+    fun anUnnamedRailKeepsTheImmediatePaymentWording() = runComposeUiTest {
+        setContent { PaymentConsentScreenContent(PaymentConsentFixtures.submittingState(), {}) }
+        onNodeWithTag(PaymentConsentTestTags.PROGRESS_DETAIL)
+            .assertTextEquals("Sending your payment…")
+    }
+
+    @Test
+    fun theApprovedPanelNamesTheInstruction() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.approvedState(ConsentType.DomesticScheduledPayment),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.OUTCOME_BODY)
+            .assertTextEquals("Finishing your scheduled payment…")
+    }
+
+    @Test
+    fun aDeclinedStandingOrderIsNotCalledAPayment() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.errorState(
+                    kind = PaymentConsentErrorKind.ConsentRejected,
+                    consentType = ConsentType.DomesticStandingOrder,
+                ),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.OUTCOME_TITLE)
+            .assertTextEquals("Standing order declined")
+    }
+
+    /**
+     * The reassurance answers the question the rail actually raises. For a mandate that is whether
+     * one was created, not whether money moved — money was never going to move today either way.
+     */
+    @Test
+    fun theReassuranceNamesWhatWasNotCreated() = runComposeUiTest {
+        setContent {
+            PaymentConsentScreenContent(
+                PaymentConsentFixtures.errorState(
+                    kind = PaymentConsentErrorKind.ConsentRejected,
+                    consentType = ConsentType.DomesticStandingOrder,
+                ),
+                {},
+            )
+        }
+        onNodeWithTag(PaymentConsentTestTags.NO_MONEY_MOVED)
+            .assertTextEquals("No standing order has been set up.")
     }
 }

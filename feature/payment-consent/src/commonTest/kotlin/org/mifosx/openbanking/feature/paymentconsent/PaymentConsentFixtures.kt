@@ -55,22 +55,36 @@ object PaymentConsentFixtures {
         consentId = CONSENT_ID,
     )
 
-    fun approvedState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Approved, consentId = CONSENT_ID)
+    fun approvedState(consentType: ConsentType? = null): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Approved,
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
-    fun alreadySubmittedState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.AlreadySubmitted, consentId = CONSENT_ID)
+    fun alreadySubmittedState(consentType: ConsentType? = null): PaymentConsentState =
+        PaymentConsentState(
+            uiState = PaymentConsentUiState.AlreadySubmitted,
+            consentId = CONSENT_ID,
+            consentType = consentType,
+        )
 
     fun confirmingFundsState(): PaymentConsentState =
         PaymentConsentState(uiState = PaymentConsentUiState.ConfirmingFunds, consentId = CONSENT_ID)
 
-    fun submittingState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Submitting, consentId = CONSENT_ID)
+    fun submittingState(consentType: ConsentType? = null): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Submitting,
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
     fun errorState(
         kind: PaymentConsentErrorKind = PaymentConsentErrorKind.StateMismatch,
-    ): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Error(kind), consentId = CONSENT_ID)
+        consentType: ConsentType? = null,
+    ): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Error(kind),
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
     /**
      * A payer with no holder name, as HSBC actually returns them. Keeping the blank there stops a
