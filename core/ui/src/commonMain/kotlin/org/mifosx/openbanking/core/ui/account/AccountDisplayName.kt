@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import org.mifosx.openbanking.core.ui.generated.resources.Res
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_credit
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_current
@@ -24,31 +25,17 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_s
 private const val LAST_DIGITS = 4
 private const val TYPE_NUMBER_SEPARATOR = " ·· "
 private const val TYPE_CARD_SEPARATOR = " "
-private const val MASK_CHARACTER = "X"
 private val CREDIT_CARD_TYPE_CODES = setOf("card", "ccrd")
 
-/**
- * The account's number with every character but the last four masked, e.g. `XXXX3349`.
- *
- * A card's identification is already masked by the bank, so it is shown as-is. Blank when the bank
- * supplied no identifier at all.
- */
-fun maskedAccountNumber(scheme: AccountScheme, identification: String): String {
-    if (scheme == AccountScheme.Pan) {
-        return identification
-    }
-    val digits = identification.filter { it.isLetterOrDigit() }
-    return if (digits.length <= LAST_DIGITS) {
-        digits
-    } else {
-        MASK_CHARACTER.repeat(digits.length - LAST_DIGITS) + digits.takeLast(LAST_DIGITS)
-    }
-}
-
-/** The localized account-type label on its own, e.g. `Current account`. */
+/** The localized account-type label on its own, e.g. `Current Account`. */
 @Composable
-fun accountTypeLabel(accountTypeCode: String): String =
-    stringResource(accountTypeLabelRes(accountTypeCode))
+fun accountTypeLabel(accountTypeCode: String, description: String): String =
+    stringResource(accountTypeLabelRes(accountTypeCode, description))
+
+/** The localized label for an already-resolved product. */
+@Composable
+fun accountTypeLabel(product: HsbcProductType): String =
+    stringResource(product.labelRes())
 
 /**
  * The name to show for an account.
@@ -62,11 +49,12 @@ fun accountTypeLabel(accountTypeCode: String): String =
 fun accountDisplayName(
     accountHolderName: String,
     accountTypeCode: String,
+    description: String,
     scheme: AccountScheme,
     identification: String,
 ): String {
     if (accountHolderName.isNotBlank()) return accountHolderName
-    val typeLabel = stringResource(accountTypeLabelRes(accountTypeCode))
+    val typeLabel = stringResource(accountTypeLabelRes(accountTypeCode, description))
     return accountFallbackLabel(typeLabel, accountTypeCode, scheme, identification)
 }
 
@@ -99,16 +87,21 @@ internal fun accountFallbackLabel(
 internal fun isCreditCard(scheme: AccountScheme, accountTypeCode: String): Boolean =
     scheme == AccountScheme.Pan || accountTypeCode.lowercase() in CREDIT_CARD_TYPE_CODES
 
-/**
- * Maps an OBIE `AccountTypeCode` to its display label, accepting the enum case-insensitively and the
- * legacy ISO-20022 cash-account codes (`CACC`, `SVGS`, `CCRD`) so it resolves whether the bank
- * populates `AccountTypeCode` or a `CurrentAccount`-style value.
- */
-private fun accountTypeLabelRes(accountTypeCode: String): StringResource = when (accountTypeCode.lowercase()) {
-    "cacc", "current", "currentaccount" -> Res.string.core_ui_account_type_current
-    "svgs", "savings" -> Res.string.core_ui_account_type_savings
-    "card", "ccrd", "credit", "creditcard" -> Res.string.core_ui_account_type_credit
-    "globalmoney" -> Res.string.core_ui_account_type_global_money
-    "globalwallet" -> Res.string.core_ui_account_type_global_wallet
-    else -> Res.string.core_ui_account_type_other
+/** This product's display label. */
+internal fun HsbcProductType.labelRes(): StringResource = when (this) {
+    HsbcProductType.PersonalCurrentAccount -> Res.string.core_ui_account_type_current
+    HsbcProductType.Savings -> Res.string.core_ui_account_type_savings
+    HsbcProductType.CreditCard -> Res.string.core_ui_account_type_credit
+    HsbcProductType.ForeignCurrency -> Res.string.core_ui_account_type_global_wallet
+    HsbcProductType.GlobalMoney -> Res.string.core_ui_account_type_global_money
+    HsbcProductType.Unknown -> Res.string.core_ui_account_type_other
 }
+
+/**
+ * The display label for the product an OBIE `AccountTypeCode` and `Description` identify.
+ *
+ * The description is required because a Global Money wallet reports `CACC`, the same code as a current
+ * account, and only [HsbcProductType.resolve] tells them apart.
+ */
+internal fun accountTypeLabelRes(accountTypeCode: String, description: String): StringResource =
+    HsbcProductType.resolve(accountTypeCode = accountTypeCode, description = description).labelRes()

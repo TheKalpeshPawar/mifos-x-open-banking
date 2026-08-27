@@ -70,6 +70,7 @@ internal fun AccountHeaderCard(detail: AccountDetail, modifier: Modifier = Modif
                 text = accountDisplayName(
                     accountHolderName = detail.accountHolderName,
                     accountTypeCode = detail.accountTypeCode,
+                    description = detail.description,
                     scheme = detail.scheme,
                     identification = detail.identification,
                 ),

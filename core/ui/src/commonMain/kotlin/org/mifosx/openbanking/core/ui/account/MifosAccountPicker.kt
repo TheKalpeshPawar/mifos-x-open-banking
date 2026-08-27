@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
@@ -179,8 +180,8 @@ private fun AccountRow(
 private fun AccountWithBalance.Lines(emphasised: Boolean = false) {
     AccountLines(
         name = account.accountHolderName,
-        headline = maskedAccountNumber(account.scheme, account.identification),
-        type = accountTypeLabel(account.accountTypeCode),
+        headline = formatAccountIdentifier(account.scheme, account.identification),
+        type = accountTypeLabel(account.accountTypeCode, account.description),
         balance = balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),
         emphasised = emphasised,
     )

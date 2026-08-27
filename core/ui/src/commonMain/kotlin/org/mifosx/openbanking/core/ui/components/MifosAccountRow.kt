@@ -39,8 +39,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.common.formatAccountIdentifier
@@ -51,13 +49,7 @@ import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
-import org.mifosx.openbanking.core.ui.generated.resources.Res
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_credit
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_current
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_global_money
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_global_wallet
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_other
-import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_savings
+import org.mifosx.openbanking.core.ui.account.accountTypeLabel
 import template.core.base.designsystem.theme.KptTheme
 
 /**
@@ -101,7 +93,7 @@ fun MifosAccountRow(
                 verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             ) {
                 Text(
-                    text = stringResource(product.labelRes()),
+                    text = accountTypeLabel(product),
                     style = KptTheme.typography.labelMedium,
                     color = KptTheme.colorScheme.onSurfaceVariant,
                 )
@@ -157,15 +149,6 @@ private fun HsbcProductType.icon(): ImageVector = when (this) {
     HsbcProductType.ForeignCurrency -> Icons.Filled.CurrencyExchange
     HsbcProductType.GlobalMoney -> Icons.Filled.Public
     HsbcProductType.Unknown -> Icons.Filled.AccountBalanceWallet
-}
-
-private fun HsbcProductType.labelRes(): StringResource = when (this) {
-    HsbcProductType.PersonalCurrentAccount -> Res.string.core_ui_account_type_current
-    HsbcProductType.Savings -> Res.string.core_ui_account_type_savings
-    HsbcProductType.CreditCard -> Res.string.core_ui_account_type_credit
-    HsbcProductType.ForeignCurrency -> Res.string.core_ui_account_type_global_wallet
-    HsbcProductType.GlobalMoney -> Res.string.core_ui_account_type_global_money
-    HsbcProductType.Unknown -> Res.string.core_ui_account_type_other
 }
 
 @Preview

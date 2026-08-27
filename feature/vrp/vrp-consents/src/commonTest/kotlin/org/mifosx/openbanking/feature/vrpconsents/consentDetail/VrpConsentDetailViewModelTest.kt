@@ -18,7 +18,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.vrp.AccountIdentity
@@ -30,7 +29,6 @@ import org.mifosx.openbanking.core.model.vrp.ValidityWindow
 import org.mifosx.openbanking.core.model.vrp.VrpConsent
 import org.mifosx.openbanking.core.model.vrp.VrpControlParameters
 import org.mifosx.openbanking.core.model.vrp.VrpPayment
-import org.mifosx.openbanking.core.ui.account.maskedAccountNumber
 import org.mifosx.openbanking.feature.vrpconsents.FakeVrpConsentRepository
 import org.mifosx.openbanking.feature.vrpconsents.FakeVrpPaymentRepository
 import template.core.base.network.NetworkError
@@ -256,8 +254,8 @@ class VrpConsentDetailViewModelTest {
             consent(
                 payer = AccountIdentity(
                     schemeName = "UK.OBIE.PAN",
-                    identification = "4444333322221111",
-                    name = "Credit Card",
+                    identification = "xxxx-xxxx-xxxx-3456",
+                    name = "Mr Bantu",
                 ),
             ),
         )
@@ -274,7 +272,7 @@ class VrpConsentDetailViewModelTest {
                 payer = AccountIdentity(
                     schemeName = SORT_CODE_ACCOUNT_NUMBER,
                     identification = "80200110204021",
-                    name = "CACC",
+                    name = "Mr Robert",
                 ),
             ),
         )
@@ -282,24 +280,21 @@ class VrpConsentDetailViewModelTest {
         advanceUntilIdle()
 
         val payer = assertNotNull(content(vm).payer)
-        assertEquals(
-            "XXXXXXXXXX4021",
-            maskedAccountNumber(AccountScheme.fromSchemeName(payer.schemeName), payer.identification),
-        )
+        assertEquals("80200110204021", payer.identification)
     }
 
     /**
-     * The bank returns its own type code in the account's name, so the identity has to come from the
-     * number. Showing the name would put "CACC" on screen as if it were the account.
+     * The payer's identification and account name both reach the state. The detail screen renders the
+     * identification in full — the bank masks a card's PAN itself — with the name beneath it.
      */
     @Test
-    fun thePayerIsNamedByItsNumberAndType() = runTest {
+    fun thePayerIdentificationAndNameAreCarriedThrough() = runTest {
         consents.emit(
             consent(
                 payer = AccountIdentity(
                     schemeName = SORT_CODE_ACCOUNT_NUMBER,
                     identification = "80200110203349",
-                    name = "CACC",
+                    name = "Mr Nico",
                 ),
             ),
         )
@@ -307,11 +302,8 @@ class VrpConsentDetailViewModelTest {
         advanceUntilIdle()
 
         val payer = assertNotNull(content(vm).payer)
-        assertEquals(
-            "XXXXXXXXXX3349",
-            maskedAccountNumber(AccountScheme.fromSchemeName(payer.schemeName), payer.identification),
-        )
-        assertEquals("CACC", payer.name)
+        assertEquals("80200110203349", payer.identification)
+        assertEquals("Mr Nico", payer.name)
     }
 
     /** A payer the customer chose at the bank is unknown until it is read back. */

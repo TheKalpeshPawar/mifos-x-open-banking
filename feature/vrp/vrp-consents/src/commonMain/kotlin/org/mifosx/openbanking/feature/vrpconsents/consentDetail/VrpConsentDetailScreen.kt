@@ -53,10 +53,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
 import org.mifosx.openbanking.core.model.vrp.AccountIdentity
-import org.mifosx.openbanking.core.ui.account.accountTypeLabel
-import org.mifosx.openbanking.core.ui.account.maskedAccountNumber
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosSectionHeading
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
@@ -465,7 +464,7 @@ private fun PayerCard(payer: AccountIdentity?) {
             } else {
                 Column {
                     Text(
-                        text = maskedAccountNumber(
+                        text = formatAccountIdentifier(
                             scheme = AccountScheme.fromSchemeName(payer.schemeName),
                             identification = payer.identification,
                         ),
@@ -474,7 +473,7 @@ private fun PayerCard(payer: AccountIdentity?) {
                         color = KptTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = accountTypeLabel(payer.name),
+                        text = payer.name,
                         style = KptTheme.typography.bodyMedium,
                         color = KptTheme.colorScheme.onSurfaceVariant,
                     )

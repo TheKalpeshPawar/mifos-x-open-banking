@@ -87,6 +87,7 @@ internal fun SchedulePaymentReviewPage(
         accountDisplayName(
             accountHolderName = row.account.accountHolderName,
             accountTypeCode = row.account.accountTypeCode,
+            description = row.account.description,
             scheme = row.account.scheme,
             identification = row.account.identification,
         )

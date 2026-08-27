@@ -28,8 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.ui.account.accountTypeLabel
-import org.mifosx.openbanking.core.ui.account.maskedAccountNumber
 import org.mifosx.openbanking.feature.vrpsetup.formatPayeeIdentification
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.Res
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_payer_choose_at_bank
@@ -107,11 +107,18 @@ private fun PartiesCard(form: SetupFormUi) {
     ReviewCard {
         ReviewHeading(stringResource(Res.string.feature_vrp_setup_review_payer))
         Text(
-            text = form.payerHeadline(),
+            text = form.payerTypeLabel(),
             style = KptTheme.typography.titleMedium,
             color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.testTag(VrpSetupTestTags.REVIEW_PAYER),
         )
+        form.selectedPayer?.let { payer ->
+            Text(
+                text = formatAccountIdentifier(payer.account.scheme, payer.account.identification),
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = KptTheme.spacing.md))
 
@@ -224,15 +231,11 @@ private fun ReviewHeading(text: String) {
     )
 }
 
-/** The payer as the review names it: the masked number and type, or the bank's own choice. */
+/** The payer's product, or the bank's own choice when none was picked. */
 @Composable
-private fun SetupFormUi.payerHeadline(): String {
+private fun SetupFormUi.payerTypeLabel(): String {
     val payer = selectedPayer ?: return stringResource(Res.string.feature_vrp_setup_payer_choose_at_bank)
-    val masked = maskedAccountNumber(
-        payer.account.scheme,
-        payer.account.identification,
-    )
-    return "$masked · ${accountTypeLabel(payer.account.accountTypeCode)}"
+    return accountTypeLabel(payer.account.accountTypeCode, payer.account.description)
 }
 
 private fun SetupFormUi.payeeName(): String =

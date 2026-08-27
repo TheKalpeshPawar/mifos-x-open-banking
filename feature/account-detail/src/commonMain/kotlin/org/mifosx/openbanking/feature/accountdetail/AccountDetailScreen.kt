@@ -82,6 +82,7 @@ private fun AccountDetail.displayName(): String =
     accountDisplayName(
         accountHolderName = accountHolderName,
         accountTypeCode = accountTypeCode,
+        description = description,
         scheme = scheme,
         identification = identification,
     )

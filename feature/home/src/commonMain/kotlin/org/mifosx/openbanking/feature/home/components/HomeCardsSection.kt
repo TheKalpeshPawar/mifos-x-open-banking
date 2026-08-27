@@ -103,7 +103,7 @@ private fun CardFace(
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = accountTypeLabel(card.account.accountTypeCode),
+            text = accountTypeLabel(card.account.accountTypeCode, card.account.description),
             style = KptTheme.typography.titleMedium,
             color = KptTheme.colorScheme.onPrimary,
         )
