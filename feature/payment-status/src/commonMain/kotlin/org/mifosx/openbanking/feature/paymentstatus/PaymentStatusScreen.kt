@@ -28,7 +28,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
 import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
-import org.mifosx.openbanking.core.ui.scaffold.rememberKptPullToRefreshState
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_back_a11y
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_consent_revoked
@@ -40,15 +39,15 @@ import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
-import org.mifosx.openbanking.feature.paymentstatus.ui.isReading
 
 /**
  * One submitted payment as the bank currently reports it.
  *
- * Pull-to-refresh is wired at the scaffold so the gesture also works from the error page, which is
- * exactly where someone reaches for it. It dispatches the same `RefreshStatus` the Refresh button
- * does, so both share one path through the view model — and the button stays, because the gesture
- * is undiscoverable on desktop and web where this screen also runs.
+ * There is no pull-to-refresh. `KptScaffold` draws its refresh indicator whenever it is told a read
+ * is in flight, and the first read is also when the screen renders a full-screen loading animation,
+ * so the gesture put a second spinner on top of the first. Refreshing is offered by the Refresh
+ * button and by the error page's Retry, both of which dispatch `RefreshStatus` — and a button is the
+ * only affordance that works on desktop and web, where this screen also runs.
  */
 @Composable
 internal fun PaymentStatusScreen(
@@ -65,11 +64,6 @@ internal fun PaymentStatusScreen(
 
     KptScaffold(
         topBar = { PaymentStatusTopBar(content = content, onBack = onBack) },
-        pullToRefreshState = rememberKptPullToRefreshState(
-            isEnabled = true,
-            isRefreshing = state.uiState.isReading,
-            onRefresh = { viewModel.trySendAction(PaymentStatusAction.RefreshStatus) },
-        ),
         modifier = modifier,
     ) {
         PaymentStatusScreenContent(

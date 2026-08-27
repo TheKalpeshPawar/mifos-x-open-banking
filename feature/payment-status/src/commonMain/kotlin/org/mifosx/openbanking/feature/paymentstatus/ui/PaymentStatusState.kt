@@ -156,17 +156,6 @@ sealed interface PaymentStatusUiState {
 }
 
 /**
- * Whether a read is running, as the pull-to-refresh indicator sees it.
- *
- * Covers both the first load and a manual refresh, so the gesture spins for either. The error page
- * is deliberately not "reading": nothing is in flight there until the pull dispatches one, and that
- * is exactly where someone reaches for the gesture.
- */
-val PaymentStatusUiState.isReading: Boolean
-    get() = this is PaymentStatusUiState.Loading ||
-        (this is PaymentStatusUiState.Content && refreshing)
-
-/**
  * Whether the status will not move again, so no refresh is worth offering.
  *
  * A status that cannot be classified — no local row names the rail — stays refreshable, since the

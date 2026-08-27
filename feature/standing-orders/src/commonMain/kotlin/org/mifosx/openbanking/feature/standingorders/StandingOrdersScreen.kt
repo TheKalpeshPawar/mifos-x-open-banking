@@ -20,7 +20,6 @@ import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
 import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
 import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
-import org.mifosx.openbanking.core.ui.scaffold.rememberKptPullToRefreshState
 import org.mifosx.openbanking.feature.standingorders.generated.resources.Res
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_empty_title
 import org.mifosx.openbanking.feature.standingorders.generated.resources.feature_standing_orders_error_consent_revoked
@@ -42,11 +41,10 @@ import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersViewModel
  * Back navigation is delegated upward through [onBack]; the feature never sees the host route
  * table.
  *
- * Pull-to-refresh is wired at the scaffold rather than inside the list so the gesture works from
- * the empty and error states too — an account that just failed to load is exactly where a user
- * will reach for it, and a refresh available only once content exists would be missing whenever it
- * mattered most. It dispatches the same `RetryLoad` action the Retry button does, so both paths
- * share one code path in the view model.
+ * There is no pull-to-refresh. `KptScaffold` draws its refresh indicator from the state it is given
+ * and this screen's only refresh signal is its `Loading` state, which already renders a full-screen
+ * loading animation — so the gesture put a second spinner on top of the first. Refreshing is offered
+ * by the Retry button on the error state instead.
  */
 @Composable
 internal fun StandingOrdersScreen(
@@ -60,11 +58,6 @@ internal fun StandingOrdersScreen(
         showNavigationIcon = true,
         onNavigationIconClick = onBack,
         title = stringResource(Res.string.feature_standing_orders_screen_title),
-        pullToRefreshState = rememberKptPullToRefreshState(
-            isEnabled = true,
-            isRefreshing = state.uiState is StandingOrdersUiState.Loading,
-            onRefresh = { viewModel.trySendAction(StandingOrdersAction.RetryLoad) },
-        ),
         modifier = modifier,
     ) {
         StandingOrdersScreenContent(
