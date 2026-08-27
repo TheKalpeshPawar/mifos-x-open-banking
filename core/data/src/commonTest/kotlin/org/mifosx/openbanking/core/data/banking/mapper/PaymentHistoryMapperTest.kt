@@ -18,6 +18,9 @@ import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
+import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderDraft
+import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -260,5 +263,112 @@ class PaymentHistoryMapperTest {
             PaymentStatus.AcceptedCreditSettlementCompleted,
             entity.toHistoryRow()?.status,
         )
+    }
+
+    /**
+     * The payee scheme is deliberately an IBAN while the payer is a sort code, so an assertion
+     * cannot pass by both columns happening to hold the same value.
+     */
+    private fun scheduledDraft(debtor: BankAccount? = payerAccount()) = ScheduledPaymentDraft(
+        debtorAccount = debtor,
+        creditor = CreditorSelection(
+            name = "Mr Dharani C",
+            scheme = BeneficiaryScheme.Iban,
+            identification = "GB29NWBK60161331926819",
+        ),
+        amountMinorUnits = 25_000L,
+        currency = "GBP",
+        reference = "RENT-AUG",
+        instructionIdentification = "MFX20260811T1000000001",
+        endToEndIdentification = "E2E-SCHED-202608",
+        consentIdempotencyKey = "consent-key-1",
+        paymentIdempotencyKey = "payment-key-1",
+        requestedExecutionDate = "2026-08-14",
+    )
+
+    private fun standingOrderDraft(debtor: BankAccount? = payerAccount()) = StandingOrderDraft(
+        debtorAccount = debtor,
+        creditor = CreditorSelection(
+            name = "Mr Dharani C",
+            scheme = BeneficiaryScheme.Iban,
+            identification = "GB29NWBK60161331926819",
+        ),
+        frequency = StandingOrderFrequency.Monthly,
+        firstPaymentDate = "2026-08-20",
+        finalPaymentDate = "2026-12-11",
+        firstPaymentAmountMinorUnits = 25_000L,
+        currency = "GBP",
+        reference = "FLAT 4B RENT",
+        consentIdempotencyKey = "so-consent-key-1",
+        paymentIdempotencyKey = "so-payment-key-1",
+    )
+
+    /** What the bank echoes when it chose the payer itself: a full party, on both sides. */
+    private fun bankChosenReceipt() = receipt().copy(
+        debtorName = "Mr Robert",
+        debtorIdentification = "80200110203348",
+        debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+    )
+
+    @Test
+    fun aScheduledPaymentStoresBothPartiesSchemes() {
+        val entity = receipt().toEntity(scheduledDraft())
+
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
+        assertEquals("UK.OBIE.IBAN", entity.creditorScheme)
+    }
+
+    @Test
+    fun aStandingOrderStoresBothPartiesSchemes() {
+        val entity = receipt().toEntity(standingOrderDraft())
+
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
+        assertEquals("UK.OBIE.IBAN", entity.creditorScheme)
+    }
+
+    /**
+     * With the account chosen at the bank there is no draft payer to fall back to, so the row is only
+     * as good as what the receipt carried. Before this the deferred rails discarded it.
+     */
+    @Test
+    fun aScheduledPaymentKeepsTheBanksPayerWhenTheDraftHasNone() {
+        val entity = bankChosenReceipt().toEntity(scheduledDraft(debtor = null))
+
+        assertEquals("Mr Robert", entity.debtorName)
+        assertEquals("80200110203348", entity.debtorIdentification)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
+    }
+
+    @Test
+    fun aStandingOrderKeepsTheBanksPayerWhenTheDraftHasNone() {
+        val entity = bankChosenReceipt().toEntity(standingOrderDraft(debtor = null))
+
+        assertEquals("Mr Robert", entity.debtorName)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
+    }
+
+    @Test
+    fun aScheduledPaymentWithNoPayerAnywhereWritesBlankColumns() {
+        val entity = receipt().copy(debtorIdentification = "").toEntity(scheduledDraft(debtor = null))
+
+        assertTrue(entity.debtorName.isEmpty())
+        assertTrue(entity.debtorIdentification.isEmpty())
+        assertTrue(entity.debtorScheme.isEmpty())
+    }
+
+    @Test
+    fun aRefusedMandateStillRecordsThePayeeScheme() {
+        val entity = standingOrderDraft().toFailureEntity("RequestRejected", "Bank refused")
+
+        assertEquals("UK.OBIE.IBAN", entity.creditorScheme)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
+    }
+
+    @Test
+    fun aRefusedScheduledPaymentStillRecordsThePayeeScheme() {
+        val entity = scheduledDraft().toFailureEntity("RequestRejected", "Bank refused")
+
+        assertEquals("UK.OBIE.IBAN", entity.creditorScheme)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", entity.debtorScheme)
     }
 }
