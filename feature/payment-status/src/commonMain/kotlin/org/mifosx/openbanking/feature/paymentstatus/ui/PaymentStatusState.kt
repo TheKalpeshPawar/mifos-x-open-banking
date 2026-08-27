@@ -15,6 +15,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
+import org.mifosx.openbanking.core.model.banking.payment.dispositionFor
 import template.core.base.network.NetworkError
 
 /**
@@ -105,7 +106,11 @@ sealed interface PaymentStatusUiState {
         val amountLabel: String,
         val creditorName: String,
         val reference: String,
-        val debtorLabel: String,
+        val debtorName: String = "",
+        val debtorIdentification: String = "",
+        val debtorScheme: String = "",
+        val creditorIdentification: String = "",
+        val creditorScheme: String = "",
         val submittedAt: String,
         val settledAt: String = "",
         /**
@@ -160,6 +165,17 @@ sealed interface PaymentStatusUiState {
 val PaymentStatusUiState.isReading: Boolean
     get() = this is PaymentStatusUiState.Loading ||
         (this is PaymentStatusUiState.Content && refreshing)
+
+/**
+ * Whether the status will not move again, so no refresh is worth offering.
+ *
+ * A status that cannot be classified — no local row names the rail — stays refreshable, since the
+ * rail is what decides whether `INCO` is an ending.
+ */
+val PaymentStatusUiState.Content.settled: Boolean
+    get() = consentType
+        ?.let { status.dispositionFor(it) != PaymentDisposition.InProgress }
+        ?: false
 
 data class PaymentStatusState(
     val paymentId: String,

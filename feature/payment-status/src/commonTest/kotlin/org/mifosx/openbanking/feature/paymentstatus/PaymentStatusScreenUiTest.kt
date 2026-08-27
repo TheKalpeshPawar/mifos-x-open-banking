@@ -77,6 +77,29 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).performScrollTo().assertIsNotEnabled()
     }
 
+    /** An in-flight payment can still move, so the re-read is worth offering. */
+    @Test
+    fun refreshIsOfferedWhileThePaymentIsStillInFlight() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).assertExists()
+    }
+
+    /**
+     * A booked standing instruction is the bank's last word, so nothing a re-read could return.
+     *
+     * Asserted in both directions on purpose: a button that is merely absent from a fixture proves
+     * nothing, and this one was unconditional until now.
+     */
+    @Test
+    fun refreshIsWithheldOnceTheStatusIsFinal() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.standingOrderState(), {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).assertDoesNotExist()
+    }
+
     @Test
     fun tappingRefreshRereadsTheStatus() {
         val actions = mutableListOf<PaymentStatusAction>()

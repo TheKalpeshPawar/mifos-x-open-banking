@@ -180,7 +180,7 @@ class PaymentStatusViewModelTest {
     fun showsThePayingAccountIdentification() = runTest {
         val vm = viewModel()
 
-        assertEquals("40051512345678", content(vm).debtorLabel)
+        assertEquals("40051512345678", content(vm).debtorIdentification)
     }
 
     /**

@@ -21,6 +21,8 @@ internal object PaymentStatusTestTags {
     const val DETAILS_LIST = "paymentStatus:detailsList"
     const val DETAIL_REFERENCE = "paymentStatus:detailReference"
     const val DETAIL_FROM = "paymentStatus:detailFrom"
+    const val DETAIL_TO = "paymentStatus:detailTo"
+    const val DETAIL_PAYMENT_TYPE = "paymentStatus:detailPaymentType"
     const val DETAIL_SUBMITTED = "paymentStatus:detailSubmitted"
     const val DETAIL_PAYMENT_ID = "paymentStatus:detailPaymentId"
     const val STATUS_DETAIL = "paymentStatus:statusDetail"

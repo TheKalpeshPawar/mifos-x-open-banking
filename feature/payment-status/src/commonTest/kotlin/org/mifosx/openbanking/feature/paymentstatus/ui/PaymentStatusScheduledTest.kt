@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.TimeZone
+import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.feature.paymentstatus.FakePaymentHistoryRepository
@@ -25,7 +26,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -62,7 +63,9 @@ class PaymentStatusScheduledTest {
             mapOf(PaymentStatusViewModel.PAYMENT_ID_ARG to PaymentStatusFixtures.PAYMENT_ID),
         ),
         repository = FakePaymentStatusRepository(receipt = PaymentStatusFixtures.scheduledReceipt()),
-        paymentHistoryRepository = FakePaymentHistoryRepository(),
+        paymentHistoryRepository = FakePaymentHistoryRepository(
+            consentType = ConsentType.DomesticScheduledPayment,
+        ),
         clock = clock,
         // Fixed, so the date assertions below do not change meaning on a machine in another zone.
         timeZone = TimeZone.UTC,
@@ -74,28 +77,28 @@ class PaymentStatusScheduledTest {
     /**
      * The assertion this suite exists for.
      *
-     * `Current` renders as "Settling now". A payment whose date is a week away is not settling, and
-     * saying so would be the screen's most consequential lie — it is the difference between "your
-     * money is moving" and "nothing has happened yet".
+     * `INCO` is the bank's last word on this rail and no per-execution status follows it, so the
+     * timeline ends at [PaymentTimelineStep.Submitted]. A fourth stage would stand for an event that
+     * never arrives — rendered either as "Settling now", which claims money is moving before the
+     * date, or as "Waiting on your bank", which claims something is still owed.
      */
     @Test
-    fun aScheduledPaymentIsNotDescribedAsSettling() {
-        val completed = content().timeline.first { it.step == PaymentTimelineStep.Completed }
+    fun theTimelineEndsAtSubmittedWithNoCompletedStage() {
+        val timeline = content().timeline
 
-        assertEquals(PaymentStepState.Pending, completed.state)
-        assertNotEquals(PaymentStepState.Current, completed.state, "nothing is settling before the date")
+        assertEquals(3, timeline.size)
+        assertNull(timeline.firstOrNull { it.step == PaymentTimelineStep.Completed })
+        assertEquals(PaymentTimelineStep.Submitted, timeline.first().step)
     }
 
-    /** And the final stage carries no timestamp, because nothing has happened to stamp. */
+    /** Every stage the timeline does show has been reached. */
     @Test
-    fun theFinalStageIsUndated() {
-        val completed = content().timeline.first { it.step == PaymentTimelineStep.Completed }
-
-        assertTrue(completed.timestamp.isEmpty())
+    fun everyStageShownIsDone() {
+        assertTrue(content().timeline.all { it.state == PaymentStepState.Done })
     }
 
     /**
-     * `INCO` resolves rather than falling through to `Unknown`.
+     * `INCO` resolves rather than falling through to `Unknown`, and is terminal on this rail.
      *
      * Before it was added, it landed on `Unknown` — also `InProgress`, so nothing looked broken —
      * and the hub would have re-read every scheduled payment on every refresh for up to a year while
@@ -106,7 +109,13 @@ class PaymentStatusScheduledTest {
         val state = content()
 
         assertEquals(PaymentStatus.InitiationCompleted, state.status)
-        assertEquals(PaymentDisposition.InProgress, state.disposition)
+        assertEquals(PaymentDisposition.TerminalSuccess, state.disposition)
+    }
+
+    /** Nothing further can arrive, so the screen stops offering a re-read. */
+    @Test
+    fun aBookedScheduledPaymentIsSettled() {
+        assertTrue(content().settled)
     }
 
     /**

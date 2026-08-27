@@ -106,8 +106,19 @@ object PaymentStatusFixtures {
     fun timeline(
         completedState: PaymentStepState = PaymentStepState.Current,
         completedAt: String = "",
-    ): List<PaymentTimelineEntry> = listOf(
-        PaymentTimelineEntry(PaymentTimelineStep.Completed, completedState, completedAt),
+    ): List<PaymentTimelineEntry> =
+        listOf(PaymentTimelineEntry(PaymentTimelineStep.Completed, completedState, completedAt)) +
+            reachedStages()
+
+    /**
+     * The three stages a standing instruction shows.
+     *
+     * A scheduled payment and a standing order end at [PaymentTimelineStep.Submitted]: `INCO` is the
+     * bank's last word on those rails and no per-execution status follows it.
+     */
+    fun instructionTimeline(): List<PaymentTimelineEntry> = reachedStages()
+
+    private fun reachedStages(): List<PaymentTimelineEntry> = listOf(
         PaymentTimelineEntry(
             PaymentTimelineStep.Submitted,
             PaymentStepState.Done,
@@ -154,7 +165,11 @@ object PaymentStatusFixtures {
             amountLabel = "£850.00",
             creditorName = "Jameson Lettings",
             reference = reference,
-            debtorLabel = "40051512345678",
+            debtorName = "Mr Robert",
+            debtorIdentification = "40051512345678",
+            debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+            creditorIdentification = "40120965872310",
+            creditorScheme = "UK.OBIE.SortCodeAccountNumber",
             submittedAt = "3 Aug 2026, 14:22",
             settledAt = settledAt,
             scheduledForAt = scheduledForAt,
@@ -191,10 +206,7 @@ object PaymentStatusFixtures {
         scheduledForAt = "14 Aug 2026",
         statusChangedAt = "",
         charges = emptyList(),
-        // The final stage is Pending, not Current. `inFlightStepState` maps INCO that way in
-        // production, and the default fixture's "Settling now" would have this golden assert the
-        // opposite of what the app does — a payment that has not reached its date is not settling.
-        timeline = timeline(completedState = PaymentStepState.Pending),
+        timeline = instructionTimeline(),
     )
 
     /**
@@ -216,7 +228,7 @@ object PaymentStatusFixtures {
         frequency = StandingOrderFrequency.Weekly,
         finalPaymentAt = finalPaymentAt,
         recurringAmountLabel = "£1.00",
-        timeline = timeline(completedState = PaymentStepState.Pending),
+        timeline = instructionTimeline(),
     )
 
     /** Two charges, the case a single `DETAIL_FEE` tag could not address. */
@@ -275,6 +287,7 @@ class FakePaymentStatusRepository(
  */
 class FakePaymentHistoryRepository(
     private val stages: PaymentStageTimestamps? = PaymentStatusFixtures.stages(),
+    private val consentType: ConsentType? = ConsentType.DomesticSinglePayment,
 ) : PaymentHistoryRepository {
 
     val stageReads = mutableListOf<String>()
@@ -294,7 +307,7 @@ class FakePaymentHistoryRepository(
         errorDescription: String,
     ) = error("payment-status never writes history")
 
-    override suspend fun consentTypeOf(paymentId: String): ConsentType? = ConsentType.DomesticSinglePayment
+    override suspend fun consentTypeOf(paymentId: String): ConsentType? = consentType
 
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? {
         stageReads += paymentId

@@ -26,6 +26,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
 import org.mifosx.openbanking.core.model.banking.payment.dispositionFor
+import org.mifosx.openbanking.core.model.banking.payment.setsUpAnInstruction
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
@@ -127,7 +128,11 @@ class PaymentStatusViewModel(
             amountLabel = amountLabel,
             creditorName = creditorName,
             reference = reference,
-            debtorLabel = debtorIdentification,
+            debtorName = debtorName,
+            debtorIdentification = debtorIdentification,
+            debtorScheme = debtorScheme,
+            creditorIdentification = creditorIdentification,
+            creditorScheme = creditorScheme,
             submittedAt = formatDateTime(creationDateTime, timeZone),
             settledAt = settled,
             // Date only. The wire value is midnight UTC, so a date-and-time rendering would
@@ -151,12 +156,17 @@ class PaymentStatusViewModel(
                 stages = stages,
                 settledAt = settled,
                 statusChangedAt = statusChanged,
+                consentType = consentType,
             ),
         )
     }
 
     /**
-     * The four stages, newest first.
+     * The stages, newest first — four on a payment, three on a standing instruction.
+     *
+     * A scheduled payment and a standing order end at [PaymentTimelineStep.Submitted]. `INCO` is the
+     * bank's last word on those rails and no per-execution status follows it, so a fourth stage would
+     * stand for an event that never arrives.
      *
      * Steps 1–3 are [PaymentStepState.Done] unconditionally because this screen is only reachable
      * with a bank-issued payment id: the request was created, the PSU approved it, and the POST
@@ -178,23 +188,9 @@ class PaymentStatusViewModel(
         stages: PaymentStageTimestamps?,
         settledAt: String,
         statusChangedAt: String,
+        consentType: ConsentType?,
     ): List<PaymentTimelineEntry> {
-        val completed = when (status.disposition) {
-            PaymentDisposition.TerminalSuccess ->
-                PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Done, settledAt)
-
-            PaymentDisposition.TerminalFailure -> PaymentTimelineEntry(
-                PaymentTimelineStep.Completed,
-                PaymentStepState.Failed,
-                statusChangedAt,
-            )
-
-            PaymentDisposition.InProgress ->
-                PaymentTimelineEntry(PaymentTimelineStep.Completed, status.inFlightStepState())
-        }
-
-        return listOf(
-            completed,
+        val reached = listOf(
             PaymentTimelineEntry(
                 step = PaymentTimelineStep.Submitted,
                 state = PaymentStepState.Done,
@@ -210,6 +206,25 @@ class PaymentStatusViewModel(
                 state = PaymentStepState.Done,
             ),
         )
+
+        if (consentType?.setsUpAnInstruction == true) return reached
+
+        val disposition = consentType?.let { status.dispositionFor(it) } ?: status.disposition
+        val completed = when (disposition) {
+            PaymentDisposition.TerminalSuccess ->
+                PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Done, settledAt)
+
+            PaymentDisposition.TerminalFailure -> PaymentTimelineEntry(
+                PaymentTimelineStep.Completed,
+                PaymentStepState.Failed,
+                statusChangedAt,
+            )
+
+            PaymentDisposition.InProgress ->
+                PaymentTimelineEntry(PaymentTimelineStep.Completed, status.inFlightStepState())
+        }
+
+        return listOf(completed) + reached
     }
 
     /** Blank in, blank out — `formatDateTime` returns an unparseable input verbatim. */

@@ -60,6 +60,14 @@
     <string name="feature_payment_status_reference">Reference</string>
     <string name="feature_payment_status_reference_empty">None</string>
     <string name="feature_payment_status_from">From</string>
+    <string name="feature_payment_status_to_label">To</string>
+    <string name="feature_payment_status_payment_type">Payment type</string>
+    <string name="feature_payment_status_type_domestic_single">Domestic Single Payment</string>
+    <string name="feature_payment_status_type_international_single">International Single Payment</string>
+    <string name="feature_payment_status_type_domestic_scheduled">Domestic Scheduled Payment</string>
+    <string name="feature_payment_status_type_international_scheduled">International Scheduled Payment</string>
+    <string name="feature_payment_status_type_domestic_standing_order">Domestic Standing Order</string>
+    <string name="feature_payment_status_type_international_standing_order">International Standing Order</string>
     <string name="feature_payment_status_submitted">Submitted</string>
     <string name="feature_payment_status_settled">Settles</string>
     <!-- Future tense, always. A scheduled payment has not been made, and this app cannot observe

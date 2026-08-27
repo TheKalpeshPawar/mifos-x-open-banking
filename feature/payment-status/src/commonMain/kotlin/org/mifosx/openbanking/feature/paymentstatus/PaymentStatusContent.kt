@@ -36,8 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -71,6 +76,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress_note_scheduled
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_last_checked
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_id
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_type
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_recurring_amount
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference_empty
@@ -87,8 +93,19 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_status_changed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_submitted
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_to
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_to_label
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_scheduled
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_single
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_standing_order
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_scheduled
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_single
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_standing_order
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineEntry
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
+import org.mifosx.openbanking.feature.paymentstatus.ui.settled
 import template.core.base.designsystem.theme.KptTheme
 
 /**
@@ -129,13 +146,15 @@ internal fun PaymentStatusContent(
 
         DetailsSection(state)
 
-        MifosTonalPillButton(
-            label = stringResource(Res.string.feature_payment_status_refresh),
-            onClick = { onAction(PaymentStatusAction.RefreshStatus) },
-            icon = Icons.Filled.Refresh,
-            testTag = PaymentStatusTestTags.REFRESH_BUTTON,
-            enabled = !state.refreshing,
-        )
+        if (!state.settled) {
+            MifosTonalPillButton(
+                label = stringResource(Res.string.feature_payment_status_refresh),
+                onClick = { onAction(PaymentStatusAction.RefreshStatus) },
+                icon = Icons.Filled.Refresh,
+                testTag = PaymentStatusTestTags.REFRESH_BUTTON,
+                enabled = !state.refreshing,
+            )
+        }
 
         // Without this, a refresh that returns the same status is indistinguishable from a button
         // that does nothing — which is exactly how it read while the sandbox sat at ACSP.
@@ -355,11 +374,28 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
                 tag = PaymentStatusTestTags.DETAIL_REFERENCE,
             )
             HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
-            DetailRow(
+            DetailPartyRow(
                 label = stringResource(Res.string.feature_payment_status_from),
-                value = state.debtorLabel,
+                name = state.debtorName,
+                schemeName = state.debtorScheme,
+                identification = state.debtorIdentification,
                 tag = PaymentStatusTestTags.DETAIL_FROM,
             )
+            DetailPartyRow(
+                label = stringResource(Res.string.feature_payment_status_to_label),
+                name = state.creditorName,
+                schemeName = state.creditorScheme,
+                identification = state.creditorIdentification,
+                tag = PaymentStatusTestTags.DETAIL_TO,
+            )
+            state.consentType?.let { type ->
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_payment_type),
+                    value = stringResource(type.paymentTypeLabel()),
+                    tag = PaymentStatusTestTags.DETAIL_PAYMENT_TYPE,
+                )
+            }
             HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             DetailRow(
                 label = stringResource(Res.string.feature_payment_status_submitted),
@@ -457,6 +493,77 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
     }
 }
 
+/**
+ * A party's row: the field label, and the party's name over its identification.
+ *
+ * Renders nothing when the bank named neither — a payer chosen at the bank is absent from some
+ * responses, and an empty row reads as a missing field rather than an unstated one.
+ */
+@Composable
+private fun DetailPartyRow(
+    label: String,
+    name: String,
+    schemeName: String,
+    identification: String,
+    tag: String,
+) {
+    if (name.isBlank() && identification.isBlank()) return
+
+    HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(KptTheme.spacing.md)
+            .testTag(tag),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
+        ) {
+            if (name.isNotBlank()) {
+                Text(
+                    text = name,
+                    style = KptTheme.typography.bodyMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                )
+            }
+            Text(
+                text = formatAccountIdentifier(AccountScheme.fromSchemeName(schemeName), identification),
+                style = KptTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                color = KptTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+            )
+        }
+    }
+}
+
+/** The rail and product a payment was made on. */
+private fun ConsentType.paymentTypeLabel(): StringResource = when (this) {
+    ConsentType.DomesticSinglePayment -> Res.string.feature_payment_status_type_domestic_single
+    ConsentType.InternationalSinglePayment ->
+        Res.string.feature_payment_status_type_international_single
+
+    ConsentType.DomesticScheduledPayment ->
+        Res.string.feature_payment_status_type_domestic_scheduled
+
+    ConsentType.InternationalScheduledPayment ->
+        Res.string.feature_payment_status_type_international_scheduled
+
+    ConsentType.DomesticStandingOrder ->
+        Res.string.feature_payment_status_type_domestic_standing_order
+
+    ConsentType.InternationalStandingOrder ->
+        Res.string.feature_payment_status_type_international_standing_order
+}
+
 @Composable
 private fun DetailRow(label: String, value: String, tag: String) {
     Row(
@@ -538,4 +645,78 @@ private fun PaymentStatus.detailResource() = when (this) {
     PaymentStatus.Cancelled -> Res.string.feature_payment_status_detail_canc
     PaymentStatus.InitiationFailed -> Res.string.feature_payment_status_detail_infa
     PaymentStatus.Unknown -> Res.string.feature_payment_status_detail_unknown
+}
+
+@Preview
+@Composable
+private fun PaymentStatusContentInFlightPreview() {
+    MifosXOpenBankingTheme {
+        PaymentStatusContent(
+            state = PaymentStatusUiState.Content(
+                paymentId = "20123",
+                status = PaymentStatus.AcceptedSettlementInProcess,
+                disposition = PaymentDisposition.InProgress,
+                amountLabel = "£6.00",
+                creditorName = "Mr Dharani C",
+                reference = "BFRS.RFRNC.546",
+                debtorName = "Mr Nico",
+                debtorIdentification = "80200110203349",
+                debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+                creditorIdentification = "80200110203350",
+                creditorScheme = "UK.OBIE.SortCodeAccountNumber",
+                submittedAt = "25 Aug 2026, 18:05",
+                consentType = ConsentType.DomesticSinglePayment,
+                lastCheckedAt = "18:06",
+                timeline = listOf(
+                    PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Current),
+                    PaymentTimelineEntry(
+                        PaymentTimelineStep.Submitted,
+                        PaymentStepState.Done,
+                        "25 Aug 2026, 18:05",
+                    ),
+                    PaymentTimelineEntry(PaymentTimelineStep.ApprovedAtBank, PaymentStepState.Done),
+                    PaymentTimelineEntry(PaymentTimelineStep.RequestCreated, PaymentStepState.Done),
+                ),
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PaymentStatusContentStandingOrderPreview() {
+    MifosXOpenBankingTheme {
+        PaymentStatusContent(
+            state = PaymentStatusUiState.Content(
+                paymentId = "20106",
+                status = PaymentStatus.InitiationCompleted,
+                disposition = PaymentDisposition.TerminalSuccess,
+                amountLabel = "£20.00",
+                creditorName = "Mr Nico",
+                reference = "BFRS.RFRNC.546",
+                debtorName = "Mr Robert",
+                debtorIdentification = "80200110203348",
+                debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+                creditorIdentification = "80200110203349",
+                creditorScheme = "UK.OBIE.SortCodeAccountNumber",
+                submittedAt = "24 Aug 2026, 22:01",
+                scheduledForAt = "27 Aug 2026",
+                consentType = ConsentType.DomesticStandingOrder,
+                frequency = StandingOrderFrequency.Monthly,
+                finalPaymentAt = "20 Nov 2026",
+                lastCheckedAt = "22:02",
+                timeline = listOf(
+                    PaymentTimelineEntry(
+                        PaymentTimelineStep.Submitted,
+                        PaymentStepState.Done,
+                        "24 Aug 2026, 22:01",
+                    ),
+                    PaymentTimelineEntry(PaymentTimelineStep.ApprovedAtBank, PaymentStepState.Done),
+                    PaymentTimelineEntry(PaymentTimelineStep.RequestCreated, PaymentStepState.Done),
+                ),
+            ),
+            onAction = {},
+        )
+    }
 }
