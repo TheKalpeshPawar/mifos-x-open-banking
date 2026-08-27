@@ -12,7 +12,6 @@ package org.mifosx.openbanking.core.ui.account
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import org.mifosx.openbanking.core.ui.generated.resources.Res
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_credit
@@ -21,11 +20,6 @@ import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_g
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_global_wallet
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_other
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_type_savings
-
-private const val LAST_DIGITS = 4
-private const val TYPE_NUMBER_SEPARATOR = " ·· "
-private const val TYPE_CARD_SEPARATOR = " "
-private val CREDIT_CARD_TYPE_CODES = setOf("card", "ccrd")
 
 /** The localized account-type label on its own, e.g. `Current Account`. */
 @Composable
@@ -38,54 +32,15 @@ fun accountTypeLabel(product: HsbcProductType): String =
     stringResource(product.labelRes())
 
 /**
- * The name to show for an account.
- *
- * [accountHolderName] (OBIE nested `Account[].Name`) is used as-is when the bank supplies one; when it
- * is blank this falls back to a localized account-type label plus an identifier — e.g.
- * "Current account ·· 3349". Shared so Home, Accounts and Account-detail render the same label from the
- * same localized strings.
+ * The single line to title an account with: the holder name (OBIE nested `Account[].Name`) when the
+ * bank supplies one, otherwise the account-type label.
  */
 @Composable
-fun accountDisplayName(
+fun accountTitle(
     accountHolderName: String,
     accountTypeCode: String,
     description: String,
-    scheme: AccountScheme,
-    identification: String,
-): String {
-    if (accountHolderName.isNotBlank()) return accountHolderName
-    val typeLabel = stringResource(accountTypeLabelRes(accountTypeCode, description))
-    return accountFallbackLabel(typeLabel, accountTypeCode, scheme, identification)
-}
-
-/**
- * Builds the "type + identifier" fallback shown when the bank supplied no holder name.
- *
- * A card's identification is already masked by the bank, so it is shown as-is after the type label.
- * Every other product keeps the "type ·· last 4" form — e.g. "Current account ·· 3349".
- *
- * Non-composable so it is unit-testable on the JVM without a Compose runtime.
- */
-internal fun accountFallbackLabel(
-    typeLabel: String,
-    accountTypeCode: String,
-    scheme: AccountScheme,
-    identification: String,
-): String {
-    if (isCreditCard(scheme, accountTypeCode)) {
-        return if (identification.isNotBlank()) {
-            "$typeLabel$TYPE_CARD_SEPARATOR$identification"
-        } else {
-            typeLabel
-        }
-    }
-    val lastDigits = identification.takeLast(LAST_DIGITS)
-    return if (lastDigits.isNotBlank()) "$typeLabel$TYPE_NUMBER_SEPARATOR$lastDigits" else typeLabel
-}
-
-/** True for an account the display treats as a credit card. */
-internal fun isCreditCard(scheme: AccountScheme, accountTypeCode: String): Boolean =
-    scheme == AccountScheme.Pan || accountTypeCode.lowercase() in CREDIT_CARD_TYPE_CODES
+): String = accountHolderName.ifBlank { accountTypeLabel(accountTypeCode, description) }
 
 /** This product's display label. */
 internal fun HsbcProductType.labelRes(): StringResource = when (this) {

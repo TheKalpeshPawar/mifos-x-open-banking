@@ -29,7 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.AccountDetail
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.account.accountTypeLabel
 import org.mifosx.openbanking.feature.accountdetail.AccountDetailTestTags
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.accountdetail.generated.resources.feature_account_detail_header_accessibility
@@ -61,23 +61,19 @@ internal fun AccountHeaderCard(detail: AccountDetail, modifier: Modifier = Modif
             verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
-                text = detail.accountTypeCode.uppercase(),
+                text = accountTypeLabel(detail.accountTypeCode, detail.description).uppercase(),
                 style = KptTheme.typography.labelMedium.copy(letterSpacing = SUBTYPE_TRACKING),
                 color = KptTheme.colorScheme.secondary,
                 modifier = Modifier.testTag(AccountDetailTestTags.SUBTYPE_LABEL),
             )
-            Text(
-                text = accountDisplayName(
-                    accountHolderName = detail.accountHolderName,
-                    accountTypeCode = detail.accountTypeCode,
-                    description = detail.description,
-                    scheme = detail.scheme,
-                    identification = detail.identification,
-                ),
-                style = KptTheme.typography.headlineMedium,
-                color = KptTheme.colorScheme.onSurface,
-                modifier = Modifier.testTag(AccountDetailTestTags.DISPLAY_NAME),
-            )
+            if (detail.accountHolderName.isNotBlank()) {
+                Text(
+                    text = detail.accountHolderName,
+                    style = KptTheme.typography.headlineMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                    modifier = Modifier.testTag(AccountDetailTestTags.DISPLAY_NAME),
+                )
+            }
             Text(
                 text = formatAccountIdentifier(detail.scheme, detail.identification),
                 style = KptTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),

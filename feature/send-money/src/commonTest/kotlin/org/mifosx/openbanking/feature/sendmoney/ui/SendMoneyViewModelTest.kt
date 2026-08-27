@@ -106,14 +106,7 @@ class SendMoneyViewModelTest {
         assertEquals("Jameson Lettings", state.beneficiaries.first().creditorName)
     }
 
-    /**
-     * The regression guard for the blank-row defect.
-     *
-     * HSBC leaves `Nickname` blank on most accounts, so a row must carry the fields
-     * `accountDisplayName` needs to derive "Current account ·· 3349". Reading `nickname` as the
-     * headline rendered an empty name and an empty avatar on every live account — and the original
-     * fixtures hid it, because they gave every account a nickname the real ones do not have.
-     */
+    /** A debtor row carries the type code and identification that name an account with no holder name. */
     @Test
     fun anAccountWithNoNicknameStillCarriesEnoughToNameItself() = runTest {
         val accounts = FakeAccountsOverviewRepository(

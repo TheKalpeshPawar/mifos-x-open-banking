@@ -17,7 +17,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.mifosx.openbanking.core.model.banking.AccountDetail
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.account.accountTitle
 import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
 import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
@@ -79,12 +79,10 @@ private fun AccountDetailState.topBarTitle(): String = when (val current = uiSta
 
 @Composable
 private fun AccountDetail.displayName(): String =
-    accountDisplayName(
+    accountTitle(
         accountHolderName = accountHolderName,
         accountTypeCode = accountTypeCode,
         description = description,
-        scheme = scheme,
-        identification = identification,
     )
 
 @Composable

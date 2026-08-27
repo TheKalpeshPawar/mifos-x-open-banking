@@ -137,8 +137,8 @@ fun <T> Flow<T>.asLocalScreenStream(): Flow<ScreenState<T>> =
  * **Priority** (first match wins on each emission):
  * `NoNetwork > Loading > Unauthenticated > Error > Empty > Content`
  *
- * The resulting [DataFreshness] is the "worst" of the sources:
- * STALE if any is STALE; UPDATING if any is UPDATING; FRESH only when all are FRESH.
+ * The resulting [DataFreshness] is the most severe of the sources, by declaration order:
+ * `STALE_OFFLINE > STALE_FAILED > UPDATING > FRESH`.
  */
 @OptIn(ExperimentalTime::class)
 fun <A, B, R> combineScreenStates(

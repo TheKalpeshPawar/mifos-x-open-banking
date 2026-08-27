@@ -76,7 +76,7 @@ object StandingOrderFixtures {
     /** £21,530.92 available — comfortably covers the fixture payment. */
     fun currentAccount(): BankAccount = BankAccount(
         accountId = CURRENT_ACCOUNT_ID,
-        accountHolderName = "Current account ·· 3349",
+        accountHolderName = "Mr Nico",
         accountTypeCode = "CACC",
         currency = "GBP",
         identification = "80200110203349",
@@ -86,7 +86,7 @@ object StandingOrderFixtures {
     /** £482.10 available — the account TC-SEND-003 overdraws. */
     fun savingsAccount(): BankAccount = BankAccount(
         accountId = SAVINGS_ACCOUNT_ID,
-        accountHolderName = "BMM ACCOUNT ·· 3695",
+        accountHolderName = "Mr Robert",
         accountTypeCode = "SVGS",
         currency = "GBP",
         identification = "80122590953695",
@@ -208,11 +208,7 @@ object StandingOrderFixtures {
         creditorName = "Jameson Lettings",
     )
 
-    /**
-     * Raw fields, not a finished label — the readable name is resolved at render by
-     * `accountDisplayName`, exactly as it is in production. A fixture that pre-baked the label would
-     * have passed while the live screen rendered blank rows, which is what happened.
-     */
+    /** Debtor rows carrying raw OBIE fields and no holder name, so the label is resolved at render. */
     private fun debtorRows(): List<AccountWithBalance> = accounts()
         .filter { it.account.accountId == CURRENT_ACCOUNT_ID || it.account.accountId == SAVINGS_ACCOUNT_ID }
         .map { it.copy(account = it.account.copy(accountHolderName = "")) }

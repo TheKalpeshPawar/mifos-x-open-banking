@@ -53,11 +53,13 @@ import kotlin.time.Instant
  * color (M3 semantic containers — theme-respecting in light/dark/dynamic):
  *
  * - **FRESH** → hidden (no banner)
- * - **STALE** (offline with cached data) → `errorContainer` background,
+ * - **STALE_OFFLINE** (no connectivity, cached data) → `errorContainer` background,
  *   `CloudOff` icon, "Offline · Updated 5m ago"
+ * - **STALE_FAILED** (online, last refresh failed) → `errorContainer` background,
+ *   `SyncProblem` icon, "Couldn't refresh · Updated 5m ago"
  * - **UPDATING** (refresh in flight) → `primaryContainer` background,
  *   `Sync` icon, linear progress on top, "Refreshing · Last updated 5m ago"
- * - **JustReconnected** (transient, after STALE → non-STALE transition) →
+ * - **JustReconnected** (transient, after a stale → non-stale transition) →
  *   `tertiaryContainer` background, `CloudDone` icon, "Connected · Refreshing
  *   data", auto-hides after [reconnectedVisibilityDuration]
  *
@@ -66,11 +68,11 @@ import kotlin.time.Instant
  *
  * @param freshness Current data freshness state.
  * @param fetchedAt Wall-clock instant of last successful fetch for human-readable timestamp.
- * @param staleLabel Custom stale message. Null uses default with timestamp.
+ * @param staleLabel Custom message for both stale states. Null uses the default with timestamp.
  * @param updatingLabel Custom updating message. Null uses "Refreshing...".
  * @param reconnectedLabel Custom message for the transient just-reconnected banner.
  * @param reconnectedVisibilityDuration How long the just-reconnected banner stays
- *   visible after the STALE → non-STALE transition. Default 3 seconds.
+ *   visible after the stale → non-stale transition. Default 3 seconds.
  */
 @OptIn(ExperimentalTime::class)
 @Composable

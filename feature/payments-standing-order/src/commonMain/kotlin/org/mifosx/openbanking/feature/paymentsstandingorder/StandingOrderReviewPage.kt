@@ -33,7 +33,7 @@ import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.account.MifosAccountReviewRow
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.payee.initialsOf
@@ -88,16 +88,6 @@ internal fun StandingOrderReviewPage(
     onAction: (StandingOrderAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val payerLabel = state.debtorAccountRow?.let { row ->
-        accountDisplayName(
-            accountHolderName = row.account.accountHolderName,
-            accountTypeCode = row.account.accountTypeCode,
-            description = row.account.description,
-            scheme = row.account.scheme,
-            identification = row.account.identification,
-        )
-    }.orEmpty()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -128,12 +118,13 @@ internal fun StandingOrderReviewPage(
             SectionHeading(stringResource(Res.string.feature_payments_standing_order_review_details_heading))
             // Blank when the PSU left the choice to the bank — which is a decision they made, so it
             // is stated rather than left as an empty row that reads like a missing field.
-            ReviewRow(
+            MifosAccountReviewRow(
                 label = stringResource(Res.string.feature_payments_standing_order_review_from),
-                value = payerLabel.ifBlank {
-                    stringResource(Res.string.feature_payments_standing_order_review_from_bank_choice)
-                },
-                tag = StandingOrderTestTags.REVIEW_FROM,
+                account = state.debtorAccountRow?.account,
+                absentLabel = stringResource(
+                    Res.string.feature_payments_standing_order_review_from_bank_choice,
+                ),
+                modifier = Modifier.testTag(StandingOrderTestTags.REVIEW_FROM),
             )
             ReviewRow(
                 label = stringResource(Res.string.feature_payments_standing_order_review_to),

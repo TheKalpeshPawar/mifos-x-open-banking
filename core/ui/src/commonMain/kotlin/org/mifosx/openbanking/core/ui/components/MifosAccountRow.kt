@@ -12,7 +12,6 @@ package org.mifosx.openbanking.core.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,12 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.mifosx.openbanking.core.common.AccountScheme
-import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
@@ -49,7 +45,7 @@ import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
-import org.mifosx.openbanking.core.ui.account.accountTypeLabel
+import org.mifosx.openbanking.core.ui.account.AccountIdentityLines
 import template.core.base.designsystem.theme.KptTheme
 
 /**
@@ -88,31 +84,13 @@ fun MifosAccountRow(
         ) {
             ProductIcon(product)
             Spacer(Modifier.width(KptTheme.spacing.md))
-            Column(
+            AccountIdentityLines(
+                product = product,
+                accountHolderName = account.account.accountHolderName,
+                scheme = account.account.scheme,
+                identification = account.account.identification,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
-            ) {
-                Text(
-                    text = accountTypeLabel(product),
-                    style = KptTheme.typography.labelMedium,
-                    color = KptTheme.colorScheme.onSurfaceVariant,
-                )
-
-                Text(
-                    text = account.account.accountHolderName,
-                    style = KptTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = KptTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                )
-
-                Text(
-                    text = formatAccountIdentifier(account.account.scheme, account.account.identification),
-                    style = KptTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = KptTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            )
             Spacer(Modifier.width(KptTheme.spacing.sm))
             Text(
                 text = account.balance?.let { formatMoney(it.availableAmount, it.currency) }.orEmpty(),

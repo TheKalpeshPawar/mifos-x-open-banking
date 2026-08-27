@@ -45,7 +45,7 @@ private const val WEISS_ID = "BEN-101"
  */
 private fun currentAccount(): BankAccount = BankAccount(
     accountId = CURRENT_ACCOUNT_ID,
-    accountHolderName = "Current account ·· 3349",
+    accountHolderName = "Mr Nico",
     accountTypeCode = "CACC",
     currency = "GBP",
     identification = "80200110203349",

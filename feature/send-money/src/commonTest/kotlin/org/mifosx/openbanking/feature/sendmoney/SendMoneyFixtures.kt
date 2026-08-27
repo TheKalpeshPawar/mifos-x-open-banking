@@ -59,7 +59,7 @@ object SendMoneyFixtures {
     /** £21,530.92 available — comfortably covers the fixture payment. */
     fun currentAccount(): BankAccount = BankAccount(
         accountId = CURRENT_ACCOUNT_ID,
-        accountHolderName = "Current account ·· 3349",
+        accountHolderName = "Mr Nico",
         accountTypeCode = "CACC",
         currency = "GBP",
         identification = "80200110203349",
@@ -69,7 +69,7 @@ object SendMoneyFixtures {
     /** £482.10 available — the account TC-SEND-003 overdraws. */
     fun savingsAccount(): BankAccount = BankAccount(
         accountId = SAVINGS_ACCOUNT_ID,
-        accountHolderName = "BMM ACCOUNT ·· 3695",
+        accountHolderName = "Mr Robert",
         accountTypeCode = "SVGS",
         currency = "GBP",
         identification = "80122590953695",

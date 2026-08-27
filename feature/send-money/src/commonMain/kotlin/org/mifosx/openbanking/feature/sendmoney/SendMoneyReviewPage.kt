@@ -33,7 +33,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.ui.account.MifosAccountReviewRow
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.payee.initialsOf
@@ -83,16 +83,6 @@ internal fun SendMoneyReviewPage(
     onAction: (SendMoneyAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val payerLabel = state.debtorAccountRow?.let { row ->
-        accountDisplayName(
-            accountHolderName = row.account.accountHolderName,
-            accountTypeCode = row.account.accountTypeCode,
-            description = row.account.description,
-            scheme = row.account.scheme,
-            identification = row.account.identification,
-        )
-    }.orEmpty()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -123,14 +113,11 @@ internal fun SendMoneyReviewPage(
                 tag = SendMoneyTestTags.REVIEW_TO,
                 secondary = state.creditorSupporting,
             )
-            // Blank when the PSU left the choice to the bank — which is a decision they made, so it
-            // is stated rather than left as an empty row that reads like a missing field.
-            ReviewRow(
+            MifosAccountReviewRow(
                 label = stringResource(Res.string.feature_send_money_review_from),
-                value = payerLabel.ifBlank {
-                    stringResource(Res.string.feature_send_money_review_from_bank_choice)
-                },
-                tag = SendMoneyTestTags.REVIEW_FROM,
+                account = state.debtorAccountRow?.account,
+                absentLabel = stringResource(Res.string.feature_send_money_review_from_bank_choice),
+                modifier = Modifier.testTag(SendMoneyTestTags.REVIEW_FROM),
             )
             if (state.rail == PaymentRail.Domestic) {
                 ReviewRow(

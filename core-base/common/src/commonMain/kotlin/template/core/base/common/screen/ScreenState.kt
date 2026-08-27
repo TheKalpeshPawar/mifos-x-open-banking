@@ -60,9 +60,6 @@ sealed interface ScreenState<out T> {
 }
 
 /**
- * Indicates how fresh the data in [ScreenState.Content] is.
- */
-/**
  * How current the displayed data is.
  *
  * Declared least to most severe. [combineScreenStates] folds several sources with `maxOf`, so the
