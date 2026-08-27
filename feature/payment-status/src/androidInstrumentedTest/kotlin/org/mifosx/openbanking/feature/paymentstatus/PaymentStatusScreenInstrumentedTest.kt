@@ -116,6 +116,7 @@ class PaymentStatusScreenInstrumentedTest {
         composeRule.onNodeWithTag(PaymentStatusTestTags.STATUS_CHIP).assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_REFERENCE).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_FROM).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_TO).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_SUBMITTED).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_ID).performScrollTo().assertIsDisplayed()
     }

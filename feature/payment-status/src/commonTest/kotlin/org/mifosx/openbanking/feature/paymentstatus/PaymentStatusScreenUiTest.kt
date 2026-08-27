@@ -44,6 +44,7 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.STATUS_CHIP).assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_REFERENCE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_FROM).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_TO).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_SUBMITTED).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_ID).performScrollTo().assertIsDisplayed()
     }
@@ -337,6 +338,41 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.DETAIL_REPEATS).assertDoesNotExist()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_FINAL_PAYMENT).assertDoesNotExist()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_RECURRING_AMOUNT).assertDoesNotExist()
+    }
+
+    /**
+     * The row exists to name the rail, so asserting only its tag would not catch it naming the wrong
+     * one — which is the single way this row can be wrong.
+     */
+    @Test
+    fun theBookedMandateNamesItsPaymentType() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.standingOrderState(), {})
+        }
+
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_TYPE)
+            .performScrollTo()
+            .assertIsDisplayed()
+        onNodeWithText("Domestic Standing Order").assertIsDisplayed()
+    }
+
+    @Test
+    fun aScheduledPaymentNamesItsPaymentType() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.scheduledState(), {})
+        }
+
+        onNodeWithText("Domestic Scheduled Payment").assertIsDisplayed()
+    }
+
+    /** With no consent type there is no honest value, so the row is withheld rather than guessed. */
+    @Test
+    fun thePaymentTypeRowIsWithheldWhenTheRailIsUnknown() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
+        }
+
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_TYPE).assertDoesNotExist()
     }
 
     // endregion
