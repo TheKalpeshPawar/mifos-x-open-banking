@@ -36,6 +36,7 @@ import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
@@ -200,6 +201,7 @@ class SinglePaymentInitiationRepositoryImplTest {
         ) = Unit
         override suspend fun consentTypeOf(paymentId: String): ConsentType? = type
         override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
+        override suspend fun partiesOf(paymentId: String): PaymentParties? = null
         override fun observeHistory(
             types: Set<ConsentType>,
             limit: Int,

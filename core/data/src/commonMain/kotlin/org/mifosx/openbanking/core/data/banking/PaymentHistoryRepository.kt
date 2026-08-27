@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
@@ -79,6 +80,18 @@ interface PaymentHistoryRepository {
      * the last logout.
      */
     suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps?
+
+    /**
+     * Both parties as the stored row holds them, reconciled from every status read so far.
+     *
+     * The same single-row lookup [consentTypeOf] performs. A payer chosen at the bank is named on the
+     * submission response and on no later read, so a screen built from the receipt alone has nothing
+     * to show for it; these fill what that read leaves blank and never override what it carries.
+     *
+     * Null when no row exists for [paymentId], and blank fields within it when nothing has ever been
+     * recorded for them.
+     */
+    suspend fun partiesOf(paymentId: String): PaymentParties?
 
     /**
      * The payments made on any of [types] that reached the bank, newest first, capped at [limit].

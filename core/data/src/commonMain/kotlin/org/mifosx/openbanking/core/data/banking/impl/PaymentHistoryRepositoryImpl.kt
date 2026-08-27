@@ -22,6 +22,7 @@ import org.mifosx.openbanking.core.database.banking.dao.PaymentHistoryDao
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
@@ -109,6 +110,19 @@ internal class PaymentHistoryRepositoryImpl(
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? =
         dao.observeById(paymentId).first()?.let {
             PaymentStageTimestamps(approvedAt = it.approvedAt, submittedAt = it.submittedAt)
+        }
+
+    /** Null when no row exists; blank fields within it when the column has never been written. */
+    override suspend fun partiesOf(paymentId: String): PaymentParties? =
+        dao.observeById(paymentId).first()?.let {
+            PaymentParties(
+                debtorName = it.debtorName,
+                debtorIdentification = it.debtorIdentification,
+                debtorScheme = it.debtorScheme,
+                creditorName = it.creditorName,
+                creditorIdentification = it.creditorIdentification,
+                creditorScheme = it.creditorScheme,
+            )
         }
 
     /** Rows the mapper cannot resolve are dropped rather than shown as an unknown product. */

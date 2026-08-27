@@ -21,6 +21,7 @@ import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -86,7 +87,8 @@ class PaymentStatusViewModel(
                 is NetworkResult.Success -> {
                     val stages = paymentHistoryRepository.stageTimestampsOf(state.paymentId)
                     val type = paymentHistoryRepository.consentTypeOf(state.paymentId)
-                    updateState { copy(uiState = result.data.toContent(stages, type)) }
+                    val stored = paymentHistoryRepository.partiesOf(state.paymentId)
+                    updateState { copy(uiState = result.data.toContent(stages, type, stored)) }
                 }
 
                 is NetworkResult.Error -> {
@@ -114,6 +116,7 @@ class PaymentStatusViewModel(
     private fun PaymentReceipt.toContent(
         stages: PaymentStageTimestamps?,
         consentType: ConsentType?,
+        stored: PaymentParties?,
     ): PaymentStatusUiState.Content {
         val settled = settlementDateTime.formatted()
         val statusChanged = statusUpdateDateTime.formatted()
@@ -126,13 +129,17 @@ class PaymentStatusViewModel(
                 ?.let { status.dispositionFor(it) }
                 ?: status.disposition,
             amountLabel = amountLabel,
-            creditorName = creditorName,
+            creditorName = creditorName.ifBlank { stored?.creditorName.orEmpty() },
             reference = reference,
-            debtorName = debtorName,
-            debtorIdentification = debtorIdentification,
-            debtorScheme = debtorScheme,
-            creditorIdentification = creditorIdentification,
-            creditorScheme = creditorScheme,
+            debtorName = debtorName.ifBlank { stored?.debtorName.orEmpty() },
+            debtorIdentification = debtorIdentification.ifBlank {
+                stored?.debtorIdentification.orEmpty()
+            },
+            debtorScheme = debtorScheme.ifBlank { stored?.debtorScheme.orEmpty() },
+            creditorIdentification = creditorIdentification.ifBlank {
+                stored?.creditorIdentification.orEmpty()
+            },
+            creditorScheme = creditorScheme.ifBlank { stored?.creditorScheme.orEmpty() },
             submittedAt = formatDateTime(creationDateTime, timeZone),
             settledAt = settled,
             // Date only. The wire value is midnight UTC, so a date-and-time rendering would

@@ -18,6 +18,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -288,9 +289,12 @@ class FakePaymentStatusRepository(
 class FakePaymentHistoryRepository(
     private val stages: PaymentStageTimestamps? = PaymentStatusFixtures.stages(),
     private val consentType: ConsentType? = ConsentType.DomesticSinglePayment,
+    private val parties: PaymentParties? = null,
 ) : PaymentHistoryRepository {
 
     val stageReads = mutableListOf<String>()
+
+    val partyReads = mutableListOf<String>()
 
     override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: PaymentDraft) =
         error("payment-status never writes history")
@@ -312,6 +316,11 @@ class FakePaymentHistoryRepository(
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? {
         stageReads += paymentId
         return stages
+    }
+
+    override suspend fun partiesOf(paymentId: String): PaymentParties? {
+        partyReads += paymentId
+        return parties
     }
 
     override suspend fun saveSubmitted(receipt: PaymentReceipt, draft: StandingOrderDraft) = Unit
