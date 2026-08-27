@@ -112,6 +112,10 @@ internal fun InternationalPaymentResponse.toIntlPaymentReceipt(): PaymentReceipt
         settlementDateTime = "",
         reference = "",
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { c ->
             PaymentCharge(
                 bearer = c.chargeBearer.orEmpty(),

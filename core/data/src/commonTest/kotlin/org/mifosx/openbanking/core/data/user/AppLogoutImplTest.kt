@@ -443,11 +443,18 @@ private class FakePaymentHistoryDao : PaymentHistoryDao {
         limit: Int,
     ): Flow<List<PaymentHistoryEntity>> = MutableStateFlow(emptyList())
 
-    override suspend fun updateStatus(
+    @Suppress("LongParameterList")
+    override suspend fun updateFromReceipt(
         paymentId: String,
         status: String,
         settledAt: String?,
         syncedAt: String,
+        debtorName: String,
+        debtorIdentification: String,
+        debtorScheme: String,
+        creditorName: String,
+        creditorIdentification: String,
+        creditorScheme: String,
     ) = Unit
 
     override suspend fun upsert(entity: PaymentHistoryEntity) {}

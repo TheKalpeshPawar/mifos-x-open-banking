@@ -135,6 +135,10 @@ internal fun InternationalStandingOrderResponse.toIntlStandingOrderReceipt(): Pa
             .orEmpty(),
         reference = "",
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toIntlStandingOrderPaymentCharge() },
         frequency = initiation?.mandateRelatedInformation?.frequency?.type.orEmpty(),
         finalPaymentDateTime = initiation

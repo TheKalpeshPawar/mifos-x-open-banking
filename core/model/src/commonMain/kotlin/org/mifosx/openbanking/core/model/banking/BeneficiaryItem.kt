@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.core.model.banking
 
 import kotlinx.serialization.Serializable
+import org.mifosx.openbanking.core.common.AccountScheme
 
 /**
  * Which identifier scheme a beneficiary's destination account is expressed in.
@@ -29,6 +30,19 @@ enum class BeneficiaryScheme {
     Paym,
     Card,
     Account,
+}
+
+/**
+ * The same scheme as an [AccountScheme], for rendering a payee beside a payer.
+ *
+ * [BeneficiaryScheme.Paym] and [BeneficiaryScheme.Account] have no account-side equivalent and
+ * resolve to [AccountScheme.Other], which renders an identifier as the bank sent it.
+ */
+fun BeneficiaryScheme.toAccountScheme(): AccountScheme = when (this) {
+    BeneficiaryScheme.SortCode -> AccountScheme.SortCode
+    BeneficiaryScheme.Iban -> AccountScheme.Iban
+    BeneficiaryScheme.Card -> AccountScheme.Pan
+    BeneficiaryScheme.Paym, BeneficiaryScheme.Account -> AccountScheme.Other
 }
 
 /**

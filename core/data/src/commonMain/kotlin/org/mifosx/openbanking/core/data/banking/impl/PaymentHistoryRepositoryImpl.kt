@@ -120,11 +120,17 @@ internal class PaymentHistoryRepositoryImpl(
             .map { rows -> rows.mapNotNull { it.toHistoryRow() } }
 
     override suspend fun recordStatus(paymentId: String, receipt: PaymentReceipt) {
-        dao.updateStatus(
+        dao.updateFromReceipt(
             paymentId = paymentId,
             status = receipt.status.name,
             settledAt = receipt.settlementDateTime.takeIf { it.isNotBlank() },
             syncedAt = Clock.System.now().toString(),
+            debtorName = receipt.debtorName,
+            debtorIdentification = receipt.debtorIdentification,
+            debtorScheme = receipt.debtorScheme,
+            creditorName = receipt.creditorName,
+            creditorIdentification = receipt.creditorIdentification,
+            creditorScheme = receipt.creditorScheme,
         )
     }
 }

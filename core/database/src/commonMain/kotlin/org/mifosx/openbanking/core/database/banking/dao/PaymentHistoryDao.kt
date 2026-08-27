@@ -36,17 +36,39 @@ interface PaymentHistoryDao {
     )
     fun observeByType(types: List<String>, limit: Int): Flow<List<PaymentHistoryEntity>>
 
-    /** Writes back what a status read returned, leaving the rest of the row as submitted. */
+    /**
+     * Writes back what a status read returned, leaving the rest of the row as submitted.
+     *
+     * Each party field keeps its stored value when the argument is blank. `DebtorAccount` is absent
+     * from a response whenever the payer was chosen at the bank, and a straight assignment would
+     * erase a payer an earlier read had already recorded.
+     */
     @Query(
-        "UPDATE payment_history " +
-            "SET status = :status, settlementDateTime = :settledAt, syncedAt = :syncedAt " +
+        "UPDATE payment_history SET " +
+            "status = :status, settlementDateTime = :settledAt, syncedAt = :syncedAt, " +
+            "debtorName = CASE WHEN :debtorName = '' THEN debtorName ELSE :debtorName END, " +
+            "debtorIdentification = CASE WHEN :debtorIdentification = '' " +
+            "THEN debtorIdentification ELSE :debtorIdentification END, " +
+            "debtorScheme = CASE WHEN :debtorScheme = '' THEN debtorScheme ELSE :debtorScheme END, " +
+            "creditorName = CASE WHEN :creditorName = '' THEN creditorName ELSE :creditorName END, " +
+            "creditorIdentification = CASE WHEN :creditorIdentification = '' " +
+            "THEN creditorIdentification ELSE :creditorIdentification END, " +
+            "creditorScheme = CASE WHEN :creditorScheme = '' " +
+            "THEN creditorScheme ELSE :creditorScheme END " +
             "WHERE paymentId = :paymentId",
     )
-    suspend fun updateStatus(
+    @Suppress("LongParameterList")
+    suspend fun updateFromReceipt(
         paymentId: String,
         status: String,
         settledAt: String?,
         syncedAt: String,
+        debtorName: String = "",
+        debtorIdentification: String = "",
+        debtorScheme: String = "",
+        creditorName: String = "",
+        creditorIdentification: String = "",
+        creditorScheme: String = "",
     )
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

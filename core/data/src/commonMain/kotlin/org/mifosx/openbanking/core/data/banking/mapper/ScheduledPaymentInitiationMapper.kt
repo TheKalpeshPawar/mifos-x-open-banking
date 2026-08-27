@@ -160,6 +160,10 @@ internal fun DomesticScheduledPaymentResponse.toScheduledPaymentReceipt(): Payme
         requestedExecutionDateTime = initiation?.requestedExecutionDateTime.orEmpty(),
         reference = initiation?.remittanceInformation?.unstructured?.firstOrNull().orEmpty(),
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toScheduledPaymentCharge() },
     )
 }

@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
@@ -123,7 +124,15 @@ private fun CreditorSelection.toObieCreditor(): CreditorAccount = CreditorAccoun
     name = name.takeIf { it.isNotBlank() },
 )
 
-private fun BeneficiaryScheme.toObieSchemeName(): String = when (this) {
+/** The OBIE `SchemeName` an account's identification is written under, or blank when unknown. */
+internal fun AccountScheme.toObieSchemeName(): String = when (this) {
+    AccountScheme.SortCode -> SCHEME_SORT_CODE
+    AccountScheme.Iban -> SCHEME_IBAN
+    AccountScheme.Pan -> SCHEME_PAN
+    AccountScheme.Other -> ""
+}
+
+internal fun BeneficiaryScheme.toObieSchemeName(): String = when (this) {
     BeneficiaryScheme.SortCode, BeneficiaryScheme.Account -> SCHEME_SORT_CODE
     BeneficiaryScheme.Iban -> SCHEME_IBAN
     BeneficiaryScheme.Paym -> SCHEME_PAYM
@@ -171,6 +180,10 @@ internal fun DomesticPaymentResponse.toPaymentReceipt(): PaymentReceipt {
         creditorName = initiation?.creditorAccount?.name.orEmpty(),
         reference = initiation?.remittanceInformation?.unstructured?.firstOrNull().orEmpty(),
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toPaymentCharge() },
     )
 }

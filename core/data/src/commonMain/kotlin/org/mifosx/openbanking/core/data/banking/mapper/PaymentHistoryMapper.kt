@@ -41,6 +41,8 @@ private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
 
 private fun BankAccount?.historyIdentification(): String = this?.identification.orEmpty()
 
+private fun BankAccount?.historyScheme(): String = this?.scheme?.toObieSchemeName().orEmpty()
+
 /** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
 private fun PaymentDraft.paymentType(): String =
     if (currencyOfTransfer != null) PAYMENT_TYPE_INTERNATIONAL else PAYMENT_TYPE_DOMESTIC
@@ -67,13 +69,15 @@ internal fun PaymentReceipt.toEntity(
         errorDescription = null,
         status = status.name,
         debtorAccountId = draft.debtorAccount.historyAccountId(),
-        debtorName = draft.debtorAccount.historyName(),
+        debtorName = debtorName.ifBlank { draft.debtorAccount.historyName() },
         // The bank's chosen payer when we sent none, else the one the PSU picked.
         debtorIdentification = debtorIdentification.ifBlank {
             draft.debtorAccount.historyIdentification()
         },
+        debtorScheme = debtorScheme.ifBlank { draft.debtorAccount.historyScheme() },
         creditorName = draft.creditor.name,
         creditorIdentification = draft.creditor.identification,
+        creditorScheme = draft.creditor.scheme.toObieSchemeName(),
         amountMinorUnits = draft.amountMinorUnits,
         currency = draft.currency,
         reference = draft.reference,

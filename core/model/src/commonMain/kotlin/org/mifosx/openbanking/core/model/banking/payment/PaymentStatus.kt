@@ -121,7 +121,7 @@ fun PaymentStatus.dispositionFor(consentType: ConsentType): PaymentDisposition =
     }
 
 /** Whether this consent sets up a standing instruction rather than moving money once. */
-private val ConsentType.setsUpAnInstruction: Boolean
+val ConsentType.setsUpAnInstruction: Boolean
     get() = when (this) {
         ConsentType.DomesticScheduledPayment,
         ConsentType.InternationalScheduledPayment,

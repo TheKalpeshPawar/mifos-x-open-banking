@@ -48,21 +48,10 @@ class AppDatabaseTest {
         assertNotNull(database!!.sampleDao)
     }
 
+    /** Bump this with [AppDatabase.VERSION], so the guard keeps meaning something. */
     @Test
     fun databaseVersionIsCurrent() {
-        // Update this constant when bumping AppDatabase.VERSION so the guardrail stays meaningful.
-        // 4 added payment_history; 5 renamed its id column and added the timeline and international
-        // fields — and is the first version reached by a real migration rather than a table drop;
-        // 6 added accounts.description, without which a Global Money wallet reads back as a plain
-        // current account and is offered as a payer the bank refuses; 7 added the scheduled execution
-        // date; 8 added the standing-order frequency and end date, without which a mandate row is
-        // indistinguishable from a one-off payment — and that row is the only record the app keeps,
-        // since a mandate cannot be found again through the AIS read side; 9 added the VRP consent
-        // and payment tables — a consent is the only handle on a standing authority, because no
-        // endpoint lists them; 10 renamed accounts.nickname to accountHolderName, which is the name
-        // the bank actually returns; 11 collapsed the split identifier and type columns into
-        // identification, scheme and accountTypeCode.
-        assertEquals(11, AppDatabase.VERSION)
+        assertEquals(12, AppDatabase.VERSION)
     }
 
     /**

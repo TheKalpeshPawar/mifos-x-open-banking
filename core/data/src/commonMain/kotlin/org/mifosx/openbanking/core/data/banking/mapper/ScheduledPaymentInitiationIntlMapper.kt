@@ -132,6 +132,10 @@ internal fun InternationalScheduledPaymentResponse.toIntlScheduledPaymentReceipt
         requestedExecutionDateTime = initiation?.requestedExecutionDateTime.orEmpty(),
         reference = "",
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toIntlScheduledPaymentCharge() },
     )
 }
