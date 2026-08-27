@@ -37,9 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.mifosx.openbanking.core.designsystem.icon.AppIcons
-import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import template.core.base.designsystem.theme.KptTheme
 
 /**
@@ -136,67 +134,6 @@ fun MifosOutlinedTextField(
     )
 }
 
-/** An outlined text field with the fixed form skin and no shape/colour override. */
-@Composable
-fun MifosTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    textStyle: TextStyle = LocalTextStyle.current,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    config: MifosTextFieldConfig = MifosTextFieldConfig(),
-    onClickClearIcon: () -> Unit = { onValueChange("") },
-) {
-    val isFocused by interactionSource.collectIsFocusedAsState()
-    val showIcon by rememberUpdatedState(value.isNotEmpty())
-
-    OutlinedTextField(
-        value = value,
-        label = { Text(text = label) },
-        placeholder = config.placeholder?.let { { Text(it) } },
-        onValueChange = onValueChange,
-        textStyle = textStyle,
-        modifier = modifier.fillMaxWidth(),
-        enabled = config.enabled,
-        readOnly = config.readOnly,
-        visualTransformation = config.visualTransformation,
-        keyboardOptions = config.keyboardOptions,
-        keyboardActions = config.keyboardActions,
-        interactionSource = interactionSource,
-        singleLine = config.singleLine,
-        maxLines = config.maxLines,
-        minLines = config.minLines,
-        leadingIcon = config.leadingIcon,
-        isError = config.isError,
-        trailingIcon = @Composable {
-            AnimatedContent(
-                targetState = config.showClearIcon && isFocused && showIcon,
-            ) {
-                if (it) {
-                    ClearIconButton(
-                        showClearIcon = true,
-                        clearIcon = config.clearIcon,
-                        onClickClearIcon = onClickClearIcon,
-                    )
-                } else {
-                    config.trailingIcon?.invoke()
-                }
-            }
-        },
-        supportingText = config.supportingText ?: config.errorText.let {
-            {
-                Text(
-                    modifier = Modifier.testTag("errorTag"),
-                    text = it ?: "",
-                    style = KptTheme.typography.bodySmall,
-                    color = KptTheme.colorScheme.error,
-                )
-            }
-        },
-    )
-}
-
 @Composable
 private fun ClearIconButton(
     showClearIcon: Boolean,
@@ -220,17 +157,5 @@ private fun ClearIconButton(
                 tint = KptTheme.colorScheme.onSurface,
             )
         }
-    }
-}
-
-@Preview
-@Composable
-private fun MifosTextFieldPreview() {
-    MifosXOpenBankingTheme {
-        MifosTextField(
-            value = "Text",
-            onValueChange = {},
-            label = "Label",
-        )
     }
 }
