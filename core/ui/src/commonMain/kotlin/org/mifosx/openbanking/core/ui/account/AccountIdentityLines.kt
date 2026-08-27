@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +95,76 @@ fun AccountIdentityLines(
     identification = identification,
     modifier = modifier,
 )
+
+/**
+ * A party as two stacked lines: name, then identification.
+ *
+ * For an account whose product is unknown — a payee, or a payer read back off a payment response,
+ * neither of which carries an account type.
+ *
+ * @param name The account holder's name. The line is omitted when blank.
+ * @param scheme The identification's scheme, which decides how it is grouped.
+ * @param identification The bank's account identifier, rendered as sent.
+ * @param horizontalAlignment How the two lines sit against each other.
+ */
+@Composable
+fun AccountIdentityLines(
+    name: String,
+    scheme: AccountScheme,
+    identification: String,
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
+        horizontalAlignment = horizontalAlignment,
+    ) {
+        if (name.isNotBlank()) {
+            Text(
+                text = name,
+                style = KptTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KptTheme.colorScheme.onSurface,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+            )
+        }
+
+        Text(
+            text = formatAccountIdentifier(scheme, identification),
+            style = KptTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * A labelled party block for a review screen: the field label, then the party's name over its
+ * identification.
+ *
+ * For a party with no account type of its own — a payee.
+ */
+@Composable
+fun MifosPartyReviewRow(
+    label: String,
+    name: String,
+    scheme: AccountScheme,
+    identification: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
+    ) {
+        Text(
+            text = label,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        AccountIdentityLines(name = name, scheme = scheme, identification = identification)
+    }
+}
 
 /**
  * A labelled account block for a review screen: the field label, then the account as three lines, or

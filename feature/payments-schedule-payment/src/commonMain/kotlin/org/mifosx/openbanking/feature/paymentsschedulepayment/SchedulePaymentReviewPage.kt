@@ -29,10 +29,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.core.model.banking.toAccountScheme
 import org.mifosx.openbanking.core.ui.account.MifosAccountReviewRow
+import org.mifosx.openbanking.core.ui.account.MifosPartyReviewRow
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.payee.initialsOf
@@ -56,6 +66,7 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_sent_as
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_to
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
+import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentUiState
 import template.core.base.designsystem.theme.KptTheme
 
@@ -121,11 +132,12 @@ internal fun SchedulePaymentReviewPage(
                 ),
                 modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_FROM),
             )
-            ReviewRow(
+            MifosPartyReviewRow(
                 label = stringResource(Res.string.feature_payments_schedule_payment_review_to),
-                value = state.creditorLabel,
-                tag = SchedulePaymentTestTags.REVIEW_TO,
-                secondary = state.creditorSupporting,
+                name = state.creditorLabel,
+                scheme = state.creditor?.scheme?.toAccountScheme() ?: AccountScheme.Other,
+                identification = state.creditor?.identification.orEmpty(),
+                modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_TO),
             )
             if (state.rail == PaymentRail.Domestic) {
                 ReviewRow(
@@ -356,5 +368,42 @@ private fun ReviewRow(
                 color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun SchedulePaymentReviewPagePreview() {
+    MifosXOpenBankingTheme {
+        SchedulePaymentReviewPage(
+            state = SchedulePaymentUiState.Content(
+                step = SchedulePaymentStep.Review,
+                debtorAccounts = emptyList(),
+                beneficiaries = emptyList(),
+                debtorRows = emptyList(),
+                creditor = CreditorSelection(
+                    name = "Mr Nico",
+                    scheme = BeneficiaryScheme.SortCode,
+                    identification = "80200110203349",
+                ),
+                creditorLabel = "Mr Nico",
+                debtorAccountRow = AccountWithBalance(
+                    account = BankAccount(
+                        accountId = "1123456841",
+                        accountTypeCode = "CACC",
+                        currency = "GBP",
+                        identification = "80200110203348",
+                        scheme = AccountScheme.SortCode,
+                        description = "Description of the account",
+                        accountHolderName = "Mr Robert",
+                    ),
+                    balance = null,
+                ),
+                amountLabel = "£6.00",
+                reference = "BFRS.RFRNC.546",
+                today = LocalDate(2026, 8, 25),
+            ),
+            onAction = {},
+        )
     }
 }

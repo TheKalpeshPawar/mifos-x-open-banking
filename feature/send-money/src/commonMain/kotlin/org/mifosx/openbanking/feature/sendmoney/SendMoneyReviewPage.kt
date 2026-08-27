@@ -31,9 +31,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
+import org.mifosx.openbanking.core.model.banking.toAccountScheme
 import org.mifosx.openbanking.core.ui.account.MifosAccountReviewRow
+import org.mifosx.openbanking.core.ui.account.MifosPartyReviewRow
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.payee.initialsOf
@@ -56,6 +65,7 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_to
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_total
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
+import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
 import template.core.base.designsystem.theme.KptTheme
 
@@ -107,11 +117,12 @@ internal fun SendMoneyReviewPage(
             verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         ) {
             SectionHeading(stringResource(Res.string.feature_send_money_review_details_heading))
-            ReviewRow(
+            MifosPartyReviewRow(
                 label = stringResource(Res.string.feature_send_money_review_to),
-                value = state.creditorLabel,
-                tag = SendMoneyTestTags.REVIEW_TO,
-                secondary = state.creditorSupporting,
+                name = state.creditorLabel,
+                scheme = state.creditor?.scheme?.toAccountScheme() ?: AccountScheme.Other,
+                identification = state.creditor?.identification.orEmpty(),
+                modifier = Modifier.testTag(SendMoneyTestTags.REVIEW_TO),
             )
             MifosAccountReviewRow(
                 label = stringResource(Res.string.feature_send_money_review_from),
@@ -299,4 +310,40 @@ private fun ReviewRow(
 private fun PaymentRail.sentViaLabel(): StringResource = when (this) {
     PaymentRail.Domestic -> Res.string.feature_send_money_review_sent_via_domestic
     PaymentRail.International -> Res.string.feature_send_money_review_sent_via_international
+}
+
+@Preview
+@Composable
+private fun SendMoneyReviewPagePreview() {
+    MifosXOpenBankingTheme {
+        SendMoneyReviewPage(
+            state = SendMoneyUiState.Content(
+                step = SendMoneyStep.Review,
+                debtorAccounts = emptyList(),
+                beneficiaries = emptyList(),
+                debtorRows = emptyList(),
+                creditor = CreditorSelection(
+                    name = "Mr Dharani C",
+                    scheme = BeneficiaryScheme.SortCode,
+                    identification = "80200110203350",
+                ),
+                creditorLabel = "Mr Dharani C",
+                debtorAccountRow = AccountWithBalance(
+                    account = BankAccount(
+                        accountId = "1123456841",
+                        accountTypeCode = "CACC",
+                        currency = "GBP",
+                        identification = "80200110203349",
+                        scheme = AccountScheme.SortCode,
+                        description = "Description of the account",
+                        accountHolderName = "Mr Nico",
+                    ),
+                    balance = null,
+                ),
+                amountLabel = "£6.00",
+                reference = "BFRS.RFRNC.546",
+            ),
+            onAction = {},
+        )
+    }
 }

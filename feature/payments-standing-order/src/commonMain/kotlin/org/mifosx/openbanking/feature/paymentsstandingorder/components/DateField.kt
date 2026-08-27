@@ -81,7 +81,7 @@ internal fun DateField(
         Text(
             text = label,
             style = KptTheme.typography.titleSmall,
-            color = KptTheme.colorScheme.primary,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = KptTheme.spacing.xs, start = KptTheme.spacing.md),
         )
         Row(

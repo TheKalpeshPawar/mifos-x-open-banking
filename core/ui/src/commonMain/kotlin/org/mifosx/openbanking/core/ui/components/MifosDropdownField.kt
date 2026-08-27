@@ -89,7 +89,7 @@ fun <T> MifosDropdownField(
             Text(
                 text = caption,
                 style = KptTheme.typography.titleSmall,
-                color = KptTheme.colorScheme.primary,
+                color = KptTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = CaptionGap, start = FieldPadding),
             )
         }

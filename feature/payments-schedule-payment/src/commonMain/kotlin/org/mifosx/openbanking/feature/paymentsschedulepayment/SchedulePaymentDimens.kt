@@ -22,6 +22,6 @@ internal fun SectionHeading(text: String) {
     Text(
         text = text,
         style = KptTheme.typography.titleMedium,
-        color = KptTheme.colorScheme.primary,
+        color = KptTheme.colorScheme.onSurface,
     )
 }
