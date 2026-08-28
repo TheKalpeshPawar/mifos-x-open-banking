@@ -9,24 +9,20 @@
  */
 package org.mifosx.openbanking.feature.scheduledpayments
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsAction
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.test.assertEquals
 
 private const val ROBOLECTRIC_SDK = 34
 
 /**
- * Renders [ScheduledPaymentsScreenContent] across its states under Robolectric (JVM, no device) and
- * drives it through the shared [ScheduledPaymentsTestTags]. A verbatim on-device mirror lives in
+ * Renders [ScheduledPaymentsScreenContent] under Robolectric (JVM, no device) and drives it through
+ * the shared [ScheduledPaymentsTestTags]. A verbatim on-device mirror lives in
  * [ScheduledPaymentsScreenInstrumentedTest].
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,14 +32,9 @@ class ScheduledPaymentsScreenRobolectricTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val actions = mutableListOf<ScheduledPaymentsAction>()
-
     private fun render(state: ScheduledPaymentsState) {
         composeRule.setContent {
-            ScheduledPaymentsScreenContent(
-                state = state,
-                onAction = { actions.add(it) },
-            )
+            ScheduledPaymentsScreenContent(state = state, onAction = {})
         }
     }
 
@@ -54,41 +45,7 @@ class ScheduledPaymentsScreenRobolectricTest {
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.CONTENT_LIST).assertExists()
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.card(ScheduledPaymentsFixtures.EXECUTION_ID))
             .assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.typeChip(ScheduledPaymentsFixtures.EXECUTION_ID))
-            .assertExists()
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.card(ScheduledPaymentsFixtures.ARRIVAL_ID))
             .assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.typeChip(ScheduledPaymentsFixtures.ARRIVAL_ID))
-            .assertExists()
-    }
-
-    @Test
-    fun loadingRendersTheSpinner() {
-        render(ScheduledPaymentsFixtures.loadingState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.LOADING).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() {
-        render(ScheduledPaymentsFixtures.emptyState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun errorShowsRetryAndDispatchesRetryLoad() {
-        render(ScheduledPaymentsFixtures.errorState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.ERROR_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<ScheduledPaymentsAction>(ScheduledPaymentsAction.RetryLoad), actions)
     }
 }

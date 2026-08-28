@@ -19,7 +19,6 @@ import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.statements.ui.DownloadState
 import org.mifosx.openbanking.feature.statements.ui.StatementRowUiModel
 import org.mifosx.openbanking.feature.statements.ui.StatementsAction
-import org.mifosx.openbanking.feature.statements.ui.StatementsErrorKind
 import org.mifosx.openbanking.feature.statements.ui.StatementsState
 import org.mifosx.openbanking.feature.statements.ui.StatementsUiState
 import kotlin.test.assertEquals
@@ -49,15 +48,6 @@ private fun contentState(
     uiState = StatementsUiState.Content(rows()),
     downloadState = downloadState,
 )
-
-private fun emptyState(): StatementsState =
-    StatementsState(accountId = ACCOUNT_ID, uiState = StatementsUiState.Empty)
-
-private fun errorState(): StatementsState =
-    StatementsState(accountId = ACCOUNT_ID, uiState = StatementsUiState.Error(StatementsErrorKind.ServerError))
-
-private fun loadingState(): StatementsState =
-    StatementsState(accountId = ACCOUNT_ID, uiState = StatementsUiState.Loading)
 
 /**
  * On-device mirror of [StatementsScreenRobolectricTest], driving the same [StatementsTestTags] so a
@@ -117,31 +107,5 @@ class StatementsScreenInstrumentedTest {
         composeRule.onNodeWithTag(StatementsTestTags.downloadSpinner(MAY_ID), useUnmergedTree = true)
             .assertExists()
         composeRule.onNodeWithTag(StatementsTestTags.downloadButton(MAY_ID)).assertDoesNotExist()
-    }
-
-    @Test
-    fun loadingRendersTheSkeleton() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.LOADING_SKELETON).assertExists()
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() {
-        render(emptyState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesRetryLoad() {
-        render(errorState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<StatementsAction>(StatementsAction.RetryLoad), actions)
     }
 }

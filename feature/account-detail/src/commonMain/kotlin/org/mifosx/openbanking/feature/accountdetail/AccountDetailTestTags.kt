@@ -18,17 +18,13 @@ package org.mifosx.openbanking.feature.accountdetail
  */
 internal object AccountDetailTestTags {
 
-    const val LOADING_SPINNER = "accountDetail:loadingSpinner"
-    const val LOADING_SKELETON = "accountDetail:loadingSkeleton"
-
     const val HEADER_CARD = "accountDetail:headerCard"
     const val DESCRIPTION_CARD = "accountDetail:descriptionCard"
     const val SUBTYPE_LABEL = "accountDetail:subtypeLabel"
-    const val NICKNAME = "accountDetail:nickname"
+    const val DISPLAY_NAME = "accountDetail:displayName"
     const val IDENTIFICATION = "accountDetail:identification"
     const val CURRENCY_BADGE = "accountDetail:currencyBadge"
     const val SERVICER_BADGE = "accountDetail:servicerBadge"
-    const val LAST_UPDATED = "accountDetail:lastUpdated"
 
     const val BALANCES_HEADER = "accountDetail:balancesHeader"
     const val BALANCES_LIST = "accountDetail:balancesList"
@@ -36,11 +32,6 @@ internal object AccountDetailTestTags {
 
     const val EXPLORE_HEADER = "accountDetail:exploreHeader"
     const val CHIP_ROW = "accountDetail:chipRow"
-
-    const val ERROR_STATE = "accountDetail:errorState"
-    const val ERROR_TITLE = "accountDetail:errorTitle"
-    const val ERROR_BODY = "accountDetail:errorBody"
-    const val RETRY_BUTTON = "accountDetail:retryButton"
 
     /** Tag for one typed balance row, keyed by its OBIE `Type`. */
     fun balanceRow(type: String): String = "accountDetail:balanceRow:$type"

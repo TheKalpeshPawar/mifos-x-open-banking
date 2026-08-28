@@ -22,25 +22,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
-import org.mifosx.openbanking.core.ui.scaffold.rememberKptPullToRefreshState
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_back_a11y
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_consent_revoked
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_network
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_not_found
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_error_token_expired
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusErrorKind
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusViewModel
-import org.mifosx.openbanking.feature.paymentstatus.ui.isReading
 
 /**
  * One submitted payment as the bank currently reports it.
  *
- * Pull-to-refresh is wired at the scaffold so the gesture also works from the error page, which is
- * exactly where someone reaches for it. It dispatches the same `RefreshStatus` the Refresh button
- * does, so both share one path through the view model — and the button stays, because the gesture
- * is undiscoverable on desktop and web where this screen also runs.
+ * There is no pull-to-refresh. `KptScaffold` draws its refresh indicator whenever it is told a read
+ * is in flight, and the first read is also when the screen renders a full-screen loading animation,
+ * so the gesture put a second spinner on top of the first. Refreshing is offered by the Refresh
+ * button and by the error page's Retry, both of which dispatch `RefreshStatus` — and a button is the
+ * only affordance that works on desktop and web, where this screen also runs.
  */
 @Composable
 internal fun PaymentStatusScreen(
@@ -57,11 +64,6 @@ internal fun PaymentStatusScreen(
 
     KptScaffold(
         topBar = { PaymentStatusTopBar(content = content, onBack = onBack) },
-        pullToRefreshState = rememberKptPullToRefreshState(
-            isEnabled = true,
-            isRefreshing = state.uiState.isReading,
-            onRefresh = { viewModel.trySendAction(PaymentStatusAction.RefreshStatus) },
-        ),
         modifier = modifier,
     ) {
         PaymentStatusScreenContent(
@@ -129,7 +131,7 @@ internal fun PaymentStatusScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        PaymentStatusUiState.Loading -> PaymentStatusSkeleton(modifier = modifier)
+        PaymentStatusUiState.Loading -> MifosProgressIndicator()
 
         is PaymentStatusUiState.Content -> PaymentStatusContent(
             state = current,
@@ -137,10 +139,21 @@ internal fun PaymentStatusScreenContent(
             modifier = modifier,
         )
 
-        is PaymentStatusUiState.Error -> PaymentStatusError(
-            kind = current.kind,
+        is PaymentStatusUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = true,
             onRetry = { onAction(PaymentStatusAction.RefreshStatus) },
-            modifier = modifier,
         )
     }
+}
+
+private fun PaymentStatusErrorKind.bodyResource(): StringResource = when (this) {
+    PaymentStatusErrorKind.PaymentNotFound ->
+        Res.string.feature_payment_status_error_not_found
+    PaymentStatusErrorKind.TokenExpired ->
+        Res.string.feature_payment_status_error_token_expired
+    PaymentStatusErrorKind.ConsentRevoked ->
+        Res.string.feature_payment_status_error_consent_revoked
+    PaymentStatusErrorKind.NetworkError ->
+        Res.string.feature_payment_status_error_network
 }

@@ -49,6 +49,7 @@ fun NavGraphBuilder.sendMoneyGraph(
                 onNavigateToConsents = onNavigateToConsents,
                 onNavigateToPayment = onNavigateToPayment,
                 onNavigateToHistory = onNavigateToHistory,
+                onBack = onBack,
             )
         }
         composableWithStayTransitions<SendMoneyHistoryRoute> {

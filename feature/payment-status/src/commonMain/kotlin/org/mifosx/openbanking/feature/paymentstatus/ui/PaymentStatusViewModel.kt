@@ -15,23 +15,22 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import org.mifosx.openbanking.core.common.formatDateTime
 import org.mifosx.openbanking.core.common.formatIsoDate
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.formatTimeOfDay
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.PaymentStatusRepository
 import org.mifosx.openbanking.core.data.util.toThrowable
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
 import org.mifosx.openbanking.core.model.banking.payment.dispositionFor
+import org.mifosx.openbanking.core.model.banking.payment.setsUpAnInstruction
 import template.core.base.network.NetworkResult
 import template.core.base.ui.viewmodel.BaseViewModel
 import kotlin.time.Clock
-
-private const val SORT_CODE_DIGITS = 6
 
 /**
  * Reads one submitted payment's settlement status.
@@ -88,7 +87,8 @@ class PaymentStatusViewModel(
                 is NetworkResult.Success -> {
                     val stages = paymentHistoryRepository.stageTimestampsOf(state.paymentId)
                     val type = paymentHistoryRepository.consentTypeOf(state.paymentId)
-                    updateState { copy(uiState = result.data.toContent(stages, type)) }
+                    val stored = paymentHistoryRepository.partiesOf(state.paymentId)
+                    updateState { copy(uiState = result.data.toContent(stages, type, stored)) }
                 }
 
                 is NetworkResult.Error -> {
@@ -116,6 +116,7 @@ class PaymentStatusViewModel(
     private fun PaymentReceipt.toContent(
         stages: PaymentStageTimestamps?,
         consentType: ConsentType?,
+        stored: PaymentParties?,
     ): PaymentStatusUiState.Content {
         val settled = settlementDateTime.formatted()
         val statusChanged = statusUpdateDateTime.formatted()
@@ -128,9 +129,17 @@ class PaymentStatusViewModel(
                 ?.let { status.dispositionFor(it) }
                 ?: status.disposition,
             amountLabel = amountLabel,
-            creditorName = creditorName,
+            creditorName = creditorName.ifBlank { stored?.creditorName.orEmpty() },
             reference = reference,
-            debtorLabel = debtorIdentification.toAccountLabel(),
+            debtorName = debtorName.ifBlank { stored?.debtorName.orEmpty() },
+            debtorIdentification = debtorIdentification.ifBlank {
+                stored?.debtorIdentification.orEmpty()
+            },
+            debtorScheme = debtorScheme.ifBlank { stored?.debtorScheme.orEmpty() },
+            creditorIdentification = creditorIdentification.ifBlank {
+                stored?.creditorIdentification.orEmpty()
+            },
+            creditorScheme = creditorScheme.ifBlank { stored?.creditorScheme.orEmpty() },
             submittedAt = formatDateTime(creationDateTime, timeZone),
             settledAt = settled,
             // Date only. The wire value is midnight UTC, so a date-and-time rendering would
@@ -154,12 +163,17 @@ class PaymentStatusViewModel(
                 stages = stages,
                 settledAt = settled,
                 statusChangedAt = statusChanged,
+                consentType = consentType,
             ),
         )
     }
 
     /**
-     * The four stages, newest first.
+     * The stages, newest first — four on a payment, three on a standing instruction.
+     *
+     * A scheduled payment and a standing order end at [PaymentTimelineStep.Submitted]. `INCO` is the
+     * bank's last word on those rails and no per-execution status follows it, so a fourth stage would
+     * stand for an event that never arrives.
      *
      * Steps 1–3 are [PaymentStepState.Done] unconditionally because this screen is only reachable
      * with a bank-issued payment id: the request was created, the PSU approved it, and the POST
@@ -181,23 +195,9 @@ class PaymentStatusViewModel(
         stages: PaymentStageTimestamps?,
         settledAt: String,
         statusChangedAt: String,
+        consentType: ConsentType?,
     ): List<PaymentTimelineEntry> {
-        val completed = when (status.disposition) {
-            PaymentDisposition.TerminalSuccess ->
-                PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Done, settledAt)
-
-            PaymentDisposition.TerminalFailure -> PaymentTimelineEntry(
-                PaymentTimelineStep.Completed,
-                PaymentStepState.Failed,
-                statusChangedAt,
-            )
-
-            PaymentDisposition.InProgress ->
-                PaymentTimelineEntry(PaymentTimelineStep.Completed, status.inFlightStepState())
-        }
-
-        return listOf(
-            completed,
+        val reached = listOf(
             PaymentTimelineEntry(
                 step = PaymentTimelineStep.Submitted,
                 state = PaymentStepState.Done,
@@ -213,6 +213,25 @@ class PaymentStatusViewModel(
                 state = PaymentStepState.Done,
             ),
         )
+
+        if (consentType?.setsUpAnInstruction == true) return reached
+
+        val disposition = consentType?.let { status.dispositionFor(it) } ?: status.disposition
+        val completed = when (disposition) {
+            PaymentDisposition.TerminalSuccess ->
+                PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Done, settledAt)
+
+            PaymentDisposition.TerminalFailure -> PaymentTimelineEntry(
+                PaymentTimelineStep.Completed,
+                PaymentStepState.Failed,
+                statusChangedAt,
+            )
+
+            PaymentDisposition.InProgress ->
+                PaymentTimelineEntry(PaymentTimelineStep.Completed, status.inFlightStepState())
+        }
+
+        return listOf(completed) + reached
     }
 
     /** Blank in, blank out — `formatDateTime` returns an unparseable input verbatim. */
@@ -238,14 +257,4 @@ private fun PaymentStatus.inFlightStepState(): PaymentStepState = when (this) {
     -> PaymentStepState.Current
 
     else -> PaymentStepState.Pending
-}
-
-/**
- * Renders the OBIE identification the way it is written down — `40-05-15 12345678` — rather than the
- * unpunctuated fourteen digits the wire carries.
- */
-private fun String.toAccountLabel(): String {
-    val digits = filter(Char::isDigit)
-    if (digits.length <= SORT_CODE_DIGITS) return this
-    return "${formatSortCode(digits.take(SORT_CODE_DIGITS))} ${digits.drop(SORT_CODE_DIGITS)}"
 }

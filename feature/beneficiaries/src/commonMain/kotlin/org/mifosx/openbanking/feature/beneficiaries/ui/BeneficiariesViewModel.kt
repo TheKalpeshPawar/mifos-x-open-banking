@@ -74,7 +74,7 @@ class BeneficiariesViewModel(
     private fun ScreenState<List<BeneficiaryItem>>.toUiState(query: String): BeneficiariesUiState =
         when (this) {
             is ScreenState.Content -> {
-                val rows = data.map { it.toRowUi() }
+                val rows = data
                 BeneficiariesUiState.Content(all = rows, filtered = rows.matching(query), query = query)
             }
 
@@ -85,22 +85,12 @@ class BeneficiariesViewModel(
             ScreenState.Loading -> BeneficiariesUiState.Loading
         }
 
-    private fun BeneficiaryItem.toRowUi(): BeneficiaryRowUi = BeneficiaryRowUi(
-        beneficiaryId = beneficiaryId,
-        name = creditorName,
-        initials = initialsOf(creditorName),
-        scheme = scheme,
-        identification = formatIdentification(identification, scheme),
-        reference = reference,
-    )
-
     companion object {
         /** Must match the [BeneficiariesRoute] property name — type-safe nav uses it as the key. */
         const val ACCOUNT_ID_ARG: String = "accountId"
     }
 }
 
-private const val MAX_INITIALS = 2
 private const val IBAN_GROUP_SIZE = 4
 
 /**
@@ -110,27 +100,13 @@ private const val IBAN_GROUP_SIZE = 4
  * surface an unrelated payee. A blank query matches everything, which is what makes clearing the
  * field restore the whole list.
  */
-internal fun List<BeneficiaryRowUi>.matching(query: String): List<BeneficiaryRowUi> {
+internal fun List<BeneficiaryItem>.matching(query: String): List<BeneficiaryItem> {
     val trimmed = query.trim()
     if (trimmed.isEmpty()) return this
     return filter {
-        it.name.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
+        it.creditorName.contains(trimmed, ignoreCase = true) || it.reference.contains(trimmed, ignoreCase = true)
     }
 }
-
-/**
- * Derives up to two uppercase initials from a creditor name.
- *
- * Takes the first letter of the first two whitespace-separated words that start with a letter, so
- * `Priya Rajan N26 GmbH` yields `PR` rather than picking up the `N26`. A single-word name yields one
- * letter; a name with none yields an empty string, and the avatar renders blank rather than showing
- * punctuation.
- */
-internal fun initialsOf(name: String): String = name
-    .split(' ', '\t', '\n')
-    .mapNotNull { word -> word.firstOrNull { it.isLetter() } }
-    .take(MAX_INITIALS)
-    .joinToString(separator = "") { it.uppercase() }
 
 /**
  * Groups an IBAN into four-character blocks for display, leaving every other scheme untouched.

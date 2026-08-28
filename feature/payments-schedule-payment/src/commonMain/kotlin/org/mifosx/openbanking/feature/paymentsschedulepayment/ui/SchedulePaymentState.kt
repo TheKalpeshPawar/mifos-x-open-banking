@@ -15,7 +15,9 @@ import org.mifosx.openbanking.core.data.util.isDebtorAccountRefusal
 import org.mifosx.openbanking.core.data.util.isExecutionDateRefusal
 import org.mifosx.openbanking.core.data.util.obieErrorCode
 import org.mifosx.openbanking.core.data.util.obieSupportReference
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.ChargeBearer
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
@@ -200,38 +202,6 @@ enum class SchedulePaymentAmountProblem {
     ExceedsAvailableBalance,
 }
 
-/**
- * One selectable payee row. Its name comes from the bank and needs no resolving.
- *
- * @property shortName The name as the avatar caption carries it — "John S." — because a 56dp circle
- *   has room for two words at most. Shortened in the ViewModel, like every other display string.
- */
-data class SchedulePaymentPickerRow(
-    val id: String,
-    val initials: String,
-    val headline: String,
-    val supporting: String,
-    val shortName: String = "",
-)
-
-/**
- * One selectable account row, carrying the raw fields rather than a finished label.
- *
- * HSBC leaves `Nickname` blank on most accounts, so the readable name — "Current account ·· 3349" —
- * has to be derived. That derivation lives in `core/ui`'s `accountDisplayName`, which is
- * `@Composable` because it resolves a string resource per account type, so it cannot run in the
- * ViewModel. Passing the ingredients up and resolving them at render keeps this list showing exactly
- * what Home, Accounts and account-detail show, instead of a second, emptier answer.
- */
-data class SchedulePaymentAccountRow(
-    val id: String,
-    val nickname: String,
-    val accountSubType: String,
-    val accountNumber: String,
-    val rawIdentification: String,
-    val supporting: String,
-)
-
 sealed interface SchedulePaymentUiState {
 
     data object Loading : SchedulePaymentUiState
@@ -253,15 +223,15 @@ sealed interface SchedulePaymentUiState {
         val step: SchedulePaymentStep,
         val rail: PaymentRail = PaymentRail.Domestic,
         val debtorAccounts: List<BankAccount>,
-        val beneficiaries: List<SchedulePaymentPickerRow>,
-        val debtorRows: List<SchedulePaymentAccountRow>,
+        val beneficiaries: List<BeneficiaryItem>,
+        val debtorRows: List<AccountWithBalance>,
         val debtorAccountId: String? = null,
         val payerPickerExpanded: Boolean = false,
         val letBankChoosePayer: Boolean = false,
         val creditor: CreditorSelection? = null,
         val creditorLabel: String = "",
         val creditorSupporting: String = "",
-        val debtorAccountRow: SchedulePaymentAccountRow? = null,
+        val debtorAccountRow: AccountWithBalance? = null,
         val manualEntryVisible: Boolean = false,
         val manualSortCode: String = "",
         val manualAccountNumber: String = "",

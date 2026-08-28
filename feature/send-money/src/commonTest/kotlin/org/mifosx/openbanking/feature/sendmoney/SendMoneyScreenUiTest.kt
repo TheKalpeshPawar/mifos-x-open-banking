@@ -36,16 +36,6 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class SendMoneyScreenUiTest {
 
-    /** TC-SEND-002: the skeleton, not a spinner — the app's loading convention. */
-    @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            SendMoneyScreenContent(SendMoneyFixtures.loadingState(), {}, {})
-        }
-        onNodeWithTag(SendMoneyTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(SendMoneyTestTags.PAYER_PICKER).assertDoesNotExist()
-    }
-
     /**
      * TC-SEND-001, restated for the collapsed picker.
      *

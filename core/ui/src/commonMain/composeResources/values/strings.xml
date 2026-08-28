@@ -9,11 +9,11 @@
     See https://github.com/openMF/mifos-x-open-banking/blob/dev/LICENSE
 -->
 <resources>
-    <string name="core_ui_account_type_current">Current account</string>
+    <string name="core_ui_account_type_current">Current Account</string>
     <string name="core_ui_account_type_savings">Savings</string>
-    <string name="core_ui_account_type_credit">Credit card</string>
-    <string name="core_ui_account_type_global_money">Global money</string>
-    <string name="core_ui_account_type_global_wallet">Global wallet</string>
+    <string name="core_ui_account_type_credit">Credit Card</string>
+    <string name="core_ui_account_type_global_money">Global Money</string>
+    <string name="core_ui_account_type_global_wallet">Global Wallet</string>
     <string name="core_ui_account_type_other">Account</string>
 
     <string name="core_ui_account_picker_available_balance">Available Balance: %1$s</string>
@@ -44,4 +44,14 @@
     <string name="core_ui_payment_history_failed">Your bank did not accept this payment</string>
     <!-- Spoken on a row, which otherwise reads as an amount and a date with no hint that it opens. -->
     <string name="core_ui_payment_history_open">Show this payment</string>
+
+    <!-- Shared state messages. -->
+    <string name="core_ui_no_internet">No internet connection</string>
+    <string name="core_ui_no_data">No data available</string>
+    <string name="core_ui_retry">Retry</string>
+    <string name="core_ui_something_went_wrong">Something went wrong</string>
+    <string name="core_ui_loading">Loading…</string>
+    <string name="core_ui_filter">Filter</string>
+    <string name="core_ui_reset">Reset</string>
+    <string name="core_ui_apply">Apply</string>
 </resources>

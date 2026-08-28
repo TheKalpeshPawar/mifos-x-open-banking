@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
@@ -104,7 +105,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -117,7 +118,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -131,7 +132,7 @@ class VrpSetupViewModelTest {
 
         assertContentEquals(
             listOf(CURRENT_ACCOUNT_ID),
-            content(vm).form.payerOptions.map { it.accountId },
+            content(vm).form.payerOptions.map { it.account.accountId },
         )
     }
 
@@ -177,7 +178,7 @@ class VrpSetupViewModelTest {
         assertContentEquals(listOf(CURRENT_ACCOUNT_ID), beneficiaries.requestedAccountIds)
         assertContentEquals(
             listOf(PAYEE_IDENTIFICATION),
-            content(vm).form.payeeOptions.map { it.payeeId },
+            content(vm).form.payeeOptions.map { it.identification },
         )
     }
 
@@ -202,7 +203,7 @@ class VrpSetupViewModelTest {
         vm.trySendAction(VrpSetupAction.PayerSelected(CURRENT_ACCOUNT_ID))
         advanceUntilIdle()
 
-        assertEquals(PAYEE_IDENTIFICATION, content(vm).form.payeeOptions.single().payeeId)
+        assertEquals(PAYEE_IDENTIFICATION, content(vm).form.payeeOptions.single().identification)
     }
 
     // the form
@@ -436,12 +437,11 @@ class VrpSetupViewModelTest {
     private fun currentAccount() = AccountWithBalance(
         account = BankAccount(
             accountId = CURRENT_ACCOUNT_ID,
-            nickname = "Everyday Current Account",
-            accountSubType = "CurrentAccount",
+            accountHolderName = "Everyday Current Account",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10204021",
-            rawIdentification = "80200110204021",
+            identification = "80200110204021",
+            scheme = AccountScheme.SortCode,
         ),
         balance = AccountBalance(
             accountId = CURRENT_ACCOUNT_ID,
@@ -454,12 +454,11 @@ class VrpSetupViewModelTest {
     private fun savingsAccount() = AccountWithBalance(
         account = BankAccount(
             accountId = SAVINGS_ACCOUNT_ID,
-            nickname = "",
-            accountSubType = "Savings",
+            accountHolderName = "",
+            accountTypeCode = "SVGS",
             currency = "GBP",
-            sortCode = "801225",
-            accountNumber = "90953695",
-            rawIdentification = "80122590953695",
+            identification = "80122590953695",
+            scheme = AccountScheme.SortCode,
         ),
         balance = null,
     )
@@ -467,12 +466,11 @@ class VrpSetupViewModelTest {
     private fun creditCard() = AccountWithBalance(
         account = BankAccount(
             accountId = CREDIT_CARD_ID,
-            nickname = "",
-            accountSubType = "CARD",
+            accountHolderName = "",
+            accountTypeCode = "CARD",
             currency = "GBP",
-            sortCode = "",
-            accountNumber = "xxxx-xxxx-xxxx-3456",
-            rawIdentification = "xxxx-xxxx-xxxx-3456",
+            identification = "xxxx-xxxx-xxxx-3456",
+            scheme = AccountScheme.Pan,
         ),
         balance = null,
     )

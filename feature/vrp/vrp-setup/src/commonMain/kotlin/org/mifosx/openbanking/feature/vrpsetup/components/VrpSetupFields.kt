@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.model.vrp.PeriodType
 import org.mifosx.openbanking.core.ui.components.MifosOutlinedTextField
+import org.mifosx.openbanking.core.ui.components.MifosTextFieldConfig
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.Res
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_clear
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_none
@@ -64,10 +66,12 @@ internal fun VrpAmountField(
         MifosOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            prefix = currency,
-            error = error != null,
-            keyboardType = KeyboardType.Decimal,
-            testTag = testTag,
+            modifier = Modifier.testTag(testTag),
+            config = MifosTextFieldConfig(
+                prefix = currency,
+                isError = error != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            ),
         )
         error?.let { FieldError(it, errorTestTag) }
     }
@@ -89,9 +93,11 @@ internal fun VrpTextField(
             value = value,
             onValueChange = onValueChange,
             label = label,
-            error = error != null,
-            keyboardType = keyboardType,
-            testTag = testTag,
+            modifier = Modifier.testTag(testTag),
+            config = MifosTextFieldConfig(
+                isError = error != null,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            ),
         )
         error?.let { FieldError(it, testTag + "Error") }
     }

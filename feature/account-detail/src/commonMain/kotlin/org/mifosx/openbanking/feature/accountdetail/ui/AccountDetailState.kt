@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.accountdetail.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
+import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
@@ -47,40 +48,17 @@ sealed interface AccountDetailUiState {
     data object Loading : AccountDetailUiState
 
     data class Content(
-        val header: AccountHeaderUi,
+        val header: AccountDetail,
         val balances: List<BalanceRowUi>,
     ) : AccountDetailUiState
 
-    data class Empty(val header: AccountHeaderUi) : AccountDetailUiState
+    data class Empty(val header: AccountDetail) : AccountDetailUiState
 
     data class Error(
         val kind: AccountDetailErrorKind,
         val recoverable: Boolean,
     ) : AccountDetailUiState
 }
-
-/**
- * Display-ready account header. Every field is a finished string; the view model does the work.
- *
- * [accountNumber] is carried raw so the header and top bar can fall back to a "type ·· last 4" label
- * via `accountDisplayName` when the bank supplied no [nickname].
- */
-data class AccountHeaderUi(
-    val nickname: String,
-    val accountSubType: String,
-    val identificationLabel: String,
-    val currency: String,
-    val servicerIdentification: String,
-    val lastUpdatedLabel: String,
-    val accountNumber: String = "",
-    /**
-     * OBIE `Description` verbatim, e.g. `GLOBAL MONEY ACCOUNT`. Often the only place the bank says what
-     * kind of product this is — `AccountTypeCode` reports `CACC` for a Global Money wallet just as it
-     * does for an ordinary current account. Blank when the payload carried none, in which case the
-     * description card is not drawn.
-     */
-    val description: String = "",
-)
 
 /** One typed balance row, e.g. `InterimAvailable` / `2,847.63 GBP`. */
 data class BalanceRowUi(

@@ -15,8 +15,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navigation
-import cmp.navigation.authenticatednavbar.AuthenticatedNavbarRoute
-import cmp.navigation.authenticatednavbar.authenticatedNavbarGraph
+import cmp.navigation.authenticatednavhost.AuthenticatedNavHostRoute
+import cmp.navigation.authenticatednavhost.authenticatedNavHostGraph
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -31,11 +31,10 @@ internal fun NavGraphBuilder.authenticatedGraph(
     onLoggedOut: () -> Unit,
 ) {
     navigation<AuthenticatedGraphRoute>(
-        startDestination = AuthenticatedNavbarRoute,
+        startDestination = AuthenticatedNavHostRoute,
     ) {
-        // The navbar hosts a nested NavHost with the flavor-aware bottom-nav tabs +
-        // all banking destinations (home/settings/notifications + Phase 2 placeholders).
+        // The host owns a nested NavHost carrying every authenticated destination.
         // onLoggedOut bubbles a sign-out/revoke up to the root navigator, which owns the auth graph.
-        authenticatedNavbarGraph(onLoggedOut = onLoggedOut)
+        authenticatedNavHostGraph(onLoggedOut = onLoggedOut)
     }
 }

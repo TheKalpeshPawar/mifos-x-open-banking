@@ -9,15 +9,9 @@
  */
 package org.mifosx.openbanking.core.ui.payee
 
-/** Where an account's readable name stops and its masked identifier begins. */
-private val IDENTIFIER_MARKERS = charArrayOf('·', '•')
-
 /**
- * Up to two letters from the name, for an avatar.
- *
- * The trailing identifier is dropped first — an account reads "Current account ·· 3349", and
- * including the digits would render "C3" where the design asks for "CA". A single-word name falls
- * back to its first two letters so "Savings" gives "SA" rather than one lonely letter.
+ * Up to two letters from a name, for an avatar: the first letter of the first two words, or the
+ * first two letters of a single-word name. Anything from an identifier marker onwards is ignored.
  */
 fun initialsOf(name: String): String {
     val words = name.nameHalf()
@@ -30,17 +24,5 @@ fun initialsOf(name: String): String {
     }
 }
 
-/**
- * The readable half of an account label — "Current account" out of "Current account ·· 3349".
- *
- * The two halves are split apart rather than derived separately because `accountDisplayName` is the
- * one place the label is resolved, and re-deriving either half here would be a second answer to a
- * question this package has already settled.
- */
-fun String.nameHalf(): String = substringBefore('·').substringBefore('•').trim()
-
-/** The masked-identifier half, "·· 3349", or blank when the name carries no identifier at all. */
-fun String.identifierHalf(): String {
-    val start = indexOfFirst { it in IDENTIFIER_MARKERS }
-    return if (start < 0) "" else substring(start).trim()
-}
+/** The part of a label before any identifier marker. */
+internal fun String.nameHalf(): String = substringBefore('·').substringBefore('•').trim()

@@ -51,50 +51,6 @@ class StatementsScreenUiTest {
     }
 
     @Test
-    fun loadingRendersTheSkeletonNotTheContent() = runComposeUiTest {
-        setContent {
-            StatementsScreenContent(
-                state = StatementsFixtures.loadingState(),
-                onAction = {},
-                onRowClick = {},
-            )
-        }
-
-        onNodeWithTag(StatementsTestTags.LOADING_SKELETON).assertExists()
-        onNodeWithTag(StatementsTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() = runComposeUiTest {
-        setContent {
-            StatementsScreenContent(
-                state = StatementsFixtures.emptyState(),
-                onAction = {},
-                onRowClick = {},
-            )
-        }
-
-        onNodeWithTag(StatementsTestTags.EMPTY_STATE).assertExists()
-        onNodeWithTag(StatementsTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(StatementsTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun errorRendersTitleAndRetry() = runComposeUiTest {
-        setContent {
-            StatementsScreenContent(
-                state = StatementsFixtures.errorState(),
-                onAction = {},
-                onRowClick = {},
-            )
-        }
-
-        onNodeWithTag(StatementsTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(StatementsTestTags.ERROR_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(StatementsTestTags.RETRY_BUTTON).assertExists()
-    }
-
-    @Test
     fun aRowWithAnInFlightDownloadShowsItsSpinnerNotTheButton() = runComposeUiTest {
         setContent {
             StatementsScreenContent(

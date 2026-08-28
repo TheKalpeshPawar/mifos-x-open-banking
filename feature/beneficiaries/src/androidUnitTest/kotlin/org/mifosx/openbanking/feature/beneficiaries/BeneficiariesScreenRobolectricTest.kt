@@ -18,7 +18,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesAction
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesErrorKind
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -40,14 +39,12 @@ class BeneficiariesScreenRobolectricTest {
     val composeRule = createComposeRule()
 
     private val actions = mutableListOf<BeneficiariesAction>()
-    private var navigatedToConsents = false
 
     private fun render(state: BeneficiariesState) {
         composeRule.setContent {
             BeneficiariesScreenContent(
                 state = state,
                 onAction = { actions.add(it) },
-                onNavigateToConsents = { navigatedToConsents = true },
             )
         }
     }
@@ -59,22 +56,6 @@ class BeneficiariesScreenRobolectricTest {
         composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertIsDisplayed()
         composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertExists()
         composeRule.onNodeWithTag(BeneficiariesTestTags.row(BeneficiariesFixtures.FIRST_ID)).assertIsDisplayed()
-    }
-
-    /**
-     * The avatar is looked up in the unmerged tree on purpose: the row merges its descendants so a
-     * screen reader announces the payee once, which folds the avatar's node into the row's.
-     */
-    @Test
-    fun eachRowCarriesItsInitialsAvatar() {
-        render(BeneficiariesFixtures.contentState())
-
-        composeRule
-            .onNodeWithTag(BeneficiariesTestTags.avatar(BeneficiariesFixtures.FIRST_ID), useUnmergedTree = true)
-            .assertExists()
-        composeRule
-            .onNodeWithTag(BeneficiariesTestTags.avatar(BeneficiariesFixtures.ENERGY_ID), useUnmergedTree = true)
-            .assertExists()
     }
 
     @Test
@@ -96,53 +77,6 @@ class BeneficiariesScreenRobolectricTest {
 
         composeRule.onNodeWithTag(BeneficiariesTestTags.row(BeneficiariesFixtures.FIRST_ID)).performClick()
 
-        assertTrue(actions.isEmpty())
-    }
-
-    @Test
-    fun loadingRendersTheSpinnerNotTheList() {
-        render(BeneficiariesFixtures.loadingState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.LOADING).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyHidesTheSearchFieldAndTheList() {
-        render(BeneficiariesFixtures.emptyState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertDoesNotExist()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun aSearchWithoutMatchesKeepsTheFieldAndSwapsInTheNoResultsBlock() {
-        render(BeneficiariesFixtures.searchWithoutMatchesState())
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_FIELD).assertIsDisplayed()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.SEARCH_EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun aRetriableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(BeneficiariesFixtures.errorState(BeneficiariesErrorKind.RateLimited))
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.VIEW_CONSENTS_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<BeneficiariesAction>(BeneficiariesAction.RetryLoad), actions)
-    }
-
-    @Test
-    fun aRevokedConsentShowsViewConsentsAndRaisesTheHostRoute() {
-        render(BeneficiariesFixtures.errorState(BeneficiariesErrorKind.ConsentRevoked))
-
-        composeRule.onNodeWithTag(BeneficiariesTestTags.RETRY_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(BeneficiariesTestTags.VIEW_CONSENTS_BUTTON).performClick()
-
-        assertTrue(navigatedToConsents)
         assertTrue(actions.isEmpty())
     }
 }

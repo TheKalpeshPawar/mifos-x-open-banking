@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.util.RemoteException
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
@@ -99,27 +100,20 @@ class SendMoneyViewModelTest {
 
         val state = content(vm)
         assertEquals(2, state.debtorRows.size)
-        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.id })
-        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in state.debtorRows.map { it.id })
+        assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in state.debtorRows.map { it.account.accountId })
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in state.debtorRows.map { it.account.accountId })
         assertEquals(3, state.beneficiaries.size)
-        assertEquals("Jameson Lettings", state.beneficiaries.first().headline)
+        assertEquals("Jameson Lettings", state.beneficiaries.first().creditorName)
     }
 
-    /**
-     * The regression guard for the blank-row defect.
-     *
-     * HSBC leaves `Nickname` blank on most accounts, so a row must carry the fields
-     * `accountDisplayName` needs to derive "Current account ·· 3349". Reading `nickname` as the
-     * headline rendered an empty name and an empty avatar on every live account — and the original
-     * fixtures hid it, because they gave every account a nickname the real ones do not have.
-     */
+    /** A debtor row carries the type code and identification that name an account with no holder name. */
     @Test
     fun anAccountWithNoNicknameStillCarriesEnoughToNameItself() = runTest {
         val accounts = FakeAccountsOverviewRepository(
             initial = ScreenState.Content(
                 listOf(
                     AccountWithBalance(
-                        account = SendMoneyFixtures.currentAccount().copy(nickname = ""),
+                        account = SendMoneyFixtures.currentAccount().copy(accountHolderName = ""),
                         balance = null,
                     ),
                 ),
@@ -129,9 +123,9 @@ class SendMoneyViewModelTest {
 
         val row = content(viewModel(accounts = accounts)).debtorRows.single()
 
-        assertEquals("CurrentAccount", row.accountSubType)
-        assertEquals("10203349", row.accountNumber)
-        assertEquals("80200110203349", row.rawIdentification)
+        assertEquals("CACC", row.account.accountTypeCode)
+        assertEquals("80200110203349", row.account.identification)
+        assertEquals(AccountScheme.SortCode, row.account.scheme)
     }
 
     /**
@@ -624,7 +618,7 @@ class SendMoneyViewModelTest {
     fun aCreditCardIsNotOfferedAsAPayer() = runTest {
         val vm = viewModel()
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
 
         assertFalse(SendMoneyFixtures.CREDIT_CARD_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
@@ -644,7 +638,7 @@ class SendMoneyViewModelTest {
     fun aGlobalMoneyWalletIsNotOfferedAsAPayer() = runTest {
         val vm = viewModel()
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
 
         assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
@@ -670,22 +664,22 @@ class SendMoneyViewModelTest {
                 ScreenState.Content(undisclosed, DataFreshness.FRESH),
             ),
         )
-        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.account.accountId })
 
         registry.markUnsupported(SendMoneyFixtures.GLOBAL_MONEY_ID, AccountEndpoint.PaymentDebtor)
 
-        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.id })
+        assertFalse(SendMoneyFixtures.GLOBAL_MONEY_ID in content(vm).debtorRows.map { it.account.accountId })
     }
 
     /** The registry still removes any payer the bank refuses, matrix prediction or not. */
     @Test
     fun aRefusedPayerDisappearsFromThePicker() = runTest {
         val vm = viewModel()
-        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.account.accountId })
 
         registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.PaymentDebtor)
 
-        val ids = content(vm).debtorRows.map { it.id }
+        val ids = content(vm).debtorRows.map { it.account.accountId }
         assertFalse(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in ids)
         assertTrue(SendMoneyFixtures.CURRENT_ACCOUNT_ID in ids)
     }
@@ -697,7 +691,7 @@ class SendMoneyViewModelTest {
 
         registry.markUnsupported(SendMoneyFixtures.SAVINGS_ACCOUNT_ID, AccountEndpoint.DirectDebits)
 
-        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.id })
+        assertTrue(SendMoneyFixtures.SAVINGS_ACCOUNT_ID in content(vm).debtorRows.map { it.account.accountId })
     }
 
     /**

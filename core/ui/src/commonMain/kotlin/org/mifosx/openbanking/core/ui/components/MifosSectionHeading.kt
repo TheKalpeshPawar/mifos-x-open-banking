@@ -12,17 +12,34 @@ package org.mifosx.openbanking.core.ui.components
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import template.core.base.designsystem.theme.KptTheme
 
-/** The uppercased label above a section of a screen. */
 @Composable
-fun MifosSectionHeading(text: String, modifier: Modifier = Modifier) {
+fun MifosSectionHeading(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = KptTheme.typography.labelMedium,
+    color: Color = KptTheme.colorScheme.onSurfaceVariant,
+    fontWeight: FontWeight = FontWeight.SemiBold,
+) {
     Text(
-        text = text.uppercase(),
-        style = KptTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = KptTheme.colorScheme.onSurfaceVariant,
+        text = text,
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
         modifier = modifier,
     )
+}
+
+@Preview
+@Composable
+private fun MifosSectionHeadingPreview() {
+    MifosXOpenBankingTheme {
+        MifosSectionHeading(text = "Accounts")
+    }
 }

@@ -17,8 +17,6 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
  * whichever assertions referenced it.
  */
 internal object SchedulePaymentTestTags {
-    const val SKELETON = "schedulePayment:skeleton"
-
     const val FORM_PAGE = "schedulePayment:formPage"
     const val REVIEW_PAGE = "schedulePayment:reviewPage"
     const val RAIL_TOGGLE = "schedulePayment:railToggle"

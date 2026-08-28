@@ -15,6 +15,7 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentCharge
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StandingOrderFrequency
+import org.mifosx.openbanking.core.model.banking.payment.dispositionFor
 import template.core.base.network.NetworkError
 
 /**
@@ -105,7 +106,11 @@ sealed interface PaymentStatusUiState {
         val amountLabel: String,
         val creditorName: String,
         val reference: String,
-        val debtorLabel: String,
+        val debtorName: String = "",
+        val debtorIdentification: String = "",
+        val debtorScheme: String = "",
+        val creditorIdentification: String = "",
+        val creditorScheme: String = "",
         val submittedAt: String,
         val settledAt: String = "",
         /**
@@ -151,15 +156,15 @@ sealed interface PaymentStatusUiState {
 }
 
 /**
- * Whether a read is running, as the pull-to-refresh indicator sees it.
+ * Whether the status will not move again, so no refresh is worth offering.
  *
- * Covers both the first load and a manual refresh, so the gesture spins for either. The error page
- * is deliberately not "reading": nothing is in flight there until the pull dispatches one, and that
- * is exactly where someone reaches for the gesture.
+ * A status that cannot be classified — no local row names the rail — stays refreshable, since the
+ * rail is what decides whether `INCO` is an ending.
  */
-val PaymentStatusUiState.isReading: Boolean
-    get() = this is PaymentStatusUiState.Loading ||
-        (this is PaymentStatusUiState.Content && refreshing)
+val PaymentStatusUiState.Content.settled: Boolean
+    get() = consentType
+        ?.let { status.dispositionFor(it) != PaymentDisposition.InProgress }
+        ?: false
 
 data class PaymentStatusState(
     val paymentId: String,

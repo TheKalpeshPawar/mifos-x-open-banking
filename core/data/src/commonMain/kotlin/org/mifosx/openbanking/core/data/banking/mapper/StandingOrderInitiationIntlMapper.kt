@@ -89,7 +89,7 @@ internal fun StandingOrderDraft.toIntlStandingOrderRequest(
  * than sent half-formed, which the bank reads as "you choose" instead of refusing the consent.
  */
 private fun BankAccount.toIntlStandingOrderObieDebtor(): DebtorAccount? =
-    rawIdentification.takeIf { it.isNotBlank() }?.let {
+    identification.takeIf { it.isNotBlank() }?.let {
         DebtorAccount(schemeName = SCHEME_SORT_CODE, identification = it)
     }
 
@@ -135,6 +135,10 @@ internal fun InternationalStandingOrderResponse.toIntlStandingOrderReceipt(): Pa
             .orEmpty(),
         reference = "",
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toIntlStandingOrderPaymentCharge() },
         frequency = initiation?.mandateRelatedInformation?.frequency?.type.orEmpty(),
         finalPaymentDateTime = initiation

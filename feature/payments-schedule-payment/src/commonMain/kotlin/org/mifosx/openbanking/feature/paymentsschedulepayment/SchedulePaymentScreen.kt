@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_screen_title
@@ -41,6 +42,7 @@ internal fun SchedulePaymentScreen(
     onNavigateToConsents: () -> Unit,
     onNavigateToPayment: (String) -> Unit,
     onNavigateToHistory: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SchedulePaymentViewModel = koinViewModel(),
 ) {
@@ -53,7 +55,8 @@ internal fun SchedulePaymentScreen(
     }
 
     KptScaffold(
-        showNavigationIcon = false,
+        showNavigationIcon = true,
+        onNavigationIconClick = onBack,
         title = stringResource(Res.string.feature_payments_schedule_payment_screen_title),
         modifier = modifier,
     ) {
@@ -78,7 +81,7 @@ internal fun SchedulePaymentScreenContent(
     onShowAllPayments: () -> Unit = {},
 ) {
     when (val current = state.uiState) {
-        SchedulePaymentUiState.Loading -> SchedulePaymentSkeleton(modifier = modifier)
+        SchedulePaymentUiState.Loading -> MifosProgressIndicator()
 
         is SchedulePaymentUiState.Content -> SchedulePaymentContent(
             state = current,

@@ -115,7 +115,8 @@ class PaymentConsentViewModel(
         when (val result = repository.validateCallback(redirectUrl)) {
             is PaymentAuthValidation.Valid -> {
                 authorizationCode = result.code
-                updateState { copy(consentId = result.consentId) }
+                val consentType = repository.pendingConsentType()
+                updateState { copy(consentId = result.consentId, consentType = consentType) }
                 exchange()
             }
 

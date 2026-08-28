@@ -20,31 +20,12 @@ import template.core.base.ui.nav.composableWithStayTransitions
 @Serializable
 data object SchedulePaymentDestination
 
-/**
- * The one screen inside it.
- *
- * One route for the whole journey: the form and the review are steps on a single content state, and
- * the date picker is a dialog. Making either of them a destination of its own would rebuild it empty
- * on the way back, and both have to survive being returned to — the form because nothing typed may
- * be lost, the review because its staged draft must not be minted twice.
- */
 @Serializable
 data object SchedulePaymentRoute
 
-/** The full list of scheduled payments, reached from the form's "See all". */
 @Serializable
 data object SchedulePaymentHistoryRoute
 
-/**
- * Registers the scheduled-payment flow.
- *
- * A sibling of the payments hub rather than a child of it, matching send-money: each payment type
- * owns its own browser hand-off and return, and nesting them would tie those lifecycles together.
- *
- * A nested graph rather than a flat route so that a screen pushed on top of it — the payment status
- * screen, on the way back — correctly hides the bottom bar, which is derived from the graph's start
- * destination.
- */
 fun NavGraphBuilder.schedulePaymentGraph(
     onLaunchAuthorisation: (String) -> Unit,
     onNavigateToConsents: () -> Unit,
@@ -59,6 +40,7 @@ fun NavGraphBuilder.schedulePaymentGraph(
                 onNavigateToConsents = onNavigateToConsents,
                 onNavigateToPayment = onNavigateToPayment,
                 onNavigateToHistory = onNavigateToHistory,
+                onBack = onBack,
             )
         }
         composableWithStayTransitions<SchedulePaymentHistoryRoute> {

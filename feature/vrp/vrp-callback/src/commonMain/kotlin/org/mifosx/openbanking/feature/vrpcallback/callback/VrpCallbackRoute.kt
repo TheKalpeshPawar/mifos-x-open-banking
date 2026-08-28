@@ -18,8 +18,8 @@ import template.core.base.ui.nav.composableWithStayTransitions
 /**
  * The return from the bank.
  *
- * Registered in the root navigator, not the navbar host: the redirect arrives before any tab exists
- * and the navbar hosts its own graph the root cannot navigate into.
+ * Registered in the root navigator, not the authenticated host: the redirect arrives before the host
+ * is on the back stack, and the host owns its own graph the root cannot navigate into.
  *
  * @property redirectUrl The property name is the `SavedStateHandle` key, so it must equal the
  *   constant the view model reads or the callback arrives empty.

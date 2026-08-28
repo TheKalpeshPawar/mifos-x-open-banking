@@ -14,6 +14,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.database.AppDatabase
 import org.mifosx.openbanking.core.database.banking.entity.AccountEntity
 import kotlin.test.AfterTest
@@ -27,13 +28,13 @@ class AccountDaoTest {
     private lateinit var database: AppDatabase
     private lateinit var accountDao: AccountDao
 
-    private fun account(id: String, nickname: String) = AccountEntity(
+    private fun account(id: String, accountHolderName: String) = AccountEntity(
         accountId = id,
-        nickname = nickname,
-        accountSubType = "CurrentAccount",
+        accountHolderName = accountHolderName,
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "400515",
-        accountNumber = "12345678",
+        identification = "40051512345678",
+        scheme = AccountScheme.SortCode,
     )
 
     @BeforeTest
@@ -65,7 +66,7 @@ class AccountDaoTest {
         accountDao.observeAll().test {
             val result = awaitItem()
             assertEquals(2, result.size)
-            assertEquals("Everyday Current", result.first { it.accountId == "acc-1" }.nickname)
+            assertEquals("Everyday Current", result.first { it.accountId == "acc-1" }.accountHolderName)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -78,7 +79,7 @@ class AccountDaoTest {
         accountDao.observeAll().test {
             val result = awaitItem()
             assertEquals(1, result.size)
-            assertEquals("Renamed", result.first().nickname)
+            assertEquals("Renamed", result.first().accountHolderName)
             cancelAndIgnoreRemainingEvents()
         }
     }

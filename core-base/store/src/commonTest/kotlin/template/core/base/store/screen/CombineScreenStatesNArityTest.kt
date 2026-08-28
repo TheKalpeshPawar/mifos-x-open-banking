@@ -43,12 +43,40 @@ class CombineScreenStatesNArityTest {
     fun `3-source any STALE produces STALE`() = runTest {
         combineScreenStates(
             content(1, DataFreshness.FRESH),
-            content(2, DataFreshness.STALE),
+            content(2, DataFreshness.STALE_OFFLINE),
             content(3, DataFreshness.FRESH),
         ) { a, b, c -> a + b + c }.test {
             val item = awaitItem()
             assertIs<ScreenState.Content<Int>>(item)
-            assertEquals(DataFreshness.STALE, item.freshness)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `3-source STALE_OFFLINE beats STALE_FAILED`() = runTest {
+        combineScreenStates(
+            content(1, DataFreshness.FRESH),
+            content(2, DataFreshness.STALE_FAILED),
+            content(3, DataFreshness.STALE_OFFLINE),
+        ) { a, b, c -> a + b + c }.test {
+            val item = awaitItem()
+            assertIs<ScreenState.Content<Int>>(item)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `3-source STALE_FAILED beats UPDATING`() = runTest {
+        combineScreenStates(
+            content(1, DataFreshness.FRESH),
+            content(2, DataFreshness.UPDATING),
+            content(3, DataFreshness.STALE_FAILED),
+        ) { a, b, c -> a + b + c }.test {
+            val item = awaitItem()
+            assertIs<ScreenState.Content<Int>>(item)
+            assertEquals(DataFreshness.STALE_FAILED, item.freshness)
             awaitComplete()
         }
     }
@@ -141,12 +169,12 @@ class CombineScreenStatesNArityTest {
         combineScreenStates(
             content(1, DataFreshness.FRESH),
             content(2, DataFreshness.UPDATING),
-            content(3, DataFreshness.STALE),
+            content(3, DataFreshness.STALE_OFFLINE),
             content(4, DataFreshness.FRESH),
         ) { a, b, c, d -> a + b + c + d }.test {
             val item = awaitItem()
             assertIs<ScreenState.Content<Int>>(item)
-            assertEquals(DataFreshness.STALE, item.freshness)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
             awaitComplete()
         }
     }
@@ -215,13 +243,13 @@ class CombineScreenStatesNArityTest {
         combineScreenStates(
             content(1, DataFreshness.FRESH),
             content(2, DataFreshness.FRESH),
-            content(3, DataFreshness.STALE),
+            content(3, DataFreshness.STALE_OFFLINE),
             content(4, DataFreshness.UPDATING),
             content(5, DataFreshness.FRESH),
         ) { a, b, c, d, e -> a + b + c + d + e }.test {
             val item = awaitItem()
             assertIs<ScreenState.Content<Int>>(item)
-            assertEquals(DataFreshness.STALE, item.freshness)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
             awaitComplete()
         }
     }
@@ -291,12 +319,12 @@ class CombineScreenStatesNArityTest {
     @Test
     fun `2-source refactored STALE wins over UPDATING`() = runTest {
         combineScreenStates(
-            content(10, DataFreshness.STALE),
+            content(10, DataFreshness.STALE_OFFLINE),
             content(20, DataFreshness.UPDATING),
         ) { a, b -> a + b }.test {
             val item = awaitItem()
             assertIs<ScreenState.Content<Int>>(item)
-            assertEquals(DataFreshness.STALE, item.freshness)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
             awaitComplete()
         }
     }

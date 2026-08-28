@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.TestSigningKey
 import org.mifosx.openbanking.core.data.banking.impl.StandingOrderInitiationRepositoryImpl
 import org.mifosx.openbanking.core.data.callback.PaymentAuthSession
@@ -36,6 +37,7 @@ import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.ScheduledPaymentDraft
@@ -93,12 +95,11 @@ class StandingOrderInitiationRepositoryImplTest {
     private fun draft(
         debtor: BankAccount? = BankAccount(
             accountId = "acc-1",
-            nickname = "",
-            accountSubType = "CurrentAccount",
+            accountHolderName = "",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
+            identification = "80200110203349",
+            scheme = AccountScheme.SortCode,
         ),
     ) = StandingOrderDraft(
         debtorAccount = debtor,
@@ -147,6 +148,7 @@ class StandingOrderInitiationRepositoryImplTest {
         ) = Unit
         override suspend fun consentTypeOf(paymentId: String): ConsentType? = null
         override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
+        override suspend fun partiesOf(paymentId: String): PaymentParties? = null
         override fun observeHistory(
             types: Set<ConsentType>,
             limit: Int,

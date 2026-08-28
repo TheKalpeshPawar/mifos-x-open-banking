@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -99,12 +100,13 @@ internal fun LoginScreen(
         }
     }
 
+    val content = modifier.statusBarsPadding()
     when (val current = state) {
-        is LoginUiState.Loading -> LoadingState(modifier)
-        is LoginUiState.Content -> ContentState(current, viewModel::trySendAction, modifier)
-        is LoginUiState.Authorising -> AuthorisingState(modifier)
-        is LoginUiState.Error -> ErrorState(current, viewModel::trySendAction, modifier)
-        is LoginUiState.Empty -> EmptyState(viewModel::trySendAction, modifier)
+        is LoginUiState.Loading -> LoadingState(content)
+        is LoginUiState.Content -> ContentState(current, viewModel::trySendAction, content)
+        is LoginUiState.Authorising -> AuthorisingState(content)
+        is LoginUiState.Error -> ErrorState(current, viewModel::trySendAction, content)
+        is LoginUiState.Empty -> EmptyState(viewModel::trySendAction, content)
     }
 }
 

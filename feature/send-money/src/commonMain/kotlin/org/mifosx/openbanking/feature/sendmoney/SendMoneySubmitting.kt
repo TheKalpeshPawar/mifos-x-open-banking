@@ -15,34 +15,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.Res
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_amount
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_awaiting
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_lock
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_submitting_staging
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStage
-
-private val ContentPadding = 24.dp
-private val LineGap = 16.dp
-private val IndicatorSize = 56.dp
-private val IndicatorBottomGap = 8.dp
-private val LockIconSize = 16.dp
-private val LockGap = 8.dp
-private val BodyMaxWidth = 300.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * Submission in flight.
@@ -67,49 +58,48 @@ internal fun SendMoneySubmitting(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ContentPadding)
+            .padding(KptTheme.spacing.lg)
             .testTag(SendMoneyTestTags.SUBMITTING_INDICATOR),
-        verticalArrangement = Arrangement.spacedBy(LineGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator(
             modifier = Modifier
-                .size(IndicatorSize)
-                .padding(bottom = IndicatorBottomGap),
-            color = MaterialTheme.colorScheme.primary,
+                .size(DesignToken.sizes.cardRow)
+                .padding(bottom = KptTheme.spacing.sm),
+            color = KptTheme.colorScheme.primary,
         )
 
         Text(
             text = stringResource(Res.string.feature_send_money_submitting_amount, amountLabel, creditorName),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.headlineSmall,
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(SendMoneyTestTags.SUBMITTING_AMOUNT),
         )
 
         Text(
             text = caption,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = BodyMaxWidth),
         )
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(LockGap),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
             modifier = Modifier.testTag(SendMoneyTestTags.SUBMITTING_LOCK_NOTE),
         ) {
             Icon(
                 imageVector = Icons.Filled.Lock,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(LockIconSize),
+                tint = KptTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
             )
             Text(
                 text = stringResource(Res.string.feature_send_money_submitting_lock),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

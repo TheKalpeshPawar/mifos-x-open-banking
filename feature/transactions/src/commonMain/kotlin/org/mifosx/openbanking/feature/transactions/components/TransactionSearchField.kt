@@ -16,12 +16,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.transactions.TransactionsTestTags
 import org.mifosx.openbanking.feature.transactions.generated.resources.Res
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_search_clear
@@ -35,7 +38,7 @@ internal fun TransactionSearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    TextField(
         value = query,
         onValueChange = onQueryChange,
         singleLine = true,
@@ -43,8 +46,30 @@ internal fun TransactionSearchField(
             .fillMaxWidth()
             .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.xs)
             .testTag(TransactionsTestTags.SEARCH_FIELD),
-        placeholder = { Text(stringResource(Res.string.feature_transactions_search_hint)) },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                tint = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        placeholder = {
+            Text(
+                text = stringResource(Res.string.feature_transactions_search_hint),
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        textStyle = KptTheme.typography.bodyLarge,
+        shape = DesignToken.shapes.pill,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+            disabledContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+        ),
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(

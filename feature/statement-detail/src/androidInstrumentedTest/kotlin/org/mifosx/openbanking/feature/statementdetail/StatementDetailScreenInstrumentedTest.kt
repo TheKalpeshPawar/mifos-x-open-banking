@@ -65,20 +65,6 @@ private fun contentState(): StatementDetailState = StatementDetailState(
     uiState = StatementDetailUiState.Content(statementModel(), rows()),
 )
 
-private fun errorState(): StatementDetailState = StatementDetailState(
-    accountId = ACCOUNT_ID,
-    statementId = STATEMENT_ID,
-    uiState = StatementDetailUiState.Error(
-        org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailErrorCode.StatementNotFound,
-    ),
-)
-
-private fun loadingState(): StatementDetailState = StatementDetailState(
-    accountId = ACCOUNT_ID,
-    statementId = STATEMENT_ID,
-    uiState = StatementDetailUiState.Loading,
-)
-
 /**
  * On-device mirror of [StatementDetailScreenRobolectricTest], driving the same [StatementDetailTestTags]
  * so a divergence between the JVM and device renderers is visible.
@@ -135,22 +121,5 @@ class StatementDetailScreenInstrumentedTest {
         composeRule.onNodeWithTag(StatementDetailTestTags.DOWNLOAD_BUTTON).performClick()
 
         assertEquals(listOf<StatementDetailAction>(StatementDetailAction.DownloadPdf), actions)
-    }
-
-    @Test
-    fun loadingRendersTheSkeleton() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(StatementDetailTestTags.LOADING_SKELETON).assertExists()
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesRetryLoad() {
-        render(errorState())
-
-        composeRule.onNodeWithTag(StatementDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementDetailTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<StatementDetailAction>(StatementDetailAction.RetryLoad), actions)
     }
 }

@@ -96,39 +96,6 @@ class TransactionDetailScreenRobolectricTest {
     }
 
     @Test
-    fun loadingRendersTheSpinner() {
-        render(TransactionDetailFixtures.loadingState())
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.LOADING_INDICATOR).assertExists()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.CONTENT_ROOT).assertDoesNotExist()
-    }
-
-    @Test
-    fun aRecoverableErrorShowsRetryAndDispatchesRetryLoad() {
-        render(TransactionDetailFixtures.recoverableErrorState())
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.ERROR_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<TransactionDetailAction>(TransactionDetailAction.RetryLoad), actions)
-    }
-
-    @Test
-    fun aNonRecoverableErrorShowsGoBackAndInvokesOnBack() {
-        render(TransactionDetailFixtures.nonRecoverableErrorState())
-
-        composeRule.onNodeWithTag(TransactionDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).assertDoesNotExist()
-        composeRule.onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).performClick()
-
-        assertEquals(1, backCount)
-        assertEquals(emptyList<TransactionDetailAction>(), actions)
-    }
-
-    @Test
     fun emptyRendersItsTitleAndBackButton() {
         render(TransactionDetailFixtures.emptyState())
 

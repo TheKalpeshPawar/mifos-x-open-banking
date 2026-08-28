@@ -47,6 +47,10 @@ data class PaymentCharge(
  * @property creditorName Who was paid, echoed from the submitted `Initiation`.
  * @property reference The remittance reference, or empty when the payment carried none.
  * @property debtorIdentification The paying account as the bank echoes it, unformatted.
+ * @property debtorName The paying account's name, or empty when the payload omitted `DebtorAccount`.
+ * @property debtorScheme The paying account's OBIE `SchemeName`, e.g. `UK.OBIE.SortCodeAccountNumber`.
+ * @property creditorIdentification The paid account as the bank echoes it, unformatted.
+ * @property creditorScheme The paid account's OBIE `SchemeName`, e.g. `UK.OBIE.IBAN`.
  * @property charges What the bank charged. Empty when it charged nothing — which is different from
  *   charging zero, and different again from not having told us yet, so this is never defaulted to a
  *   displayed "£0.00".
@@ -64,6 +68,10 @@ data class PaymentReceipt(
     val requestedExecutionDateTime: String = "",
     val reference: String = "",
     val debtorIdentification: String = "",
+    val debtorName: String = "",
+    val debtorScheme: String = "",
+    val creditorIdentification: String = "",
+    val creditorScheme: String = "",
     val charges: List<PaymentCharge> = emptyList(),
     /** How often a standing order repeats, as the OBIE code — `MNTH`, `WEEK` — or blank. */
     val frequency: String = "",

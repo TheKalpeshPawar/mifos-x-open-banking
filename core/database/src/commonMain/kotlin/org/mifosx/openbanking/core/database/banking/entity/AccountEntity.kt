@@ -11,31 +11,24 @@ package org.mifosx.openbanking.core.database.banking.entity
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import org.mifosx.openbanking.core.common.AccountScheme
 
 /**
  * Room cache row for a consented account. Backs the accounts Store5 SourceOfTruth so the
  * account switcher and hero card survive process death and render offline.
  *
  * `accountId` is the OBIE-unique key, so it doubles as the primary key.
+ *
+ * `description` is persisted because it is the only signal that a Global Money wallet differs from a
+ * current account — both report `AccountTypeCode: CACC`.
  */
 @Entity(tableName = "accounts")
 data class AccountEntity(
     @PrimaryKey val accountId: String,
-    val nickname: String,
-    val accountSubType: String,
+    val accountTypeCode: String,
     val currency: String,
-    val sortCode: String,
-    val accountNumber: String,
-    val rawIdentification: String = "",
-
-    /**
-     * HSBC's free-text `Description`, and the only signal that an account is a Global Money wallet.
-     *
-     * Persisted rather than derived because a wallet reports `AccountTypeCode: CACC` — identical to a
-     * current account — so dropping this column makes the two indistinguishable once the row has been
-     * read back out. That is not hypothetical: it is exactly what happened when the field was added to
-     * the model and the network mapper but not here, and the wallet was offered as a payer the bank
-     * then refused with `U002`.
-     */
+    val identification: String = "",
+    val scheme: AccountScheme = AccountScheme.Other,
     val description: String = "",
+    val accountHolderName: String = "",
 )

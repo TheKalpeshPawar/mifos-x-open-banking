@@ -86,14 +86,6 @@ private fun contentState(
     ),
 )
 
-private fun loadingState(): PaymentStatusState =
-    PaymentStatusState(paymentId = PAYMENT_ID, uiState = PaymentStatusUiState.Loading)
-
-private fun errorState(
-    kind: PaymentStatusErrorKind = PaymentStatusErrorKind.NetworkError,
-): PaymentStatusState =
-    PaymentStatusState(paymentId = PAYMENT_ID, uiState = PaymentStatusUiState.Error(kind))
-
 /**
  * On-device mirror of [PaymentStatusScreenRobolectricTest], driving the same
  * [PaymentStatusTestTags] so a divergence between the JVM and device renderers is visible.
@@ -116,14 +108,6 @@ class PaymentStatusScreenInstrumentedTest {
     }
 
     @Test
-    fun loadingRendersTheSkeleton() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(PaymentStatusTestTags.SKELETON).assertExists()
-        composeRule.onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertDoesNotExist()
-    }
-
-    @Test
     fun contentRendersTheSummaryAndEveryDetailRow() {
         render(contentState())
 
@@ -132,6 +116,7 @@ class PaymentStatusScreenInstrumentedTest {
         composeRule.onNodeWithTag(PaymentStatusTestTags.STATUS_CHIP).assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_REFERENCE).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_FROM).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_TO).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_SUBMITTED).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_ID).performScrollTo().assertIsDisplayed()
     }
@@ -214,7 +199,6 @@ class PaymentStatusScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(PaymentStatusTestTags.REFRESH_FAILURE).assertExists()
         composeRule.onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertIsDisplayed()
-        composeRule.onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertDoesNotExist()
     }
 
     @Test
@@ -229,16 +213,6 @@ class PaymentStatusScreenInstrumentedTest {
         render(contentState())
 
         composeRule.onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).performScrollTo().performClick()
-
-        assertEquals(listOf<PaymentStatusAction>(PaymentStatusAction.RefreshStatus), actions)
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesTheSameRead() {
-        render(errorState())
-
-        composeRule.onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(PaymentStatusTestTags.RETRY_BUTTON).performClick()
 
         assertEquals(listOf<PaymentStatusAction>(PaymentStatusAction.RefreshStatus), actions)
     }

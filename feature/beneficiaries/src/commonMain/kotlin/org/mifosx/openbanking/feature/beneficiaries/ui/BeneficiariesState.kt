@@ -10,7 +10,7 @@
 package org.mifosx.openbanking.feature.beneficiaries.ui
 
 import org.mifosx.openbanking.core.data.util.RemoteException
-import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import template.core.base.network.NetworkError
 
 /**
@@ -43,8 +43,8 @@ sealed interface BeneficiariesUiState {
      * @property query The live search text.
      */
     data class Content(
-        val all: List<BeneficiaryRowUi>,
-        val filtered: List<BeneficiaryRowUi>,
+        val all: List<BeneficiaryItem>,
+        val filtered: List<BeneficiaryItem>,
         val query: String = "",
     ) : BeneficiariesUiState {
 
@@ -56,29 +56,6 @@ sealed interface BeneficiariesUiState {
 
     data class Error(val kind: BeneficiariesErrorKind) : BeneficiariesUiState
 }
-
-/**
- * One display-ready payee row. Every string is finished by the view model except [scheme], which the
- * row resolves to its short label so the enum-to-presentation mapping lives with the composable that
- * renders it.
- *
- * @property beneficiaryId OBIE `BeneficiaryId`; the row key and the avatar colour seed.
- * @property name Creditor display name, e.g. `EDF Energy`. The row headline.
- * @property initials Up to two letters derived from [name], e.g. `EE`. Decorative — the row's own
- *   accessibility label already reads the full name.
- * @property scheme Which identifier scheme [identification] is in; drives the supporting-text label.
- * @property identification The destination account, already grouped for display where the scheme
- *   calls for it, e.g. `DE89 3704 0044 0532 0130 00`.
- * @property reference The payment reference, e.g. `RENT-FLAT12`. The row's trailing cell.
- */
-data class BeneficiaryRowUi(
-    val beneficiaryId: String,
-    val name: String,
-    val initials: String,
-    val scheme: BeneficiaryScheme,
-    val identification: String,
-    val reference: String,
-)
 
 /**
  * The five failure modes the screen distinguishes.

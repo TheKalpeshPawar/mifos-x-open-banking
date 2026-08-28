@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.paymentconsent
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.data.banking.PaymentHistoryRepository
 import org.mifosx.openbanking.core.data.banking.ScheduledPaymentInitiationRepository
 import org.mifosx.openbanking.core.data.banking.SinglePaymentInitiationRepository
@@ -23,6 +24,7 @@ import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDraft
 import org.mifosx.openbanking.core.model.banking.payment.PaymentHistoryRow
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentReceipt
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -54,36 +56,49 @@ object PaymentConsentFixtures {
         consentId = CONSENT_ID,
     )
 
-    fun approvedState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Approved, consentId = CONSENT_ID)
+    fun approvedState(consentType: ConsentType? = null): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Approved,
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
-    fun alreadySubmittedState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.AlreadySubmitted, consentId = CONSENT_ID)
+    fun alreadySubmittedState(consentType: ConsentType? = null): PaymentConsentState =
+        PaymentConsentState(
+            uiState = PaymentConsentUiState.AlreadySubmitted,
+            consentId = CONSENT_ID,
+            consentType = consentType,
+        )
 
     fun confirmingFundsState(): PaymentConsentState =
         PaymentConsentState(uiState = PaymentConsentUiState.ConfirmingFunds, consentId = CONSENT_ID)
 
-    fun submittingState(): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Submitting, consentId = CONSENT_ID)
+    fun submittingState(consentType: ConsentType? = null): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Submitting,
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
     fun errorState(
         kind: PaymentConsentErrorKind = PaymentConsentErrorKind.StateMismatch,
-    ): PaymentConsentState =
-        PaymentConsentState(uiState = PaymentConsentUiState.Error(kind), consentId = CONSENT_ID)
+        consentType: ConsentType? = null,
+    ): PaymentConsentState = PaymentConsentState(
+        uiState = PaymentConsentUiState.Error(kind),
+        consentId = CONSENT_ID,
+        consentType = consentType,
+    )
 
     /**
-     * A payer with no nickname, as HSBC actually returns them. Keeping the blank there stops a
+     * A payer with no holder name, as HSBC actually returns them. Keeping the blank there stops a
      * fixture from quietly asserting a field the live bank does not populate.
      */
     fun draft(): PaymentDraft = PaymentDraft(
         debtorAccount = BankAccount(
             accountId = "acc-1",
-            nickname = "",
-            accountSubType = "CurrentAccount",
+            accountHolderName = "",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
+            identification = "80200110203349",
+            scheme = AccountScheme.SortCode,
         ),
         creditor = CreditorSelection(
             name = "Liam Walker",
@@ -289,6 +304,8 @@ class FakePaymentHistoryRepository : PaymentHistoryRepository {
 
     /** This fake keeps no rows, so it has no stage times to report. */
     override suspend fun stageTimestampsOf(paymentId: String): PaymentStageTimestamps? = null
+
+    override suspend fun partiesOf(paymentId: String): PaymentParties? = null
 
     override fun observeHistory(
         types: Set<ConsentType>,

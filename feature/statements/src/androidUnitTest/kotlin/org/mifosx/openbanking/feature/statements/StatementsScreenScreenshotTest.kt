@@ -54,15 +54,6 @@ class StatementsScreenScreenshotTest {
     @Test
     fun contentGolden() = capture("content", StatementsFixtures.contentState())
 
-    @Test
-    fun loadingGolden() = capture("loading", StatementsFixtures.loadingState())
-
-    @Test
-    fun emptyGolden() = capture("empty", StatementsFixtures.emptyState())
-
-    @Test
-    fun errorGolden() = capture("error", StatementsFixtures.errorState())
-
     private fun capture(state: String, screenState: StatementsState) {
         composeRule.setContent {
             Themed {

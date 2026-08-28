@@ -13,12 +13,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.Res
+import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_empty_title
+import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_error_consent_revoked
+import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_error_network
+import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_error_rate_limited
+import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_error_token_expired
 import org.mifosx.openbanking.feature.scheduledpayments.generated.resources.feature_scheduled_payments_screen_title
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsAction
+import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsError
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsState
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsUiState
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsViewModel
@@ -56,19 +66,29 @@ internal fun ScheduledPaymentsScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        ScheduledPaymentsUiState.Loading -> ScheduledPaymentsSkeleton(modifier = modifier)
+        ScheduledPaymentsUiState.Loading -> MifosProgressIndicator()
 
         is ScheduledPaymentsUiState.Content -> ScheduledPaymentsContent(
             payments = current.payments,
             modifier = modifier,
         )
 
-        ScheduledPaymentsUiState.Empty -> ScheduledPaymentsEmpty(modifier = modifier)
+        ScheduledPaymentsUiState.Empty -> EmptyDataComponent(
+            isEmptyData = true,
+            message = stringResource(Res.string.feature_scheduled_payments_empty_title),
+        )
 
-        is ScheduledPaymentsUiState.Error -> ScheduledPaymentsError(
-            kind = current.kind,
+        is ScheduledPaymentsUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = true,
             onRetry = { onAction(ScheduledPaymentsAction.RetryLoad) },
-            modifier = modifier,
         )
     }
+}
+
+private fun ScheduledPaymentsError.bodyResource(): StringResource = when (this) {
+    ScheduledPaymentsError.TokenExpired -> Res.string.feature_scheduled_payments_error_token_expired
+    ScheduledPaymentsError.ConsentRevoked -> Res.string.feature_scheduled_payments_error_consent_revoked
+    ScheduledPaymentsError.RateLimited -> Res.string.feature_scheduled_payments_error_rate_limited
+    ScheduledPaymentsError.NetworkError -> Res.string.feature_scheduled_payments_error_network
 }

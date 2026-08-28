@@ -17,14 +17,16 @@ import androidx.compose.ui.test.performScrollTo
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAccountRow
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderAction
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderDateRole
-import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderPickerRow
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderState
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderStep
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderUiState
@@ -50,21 +52,16 @@ class StandingOrderScreenInstrumentedTest {
 
     private val account = BankAccount(
         accountId = "acc-1",
-        nickname = "",
-        accountSubType = "CurrentAccount",
+        accountHolderName = "",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "802001",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
+        identification = "80200110203349",
+        scheme = AccountScheme.SortCode,
     )
 
-    private val accountRow = StandingOrderAccountRow(
-        id = "acc-1",
-        nickname = "",
-        accountSubType = "CurrentAccount",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
-        supporting = "£21,530.92",
+    private val accountRow = AccountWithBalance(
+        account = account,
+        balance = AccountBalance("acc-1", "GBP", "21530.92", "21530.92"),
     )
 
     private fun formState(
@@ -80,12 +77,13 @@ class StandingOrderScreenInstrumentedTest {
             debtorAccountRow = accountRow,
             debtorAccountId = "acc-1",
             beneficiaries = listOf(
-                StandingOrderPickerRow(
-                    id = "ben-1",
-                    initials = "DC",
-                    headline = "Mr Dharani C",
-                    supporting = "Sort Code · 80-20-01 10203350",
-                    shortName = "Dharani C",
+                BeneficiaryItem(
+                    beneficiaryId = "ben-1",
+                    accountId = "acc-1",
+                    creditorName = "Mr Dharani C",
+                    scheme = BeneficiaryScheme.SortCode,
+                    identification = "80200110203350",
+                    reference = "",
                 ),
             ),
             creditor = CreditorSelection(
@@ -94,7 +92,7 @@ class StandingOrderScreenInstrumentedTest {
                 identification = "80200110203350",
             ),
             creditorLabel = "Mr Dharani C",
-            creditorSupporting = "Sort Code · 80-20-01 10203350",
+            creditorSupporting = "Identification · 80200110203350",
             amountInput = "250",
             amountLabel = "£250.00",
             today = LocalDate(2026, 8, 12),

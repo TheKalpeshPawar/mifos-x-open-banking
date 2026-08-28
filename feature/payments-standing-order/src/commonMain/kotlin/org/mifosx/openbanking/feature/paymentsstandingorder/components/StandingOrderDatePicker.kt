@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -127,7 +126,7 @@ internal fun StandingOrderDatePickerDialog(
                     ),
                     style = KptTheme.typography.bodyMedium,
                     color = KptTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(HeadlinePadding),
+                    modifier = Modifier.padding(KptTheme.spacing.lg),
                 )
             },
             colors = DatePickerDefaults.colors(),
@@ -157,5 +156,3 @@ private class MandateSelectableDates(
 
     override fun isSelectableYear(year: Int): Boolean = year in selectableYears(today, role)
 }
-
-private val HeadlinePadding = 24.dp

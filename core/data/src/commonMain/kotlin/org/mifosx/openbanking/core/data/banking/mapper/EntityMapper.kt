@@ -22,24 +22,22 @@ import org.mifosx.openbanking.core.model.banking.TransactionItem
  */
 fun AccountEntity.toBankAccount(): BankAccount = BankAccount(
     accountId = accountId,
-    nickname = nickname,
-    accountSubType = accountSubType,
+    accountTypeCode = accountTypeCode,
     currency = currency,
-    sortCode = sortCode,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
+    identification = identification,
+    scheme = scheme,
     description = description,
+    accountHolderName = accountHolderName,
 )
 
 fun BankAccount.toAccountEntity(): AccountEntity = AccountEntity(
     accountId = accountId,
-    nickname = nickname,
-    accountSubType = accountSubType,
+    accountTypeCode = accountTypeCode,
     currency = currency,
-    sortCode = sortCode,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
+    identification = identification,
+    scheme = scheme,
     description = description,
+    accountHolderName = accountHolderName,
 )
 
 fun TransactionEntity.toTransactionItem(): TransactionItem = TransactionItem(

@@ -13,20 +13,26 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mifosx.openbanking.feature.home.components.AccountSelectorSheetContent
-import org.mifosx.openbanking.feature.home.ui.AccountChipUi
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.model.banking.AccountBalance
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.feature.home.ui.Greeting
 import org.mifosx.openbanking.feature.home.ui.HomeData
-import org.mifosx.openbanking.feature.home.ui.TransactionRowUi
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The home dashboard states on a real device / emulator. The same surfaces are covered device-free
- * by `HomeScreenRobolectricTest`; this class exercises them against the on-device Compose runtime.
+ * The home dashboard on a real device / emulator. The same surfaces are covered device-free by
+ * `HomeScreenRobolectricTest`; this exercises them against the on-device Compose runtime.
+ *
+ * androidInstrumentedTest does not see commonTest, so the fixtures are inlined here rather than taken
+ * from `HomeFixtures`.
  */
 @RunWith(AndroidJUnit4::class)
 class HomeScreenInstrumentedTest {
@@ -35,94 +41,84 @@ class HomeScreenInstrumentedTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun contentStateRendersHeroAndTransactions() {
+    fun contentRendersEverySection() {
         composeRule.showHomeContent()
 
         composeRule.onNodeWithTag(HomeTestTags.CONTENT).assertExists()
-        composeRule.onNodeWithTag(HomeTestTags.HERO_CARD).assertExists()
-        composeRule.onNodeWithTag(HomeTestTags.RECENT_TRANSACTIONS).assertExists()
+        composeRule.onNodeWithTag(HomeTestTags.HEADER).assertExists()
+        composeRule.onNodeWithTag(HomeTestTags.QUICK_ACTIONS).assertExists()
+        composeRule.onNodeWithTag(HomeTestTags.CARDS_SECTION).assertExists()
+        composeRule.onNodeWithTag(HomeTestTags.ACCOUNTS_SECTION).assertExists()
     }
 
     @Test
-    fun skeletonStateRenders() {
-        composeRule.setContent { HomeSkeleton() }
+    fun quickActionTapDispatchesItsCallback() {
+        var fired = false
+        composeRule.showHomeContent(onSendMoney = { fired = true })
 
-        composeRule.onNodeWithTag(HomeTestTags.SKELETON).assertExists()
+        composeRule.onNodeWithTag(HomeTestTags.quickAction("send_money")).performClick()
+
+        assertTrue(fired)
     }
 
     @Test
-    fun errorStateRetryDispatches() {
-        var retried = false
-        composeRule.setContent { HomeError(onRetry = { retried = true }) }
+    fun accountRowClickDispatchesAccountId() {
+        var clickedId: String? = null
+        composeRule.showHomeContent(onAccountClick = { clickedId = it })
 
-        composeRule.onNodeWithTag(HomeTestTags.ERROR_RETRY).performClick()
+        composeRule.onNodeWithTag(HomeTestTags.accountRow(CURRENT_ID))
+            .performScrollTo()
+            .performClick()
 
-        assertTrue(retried)
-    }
-
-    @Test
-    fun heroCardTapOpensTheAccountSelector() {
-        var opened = false
-        composeRule.showHomeContent(onOpenAccountSelector = { opened = true })
-
-        composeRule.onNodeWithTag(HomeTestTags.HERO_CARD).performClick()
-
-        assertTrue(opened)
-    }
-
-    @Test
-    fun accountSelectorRowSelectionDispatchesAccountId() {
-        var selectedId: String? = null
-        composeRule.setContent {
-            AccountSelectorSheetContent(
-                accounts = sampleAccounts(),
-                selectedAccountId = "acc-1",
-                onSelectAccount = { selectedId = it },
-            )
-        }
-
-        composeRule.onNodeWithTag(HomeTestTags.ACCOUNT_SELECTOR_SHEET).assertExists()
-        composeRule.onNodeWithTag(HomeTestTags.accountChip("acc-2")).performClick()
-
-        assertEquals("acc-2", selectedId)
+        assertEquals(CURRENT_ID, clickedId)
     }
 }
 
+private const val CURRENT_ID = "acc-current"
+private const val CARD_ID = "acc-card"
+
 private fun ComposeContentTestRule.showHomeContent(
-    onSelectAccount: (String) -> Unit = {},
-    onOpenAccountSelector: () -> Unit = {},
+    onSendMoney: () -> Unit = {},
+    onAccountClick: (String) -> Unit = {},
 ) = setContent {
     HomeContent(
         data = sampleHomeData(),
-        onSelectAccount = onSelectAccount,
-        onNavigateToTransactions = { _ -> },
-        onNavigateToTransactionDetail = { _, _ -> },
-        isAccountSelectorVisible = false,
-        onOpenAccountSelector = onOpenAccountSelector,
-        onDismissAccountSelector = {},
+        onSendMoney = onSendMoney,
+        onSchedule = {},
+        onStandingOrder = {},
+        onVrp = {},
+        onAccountClick = onAccountClick,
+        onAvatarClick = {},
     )
 }
 
-private fun sampleAccounts(): List<AccountChipUi> = listOf(
-    AccountChipUi(id = "acc-1", nickname = "Everyday"),
-    AccountChipUi(id = "acc-2", nickname = "Savings"),
-)
-
 private fun sampleHomeData(): HomeData = HomeData(
-    accounts = sampleAccounts(),
-    selectedAccountId = "acc-1",
-    accountTypeLabel = "CURRENT ACCOUNT",
-    accountNickname = "Everyday",
-    balanceLabel = "£2,900.00",
-    availableAmountLabel = "£2,847.63",
-    accountNumberLabel = "40-05-15  12345678",
-    recentTransactions = listOf(
-        TransactionRowUi(
-            id = "t1",
-            description = "TESCO STORES",
-            dateLabel = "27 Jun",
-            amountLabel = "- £42.17",
-            isCredit = false,
+    accounts = listOf(
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = CURRENT_ID,
+                accountTypeCode = "CACC",
+                currency = "GBP",
+                identification = "80200110203349",
+                scheme = AccountScheme.SortCode,
+                description = "Description of the account",
+                accountHolderName = "Mr Nico",
+            ),
+            balance = AccountBalance(CURRENT_ID, "GBP", "2900.00", "2847.63"),
         ),
     ),
+    cards = listOf(
+        AccountWithBalance(
+            account = BankAccount(
+                accountId = CARD_ID,
+                accountTypeCode = "CARD",
+                currency = "GBP",
+                identification = "xxxx-xxxx-xxxx-3456",
+                scheme = AccountScheme.Pan,
+                accountHolderName = "Mr Bantu",
+            ),
+            balance = AccountBalance(CARD_ID, "GBP", "342.18", "342.18"),
+        ),
+    ),
+    greeting = Greeting.Morning,
 )

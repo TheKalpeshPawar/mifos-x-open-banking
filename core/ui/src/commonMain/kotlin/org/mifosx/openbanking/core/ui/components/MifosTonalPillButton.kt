@@ -11,19 +11,16 @@ package org.mifosx.openbanking.core.ui.components
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import template.core.base.designsystem.theme.KptTheme
 
@@ -32,8 +29,8 @@ import template.core.base.designsystem.theme.KptTheme
  *
  * Used where an action is offered alongside or instead of the primary one and should read as the
  * quieter of the two: the beneficiaries screen's "View Consents" recovery, and consent-detail's
- * "Reconfirm before expiry". It carries the secondary container tones rather than the primary fill,
- * so a destructive or corrective route never competes with the main call to action.
+ * "Reconfirm before expiry". It renders as an outlined button rather than the primary fill, so a
+ * destructive or corrective route never competes with the main call to action.
  *
  * @param label Text shown on the button.
  * @param onClick Invoked when the button is tapped.
@@ -52,26 +49,21 @@ fun MifosTonalPillButton(
     testTag: String? = null,
     enabled: Boolean = true,
 ) {
-    FilledTonalButton(
+    MifosOutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(BUTTON_HEIGHT)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
-        shape = RoundedCornerShape(PILL_CORNER_PERCENT),
+        shape = DesignToken.shapes.pill,
     ) {
         if (icon != null) {
-            Icon(icon, null, Modifier.size(ICON_SIZE))
+            Icon(icon, null, Modifier.size(DesignToken.sizes.iconExtraSmall))
             Spacer(Modifier.width(KptTheme.spacing.sm))
         }
         Text(label, style = KptTheme.typography.labelLarge)
     }
 }
-
-private val BUTTON_HEIGHT = 48.dp
-private val ICON_SIZE = 18.dp
-private const val PILL_CORNER_PERCENT = 50
 
 @Preview
 @Composable

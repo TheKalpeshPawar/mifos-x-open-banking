@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.directdebits
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,8 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,42 +29,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.directdebits.generated.resources.Res
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_active_count
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_active_count_accessibility
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_amount_accessibility
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_card_accessibility
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_inactive_count
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_inactive_count_accessibility
+import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_collection_time
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_last_collected
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_list_accessibility
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_mandate_reference
 import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_status_accessibility
-import org.mifosx.openbanking.feature.directdebits.generated.resources.feature_direct_debits_summary_accessibility
 import org.mifosx.openbanking.feature.directdebits.ui.DirectDebitRowUi
+import template.core.base.designsystem.theme.KptTheme
 
-private val SCREEN_PADDING = 16.dp
-private val CARD_GAP = 12.dp
-private val CARD_RADIUS = 12.dp
-private val CARD_PADDING = 16.dp
-private val CARD_LINE_GAP = 6.dp
-private val CHIP_GAP = 8.dp
-private val CHIP_HORIZONTAL_PADDING = 16.dp
-private val CHIP_VERTICAL_PADDING = 6.dp
-private val BADGE_HORIZONTAL_PADDING = 10.dp
-private val BADGE_VERTICAL_PADDING = 3.dp
-private val PILL_RADIUS = 999.dp
-private val AMOUNT_SIZE = 24.sp
-private val MANDATE_REFERENCE_SIZE = 11.sp
 private const val INACTIVE_CARD_ALPHA = 0.82f
-private const val BORDER_WIDTH = 1
 
 /**
- * The direct-debits body: the two summary chips above the mandate list.
+ * The direct-debits body: a lazy list of one mandate card per instruction.
  *
  * The list is lazy because an account's mandate count is bank-decided and unbounded — OBIE returns
  * the full set in one unpaginated response, so the composition, not the request, is where this is
@@ -74,8 +54,6 @@ private const val BORDER_WIDTH = 1
 @Composable
 internal fun DirectDebitsContent(
     mandates: List<DirectDebitRowUi>,
-    activeCount: Int,
-    inactiveCount: Int,
     modifier: Modifier = Modifier,
 ) {
     val listDescription = stringResource(Res.string.feature_direct_debits_list_accessibility)
@@ -84,12 +62,9 @@ internal fun DirectDebitsContent(
             .fillMaxWidth()
             .testTag(DirectDebitsTestTags.CONTENT)
             .semantics { contentDescription = listDescription },
-        contentPadding = PaddingValues(SCREEN_PADDING),
-        verticalArrangement = Arrangement.spacedBy(CARD_GAP),
+        contentPadding = PaddingValues(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
-        item {
-            MandateSummaryChips(activeCount = activeCount, inactiveCount = inactiveCount)
-        }
         items(items = mandates, key = { it.mandateId.ifBlank { it.name } }) { mandate ->
             MandateCard(mandate = mandate)
         }
@@ -97,86 +72,7 @@ internal fun DirectDebitsContent(
 }
 
 /**
- * Display-only readouts of the active and inactive tallies.
- *
- * These are not filters. They carry no click handler by design — the list already shows both
- * groups, sorted, and a chip that looks tappable but is not would be worse than one that plainly
- * is not.
- */
-@Composable
-private fun MandateSummaryChips(
-    activeCount: Int,
-    inactiveCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    val groupDescription = stringResource(Res.string.feature_direct_debits_summary_accessibility)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(DirectDebitsTestTags.SUMMARY_CHIPS)
-            .semantics { contentDescription = groupDescription },
-        horizontalArrangement = Arrangement.spacedBy(CHIP_GAP),
-    ) {
-        SummaryChip(
-            label = stringResource(Res.string.feature_direct_debits_active_count, activeCount),
-            description = stringResource(
-                Res.string.feature_direct_debits_active_count_accessibility,
-                activeCount,
-            ),
-            tonal = true,
-            testTag = DirectDebitsTestTags.ACTIVE_CHIP,
-        )
-        SummaryChip(
-            label = stringResource(Res.string.feature_direct_debits_inactive_count, inactiveCount),
-            description = stringResource(
-                Res.string.feature_direct_debits_inactive_count_accessibility,
-                inactiveCount,
-            ),
-            tonal = false,
-            testTag = DirectDebitsTestTags.INACTIVE_CHIP,
-        )
-    }
-}
-
-@Composable
-private fun SummaryChip(
-    label: String,
-    description: String,
-    tonal: Boolean,
-    testTag: String,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(PILL_RADIUS)
-    val base = modifier
-        .testTag(testTag)
-        .semantics { contentDescription = description }
-    Surface(
-        color = if (tonal) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        shape = shape,
-        modifier = if (tonal) {
-            base
-        } else {
-            base.border(width = BORDER_WIDTH.dp, color = MaterialTheme.colorScheme.outline, shape = shape)
-        },
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (tonal) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.padding(
-                horizontal = CHIP_HORIZONTAL_PADDING,
-                vertical = CHIP_VERTICAL_PADDING,
-            ),
-        )
-    }
-}
-
-/**
- * One mandate: originator, status badge, last collected amount, date and mandate reference.
+ * One mandate: originator, status badge, last collected amount and collection time.
  *
  * An inactive mandate is dimmed rather than hidden — a cancelled direct debit is information the
  * user came here for. The amount is deliberately neutral on-surface, never the error colour: a
@@ -191,8 +87,9 @@ private fun MandateCard(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
         mandate.statusLabel,
     )
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainer,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .alpha(if (mandate.isActive) 1f else INACTIVE_CARD_ALPHA)
@@ -200,12 +97,11 @@ private fun MandateCard(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
             .semantics { contentDescription = cardDescription },
     ) {
         Column(
-            modifier = Modifier.padding(CARD_PADDING),
-            verticalArrangement = Arrangement.spacedBy(CARD_LINE_GAP),
+            modifier = Modifier.padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             MandateCardHeader(mandate = mandate)
-            MandateAmount(mandate = mandate)
-            MandateMetaLines(mandate = mandate)
+            MandateHistory(mandate = mandate)
         }
     }
 }
@@ -219,8 +115,10 @@ private fun MandateCardHeader(mandate: DirectDebitRowUi, modifier: Modifier = Mo
     ) {
         Text(
             text = mandate.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleMedium,
+            color = KptTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         StatusBadge(mandate = mandate)
     }
@@ -234,7 +132,7 @@ private fun MandateCardHeader(mandate: DirectDebitRowUi, modifier: Modifier = Mo
  */
 @Composable
 private fun StatusBadge(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(PILL_RADIUS)
+    val shape = DesignToken.shapes.pill
     val description = stringResource(
         Res.string.feature_direct_debits_status_accessibility,
         mandate.statusLabel,
@@ -243,84 +141,84 @@ private fun StatusBadge(mandate: DirectDebitRowUi, modifier: Modifier = Modifier
         .testTag(DirectDebitsTestTags.statusBadge(mandate.mandateId))
         .semantics { contentDescription = description }
     Surface(
-        color = if (mandate.isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        color = if (mandate.isActive) KptTheme.colorScheme.primaryContainer else Color.Transparent,
         shape = shape,
         modifier = if (mandate.isActive) {
             base
         } else {
-            base.border(width = BORDER_WIDTH.dp, color = MaterialTheme.colorScheme.outline, shape = shape)
+            base.border(width = DesignToken.strokes.hairline, color = KptTheme.colorScheme.outline, shape = shape)
         },
     ) {
         Text(
             text = mandate.statusLabel,
-            style = MaterialTheme.typography.labelSmall,
+            style = KptTheme.typography.labelSmall,
             color = if (mandate.isActive) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                KptTheme.colorScheme.onPrimaryContainer
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                KptTheme.colorScheme.onSurfaceVariant
             },
             modifier = Modifier.padding(
-                horizontal = BADGE_HORIZONTAL_PADDING,
-                vertical = BADGE_VERTICAL_PADDING,
+                horizontal = KptTheme.spacing.sm,
+                vertical = KptTheme.spacing.xs,
             ),
         )
     }
 }
 
-@Composable
-private fun MandateAmount(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
-    if (mandate.amountLabel.isBlank()) return
-    val description = stringResource(
-        Res.string.feature_direct_debits_amount_accessibility,
-        mandate.amountLabel,
-    )
-    Text(
-        text = mandate.amountLabel,
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontFamily = FontFamily.Monospace,
-            fontSize = AMOUNT_SIZE,
-        ),
-        color = if (mandate.isActive) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        modifier = modifier
-            .testTag(DirectDebitsTestTags.amount(mandate.mandateId))
-            .semantics { contentDescription = description },
-    )
-}
-
 /**
- * The last-collected date and the mandate reference, each omitted when the bank sent nothing for
- * it — a label with no value tells the user less than its absence does.
+ * The last-collected amount and the collection time, shown for every mandate.
  */
 @Composable
-private fun MandateMetaLines(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CARD_LINE_GAP)) {
-        if (mandate.lastCollectedLabel.isNotBlank()) {
+private fun MandateHistory(mandate: DirectDebitRowUi, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
+            verticalAlignment = Alignment.Top,
+        ) {
             Text(
-                text = stringResource(
-                    Res.string.feature_direct_debits_last_collected,
-                    mandate.lastCollectedLabel,
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag(DirectDebitsTestTags.lastCollected(mandate.mandateId)),
+                text = stringResource(Res.string.feature_direct_debits_last_collected),
+                style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = if (mandate.isActive) {
+                    KptTheme.colorScheme.onSurface
+                } else {
+                    KptTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Text(
+                text = mandate.previousPaymentAmount,
+                style = KptTheme.typography.titleSmall,
+                color = if (mandate.isActive) {
+                    KptTheme.colorScheme.onSurface
+                } else {
+                    KptTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.testTag(DirectDebitsTestTags.amount(mandate.mandateId)),
             )
         }
-        if (mandate.mandateId.isNotBlank()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
+            verticalAlignment = Alignment.Top,
+        ) {
             Text(
-                text = stringResource(
-                    Res.string.feature_direct_debits_mandate_reference,
-                    mandate.mandateId,
-                ),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = MANDATE_REFERENCE_SIZE,
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag(DirectDebitsTestTags.mandateReference(mandate.mandateId)),
+                text = stringResource(Res.string.feature_direct_debits_collection_time),
+                style = KptTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = if (mandate.isActive) {
+                    KptTheme.colorScheme.onSurface
+                } else {
+                    KptTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Text(
+                text = mandate.previousPaymentDateTime,
+                style = KptTheme.typography.titleSmall,
+                color = if (mandate.isActive) {
+                    KptTheme.colorScheme.onSurface
+                } else {
+                    KptTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.testTag(DirectDebitsTestTags.collectionTime(mandate.mandateId)),
             )
         }
     }

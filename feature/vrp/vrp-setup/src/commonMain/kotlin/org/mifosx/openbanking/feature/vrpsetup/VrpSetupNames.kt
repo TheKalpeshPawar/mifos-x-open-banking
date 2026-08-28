@@ -10,7 +10,6 @@
 package org.mifosx.openbanking.feature.vrpsetup
 
 import org.mifosx.openbanking.core.common.formatIban
-import org.mifosx.openbanking.core.common.formatSortCode
 
 /**
  * How many characters of a payee's name the avatar caption holds before eliding the rest.
@@ -21,9 +20,6 @@ private const val MAX_PAYEE_NAME = 20
 
 /** The length of a UK sort code and account number together. */
 private const val UK_IDENTIFICATION_LENGTH = 14
-
-/** The leading digits of a UK identification that are the sort code. */
-private const val SORT_CODE_LENGTH = 6
 
 /**
  * Up to two letters from a payee's name, for an avatar.
@@ -45,14 +41,14 @@ internal fun shortPayeeName(name: String): String =
     if (name.length <= MAX_PAYEE_NAME) name else name.take(MAX_PAYEE_NAME).trimEnd() + "…"
 
 /**
- * A payee's account as the form shows it, e.g. `40-47-84 12345678`.
+ * A payee's account as the form shows it.
  *
- * Anything that is not a UK sort code and account number is grouped as an IBAN instead.
+ * A UK sort code and account number is shown as-is; anything else is grouped as an IBAN.
  */
 internal fun formatPayeeIdentification(identification: String): String {
     val digits = identification.filter { it.isDigit() }
     return if (digits.length == UK_IDENTIFICATION_LENGTH) {
-        formatSortCode(digits.take(SORT_CODE_LENGTH)) + " " + digits.drop(SORT_CODE_LENGTH)
+        identification
     } else {
         formatIban(identification)
     }

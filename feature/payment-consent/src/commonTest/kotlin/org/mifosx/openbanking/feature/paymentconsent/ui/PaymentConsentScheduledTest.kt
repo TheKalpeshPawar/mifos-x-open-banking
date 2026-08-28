@@ -124,6 +124,17 @@ class PaymentConsentScheduledTest {
         assertTrue(payments.submittedDrafts.isEmpty(), "the immediate rail must not see this payment")
     }
 
+    /**
+     * The screen picks its copy from the state, so a rail that never reaches the state is a rail the
+     * customer is told the wrong thing about.
+     */
+    @Test
+    fun theRailReachesTheStateSoTheScreenCanNameIt() = runTest {
+        val vm = viewModel()
+
+        assertEquals(ConsentType.DomesticScheduledPayment, vm.stateFlow.value.consentType)
+    }
+
     @Test
     fun aSubmittedScheduledPaymentRaisesTheHandoffEvent() = runTest {
         val vm = viewModel()

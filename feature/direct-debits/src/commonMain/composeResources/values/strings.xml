@@ -13,18 +13,11 @@
     <string name="feature_direct_debits_loading_accessibility">Loading direct debits</string>
     <string name="feature_direct_debits_navigate_back">Navigate back to account detail</string>
 
-    <string name="feature_direct_debits_summary_accessibility">Mandate summary</string>
-    <string name="feature_direct_debits_active_count">Active (%d)</string>
-    <string name="feature_direct_debits_active_count_accessibility">%d active direct debits</string>
-    <string name="feature_direct_debits_inactive_count">Inactive (%d)</string>
-    <string name="feature_direct_debits_inactive_count_accessibility">%d inactive direct debits</string>
-
     <string name="feature_direct_debits_list_accessibility">Direct debit mandates list</string>
     <string name="feature_direct_debits_card_accessibility">%1$s, %2$s</string>
     <string name="feature_direct_debits_status_accessibility">Status: %s</string>
-    <string name="feature_direct_debits_amount_accessibility">Last payment: %s</string>
-    <string name="feature_direct_debits_last_collected">Last collected: %s</string>
-    <string name="feature_direct_debits_mandate_reference">Mandate: %s</string>
+    <string name="feature_direct_debits_last_collected">Last collected :</string>
+    <string name="feature_direct_debits_collection_time">Collection Time :</string>
 
     <string name="feature_direct_debits_empty_title">No direct debits</string>
     <string name="feature_direct_debits_empty_body">There are no direct debit mandates set up on this account.</string>

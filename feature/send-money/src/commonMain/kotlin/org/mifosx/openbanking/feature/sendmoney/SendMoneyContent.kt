@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -37,8 +37,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.currencySymbol
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.components.MifosAmountCard
@@ -47,10 +48,12 @@ import org.mifosx.openbanking.core.ui.components.MifosDropdownField
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosOutlinedTextField
 import org.mifosx.openbanking.core.ui.components.MifosRailToggle
+import org.mifosx.openbanking.core.ui.components.MifosTextFieldConfig
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice
 import org.mifosx.openbanking.core.ui.generated.resources.core_ui_account_picker_bank_choice_supporting
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeOption
+import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.MifosPaymentHistoryList
 import org.mifosx.openbanking.core.ui.payment.toRowUi
 import org.mifosx.openbanking.feature.sendmoney.components.chargeBearerLabel
@@ -79,12 +82,11 @@ import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_reference_label
 import org.mifosx.openbanking.feature.sendmoney.generated.resources.feature_send_money_review_button
 import org.mifosx.openbanking.feature.sendmoney.ui.OFFERED_CHARGE_BEARERS
-import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAccountRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAction
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyAmountProblem
-import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyPickerRow
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyStep
 import org.mifosx.openbanking.feature.sendmoney.ui.SendMoneyUiState
+import org.mifosx.openbanking.feature.sendmoney.ui.shortNameOf
 import template.core.base.designsystem.theme.KptTheme
 import org.mifosx.openbanking.core.ui.generated.resources.Res as CoreRes
 
@@ -143,8 +145,8 @@ private fun SendMoneyFormPage(
                 modifier = Modifier
                     .widthIn(max = FormMaxWidth)
                     .fillMaxWidth()
-                    .padding(ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(SectionGap),
+                    .padding(KptTheme.spacing.md),
+                verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
             ) {
                 MifosRailToggle(
                     rail = state.rail,
@@ -191,10 +193,10 @@ private fun PayerSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_send_money_debtor_heading))
         MifosAccountPicker(
-            options = state.debtorRows.map { it.toPickerOption() },
+            options = state.debtorRows,
             selectedId = state.debtorAccountId,
             expanded = state.payerPickerExpanded,
             onToggle = { onAction(SendMoneyAction.TogglePayerPicker) },
@@ -234,17 +236,17 @@ private fun ConversionNotice(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag(SendMoneyTestTags.NON_GBP_NOTICE)
-            .clip(RoundedCornerShape(NoticeCorner))
+            .clip(KptTheme.shapes.medium)
             .background(KptTheme.colorScheme.surfaceContainer)
-            .padding(NoticePadding),
-        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+            .padding(KptTheme.spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.Info,
             contentDescription = null,
             tint = KptTheme.colorScheme.outline,
-            modifier = Modifier.size(NoticeIconSize),
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = stringResource(Res.string.feature_send_money_non_gbp_notice, instructedCurrency),
@@ -276,13 +278,9 @@ private fun PayeeSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_send_money_creditor_heading))
         MifosPayeeAvatarRow(
-            // Empty whenever there is no payer, whatever the list happens to hold. Beneficiaries are
-            // an account-scoped resource: with no account they are not "not loaded yet", they are
-            // the previous account's, and showing them under a payer that no longer exists is the
-            // defect this guard closes.
             payees = if (state.payeesUnavailable) {
                 emptyList()
             } else {
@@ -325,8 +323,8 @@ private fun FormActions(
             modifier = Modifier
                 .widthIn(max = FormMaxWidth)
                 .fillMaxWidth()
-                .padding(ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(HeroGap),
+                .padding(KptTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MifosFilledPillButton(
@@ -336,7 +334,7 @@ private fun FormActions(
                 enabled = state.canReview,
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+                horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.testTag(SendMoneyTestTags.FORM_TRUST_NOTE),
             ) {
@@ -344,7 +342,7 @@ private fun FormActions(
                     imageVector = Icons.Filled.Lock,
                     contentDescription = null,
                     tint = KptTheme.colorScheme.outline,
-                    modifier = Modifier.size(NoticeIconSize),
+                    modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
                 )
                 Text(
                     text = stringResource(Res.string.feature_send_money_form_trust_note),
@@ -361,12 +359,12 @@ private fun ManualCreditorFields(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(RowGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosOutlinedTextField(
             value = state.manualName,
             onValueChange = { onAction(SendMoneyAction.EnterManualName(it)) },
             label = stringResource(Res.string.feature_send_money_manual_name),
-            testTag = SendMoneyTestTags.MANUAL_NAME,
+            modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_NAME),
         )
         // The rails identify a creditor differently — sort code and account number against an IBAN —
         // and each refuses the other's scheme with U027, so only one set is ever offered.
@@ -375,43 +373,49 @@ private fun ManualCreditorFields(
                 value = state.manualSortCode,
                 onValueChange = { onAction(SendMoneyAction.EnterManualSortCode(it)) },
                 label = stringResource(Res.string.feature_send_money_manual_sort_code),
-                error = state.fieldErrors.sortCodeInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = SendMoneyTestTags.MANUAL_SORT_CODE,
-                supportingText = {
-                    if (state.fieldErrors.sortCodeInvalid) {
-                        Text(stringResource(Res.string.feature_send_money_manual_sort_code_error))
-                    }
-                },
+                modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_SORT_CODE),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.sortCodeInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.sortCodeInvalid) {
+                            Text(stringResource(Res.string.feature_send_money_manual_sort_code_error))
+                        }
+                    },
+                ),
             )
             MifosOutlinedTextField(
                 value = state.manualAccountNumber,
                 onValueChange = { onAction(SendMoneyAction.EnterManualAccountNumber(it)) },
                 label = stringResource(Res.string.feature_send_money_manual_account_number),
-                error = state.fieldErrors.accountNumberInvalid,
-                keyboardType = KeyboardType.Number,
-                testTag = SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER,
-                supportingText = {
-                    if (state.fieldErrors.accountNumberInvalid) {
-                        Text(stringResource(Res.string.feature_send_money_manual_account_number_error))
-                    }
-                },
+                modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_ACCOUNT_NUMBER),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.accountNumberInvalid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        if (state.fieldErrors.accountNumberInvalid) {
+                            Text(stringResource(Res.string.feature_send_money_manual_account_number_error))
+                        }
+                    },
+                ),
             )
         } else {
             MifosOutlinedTextField(
                 value = state.manualIban,
                 onValueChange = { onAction(SendMoneyAction.EnterManualIban(it)) },
                 label = stringResource(Res.string.feature_send_money_manual_iban),
-                error = state.fieldErrors.ibanInvalid,
-                testTag = SendMoneyTestTags.MANUAL_IBAN,
-                supportingText = {
-                    if (state.fieldErrors.ibanInvalid) {
-                        Text(
-                            text = stringResource(Res.string.feature_send_money_manual_iban_error),
-                            modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_IBAN_ERROR),
-                        )
-                    }
-                },
+                modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_IBAN),
+                config = MifosTextFieldConfig(
+                    isError = state.fieldErrors.ibanInvalid,
+                    supportingText = {
+                        if (state.fieldErrors.ibanInvalid) {
+                            Text(
+                                text = stringResource(Res.string.feature_send_money_manual_iban_error),
+                                modifier = Modifier.testTag(SendMoneyTestTags.MANUAL_IBAN_ERROR),
+                            )
+                        }
+                    },
+                ),
             )
         }
         MifosFilledPillButton(
@@ -427,7 +431,7 @@ private fun AmountSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md)) {
         MifosAmountCard(
             amount = state.amountInput,
             balanceLabel = state.availableBalanceLabel,
@@ -454,8 +458,10 @@ private fun AmountSection(
                 value = state.reference,
                 onValueChange = { onAction(SendMoneyAction.EnterReference(it.take(REFERENCE_MAX_LENGTH))) },
                 label = stringResource(Res.string.feature_send_money_reference_label),
-                testTag = SendMoneyTestTags.REFERENCE_FIELD,
-                supportingText = { Text(stringResource(Res.string.feature_send_money_reference_helper)) },
+                modifier = Modifier.testTag(SendMoneyTestTags.REFERENCE_FIELD),
+                config = MifosTextFieldConfig(
+                    supportingText = { Text(stringResource(Res.string.feature_send_money_reference_helper)) },
+                ),
             )
         }
 
@@ -518,11 +524,11 @@ private fun StaticCurrencyBox(instructedCurrency: String) {
         modifier = Modifier
             .fillMaxSize()
             .testTag(SendMoneyTestTags.STATIC_CURRENCY_BOX)
-            .clip(RoundedCornerShape(CardCorner))
+            .clip(KptTheme.shapes.medium)
             .border(
-                width = CardBorder,
+                width = DesignToken.strokes.hairline,
                 color = KptTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(CardCorner),
+                shape = KptTheme.shapes.medium,
             )
             .background(KptTheme.colorScheme.surfaceContainer),
         contentAlignment = Alignment.Center,
@@ -551,7 +557,7 @@ private fun ChargesSection(
     state: SendMoneyUiState.Content,
     onAction: (SendMoneyAction) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(HeadingGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         SectionHeading(stringResource(Res.string.feature_send_money_charges_heading))
         MifosDropdownField(
             label = chargeBearerLabel(state.chargeBearer),
@@ -565,18 +571,10 @@ private fun ChargesSection(
     }
 }
 
-private fun SendMoneyAccountRow.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = id,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = rawIdentification,
-    availableBalance = supporting,
-)
-
-private fun SendMoneyPickerRow.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
-    payeeId = id,
-    shortName = shortName.ifBlank { headline },
-    initials = initials,
+private fun BeneficiaryItem.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = identification,
+    shortName = shortNameOf(creditorName),
+    initials = initialsOf(creditorName),
 )
 
 private fun SendMoneyAmountProblem.messageResource(): StringResource = when (this) {

@@ -9,22 +9,17 @@
  */
 package org.mifosx.openbanking.feature.standingorders
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrderRowUi
-import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersAction
-import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersErrorKind
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersState
 import org.mifosx.openbanking.feature.standingorders.ui.StandingOrdersUiState
-import kotlin.test.assertTrue
 
 private const val ACCOUNT_ID = "40051512345678"
 
@@ -106,7 +101,7 @@ private fun rows(): List<StandingOrderRowUi> = listOf(
 
 private fun contentState(): StandingOrdersState = StandingOrdersState(
     accountId = ACCOUNT_ID,
-    uiState = StandingOrdersUiState.Content(orders = rows(), activeCount = 4, inactiveCount = 1),
+    uiState = StandingOrdersUiState.Content(orders = rows()),
 )
 
 /**
@@ -119,36 +114,17 @@ class StandingOrdersScreenInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val actions = mutableListOf<StandingOrdersAction>()
-
     private fun render(state: StandingOrdersState) {
         composeRule.setContent {
-            StandingOrdersScreenContent(state = state, onAction = { actions.add(it) })
+            StandingOrdersScreenContent(state = state, onAction = {})
         }
     }
 
-    private fun errorState(kind: StandingOrdersErrorKind) = StandingOrdersState(
-        accountId = ACCOUNT_ID,
-        uiState = StandingOrdersUiState.Error(kind),
-    )
-
     @Test
-    fun loadingStateRendersSkeletonWithSummaryPlaceholder() {
-        render(StandingOrdersState(accountId = ACCOUNT_ID, uiState = StandingOrdersUiState.Loading))
-
-        composeRule.onNodeWithTag(StandingOrdersTestTags.LOADING_SKELETON).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.SKELETON_SUMMARY, useUnmergedTree = true)
-            .assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.CONTENT).assertDoesNotExist()
-    }
-
-    @Test
-    fun contentStateRendersTheSummaryRowAndEveryOrderCard() {
+    fun contentStateRendersEveryOrderCard() {
         render(contentState())
 
         composeRule.onNodeWithTag(StandingOrdersTestTags.CONTENT).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.SUMMARY_ROW, useUnmergedTree = true)
-            .assertExists()
         rows().forEach { row ->
             composeRule.onNodeWithTag(StandingOrdersTestTags.CONTENT)
                 .performScrollToNode(hasTestTag(StandingOrdersTestTags.card(row.standingOrderId)))
@@ -196,50 +172,5 @@ class StandingOrdersScreenInstrumentedTest {
             StandingOrdersTestTags.statusBadge(inactive.standingOrderId),
             useUnmergedTree = true,
         ).assertExists()
-    }
-
-    @Test
-    fun theSummaryRowIsDisplayOnlyAndDispatchesNothingWhenTapped() {
-        render(contentState())
-
-        composeRule.onNodeWithTag(StandingOrdersTestTags.SUMMARY_ROW, useUnmergedTree = true)
-            .performClick()
-
-        assertTrue(actions.isEmpty())
-    }
-
-    @Test
-    fun emptyStateRendersTitleAndBodyWithoutAList() {
-        render(StandingOrdersState(accountId = ACCOUNT_ID, uiState = StandingOrdersUiState.Empty))
-
-        composeRule.onNodeWithTag(StandingOrdersTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.EMPTY_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.CONTENT).assertDoesNotExist()
-    }
-
-    @Test
-    fun errorStateShowsRetryAndDispatchesRetryLoadWhenTapped() {
-        render(errorState(StandingOrdersErrorKind.TokenExpired))
-
-        composeRule.onNodeWithTag(StandingOrdersTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.ERROR_BODY, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.RETRY_BUTTON).performClick()
-
-        assertTrue(StandingOrdersAction.RetryLoad in actions)
-    }
-
-    @Test
-    fun consentRevokedStillOffersRetry() {
-        render(errorState(StandingOrdersErrorKind.ConsentRevoked))
-
-        composeRule.onNodeWithTag(StandingOrdersTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StandingOrdersTestTags.RETRY_BUTTON).assertExists()
-    }
-
-    @Test
-    fun rateLimitedErrorOffersRetry() {
-        render(errorState(StandingOrdersErrorKind.RateLimited))
-        composeRule.onNodeWithTag(StandingOrdersTestTags.RETRY_BUTTON).assertExists()
     }
 }

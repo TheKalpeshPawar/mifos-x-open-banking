@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,8 +36,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
 import org.mifosx.openbanking.core.model.banking.payment.ConsentType
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
@@ -73,6 +76,7 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_in_progress_note_scheduled
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_last_checked
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_id
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_payment_type
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_recurring_amount
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_reference_empty
@@ -89,24 +93,20 @@ import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_status_changed
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_submitted
 import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_to
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_to_label
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_scheduled
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_single
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_domestic_standing_order
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_scheduled
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_single
+import org.mifosx.openbanking.feature.paymentstatus.generated.resources.feature_payment_status_type_international_standing_order
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusAction
 import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStatusUiState
-
-private val ScreenPadding = 16.dp
-private val SectionGap = 16.dp
-private val CardShape = RoundedCornerShape(16.dp)
-private val CardPadding = 24.dp
-private val NoteShape = RoundedCornerShape(12.dp)
-private val NotePadding = 16.dp
-private val NoteGap = 12.dp
-private val NoteIconSize = 24.dp
-private val ChipShape = RoundedCornerShape(percent = 50)
-private val ChipPaddingHorizontal = 12.dp
-private val ChipPaddingVertical = 6.dp
-private val ChipGap = 6.dp
-private val ChipIconSize = 16.dp
-private val RowPadding = 16.dp
-private val TitleGap = 8.dp
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentStepState
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineEntry
+import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
+import org.mifosx.openbanking.feature.paymentstatus.ui.settled
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The payment as it currently stands: what was paid, its disposition, and the details behind it.
@@ -125,8 +125,8 @@ internal fun PaymentStatusContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(SectionGap),
+            .padding(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         SummaryCard(state)
 
@@ -146,13 +146,15 @@ internal fun PaymentStatusContent(
 
         DetailsSection(state)
 
-        MifosTonalPillButton(
-            label = stringResource(Res.string.feature_payment_status_refresh),
-            onClick = { onAction(PaymentStatusAction.RefreshStatus) },
-            icon = Icons.Filled.Refresh,
-            testTag = PaymentStatusTestTags.REFRESH_BUTTON,
-            enabled = !state.refreshing,
-        )
+        if (!state.settled) {
+            MifosTonalPillButton(
+                label = stringResource(Res.string.feature_payment_status_refresh),
+                onClick = { onAction(PaymentStatusAction.RefreshStatus) },
+                icon = Icons.Filled.Refresh,
+                testTag = PaymentStatusTestTags.REFRESH_BUTTON,
+                enabled = !state.refreshing,
+            )
+        }
 
         // Without this, a refresh that returns the same status is indistinguishable from a button
         // that does nothing — which is exactly how it read while the sandbox sat at ACSP.
@@ -162,8 +164,8 @@ internal fun PaymentStatusContent(
                     Res.string.feature_payment_status_last_checked,
                     state.lastCheckedAt,
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -178,24 +180,24 @@ private fun SummaryCard(state: PaymentStatusUiState.Content) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(CardPadding)
+            .clip(KptTheme.shapes.large)
+            .background(KptTheme.colorScheme.surfaceContainerLow)
+            .padding(KptTheme.spacing.lg)
             .testTag(PaymentStatusTestTags.SUMMARY_CARD),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(TitleGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Text(
             text = state.amountLabel,
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.displaySmall.copy(fontFamily = FontFamily.Monospace),
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(PaymentStatusTestTags.AMOUNT),
         )
         Text(
             text = stringResource(Res.string.feature_payment_status_to, state.creditorName),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         StatusChip(state.disposition, state.status, state.consentType)
@@ -205,8 +207,8 @@ private fun SummaryCard(state: PaymentStatusUiState.Content) {
         // refresh did anything needs to see.
         Text(
             text = stringResource(state.status.detailResource()),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(PaymentStatusTestTags.STATUS_DETAIL),
         )
@@ -224,18 +226,18 @@ internal data class DispositionColours(val container: Color, val onContainer: Co
 @Composable
 internal fun dispositionColours(disposition: PaymentDisposition): DispositionColours = when (disposition) {
     PaymentDisposition.InProgress -> DispositionColours(
-        MaterialTheme.colorScheme.secondaryContainer,
-        MaterialTheme.colorScheme.onSecondaryContainer,
+        KptTheme.colorScheme.secondaryContainer,
+        KptTheme.colorScheme.onSecondaryContainer,
     )
 
     PaymentDisposition.TerminalSuccess -> DispositionColours(
-        MaterialTheme.colorScheme.tertiaryContainer,
-        MaterialTheme.colorScheme.onTertiaryContainer,
+        KptTheme.colorScheme.tertiaryContainer,
+        KptTheme.colorScheme.onTertiaryContainer,
     )
 
     PaymentDisposition.TerminalFailure -> DispositionColours(
-        MaterialTheme.colorScheme.errorContainer,
-        MaterialTheme.colorScheme.onErrorContainer,
+        KptTheme.colorScheme.errorContainer,
+        KptTheme.colorScheme.onErrorContainer,
     )
 }
 
@@ -256,22 +258,22 @@ private fun StatusChip(
 
     Row(
         modifier = Modifier
-            .clip(ChipShape)
+            .clip(DesignToken.shapes.pill)
             .background(container)
-            .padding(horizontal = ChipPaddingHorizontal, vertical = ChipPaddingVertical)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.xs)
             .testTag(PaymentStatusTestTags.STATUS_CHIP),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ChipGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = onContainer,
-            modifier = Modifier.size(ChipIconSize),
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = statusWord(status, consentType, disposition),
-            style = MaterialTheme.typography.labelLarge,
+            style = KptTheme.typography.labelLarge,
             color = onContainer,
         )
     }
@@ -289,22 +291,22 @@ private fun RefreshFailureNote() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(NoteShape)
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .padding(NotePadding)
+            .clip(KptTheme.shapes.medium)
+            .background(KptTheme.colorScheme.errorContainer)
+            .padding(KptTheme.spacing.md)
             .testTag(PaymentStatusTestTags.REFRESH_FAILURE),
-        horizontalArrangement = Arrangement.spacedBy(NoteGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Icon(
             imageVector = Icons.Filled.CloudOff,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.size(NoteIconSize),
+            tint = KptTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
         )
         Text(
             text = stringResource(Res.string.feature_payment_status_refresh_failed),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onErrorContainer,
         )
     }
 }
@@ -325,17 +327,17 @@ private fun InProgressNote(scheduled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(NoteShape)
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(NotePadding)
+            .clip(KptTheme.shapes.medium)
+            .background(KptTheme.colorScheme.secondaryContainer)
+            .padding(KptTheme.spacing.md)
             .testTag(PaymentStatusTestTags.IN_PROGRESS_NOTE),
-        horizontalArrangement = Arrangement.spacedBy(NoteGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Icon(
             imageVector = Icons.Filled.Info,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(NoteIconSize),
+            tint = KptTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
         )
         Text(
             text = if (scheduled) {
@@ -343,25 +345,25 @@ private fun InProgressNote(scheduled: Boolean) {
             } else {
                 stringResource(Res.string.feature_payment_status_in_progress_note)
             },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
 
 @Composable
 private fun DetailsSection(state: PaymentStatusUiState.Content) {
-    Column(verticalArrangement = Arrangement.spacedBy(TitleGap)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm)) {
         Text(
             text = stringResource(Res.string.feature_payment_status_details).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(NoteShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .clip(KptTheme.shapes.medium)
+                .background(KptTheme.colorScheme.surfaceContainerLow)
                 .testTag(PaymentStatusTestTags.DETAILS_LIST),
         ) {
             DetailRow(
@@ -371,13 +373,30 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
                 },
                 tag = PaymentStatusTestTags.DETAIL_REFERENCE,
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            DetailRow(
+            HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
+            DetailPartyRow(
                 label = stringResource(Res.string.feature_payment_status_from),
-                value = state.debtorLabel,
+                name = state.debtorName,
+                schemeName = state.debtorScheme,
+                identification = state.debtorIdentification,
                 tag = PaymentStatusTestTags.DETAIL_FROM,
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            DetailPartyRow(
+                label = stringResource(Res.string.feature_payment_status_to_label),
+                name = state.creditorName,
+                schemeName = state.creditorScheme,
+                identification = state.creditorIdentification,
+                tag = PaymentStatusTestTags.DETAIL_TO,
+            )
+            state.consentType?.let { type ->
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
+                DetailRow(
+                    label = stringResource(Res.string.feature_payment_status_payment_type),
+                    value = stringResource(type.paymentTypeLabel()),
+                    tag = PaymentStatusTestTags.DETAIL_PAYMENT_TYPE,
+                )
+            }
+            HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             DetailRow(
                 label = stringResource(Res.string.feature_payment_status_submitted),
                 value = state.submittedAt,
@@ -390,7 +409,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             // On a mandate the same field is the FIRST payment, not the only one, so it is labelled
             // as such — "Scheduled for" would say the standing order happens once.
             if (state.scheduledForAt.isNotBlank()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = if (state.frequency == null) {
                         stringResource(Res.string.feature_payment_status_scheduled_for)
@@ -403,7 +422,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             }
 
             state.frequency?.let { frequency ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_repeats),
                     value = stringResource(frequency.labelResource()),
@@ -412,7 +431,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             }
 
             if (state.recurringAmountLabel.isNotBlank()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_recurring_amount),
                     value = state.recurringAmountLabel,
@@ -423,7 +442,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             // Absent when the mandate runs until the customer stops it, which is a real answer and
             // not a gap — drawing an empty row would read as a date the app failed to keep.
             if (state.finalPaymentAt.isNotBlank()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_final_payment),
                     value = state.finalPaymentAt,
@@ -434,7 +453,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             // Omitted rather than drawn blank when the bank did not say — an empty value beside a
             // label reads as data we lost, not data we were never given.
             if (state.settledAt.isNotBlank()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_settled),
                     value = state.settledAt,
@@ -443,7 +462,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             }
 
             if (state.statusChangedAt.isNotBlank()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_status_changed),
                     value = state.statusChangedAt,
@@ -456,7 +475,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
             // Indexed: one tag repeated across every charge row made `onNodeWithTag` ambiguous the
             // moment a payment carried two, which the single-charge fixture never showed.
             state.charges.forEachIndexed { index, charge ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
                 DetailRow(
                     label = stringResource(Res.string.feature_payment_status_fee, charge.typeLabel),
                     value = charge.amountLabel,
@@ -464,7 +483,7 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             DetailRow(
                 label = stringResource(Res.string.feature_payment_status_payment_id),
                 value = state.paymentId,
@@ -474,25 +493,96 @@ private fun DetailsSection(state: PaymentStatusUiState.Content) {
     }
 }
 
+/**
+ * A party's row: the field label, and the party's name over its identification.
+ *
+ * Renders nothing when the bank named neither — a payer chosen at the bank is absent from some
+ * responses, and an empty row reads as a missing field rather than an unstated one.
+ */
 @Composable
-private fun DetailRow(label: String, value: String, tag: String) {
+private fun DetailPartyRow(
+    label: String,
+    name: String,
+    schemeName: String,
+    identification: String,
+    tag: String,
+) {
+    if (name.isBlank() && identification.isBlank()) return
+
+    HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(RowPadding)
+            .padding(KptTheme.spacing.md)
             .testTag(tag),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
+        ) {
+            if (name.isNotBlank()) {
+                Text(
+                    text = name,
+                    style = KptTheme.typography.bodyMedium,
+                    color = KptTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                )
+            }
+            Text(
+                text = formatAccountIdentifier(AccountScheme.fromSchemeName(schemeName), identification),
+                style = KptTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                color = KptTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+            )
+        }
+    }
+}
+
+/** The rail and product a payment was made on. */
+private fun ConsentType.paymentTypeLabel(): StringResource = when (this) {
+    ConsentType.DomesticSinglePayment -> Res.string.feature_payment_status_type_domestic_single
+    ConsentType.InternationalSinglePayment ->
+        Res.string.feature_payment_status_type_international_single
+
+    ConsentType.DomesticScheduledPayment ->
+        Res.string.feature_payment_status_type_domestic_scheduled
+
+    ConsentType.InternationalScheduledPayment ->
+        Res.string.feature_payment_status_type_international_scheduled
+
+    ConsentType.DomesticStandingOrder ->
+        Res.string.feature_payment_status_type_domestic_standing_order
+
+    ConsentType.InternationalStandingOrder ->
+        Res.string.feature_payment_status_type_international_standing_order
+}
+
+@Composable
+private fun DetailRow(label: String, value: String, tag: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(KptTheme.spacing.md)
+            .testTag(tag),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+            color = KptTheme.colorScheme.onSurface,
             textAlign = TextAlign.End,
         )
     }
@@ -555,4 +645,78 @@ private fun PaymentStatus.detailResource() = when (this) {
     PaymentStatus.Cancelled -> Res.string.feature_payment_status_detail_canc
     PaymentStatus.InitiationFailed -> Res.string.feature_payment_status_detail_infa
     PaymentStatus.Unknown -> Res.string.feature_payment_status_detail_unknown
+}
+
+@Preview
+@Composable
+private fun PaymentStatusContentInFlightPreview() {
+    MifosXOpenBankingTheme {
+        PaymentStatusContent(
+            state = PaymentStatusUiState.Content(
+                paymentId = "20123",
+                status = PaymentStatus.AcceptedSettlementInProcess,
+                disposition = PaymentDisposition.InProgress,
+                amountLabel = "£6.00",
+                creditorName = "Mr Dharani C",
+                reference = "BFRS.RFRNC.546",
+                debtorName = "Mr Nico",
+                debtorIdentification = "80200110203349",
+                debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+                creditorIdentification = "80200110203350",
+                creditorScheme = "UK.OBIE.SortCodeAccountNumber",
+                submittedAt = "25 Aug 2026, 18:05",
+                consentType = ConsentType.DomesticSinglePayment,
+                lastCheckedAt = "18:06",
+                timeline = listOf(
+                    PaymentTimelineEntry(PaymentTimelineStep.Completed, PaymentStepState.Current),
+                    PaymentTimelineEntry(
+                        PaymentTimelineStep.Submitted,
+                        PaymentStepState.Done,
+                        "25 Aug 2026, 18:05",
+                    ),
+                    PaymentTimelineEntry(PaymentTimelineStep.ApprovedAtBank, PaymentStepState.Done),
+                    PaymentTimelineEntry(PaymentTimelineStep.RequestCreated, PaymentStepState.Done),
+                ),
+            ),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PaymentStatusContentStandingOrderPreview() {
+    MifosXOpenBankingTheme {
+        PaymentStatusContent(
+            state = PaymentStatusUiState.Content(
+                paymentId = "20106",
+                status = PaymentStatus.InitiationCompleted,
+                disposition = PaymentDisposition.TerminalSuccess,
+                amountLabel = "£20.00",
+                creditorName = "Mr Nico",
+                reference = "BFRS.RFRNC.546",
+                debtorName = "Mr Robert",
+                debtorIdentification = "80200110203348",
+                debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+                creditorIdentification = "80200110203349",
+                creditorScheme = "UK.OBIE.SortCodeAccountNumber",
+                submittedAt = "24 Aug 2026, 22:01",
+                scheduledForAt = "27 Aug 2026",
+                consentType = ConsentType.DomesticStandingOrder,
+                frequency = StandingOrderFrequency.Monthly,
+                finalPaymentAt = "20 Nov 2026",
+                lastCheckedAt = "22:02",
+                timeline = listOf(
+                    PaymentTimelineEntry(
+                        PaymentTimelineStep.Submitted,
+                        PaymentStepState.Done,
+                        "24 Aug 2026, 22:01",
+                    ),
+                    PaymentTimelineEntry(PaymentTimelineStep.ApprovedAtBank, PaymentStepState.Done),
+                    PaymentTimelineEntry(PaymentTimelineStep.RequestCreated, PaymentStepState.Done),
+                ),
+            ),
+            onAction = {},
+        )
+    }
 }

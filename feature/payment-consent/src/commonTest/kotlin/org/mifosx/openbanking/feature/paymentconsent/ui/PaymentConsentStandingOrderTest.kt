@@ -92,6 +92,17 @@ class PaymentConsentStandingOrderTest {
         assertTrue(payments.fundsChecks.isEmpty(), "a standing order has no funds confirmation to make")
     }
 
+    /**
+     * The screen picks its copy from the state, so a rail that never reaches the state is a rail the
+     * customer is told the wrong thing about — here, that a mandate is being sent.
+     */
+    @Test
+    fun theRailReachesTheStateSoTheScreenCanNameIt() = runTest {
+        val vm = viewModel()
+
+        assertEquals(ConsentType.DomesticStandingOrder, vm.stateFlow.value.consentType)
+    }
+
     @Test
     fun theStagedMandateIsTheOneSubmitted() = runTest {
         val standingOrder = FakeStandingOrderInitiationRepository(staged = standingOrderDraftFixture())

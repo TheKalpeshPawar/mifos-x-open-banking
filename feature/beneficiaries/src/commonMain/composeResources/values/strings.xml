@@ -11,7 +11,6 @@
 <resources>
     <string name="feature_beneficiaries_screen_title">Beneficiaries</string>
     <string name="feature_beneficiaries_back_a11y">Back to Account Detail</string>
-    <string name="feature_beneficiaries_loading_a11y">Loading beneficiaries</string>
 
     <string name="feature_beneficiaries_search_placeholder">Search by name or reference</string>
     <string name="feature_beneficiaries_search_a11y">Search beneficiaries by creditor name or payment reference</string>
@@ -19,29 +18,19 @@
     <string name="feature_beneficiaries_row_a11y">%1$s, %2$s account, %3$s</string>
     <string name="feature_beneficiaries_reference_a11y">reference %1$s</string>
 
-    <string name="feature_beneficiaries_scheme_sort_code">Sort Code</string>
+    <string name="feature_beneficiaries_scheme_sort_code">Identification</string>
     <string name="feature_beneficiaries_scheme_iban">IBAN</string>
     <string name="feature_beneficiaries_scheme_paym">Paym</string>
     <string name="feature_beneficiaries_scheme_card">Card</string>
     <string name="feature_beneficiaries_scheme_account">Account</string>
 
     <string name="feature_beneficiaries_search_empty_title">No results</string>
-    <string name="feature_beneficiaries_search_empty_body">No payees match your search.</string>
-    <string name="feature_beneficiaries_search_empty_a11y">No payees match your search</string>
 
     <string name="feature_beneficiaries_empty_title">No beneficiaries</string>
-    <string name="feature_beneficiaries_empty_body">No saved payees are registered for this account.</string>
-    <string name="feature_beneficiaries_empty_a11y">No beneficiaries found</string>
 
-    <string name="feature_beneficiaries_error_title">Could not load beneficiaries</string>
-    <string name="feature_beneficiaries_error_a11y">Error loading beneficiaries</string>
     <string name="feature_beneficiaries_error_token_expired">Your session has expired. Sign in again to view beneficiaries.</string>
     <string name="feature_beneficiaries_error_consent_revoked">Access to beneficiaries has been revoked. Re-authorise to restore access.</string>
     <string name="feature_beneficiaries_error_rate_limited">Too many requests. Please wait a moment and retry.</string>
     <string name="feature_beneficiaries_error_network">No network connection. Check your connection and try again.</string>
     <string name="feature_beneficiaries_error_server">Something went wrong on the HSBC side. Please try again.</string>
-    <string name="feature_beneficiaries_retry">Retry</string>
-    <string name="feature_beneficiaries_retry_a11y">Retry loading beneficiaries</string>
-    <string name="feature_beneficiaries_view_consents">View Consents</string>
-    <string name="feature_beneficiaries_view_consents_a11y">View your active consents</string>
 </resources>

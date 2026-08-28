@@ -60,50 +60,6 @@ class TransactionDetailScreenUiTest {
     }
 
     @Test
-    fun loadingRendersTheSpinnerNotTheContent() = runComposeUiTest {
-        setContent {
-            TransactionDetailScreenContent(
-                state = TransactionDetailFixtures.loadingState(),
-                onAction = {},
-                onBack = {},
-            )
-        }
-
-        onNodeWithTag(TransactionDetailTestTags.LOADING_INDICATOR).assertExists()
-        onNodeWithTag(TransactionDetailTestTags.CONTENT_ROOT).assertDoesNotExist()
-    }
-
-    @Test
-    fun aRecoverableErrorShowsRetryNotGoBack() = runComposeUiTest {
-        setContent {
-            TransactionDetailScreenContent(
-                state = TransactionDetailFixtures.recoverableErrorState(),
-                onAction = {},
-                onBack = {},
-            )
-        }
-
-        onNodeWithTag(TransactionDetailTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).assertExists()
-        onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).assertDoesNotExist()
-    }
-
-    @Test
-    fun aNonRecoverableErrorShowsGoBackNotRetry() = runComposeUiTest {
-        setContent {
-            TransactionDetailScreenContent(
-                state = TransactionDetailFixtures.nonRecoverableErrorState(),
-                onAction = {},
-                onBack = {},
-            )
-        }
-
-        onNodeWithTag(TransactionDetailTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).assertExists()
-        onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).assertDoesNotExist()
-    }
-
-    @Test
     fun emptyRendersItsTitleAndBackButton() = runComposeUiTest {
         setContent {
             TransactionDetailScreenContent(

@@ -18,18 +18,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -43,10 +39,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.ui.components.EmptyDataComponent
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.Res
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_list_a11y
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_reference_a11y
@@ -57,19 +55,11 @@ import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_scheme_paym
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_scheme_sort_code
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_a11y
+import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_empty_title
 import org.mifosx.openbanking.feature.beneficiaries.generated.resources.feature_beneficiaries_search_placeholder
 import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiariesUiState
-import org.mifosx.openbanking.feature.beneficiaries.ui.BeneficiaryRowUi
-
-private val SearchBarHeight = 52.dp
-private val SearchWrapVertical = 8.dp
-private val SearchWrapHorizontal = 16.dp
-private val RowMinHeight = 72.dp
-private val RowVerticalPadding = 8.dp
-private val RowHorizontalPadding = 16.dp
-private val RowGap = 16.dp
-private val AvatarSize = 40.dp
-private val ReferenceMaxWidth = 96.dp
+import org.mifosx.openbanking.feature.beneficiaries.ui.formatIdentification
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * Content state: the search field, then the payee list.
@@ -89,10 +79,13 @@ internal fun BeneficiariesContent(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         SearchField(query = content.query, onSearch = onSearch)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
 
         if (content.isSearchWithoutMatches) {
-            BeneficiariesSearchEmpty()
+            EmptyDataComponent(
+                isEmptyData = true,
+                message = stringResource(Res.string.feature_beneficiaries_search_empty_title),
+            )
         } else {
             BeneficiaryList(rows = content.filtered)
         }
@@ -109,8 +102,8 @@ private fun SearchField(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = SearchWrapHorizontal, vertical = SearchWrapVertical),
+            .background(KptTheme.colorScheme.surface)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.sm),
     ) {
         TextField(
             value = query,
@@ -120,30 +113,30 @@ private fun SearchField(
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = KptTheme.colorScheme.onSurfaceVariant,
                 )
             },
             placeholder = {
                 Text(
                     text = stringResource(Res.string.feature_beneficiaries_search_placeholder),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = KptTheme.typography.bodyLarge,
+                    color = KptTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            textStyle = MaterialTheme.typography.bodyLarge,
+            textStyle = KptTheme.typography.bodyLarge,
             keyboardOptions = KeyboardOptions.Default,
-            shape = RoundedCornerShape(percent = PILL_CORNER_PERCENT),
+            shape = DesignToken.shapes.pill,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
+                disabledContainerColor = KptTheme.colorScheme.surfaceContainerHigh,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = SearchBarHeight)
+                .heightIn(min = DesignToken.sizes.cardRow)
                 .testTag(BeneficiariesTestTags.SEARCH_FIELD)
                 .semantics { contentDescription = description },
         )
@@ -152,7 +145,7 @@ private fun SearchField(
 
 @Composable
 private fun BeneficiaryList(
-    rows: List<BeneficiaryRowUi>,
+    rows: List<BeneficiaryItem>,
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(Res.string.feature_beneficiaries_list_a11y)
@@ -165,7 +158,7 @@ private fun BeneficiaryList(
         items(items = rows, key = { it.beneficiaryId }) { row ->
             BeneficiaryRow(row = row)
             if (row != rows.last()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -181,49 +174,50 @@ private fun BeneficiaryList(
  */
 @Composable
 private fun BeneficiaryRow(
-    row: BeneficiaryRowUi,
+    row: BeneficiaryItem,
     modifier: Modifier = Modifier,
 ) {
     val schemeLabel = stringResource(row.scheme.labelResource())
     val rowDescription = stringResource(
         Res.string.feature_beneficiaries_row_a11y,
-        row.name,
+        row.creditorName,
         schemeLabel,
-        row.identification,
+        formatIdentification(row.identification, row.scheme),
     )
     val referenceDescription = stringResource(Res.string.feature_beneficiaries_reference_a11y, row.reference)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
-            .padding(horizontal = RowHorizontalPadding, vertical = RowVerticalPadding)
+            .heightIn(min = DesignToken.sizes.rowTall)
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.sm)
             .testTag(BeneficiariesTestTags.row(row.beneficiaryId))
             .semantics(mergeDescendants = true) { contentDescription = "$rowDescription, $referenceDescription" },
-        horizontalArrangement = Arrangement.spacedBy(RowGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        InitialsAvatar(row = row)
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = row.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = row.creditorName,
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            SupportingLine(schemeLabel = schemeLabel, identification = row.identification)
+            SupportingLine(
+                schemeLabel = schemeLabel,
+                identification = formatIdentification(row.identification, row.scheme),
+            )
         }
 
         Text(
             text = row.reference,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelSmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.End,
-            modifier = Modifier.widthIn(max = ReferenceMaxWidth),
+            modifier = Modifier.widthIn(max = DesignToken.sizes.badge),
         )
     }
 }
@@ -242,80 +236,23 @@ private fun SupportingLine(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(SupportingGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = "$schemeLabel ·",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )
         Text(
             text = identification,
-            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-/**
- * The tonal initials disc.
- *
- * Purely decorative — the row's merged description already reads the payee's full name, so this is
- * hidden from the accessibility tree rather than repeating it. Its tone is picked from the
- * beneficiary id so a payee keeps the same colour between sessions.
- */
-@Composable
-private fun InitialsAvatar(
-    row: BeneficiaryRowUi,
-    modifier: Modifier = Modifier,
-) {
-    val tone = avatarToneFor(row.beneficiaryId)
-    Box(
-        modifier = modifier
-            .size(AvatarSize)
-            .background(color = tone.container(), shape = CircleShape)
-            .testTag(BeneficiariesTestTags.avatar(row.beneficiaryId))
-            .semantics { contentDescription = "" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = row.initials,
-            style = MaterialTheme.typography.labelLarge,
-            color = tone.onContainer(),
-        )
-    }
-}
-
-/** The three tonal pairs an avatar cycles through. */
-private enum class AvatarTone { Primary, Secondary, Tertiary }
-
-@Composable
-private fun AvatarTone.container(): Color = when (this) {
-    AvatarTone.Primary -> MaterialTheme.colorScheme.primaryContainer
-    AvatarTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer
-    AvatarTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer
-}
-
-@Composable
-private fun AvatarTone.onContainer(): Color = when (this) {
-    AvatarTone.Primary -> MaterialTheme.colorScheme.onPrimaryContainer
-    AvatarTone.Secondary -> MaterialTheme.colorScheme.onSecondaryContainer
-    AvatarTone.Tertiary -> MaterialTheme.colorScheme.onTertiaryContainer
-}
-
-/**
- * Picks a stable tone from the beneficiary id.
- *
- * Seeded by the id rather than the row index so a payee keeps its colour when the list is filtered
- * or re-ordered — a colour that shifts as you type would read as the row having changed.
- */
-private fun avatarToneFor(beneficiaryId: String): AvatarTone {
-    val seed = beneficiaryId.sumOf { it.code }
-    return AvatarTone.entries[seed.mod(AvatarTone.entries.size)]
 }
 
 private fun BeneficiaryScheme.labelResource(): StringResource = when (this) {
@@ -325,6 +262,3 @@ private fun BeneficiaryScheme.labelResource(): StringResource = when (this) {
     BeneficiaryScheme.Card -> Res.string.feature_beneficiaries_scheme_card
     BeneficiaryScheme.Account -> Res.string.feature_beneficiaries_scheme_account
 }
-
-private val SupportingGap = 4.dp
-private const val PILL_CORNER_PERCENT = 50

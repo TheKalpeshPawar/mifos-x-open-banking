@@ -15,9 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import template.core.base.designsystem.theme.KptTheme
 
-/** Spacing shared by the form page and the review page, so the two cannot drift apart. */
-internal val ScreenPadding = 16.dp
-
 /**
  * How wide the form is allowed to get.
  *
@@ -27,40 +24,14 @@ internal val ScreenPadding = 16.dp
  * minimum — so this is declared here rather than invented as a design-system component for one caller.
  */
 internal val FormMaxWidth = 480.dp
-internal val SectionGap = 16.dp
-internal val HeadingGap = 8.dp
-internal val RowGap = 12.dp
-internal val HeroGap = 4.dp
-internal val ChipCorner = 20.dp
-internal val ChipPaddingHorizontal = 10.dp
-internal val ChipPaddingVertical = 6.dp
-internal val ChipGap = 8.dp
-internal val ChipAvatarSize = 24.dp
-internal val NoticeCorner = 12.dp
-internal val NoticePadding = 12.dp
-internal val NoticeGap = 10.dp
-internal val NoticeIconSize = 16.dp
-
-/** The payer picker and the amount card share a card shape, border and inner padding. */
-internal val CardCorner = 12.dp
-internal val CardBorder = 1.dp
-internal val CardPadding = 16.dp
-internal val GlyphSize = 40.dp
-
-/** The payee scroller. 56dp avatars, with the selection ring drawn in reserved outer space. */
-internal val AvatarSize = 56.dp
-internal val AvatarRingGap = 4.dp
-internal val AvatarRing = 2.dp
-internal val AvatarGap = 16.dp
-internal val AvatarBadgeSize = 18.dp
 
 /** An uppercase section label. Shared for the same reason as the spacing above. */
 @Composable
 internal fun SectionHeading(text: String) {
     Text(
-        text = text.uppercase(),
-        style = KptTheme.typography.bodySmall,
-        color = KptTheme.colorScheme.outline,
+        text = text,
+        style = KptTheme.typography.titleMedium,
+        color = KptTheme.colorScheme.onSurface,
         letterSpacing = 0.8.sp,
     )
 }

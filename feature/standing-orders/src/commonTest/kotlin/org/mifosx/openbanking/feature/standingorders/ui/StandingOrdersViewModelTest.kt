@@ -94,17 +94,6 @@ class StandingOrdersViewModelTest {
     }
 
     @Test
-    fun contentStateExposesFiveRowsAndTheFourToOneSummaryCounts() {
-        val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
-        val state = viewModel(repository).stateFlow.value.uiState
-
-        val rendered = assertIs<StandingOrdersUiState.Content>(state)
-        assertEquals(5, rendered.orders.size)
-        assertEquals(4, rendered.activeCount)
-        assertEquals(1, rendered.inactiveCount)
-    }
-
-    @Test
     fun contentPreservesActiveFirstOrderFromTheMapper() {
         val repository = FakeStandingOrdersRepository(content(StandingOrdersFixtures.summary()))
         val rows = contentRows(repository)

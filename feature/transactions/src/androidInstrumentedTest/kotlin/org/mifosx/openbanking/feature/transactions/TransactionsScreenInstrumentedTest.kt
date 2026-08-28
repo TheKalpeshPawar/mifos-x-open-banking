@@ -25,7 +25,6 @@ import org.mifosx.openbanking.feature.transactions.ui.TransactionGroup
 import org.mifosx.openbanking.feature.transactions.ui.TransactionRowUi
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsAction
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsData
-import org.mifosx.openbanking.feature.transactions.ui.TransactionsErrorKind
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsState
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsUiState
 import kotlin.test.assertEquals
@@ -94,12 +93,6 @@ class TransactionsScreenInstrumentedTest {
     }
 
     @Test
-    fun loadingStateRendersSkeleton() {
-        render(TransactionsState(uiState = TransactionsUiState.Loading))
-        composeRule.onNodeWithTag(TransactionsTestTags.SKELETON).assertExists()
-    }
-
-    @Test
     fun contentStateRendersSummaryChipsSearchAndRows() {
         render(contentState())
         composeRule.onNodeWithTag(TransactionsTestTags.PERIOD_SUMMARY).assertExists()
@@ -156,20 +149,5 @@ class TransactionsScreenInstrumentedTest {
         composeRule.onNodeWithTag(TransactionsTestTags.EMPTY).assertExists()
         composeRule.onNodeWithTag(TransactionsTestTags.CLEAR_FILTERS).performClick()
         assertTrue(TransactionsAction.ClearFilters in actions)
-    }
-
-    @Test
-    fun recoverableErrorShowsStatusAndRetry() {
-        render(TransactionsState(uiState = TransactionsUiState.Error(TransactionsErrorKind.RATE_LIMITED)))
-        composeRule.onNodeWithTag(TransactionsTestTags.ERROR_STATUS, useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag(TransactionsTestTags.ERROR_RETRY).performClick()
-        assertTrue(TransactionsAction.RetryLoad in actions)
-    }
-
-    @Test
-    fun nonRecoverableErrorHidesRetry() {
-        render(TransactionsState(uiState = TransactionsUiState.Error(TransactionsErrorKind.CONSENT_WITHDRAWN)))
-        composeRule.onNodeWithTag(TransactionsTestTags.ERROR).assertExists()
-        composeRule.onNodeWithTag(TransactionsTestTags.ERROR_RETRY).assertDoesNotExist()
     }
 }

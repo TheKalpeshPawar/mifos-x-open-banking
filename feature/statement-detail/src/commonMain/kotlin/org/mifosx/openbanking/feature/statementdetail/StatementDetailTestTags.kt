@@ -18,8 +18,6 @@ package org.mifosx.openbanking.feature.statementdetail
  */
 internal object StatementDetailTestTags {
 
-    const val LOADING_SKELETON = "statementDetail:loadingSkeleton"
-
     /** The scrolling content list root. */
     const val CONTENT_LIST = "statementDetail:contentList"
 
@@ -38,11 +36,6 @@ internal object StatementDetailTestTags {
 
     const val DOWNLOAD_BUTTON = "statementDetail:downloadButton"
     const val DOWNLOAD_PROGRESS = "statementDetail:downloadProgress"
-
-    const val ERROR_STATE = "statementDetail:errorState"
-    const val ERROR_TITLE = "statementDetail:errorTitle"
-    const val ERROR_BODY = "statementDetail:errorBody"
-    const val RETRY_BUTTON = "statementDetail:retryButton"
 
     /** Tag for one transaction row, keyed by its OBIE `TransactionId`. */
     fun txnRow(id: String): String = "statementDetail_txn_$id"

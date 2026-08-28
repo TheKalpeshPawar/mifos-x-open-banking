@@ -10,22 +10,27 @@
 -->
 <resources>
     <!-- Error state -->
-    <string name="feature_home_error_title">Could not load your account</string>
-    <string name="feature_home_error_retry">Retry</string>
+    <string name="feature_home_error_title">Could not load your accounts</string>
 
     <!-- Empty state -->
     <string name="feature_home_empty_title">No accounts connected</string>
-    <string name="feature_home_empty_body">Your Open Banking consent has no active accounts. Manage your bank connection in Settings.</string>
 
-    <!-- Hero balance card -->
-    <string name="feature_home_available">Available %1$s</string>
-    <string name="feature_home_account_icon_desc">Account</string>
+    <!-- Header -->
+    <string name="feature_home_hello">Hello,</string>
+    <string name="feature_home_greeting_morning">Good Morning</string>
+    <string name="feature_home_greeting_afternoon">Good Afternoon</string>
+    <string name="feature_home_greeting_evening">Good Evening</string>
+    <string name="feature_home_settings_desc">Settings</string>
 
-    <!-- Account selector sheet -->
-    <string name="feature_home_select_account">Select account</string>
-    <string name="feature_home_selected_account_desc">Selected account</string>
+    <!-- Quick actions -->
+    <string name="feature_home_action_send_money">Send money</string>
+    <string name="feature_home_action_schedule">Schedule</string>
+    <string name="feature_home_action_standing_order">Standing Order</string>
+    <string name="feature_home_action_vrp">VRP</string>
 
-    <!-- Recent transactions -->
-    <string name="feature_home_recent_transactions">Recent transactions</string>
-    <string name="feature_home_view_all">View all</string>
+    <!-- Cards -->
+    <string name="feature_home_cards">Cards</string>
+
+    <!-- Accounts -->
+    <string name="feature_home_accounts">Accounts</string>
 </resources>

@@ -11,6 +11,7 @@ package org.mifosx.openbanking.feature.statements
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.feature.statements.ui.StatementsAction
@@ -80,7 +81,7 @@ class StatementsActionTest {
             )
         }
 
-        onNodeWithTag(StatementsTestTags.RETRY_BUTTON).performClick()
+        onNodeWithText("Retry").performClick()
 
         assertEquals(listOf<StatementsAction>(StatementsAction.RetryLoad), actions)
         assertTrue(actions.isNotEmpty())

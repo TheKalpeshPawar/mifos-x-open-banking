@@ -192,8 +192,6 @@ object StandingOrdersFixtures {
         accountId = ACCOUNT_ID,
         uiState = StandingOrdersUiState.Content(
             orders = rows(),
-            activeCount = 4,
-            inactiveCount = 1,
         ),
     )
 }

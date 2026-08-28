@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.TimeZone
 import org.mifosx.openbanking.core.model.banking.payment.PaymentDisposition
+import org.mifosx.openbanking.core.model.banking.payment.PaymentParties
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStageTimestamps
 import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.feature.paymentstatus.FakePaymentHistoryRepository
@@ -175,12 +176,12 @@ class PaymentStatusViewModelTest {
         assertEquals("15:00", state.lastCheckedAt)
     }
 
-    /** The wire carries fourteen unpunctuated digits; people read a sort code in pairs. */
+    /** The paying account is shown as its raw identification. */
     @Test
-    fun formatsThePayingAccountTheWayItIsWrittenDown() = runTest {
+    fun showsThePayingAccountIdentification() = runTest {
         val vm = viewModel()
 
-        assertEquals("40-05-15 12345678", content(vm).debtorLabel)
+        assertEquals("40051512345678", content(vm).debtorIdentification)
     }
 
     /**
@@ -565,5 +566,49 @@ class PaymentStatusViewModelTest {
         )
 
         assertEquals("", content(viewModel(repository)).statusChangedAt)
+    }
+
+    /**
+     * A payer chosen at the bank is named on the submission response and on no read after it, so a
+     * screen built from the receipt alone shows an unnamed payer from the second view onwards.
+     */
+    @Test
+    fun aPayerTheWireDoesNotNameIsFilledFromTheStoredRow() = runTest {
+        val history = FakePaymentHistoryRepository(
+            parties = PaymentParties(
+                debtorName = "Mr Robert",
+                debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+            ),
+        )
+
+        val vm = viewModel(history = history)
+
+        assertEquals("Mr Robert", content(vm).debtorName)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", content(vm).debtorScheme)
+        assertEquals(listOf(PaymentStatusFixtures.PAYMENT_ID), history.partyReads)
+    }
+
+    /** The bank's answer is the truth of this read; the row only fills what that answer leaves blank. */
+    @Test
+    fun theWireWinsOverTheStoredRow() = runTest {
+        val repository = FakePaymentStatusRepository(
+            receipt = PaymentStatusFixtures.receipt().copy(debtorName = "Named By The Bank"),
+        )
+        val history = FakePaymentHistoryRepository(
+            parties = PaymentParties(debtorName = "An Older Name"),
+        )
+
+        val vm = viewModel(repository = repository, history = history)
+
+        assertEquals("Named By The Bank", content(vm).debtorName)
+    }
+
+    /** No stored row is the honest case of a payment made on another device. */
+    @Test
+    fun anAbsentStoredRowLeavesTheWireValuesAlone() = runTest {
+        val vm = viewModel(history = FakePaymentHistoryRepository(parties = null))
+
+        assertEquals("40051512345678", content(vm).debtorIdentification)
+        assertTrue(content(vm).debtorName.isEmpty())
     }
 }

@@ -55,12 +55,6 @@ class TransactionDetailScreenScreenshotTest {
     fun contentGolden() = capture("content", TransactionDetailFixtures.contentState())
 
     @Test
-    fun loadingGolden() = capture("loading", TransactionDetailFixtures.loadingState())
-
-    @Test
-    fun errorGolden() = capture("error", TransactionDetailFixtures.recoverableErrorState())
-
-    @Test
     fun emptyGolden() = capture("empty", TransactionDetailFixtures.emptyState())
 
     private fun capture(state: String, screenState: TransactionDetailState) {

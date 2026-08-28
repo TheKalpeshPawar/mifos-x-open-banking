@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.accountholder
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,14 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,9 +36,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.PartyProfile
 import org.mifosx.openbanking.feature.accountholder.generated.resources.Res
 import org.mifosx.openbanking.feature.accountholder.generated.resources.feature_account_holder_avatar_accessibility
@@ -50,17 +49,7 @@ import org.mifosx.openbanking.feature.accountholder.generated.resources.feature_
 import org.mifosx.openbanking.feature.accountholder.generated.resources.feature_account_holder_label_mobile
 import org.mifosx.openbanking.feature.accountholder.generated.resources.feature_account_holder_section_identity
 import org.mifosx.openbanking.feature.accountholder.ui.AccountHolderUiState
-
-private val SCREEN_PADDING = 16.dp
-private val SECTION_GAP = 20.dp
-private val CARD_RADIUS = 12.dp
-private val AVATAR_SIZE = 88.dp
-private val IDENTITY_CARD_PADDING = 24.dp
-private val IDENTITY_LINE_GAP = 8.dp
-private val ROW_PADDING = 16.dp
-private val ROW_ICON_SIZE = 24.dp
-private val ROW_ICON_GAP = 16.dp
-private val ROW_LINE_GAP = 4.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The account-holder body: the identity card and the identity detail rows.
@@ -78,9 +67,9 @@ internal fun AccountHolderContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(PaddingValues(SCREEN_PADDING))
+            .padding(PaddingValues(KptTheme.spacing.md))
             .testTag(AccountHolderTestTags.CONTENT),
-        verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.lg),
     ) {
         AccountHolderIdentityCard(profile = content.profile)
         AccountHolderIdentitySection(profile = content.profile)
@@ -101,29 +90,30 @@ private fun AccountHolderIdentityCard(profile: PartyProfile, modifier: Modifier 
         profile.roleLabel,
     )
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = RoundedCornerShape(CARD_RADIUS),
+        color = KptTheme.colorScheme.surfaceContainerHigh,
+        shape = KptTheme.shapes.medium,
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
             .testTag(AccountHolderTestTags.IDENTITY_CARD)
             .semantics { contentDescription = description },
     ) {
         Column(
-            modifier = Modifier.padding(IDENTITY_CARD_PADDING),
-            verticalArrangement = Arrangement.spacedBy(IDENTITY_LINE_GAP),
+            modifier = Modifier.padding(KptTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             AccountHolderAvatar(initials = profile.initials)
             Text(
                 text = profile.displayName,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.headlineMedium,
+                color = KptTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag(AccountHolderTestTags.DISPLAY_NAME),
             )
             Text(
                 text = profile.roleLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                style = KptTheme.typography.labelMedium,
+                color = KptTheme.colorScheme.secondary,
                 modifier = Modifier.testTag(AccountHolderTestTags.ROLE_LABEL),
             )
         }
@@ -135,16 +125,16 @@ private fun AccountHolderAvatar(initials: String, modifier: Modifier = Modifier)
     val description = stringResource(Res.string.feature_account_holder_avatar_accessibility, initials)
     Box(
         modifier = modifier
-            .size(AVATAR_SIZE)
-            .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape)
+            .size(DesignToken.sizes.avatarXLarge)
+            .background(color = KptTheme.colorScheme.primaryContainer, shape = CircleShape)
             .testTag(AccountHolderTestTags.AVATAR)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            style = KptTheme.typography.headlineSmall,
+            color = KptTheme.colorScheme.onPrimaryContainer,
         )
     }
 }
@@ -161,8 +151,9 @@ private fun AccountHolderIdentitySection(profile: PartyProfile, modifier: Modifi
     Column(modifier = modifier.fillMaxWidth()) {
         AccountHolderSectionHeader(text = stringResource(Res.string.feature_account_holder_section_identity))
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(CARD_RADIUS),
+            color = KptTheme.colorScheme.surfaceContainer,
+            shape = KptTheme.shapes.medium,
+            border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(AccountHolderTestTags.IDENTITY_SECTION),
@@ -199,10 +190,10 @@ internal fun AccountHolderSectionHeader(
 ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = KptTheme.typography.titleSmall,
+        color = KptTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
-            .padding(bottom = IDENTITY_LINE_GAP)
+            .padding(bottom = KptTheme.spacing.sm)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     )
 }
@@ -226,28 +217,28 @@ private fun AccountHolderDetailRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(ROW_PADDING)
+            .padding(KptTheme.spacing.md)
             .testTag(testTag)
             .semantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(ROW_ICON_GAP),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(ROW_ICON_SIZE),
+            tint = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
         )
-        Column(verticalArrangement = Arrangement.spacedBy(ROW_LINE_GAP)) {
+        Column(verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
             Text(
                 text = labelText,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.bodyLarge,
+                color = KptTheme.colorScheme.onSurface,
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodyMedium,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

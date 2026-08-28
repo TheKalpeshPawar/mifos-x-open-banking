@@ -12,6 +12,7 @@ package org.mifosx.openbanking.feature.transactiondetail
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
@@ -111,29 +112,10 @@ class TransactionDetailActionTest {
             )
         }
 
-        onNodeWithTag(TransactionDetailTestTags.RETRY_BUTTON).performClick()
+        onNodeWithText("Retry").performClick()
 
         assertEquals(listOf<TransactionDetailAction>(TransactionDetailAction.RetryLoad), actions)
         assertTrue(actions.isNotEmpty())
-    }
-
-    /** go_back — the non-recoverable-error Go Back button routes through onBack, not an action. */
-    @Test
-    fun errorGoBackButtonInvokesOnBack() = runComposeUiTest {
-        val actions = mutableListOf<TransactionDetailAction>()
-        var backCount = 0
-        setContent {
-            TransactionDetailScreenContent(
-                state = TransactionDetailFixtures.nonRecoverableErrorState(),
-                onAction = { actions.add(it) },
-                onBack = { backCount++ },
-            )
-        }
-
-        onNodeWithTag(TransactionDetailTestTags.GO_BACK_BUTTON).performClick()
-
-        assertEquals(1, backCount)
-        assertTrue(actions.isEmpty())
     }
 
     /** empty_go_back — the empty-state Go Back button routes through onBack, not an action. */

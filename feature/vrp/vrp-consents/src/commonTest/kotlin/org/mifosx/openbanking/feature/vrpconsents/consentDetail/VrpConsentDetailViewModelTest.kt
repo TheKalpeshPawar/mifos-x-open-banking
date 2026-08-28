@@ -254,8 +254,8 @@ class VrpConsentDetailViewModelTest {
             consent(
                 payer = AccountIdentity(
                     schemeName = "UK.OBIE.PAN",
-                    identification = "4444333322221111",
-                    name = "Credit Card",
+                    identification = "xxxx-xxxx-xxxx-3456",
+                    name = "Mr Bantu",
                 ),
             ),
         )
@@ -272,28 +272,7 @@ class VrpConsentDetailViewModelTest {
                 payer = AccountIdentity(
                     schemeName = SORT_CODE_ACCOUNT_NUMBER,
                     identification = "80200110204021",
-                    name = "CACC",
-                ),
-            ),
-        )
-        val vm = viewModel()
-        advanceUntilIdle()
-
-        assertEquals("XXXX4021", assertNotNull(content(vm).payer).maskedAccountNumber)
-    }
-
-    /**
-     * The bank returns its own type code in the account's name, so the identity has to come from the
-     * number. Showing the name would put "CACC" on screen as if it were the account.
-     */
-    @Test
-    fun thePayerIsNamedByItsNumberAndType() = runTest {
-        consents.emit(
-            consent(
-                payer = AccountIdentity(
-                    schemeName = SORT_CODE_ACCOUNT_NUMBER,
-                    identification = "80200110203349",
-                    name = "CACC",
+                    name = "Mr Robert",
                 ),
             ),
         )
@@ -301,8 +280,30 @@ class VrpConsentDetailViewModelTest {
         advanceUntilIdle()
 
         val payer = assertNotNull(content(vm).payer)
-        assertEquals("XXXX3349", payer.maskedAccountNumber)
-        assertEquals("CACC", payer.accountSubType)
+        assertEquals("80200110204021", payer.identification)
+    }
+
+    /**
+     * The payer's identification and account name both reach the state. The detail screen renders the
+     * identification in full — the bank masks a card's PAN itself — with the name beneath it.
+     */
+    @Test
+    fun thePayerIdentificationAndNameAreCarriedThrough() = runTest {
+        consents.emit(
+            consent(
+                payer = AccountIdentity(
+                    schemeName = SORT_CODE_ACCOUNT_NUMBER,
+                    identification = "80200110203349",
+                    name = "Mr Nico",
+                ),
+            ),
+        )
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        val payer = assertNotNull(content(vm).payer)
+        assertEquals("80200110203349", payer.identification)
+        assertEquals("Mr Nico", payer.name)
     }
 
     /** A payer the customer chose at the bank is unknown until it is read back. */

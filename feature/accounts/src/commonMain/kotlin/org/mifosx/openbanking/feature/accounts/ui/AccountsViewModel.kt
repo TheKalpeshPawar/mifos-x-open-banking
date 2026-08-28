@@ -12,28 +12,24 @@ package org.mifosx.openbanking.feature.accounts.ui
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import org.mifosx.openbanking.core.common.formatAccountIdentifier
-import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
 import template.core.base.common.screen.ScreenState
 import template.core.base.common.screen.combineContent
 import template.core.base.ui.viewmodel.BaseViewModel
 
-private const val GBP = "GBP"
 private const val SUBTYPE_CURRENT = "CurrentAccount"
 private const val SUBTYPE_SAVINGS = "Savings"
 private const val SUBTYPE_CREDIT_CARD = "CreditCard"
 private const val SUBTYPE_GLOBAL_MONEY = "GlobalMoney"
 private const val SUBTYPE_GLOBAL_WALLET = "GlobalWallet"
-private const val BALANCE_UNAVAILABLE = "—"
 
 /**
- * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE `AccountSubType`
- * enum case-insensitively and the common ISO-20022 cash-account codes (`CACC`, `SVGS`, `CCRD`) so the
- * screen classifies correctly whether the bank populates `AccountSubType` or only `AccountTypeCode`.
+ * Normalises a raw account-type value to one of the five UI subtypes. Accepts the OBIE
+ * `AccountTypeCode` codes case-insensitively (`CACC`, `SVGS`, `CCRD`) plus the legacy subtype tokens
+ * so the screen classifies correctly whichever vocabulary the bank uses.
  */
-private fun String.canonicalSubtype(): String = when (lowercase()) {
+private fun String.canonicalTypeCode(): String = when (lowercase()) {
     "currentaccount", "current", "cacc" -> SUBTYPE_CURRENT
     "savings", "svgs" -> SUBTYPE_SAVINGS
     "creditcard", "credit", "card", "ccrd" -> SUBTYPE_CREDIT_CARD
@@ -42,22 +38,17 @@ private fun String.canonicalSubtype(): String = when (lowercase()) {
     else -> this
 }
 
-/** Formats a balance: the currency symbol for GBP, the ISO code form (e.g. `USD 250.00`) otherwise. */
-private fun formatBalance(amount: String, currency: String): String =
-    if (currency == GBP) formatMoney(amount, currency) else "$currency ${formatMoney(amount, "")}"
-
-/** The account category, resolved from the OBIE `AccountSubType`; drives the row icon and label. */
+/** The account category, resolved from the OBIE `AccountTypeCode`; drives the row icon and label. */
 enum class AccountUiType {
     CURRENT,
     SAVINGS,
     CREDIT,
     GLOBAL_MONEY,
     GLOBAL_WALLET,
-    OTHER,
-    ;
+    OTHER, ;
 
     companion object {
-        fun fromSubtype(subType: String): AccountUiType = when (subType.canonicalSubtype()) {
+        fun fromTypeCode(accountTypeCode: String): AccountUiType = when (accountTypeCode.canonicalTypeCode()) {
             SUBTYPE_CURRENT -> CURRENT
             SUBTYPE_SAVINGS -> SAVINGS
             SUBTYPE_CREDIT_CARD -> CREDIT
@@ -86,30 +77,12 @@ enum class AccountFilter(private val subtypes: Set<String>?) {
     CREDIT(setOf(SUBTYPE_CREDIT_CARD)),
     ;
 
-    fun matches(subType: String): Boolean = subtypes == null || subType.canonicalSubtype() in subtypes
+    fun matches(accountTypeCode: String): Boolean = subtypes == null || accountTypeCode.canonicalTypeCode() in subtypes
 }
 
-/**
- * A display-ready account row. All money and identifiers are pre-formatted; the card renders strings.
- *
- * [accountSubType], [accountNumber] and [rawIdentification] are carried raw so the card can fall back
- * to a "type ·· last 4" label via `accountDisplayName` when the bank supplied no [nickname].
- */
-data class AccountRowUi(
-    val id: String,
-    val type: AccountUiType,
-    val nickname: String,
-    val identifier: String,
-    val balanceLabel: String,
-    val isBalanceOwed: Boolean,
-    val accountSubType: String = "",
-    val accountNumber: String = "",
-    val rawIdentification: String = "",
-)
-
-/** Display-ready accounts payload: filtered rows and the active type filter. */
+/** Accounts payload: the filtered accounts (each with its resolved balance) and the active filter. */
 data class AccountsData(
-    val rows: List<AccountRowUi>,
+    val rows: List<AccountWithBalance>,
     val activeFilter: AccountFilter,
 )
 
@@ -140,8 +113,14 @@ class AccountsViewModel(
     init {
         viewModelScope.launch {
             accountsRepository.overviewState(viewModelScope)
-                .combineContent(filter) { accounts, active, _ -> buildData(accounts, active) }
-                .collect { screenState -> updateState { copy(uiState = screenState) } }
+                .combineContent(filter) {
+                        accounts, active, _ ->
+                    buildData(accounts, active)
+                }.collect { screenState ->
+                    updateState {
+                        copy(uiState = screenState)
+                    }
+                }
         }
     }
 
@@ -154,24 +133,7 @@ class AccountsViewModel(
 
     private fun buildData(accounts: List<AccountWithBalance>, active: AccountFilter): AccountsData =
         AccountsData(
-            rows = accounts.filter { active.matches(it.account.accountSubType) }.map { it.toRowUi() },
+            rows = accounts.filter { active.matches(it.account.accountTypeCode) },
             activeFilter = active,
         )
-
-    private fun AccountWithBalance.toRowUi(): AccountRowUi = AccountRowUi(
-        id = account.accountId,
-        type = AccountUiType.fromSubtype(account.accountSubType),
-        nickname = account.nickname,
-        identifier = formatAccountIdentifier(
-            subType = account.accountSubType,
-            rawIdentification = account.rawIdentification,
-            sortCode = account.sortCode,
-            accountNumber = account.accountNumber,
-        ),
-        balanceLabel = balance?.let { formatBalance(it.availableAmount, it.currency) } ?: BALANCE_UNAVAILABLE,
-        isBalanceOwed = account.accountSubType.canonicalSubtype() == SUBTYPE_CREDIT_CARD,
-        accountSubType = account.accountSubType,
-        accountNumber = account.accountNumber,
-        rawIdentification = account.rawIdentification,
-    )
 }

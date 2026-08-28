@@ -55,13 +55,13 @@ internal fun PaymentDraft.toIntlInitiation(): IntlInitiationReq = IntlInitiation
 )
 
 private fun BankAccount?.toIntlObieDebtor(): IntlDebtorAccount? = this?.let { account ->
-    account.rawIdentification
+    account.identification
         .takeIf { it.isNotBlank() }
         ?.let { identification ->
             IntlDebtorAccount(
                 schemeName = SCHEME_SORT_CODE,
                 identification = identification,
-                name = account.nickname.takeIf { it.isNotBlank() },
+                name = account.accountHolderName.takeIf { it.isNotBlank() },
             )
         }
 }
@@ -112,6 +112,10 @@ internal fun InternationalPaymentResponse.toIntlPaymentReceipt(): PaymentReceipt
         settlementDateTime = "",
         reference = "",
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { c ->
             PaymentCharge(
                 bearer = c.chargeBearer.orEmpty(),

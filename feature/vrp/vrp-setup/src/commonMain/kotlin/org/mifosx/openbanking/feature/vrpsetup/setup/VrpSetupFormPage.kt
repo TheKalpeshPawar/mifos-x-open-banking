@@ -26,7 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.common.formatIsoDate
-import org.mifosx.openbanking.core.ui.account.MifosAccountOption
+import org.mifosx.openbanking.core.model.banking.BeneficiaryItem
 import org.mifosx.openbanking.core.ui.account.MifosAccountPicker
 import org.mifosx.openbanking.core.ui.account.MifosBankChoiceRow
 import org.mifosx.openbanking.core.ui.payee.MifosPayeeAvatarRow
@@ -52,7 +52,9 @@ import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_s
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_periodic_label
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_hint
 import org.mifosx.openbanking.feature.vrpsetup.generated.resources.feature_vrp_setup_valid_to_label
+import org.mifosx.openbanking.feature.vrpsetup.initialsOf
 import org.mifosx.openbanking.feature.vrpsetup.payeeErrorLabel
+import org.mifosx.openbanking.feature.vrpsetup.shortPayeeName
 import org.mifosx.openbanking.feature.vrpsetup.todayUtc
 import template.core.base.designsystem.theme.KptTheme
 
@@ -87,7 +89,7 @@ private fun PayerSection(
         SectionLabel(stringResource(Res.string.feature_vrp_setup_payer_label))
 
         MifosAccountPicker(
-            options = form.payerOptions.map { it.toPickerOption() },
+            options = form.payerOptions,
             selectedId = form.selectedPayerId,
             expanded = form.payerExpanded,
             onToggle = { onAction(VrpSetupAction.PayerToggled) },
@@ -313,20 +315,12 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         style = KptTheme.typography.titleMedium,
-        color = KptTheme.colorScheme.onSurface,
+        color = KptTheme.colorScheme.primary,
     )
 }
 
-private fun PayeeOptionUi.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
-    payeeId = payeeId,
-    shortName = shortName,
-    initials = initials,
-)
-
-private fun PayerOptionUi.toPickerOption(): MifosAccountOption = MifosAccountOption(
-    accountId = accountId,
-    accountSubType = accountSubType,
-    accountNumber = accountNumber,
-    rawIdentification = identification,
-    availableBalance = availableBalance,
+private fun BeneficiaryItem.toPayeeOption(): MifosPayeeOption = MifosPayeeOption(
+    payeeId = identification,
+    shortName = shortPayeeName(creditorName),
+    initials = initialsOf(creditorName),
 )

@@ -127,11 +127,11 @@ class StoreDataExtensionsTest {
     @Test
     fun `combineScreenStates STALE from one source propagates to result`() = runTest {
         val a = kotlinx.coroutines.flow.flowOf(ScreenState.Content("a", DataFreshness.FRESH))
-        val b = kotlinx.coroutines.flow.flowOf(ScreenState.Content("b", DataFreshness.STALE))
+        val b = kotlinx.coroutines.flow.flowOf(ScreenState.Content("b", DataFreshness.STALE_OFFLINE))
 
         combineScreenStates(a, b) { x, y -> x + y }.test {
             val item = assertIs<ScreenState.Content<String>>(awaitItem())
-            assertEquals(DataFreshness.STALE, item.freshness)
+            assertEquals(DataFreshness.STALE_OFFLINE, item.freshness)
             awaitComplete()
         }
     }

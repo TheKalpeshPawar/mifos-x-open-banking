@@ -159,13 +159,4 @@ class SchedulePaymentScreenRobolectricTest {
         composeRule.onNodeWithTag(SchedulePaymentTestTags.CHANGE_DATE_BUTTON).assertIsDisplayed()
         composeRule.onNodeWithTag(SchedulePaymentTestTags.RETRY_BUTTON).assertDoesNotExist()
     }
-
-    /** The loading convention: a shimmer skeleton, not the spinner the mockups draw. */
-    @Test
-    fun loadingRendersTheSkeletonRatherThanASpinner() {
-        render(SchedulePaymentFixtures.loadingState())
-
-        composeRule.onNodeWithTag(SchedulePaymentTestTags.SKELETON).assertIsDisplayed()
-        composeRule.onNodeWithTag(SchedulePaymentTestTags.DATE_FIELD).assertDoesNotExist()
-    }
 }

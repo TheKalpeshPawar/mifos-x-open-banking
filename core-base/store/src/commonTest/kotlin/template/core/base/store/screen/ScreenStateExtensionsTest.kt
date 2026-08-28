@@ -122,7 +122,7 @@ class ScreenStateExtensionsTest {
 
     @Test
     fun `hasContent returns true for Content`() {
-        val state: ScreenState<String> = ScreenState.Content("data", DataFreshness.STALE)
+        val state: ScreenState<String> = ScreenState.Content("data", DataFreshness.STALE_OFFLINE)
         assertTrue(state.hasContent)
     }
 

@@ -91,12 +91,12 @@ class AccountDetailViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<AccountDetailUiState.Content>(vm.stateFlow.value.uiState)
-        assertEquals("Everyday Current", state.header.nickname)
-        assertEquals("CURRENTACCOUNT", state.header.accountSubType)
-        assertEquals("40-05-15 12345678", state.header.identificationLabel)
+        assertEquals("Everyday Current", state.header.accountHolderName)
+        assertEquals("CACC", state.header.accountTypeCode)
+        assertEquals("40051512345678", state.header.identification)
         assertEquals("GBP", state.header.currency)
         assertEquals("MIDLGB2105V", state.header.servicerIdentification)
-        assertEquals("28 Jun 2026, 18:30 UTC", state.header.lastUpdatedLabel)
+        assertEquals("28 Jun 2026, 18:30 UTC", formatStatusTimestamp(state.header.statusUpdateDateTime))
         assertEquals("Description of the account", state.header.description)
         assertEquals(2, state.balances.size)
         assertEquals("InterimAvailable", state.balances[0].type)
@@ -113,8 +113,8 @@ class AccountDetailViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<AccountDetailUiState.Empty>(vm.stateFlow.value.uiState)
-        assertEquals("Everyday Current", state.header.nickname)
-        assertEquals("40-05-15 12345678", state.header.identificationLabel)
+        assertEquals("Everyday Current", state.header.accountHolderName)
+        assertEquals("40051512345678", state.header.identification)
     }
 
     @Test
@@ -227,7 +227,7 @@ class AccountDetailViewModelTest {
                     detail = AccountDetailFixtures.detail(
                         servicerIdentification = "",
                         statusUpdateDateTime = "",
-                        sortCode = "",
+                        identification = "",
                     ),
                 ),
             ),
@@ -236,8 +236,8 @@ class AccountDetailViewModelTest {
 
         val state = assertIs<AccountDetailUiState.Content>(vm.stateFlow.value.uiState)
         assertEquals("", state.header.servicerIdentification)
-        assertEquals("", state.header.lastUpdatedLabel)
-        assertEquals("12345678", state.header.identificationLabel)
+        assertEquals("", formatStatusTimestamp(state.header.statusUpdateDateTime))
+        assertEquals("", state.header.identification)
     }
 
     @Test
@@ -292,16 +292,6 @@ class AccountDetailViewModelTest {
         assertEquals("2026-00-28T18:30:00Z", formatStatusTimestamp("2026-00-28T18:30:00Z"))
         assertEquals("2026-xx-28T18:30:00Z", formatStatusTimestamp("2026-xx-28T18:30:00Z"))
         assertEquals("2026-06-28T18:3", formatStatusTimestamp("2026-06-28T18:3"))
-    }
-
-    @Test
-    fun buildIdentificationLabelFallsBackToWhicheverHalfIsPresent() {
-        assertEquals("40-05-15 12345678", buildIdentificationLabel("400515", "12345678"))
-        assertEquals("40-05-15", buildIdentificationLabel("400515", ""))
-        assertEquals("12345678", buildIdentificationLabel("", "12345678"))
-        assertEquals("", buildIdentificationLabel("", ""))
-        assertEquals("", buildIdentificationLabel("   ", "   "))
-        assertEquals("4005 1234", buildIdentificationLabel("4005", "1234"))
     }
 
     @Test
@@ -378,7 +368,6 @@ class AccountDetailViewModelTest {
     fun standingOrdersDirectDebitsAndStatementsAreHiddenForASavingsAccount() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
-                accountSubType = "Savings",
                 accountTypeCode = "SVGS",
                 description = "BMM ACCOUNT",
             ),
@@ -397,7 +386,6 @@ class AccountDetailViewModelTest {
     fun aCreditCardHidesStandingOrdersDirectDebitsScheduledPaymentsAndBeneficiariesButKeepsStatements() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
-                accountSubType = "CreditCard",
                 accountTypeCode = "CARD",
                 description = "",
             ),
@@ -422,7 +410,6 @@ class AccountDetailViewModelTest {
     fun standingOrdersDirectDebitsAndStatementsAreHiddenForAGlobalMoneyAccountReportingCacc() = runTest {
         val chips = chipsFor(
             AccountDetailFixtures.detail(
-                accountSubType = "",
                 accountTypeCode = "CACC",
                 description = "GLOBAL MONEY ACCOUNT",
             ),

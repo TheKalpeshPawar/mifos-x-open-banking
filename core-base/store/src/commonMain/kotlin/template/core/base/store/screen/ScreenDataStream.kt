@@ -104,12 +104,11 @@ fun <Key : Any, Output : Any> Store<Key, Output>.asScreenStream(
 ): ScreenDataStream<Output> {
     val refreshTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    // Auto-refresh when network reconnects (debounced to avoid WiFi↔Cell flicker)
+    // Auto-refresh when network reconnects.
     // Skipped for CACHE_ONLY — no network requests are ever made.
     if (fetchPolicy != FetchPolicy.CACHE_ONLY) {
         scope.launch {
-            networkMonitor.isOnlineDebounced(300L)
-                .distinctUntilChanged()
+            networkMonitor.isOnline
                 .filter { it }
                 .drop(1) // Skip initial emission (don't double-load on start)
                 .collect { refreshTrigger.tryEmit(Unit) }
@@ -190,8 +189,7 @@ fun <Key : Any, Output : Any> Store<Key, Output>.asScreenStream(
 
     if (fetchPolicy != FetchPolicy.CACHE_ONLY) {
         scope.launch {
-            networkMonitor.isOnlineDebounced(300L)
-                .distinctUntilChanged()
+            networkMonitor.isOnline
                 .filter { it }
                 .drop(1)
                 .collect { refreshTrigger.tryEmit(Unit) }

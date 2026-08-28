@@ -109,19 +109,19 @@ class DecisionEngineTest {
     }
 
     @Test
-    fun `has data + Unavailable = Content STALE`() {
+    fun `has data + Unavailable = Content STALE_OFFLINE`() {
         val data = dataStoreData("cached")
         val result = DecisionEngine.decide(data, unavailable)
         assertIs<ScreenState.Content<String>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_OFFLINE, result.freshness)
     }
 
     @Test
-    fun `has data + CaptivePortal = Content STALE`() {
+    fun `has data + CaptivePortal = Content STALE_OFFLINE`() {
         val data = dataStoreData("cached")
         val result = DecisionEngine.decide(data, captivePortal)
         assertIs<ScreenState.Content<String>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_OFFLINE, result.freshness)
     }
 
     @Test
@@ -133,11 +133,11 @@ class DecisionEngineTest {
     }
 
     @Test
-    fun `has data + error refresh failed = Content STALE`() {
+    fun `has data + error refresh failed while online = Content STALE_FAILED`() {
         val data = dataStoreData("stale", error = FakeIOException("refresh failed"))
         val result = DecisionEngine.decide(data, available)
         assertIs<ScreenState.Content<String>>(result)
-        assertEquals(DataFreshness.STALE, result.freshness)
+        assertEquals(DataFreshness.STALE_FAILED, result.freshness)
     }
 
     @Test

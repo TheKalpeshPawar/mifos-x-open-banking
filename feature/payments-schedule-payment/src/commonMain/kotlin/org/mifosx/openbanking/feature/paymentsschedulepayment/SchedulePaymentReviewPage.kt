@@ -19,21 +19,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
+import org.mifosx.openbanking.core.designsystem.theme.MifosXOpenBankingTheme
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.core.model.banking.BankAccount
+import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
+import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
-import org.mifosx.openbanking.core.ui.account.accountDisplayName
+import org.mifosx.openbanking.core.model.banking.toAccountScheme
+import org.mifosx.openbanking.core.ui.account.MifosAccountReviewRow
+import org.mifosx.openbanking.core.ui.account.MifosPartyReviewRow
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosTonalPillButton
 import org.mifosx.openbanking.core.ui.payee.initialsOf
@@ -57,6 +66,7 @@ import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resource
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_sent_as
 import org.mifosx.openbanking.feature.paymentsschedulepayment.generated.resources.feature_payments_schedule_payment_review_to
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAction
+import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentUiState
 import template.core.base.designsystem.theme.KptTheme
 
@@ -84,22 +94,13 @@ internal fun SchedulePaymentReviewPage(
     onAction: (SchedulePaymentAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val payerLabel = state.debtorAccountRow?.let { row ->
-        accountDisplayName(
-            nickname = row.nickname,
-            accountSubType = row.accountSubType,
-            accountNumber = row.accountNumber,
-            rawIdentification = row.rawIdentification,
-        )
-    }.orEmpty()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag(SchedulePaymentTestTags.REVIEW_PAGE)
             .verticalScroll(rememberScrollState())
-            .padding(ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(SectionGap),
+            .padding(KptTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         // The page lead. It earns a line of its own now that Review is a page rather than a step
         // behind an indicator that already said where the customer was.
@@ -118,23 +119,25 @@ internal fun SchedulePaymentReviewPage(
 
         Column(
             modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.REVIEW_SUMMARY),
-            verticalArrangement = Arrangement.spacedBy(RowGap),
+            verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
         ) {
             SectionHeading(stringResource(Res.string.feature_payments_schedule_payment_review_details_heading))
             // Blank when the PSU left the choice to the bank — which is a decision they made, so it
             // is stated rather than left as an empty row that reads like a missing field.
-            ReviewRow(
+            MifosAccountReviewRow(
                 label = stringResource(Res.string.feature_payments_schedule_payment_review_from),
-                value = payerLabel.ifBlank {
-                    stringResource(Res.string.feature_payments_schedule_payment_review_from_bank_choice)
-                },
-                tag = SchedulePaymentTestTags.REVIEW_FROM,
+                account = state.debtorAccountRow?.account,
+                absentLabel = stringResource(
+                    Res.string.feature_payments_schedule_payment_review_from_bank_choice,
+                ),
+                modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_FROM),
             )
-            ReviewRow(
+            MifosPartyReviewRow(
                 label = stringResource(Res.string.feature_payments_schedule_payment_review_to),
-                value = state.creditorLabel,
-                tag = SchedulePaymentTestTags.REVIEW_TO,
-                secondary = state.creditorSupporting,
+                name = state.creditorLabel,
+                scheme = state.creditor?.scheme?.toAccountScheme() ?: AccountScheme.Other,
+                identification = state.creditor?.identification.orEmpty(),
+                modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_TO),
             )
             if (state.rail == PaymentRail.Domestic) {
                 ReviewRow(
@@ -205,7 +208,7 @@ private fun ReviewHero(dateLabel: String, amountLabel: String, creditorName: Str
     Column(
         modifier = Modifier.fillMaxWidth().testTag(SchedulePaymentTestTags.REVIEW_HERO),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(HeroGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Text(
             text = stringResource(Res.string.feature_payments_schedule_payment_review_scheduled_for),
@@ -214,14 +217,14 @@ private fun ReviewHero(dateLabel: String, amountLabel: String, creditorName: Str
         )
         Text(
             text = dateLabel,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.titleLarge,
+            color = KptTheme.colorScheme.onSurface,
             modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_DATE_ROW),
         )
         Text(
             text = amountLabel,
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary,
+            style = KptTheme.typography.displaySmall,
+            color = KptTheme.colorScheme.primary,
             modifier = Modifier.testTag(SchedulePaymentTestTags.REVIEW_AMOUNT),
         )
         if (creditorName.isNotBlank()) {
@@ -246,11 +249,11 @@ private fun NotYetMadeNotice(dateLabel: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(CardCorner))
+            .clip(KptTheme.shapes.medium)
             .background(KptTheme.colorScheme.primaryContainer)
-            .padding(CardPadding)
+            .padding(KptTheme.spacing.md)
             .testTag(SchedulePaymentTestTags.REVIEW_NOT_YET_MADE),
-        verticalArrangement = Arrangement.spacedBy(RowGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
         Text(
             text = stringResource(Res.string.feature_payments_schedule_payment_review_not_yet_made_title),
@@ -273,30 +276,30 @@ private fun NotYetMadeNotice(dateLabel: String) {
 private fun PayeeChip(creditorName: String) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(ChipCorner))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = ChipPaddingHorizontal, vertical = ChipPaddingVertical)
+            .clip(KptTheme.shapes.large)
+            .background(KptTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = KptTheme.spacing.sm, vertical = KptTheme.spacing.xs)
             .testTag(SchedulePaymentTestTags.REVIEW_PAYEE_CHIP),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ChipGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Box(
             modifier = Modifier
-                .size(ChipAvatarSize)
+                .size(DesignToken.sizes.iconMedium)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(KptTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = initialsOf(creditorName),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = KptTheme.typography.labelSmall,
+                color = KptTheme.colorScheme.onPrimaryContainer,
             )
         }
         Text(
             text = creditorName,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyMedium,
+            color = KptTheme.colorScheme.onSurface,
         )
     }
 }
@@ -313,23 +316,23 @@ private fun AuthorisationNotice() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(NoticeCorner))
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(NoticePadding)
+            .clip(KptTheme.shapes.medium)
+            .background(KptTheme.colorScheme.secondaryContainer)
+            .padding(KptTheme.spacing.md)
             .testTag(SchedulePaymentTestTags.REVIEW_AUTH_NOTICE),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(NoticeGap),
+        horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
         Icon(
             imageVector = Icons.Filled.Lock,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(NoticeIconSize),
+            tint = KptTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
         )
         Text(
             text = stringResource(Res.string.feature_payments_schedule_payment_review_auth_notice),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
@@ -346,24 +349,61 @@ private fun ReviewRow(
     Column(modifier = modifier.fillMaxWidth().testTag(tag)) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.labelMedium,
+            color = KptTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
             style = if (emphasis) {
-                MaterialTheme.typography.headlineSmall
+                KptTheme.typography.headlineSmall
             } else {
-                MaterialTheme.typography.bodyLarge
+                KptTheme.typography.bodyLarge
             },
-            color = MaterialTheme.colorScheme.onSurface,
+            color = KptTheme.colorScheme.onSurface,
         )
         if (secondary.isNotBlank()) {
             Text(
                 text = secondary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.bodySmall,
+                color = KptTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun SchedulePaymentReviewPagePreview() {
+    MifosXOpenBankingTheme {
+        SchedulePaymentReviewPage(
+            state = SchedulePaymentUiState.Content(
+                step = SchedulePaymentStep.Review,
+                debtorAccounts = emptyList(),
+                beneficiaries = emptyList(),
+                debtorRows = emptyList(),
+                creditor = CreditorSelection(
+                    name = "Mr Nico",
+                    scheme = BeneficiaryScheme.SortCode,
+                    identification = "80200110203349",
+                ),
+                creditorLabel = "Mr Nico",
+                debtorAccountRow = AccountWithBalance(
+                    account = BankAccount(
+                        accountId = "1123456841",
+                        accountTypeCode = "CACC",
+                        currency = "GBP",
+                        identification = "80200110203348",
+                        scheme = AccountScheme.SortCode,
+                        description = "Description of the account",
+                        accountHolderName = "Mr Robert",
+                    ),
+                    balance = null,
+                ),
+                amountLabel = "£6.00",
+                reference = "BFRS.RFRNC.546",
+                today = LocalDate(2026, 8, 25),
+            ),
+            onAction = {},
+        )
     }
 }

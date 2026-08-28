@@ -12,6 +12,7 @@ package org.mifosx.openbanking.feature.paymentsstandingorder
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.feature.paymentsstandingorder.ui.StandingOrderErrorKind
@@ -29,17 +30,6 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class StandingOrderScreenUiTest {
-
-    /** The skeleton, not a spinner — the app's loading convention, and the mockups' one deviation. */
-    @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            StandingOrderScreenContent(StandingOrderFixtures.loadingState(), {}, {})
-        }
-
-        onNodeWithTag(StandingOrderTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(StandingOrderTestTags.FIRST_DATE_FIELD).assertDoesNotExist()
-    }
 
     @Test
     fun theFormShowsTheDateField() = runComposeUiTest {
@@ -87,8 +77,8 @@ class StandingOrderScreenUiTest {
             StandingOrderScreenContent(StandingOrderFixtures.reviewState(), {}, {})
         }
 
-        onNodeWithTag(StandingOrderTestTags.IRREVERSIBLE_NOTICE).assertIsDisplayed()
-        onNodeWithTag(StandingOrderTestTags.CONFIRM_BUTTON).assertIsDisplayed()
+        onNodeWithTag(StandingOrderTestTags.IRREVERSIBLE_NOTICE).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(StandingOrderTestTags.CONFIRM_BUTTON).performScrollTo().assertIsDisplayed()
     }
 
     /**

@@ -24,11 +24,7 @@ data class DirectDebitsState(
 )
 
 /**
- * The four rendered states.
- *
- * [Content] carries the two summary counts alongside the rows because the chips are display-only
- * readouts of this exact payload — deriving them again in the composable would let the chips and
- * the list disagree.
+ * The rendered states; [Content] carries the mandate rows.
  */
 sealed interface DirectDebitsUiState {
 
@@ -36,8 +32,6 @@ sealed interface DirectDebitsUiState {
 
     data class Content(
         val mandates: List<DirectDebitRowUi>,
-        val activeCount: Int,
-        val inactiveCount: Int,
     ) : DirectDebitsUiState
 
     data object Empty : DirectDebitsUiState
@@ -60,8 +54,8 @@ sealed interface DirectDebitsUiState {
  * One display-ready mandate card. Every field is a finished string; the view model does the
  * formatting.
  *
- * [amountLabel], [lastCollectedLabel] and [mandateId] are blank when the bank sent nothing for
- * them, and the card omits those lines rather than rendering a stray label with no value.
+ * [previousPaymentAmount] and [previousPaymentDateTime] are blank when the bank sent nothing for
+ * them, and the card renders those rows with empty values rather than a placeholder.
  *
  * @property isActive Drives the badge style, the card's dimming and nothing else — the status text
  *   itself comes from [statusLabel] so an unexpected status code still reads truthfully.
@@ -71,8 +65,8 @@ data class DirectDebitRowUi(
     val name: String,
     val statusLabel: String,
     val isActive: Boolean,
-    val amountLabel: String,
-    val lastCollectedLabel: String,
+    val previousPaymentAmount: String,
+    val previousPaymentDateTime: String,
 )
 
 /**

@@ -12,127 +12,142 @@ package org.mifosx.openbanking.feature.home.ui
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.mifosx.openbanking.core.model.banking.AccountBalance
-import org.mifosx.openbanking.core.model.banking.BankAccount
-import org.mifosx.openbanking.core.model.banking.TransactionItem
-import org.mifosx.openbanking.feature.home.FakeAccountsRepository
-import org.mifosx.openbanking.feature.home.FakeBalancesRepository
-import org.mifosx.openbanking.feature.home.FakeTransactionsRepository
-import org.mifosx.openbanking.feature.home.FakeUserDataRepository
+import kotlinx.datetime.TimeZone
+import org.mifosx.openbanking.core.model.banking.AccountWithBalance
+import org.mifosx.openbanking.feature.home.FakeAccountsOverviewRepository
+import org.mifosx.openbanking.feature.home.FixedClock
+import org.mifosx.openbanking.feature.home.HomeFixtures
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
+import template.core.base.common.screen.dataOrNull
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class HomeViewModelTest {
 
-    private val accountsRepo = FakeAccountsRepository()
-    private val balancesRepo = FakeBalancesRepository()
-    private val transactionsRepo = FakeTransactionsRepository()
-    private val userDataRepo = FakeUserDataRepository()
+    private val repo = FakeAccountsOverviewRepository()
 
-    private fun createViewModel(): HomeViewModel {
+    private fun viewModel(clock: Clock = FixedClock(MORNING)): HomeViewModel {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        return HomeViewModel(accountsRepo, balancesRepo, transactionsRepo, userDataRepo)
+        return HomeViewModel(accountsRepository = repo, clock = clock, timeZone = TimeZone.UTC)
     }
 
-    private fun account(id: String, subType: String = "CurrentAccount") =
-        BankAccount(id, "Nickname $id", subType, "GBP", "400515", "12345678")
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
-    private fun balance(id: String) = AccountBalance(id, "GBP", "2900.00", "2847.63")
-
-    private fun debit(id: String, date: String) =
-        TransactionItem(id, "acc-1", "Merchant $id", date, "10.00", "GBP", isCredit = false)
+    private fun content(): ScreenState.Content<List<AccountWithBalance>> =
+        ScreenState.Content(HomeFixtures.all(), DataFreshness.FRESH)
 
     @Test
-    fun `content combines accounts balance and transactions into HomeData`() = runTest {
-        val vm = createViewModel()
-        accountsRepo.emissions.value =
-            ScreenState.Content(listOf(account("acc-1"), account("acc-2")), DataFreshness.FRESH)
-        balancesRepo.emissions.value = ScreenState.Content(balance("acc-1"), DataFreshness.FRESH)
-        transactionsRepo.emissions.value = ScreenState.Content(
-            List(8) { debit("t$it", "2026-06-1${it}T10:00:00Z") },
-            DataFreshness.FRESH,
-        )
+    fun contentPartitionsCardsAwayFromAccounts() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = content()
 
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Content }
-        val data = (state.uiState as ScreenState.Content).data
-
-        assertEquals("acc-1", data.selectedAccountId)
-        assertEquals(2, data.accounts.size)
-        assertEquals("Nickname acc-1", data.accountNickname)
-        assertEquals("£2,900.00", data.balanceLabel)
-        assertEquals("40-05-15  12345678", data.accountNumberLabel)
-        assertEquals(5, data.recentTransactions.size)
+        val data = vm.stateFlow.first().uiState.dataOrNull
+        assertEquals(3, data?.accounts?.size)
+        assertEquals(1, data?.cards?.size)
     }
 
     @Test
-    fun `opening and dismissing the account selector toggles its visibility`() = runTest {
-        val vm = createViewModel()
+    fun aCardAccountLandsInCardsAndNeverInAccounts() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = content()
 
-        vm.trySendAction(HomeAction.OpenAccountSelector)
-        advanceUntilIdle()
-        assertEquals(true, vm.stateFlow.value.isAccountSelectorVisible)
-
-        vm.trySendAction(HomeAction.DismissAccountSelector)
-        advanceUntilIdle()
-        assertEquals(false, vm.stateFlow.value.isAccountSelectorVisible)
+        val data = vm.stateFlow.first().uiState.dataOrNull
+        assertEquals(HomeFixtures.CARD_ID, data?.cards?.single()?.account?.accountId)
+        assertTrue(data?.accounts.orEmpty().none { it.account.accountId == HomeFixtures.CARD_ID })
     }
 
     @Test
-    fun `selecting an account closes the selector and persists the choice`() = runTest {
-        val vm = createViewModel()
-        vm.trySendAction(HomeAction.OpenAccountSelector)
-        advanceUntilIdle()
+    fun aGlobalMoneyWalletLandsInAccountsDespiteReportingCacc() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = content()
 
-        vm.trySendAction(HomeAction.SelectAccount("acc-2"))
-        advanceUntilIdle()
-
-        assertEquals(false, vm.stateFlow.value.isAccountSelectorVisible)
-        assertEquals("acc-2", userDataRepo.userData.first().selectedAccountId)
+        val data = vm.stateFlow.first().uiState.dataOrNull
+        assertTrue(data?.accounts.orEmpty().any { it.account.accountId == HomeFixtures.GLOBAL_MONEY_ID })
     }
 
     @Test
-    fun `empty account list yields Empty state`() = runTest {
-        val vm = createViewModel()
-        accountsRepo.emissions.value = ScreenState.Content(emptyList(), DataFreshness.FRESH)
+    fun anAccountWithoutABalanceStillAppears() = runTest {
+        val vm = viewModel()
+        val noBalance = HomeFixtures.current().copy(balance = null)
+        repo.emissions.value = ScreenState.Content(listOf(noBalance), DataFreshness.FRESH)
 
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Empty }
-        assertIs<ScreenState.Empty>(state.uiState)
+        val data = vm.stateFlow.first().uiState.dataOrNull
+        assertEquals(1, data?.accounts?.size)
     }
 
     @Test
-    fun `accounts error propagates to ui state`() = runTest {
-        val vm = createViewModel()
-        accountsRepo.emissions.value = ScreenState.Error(RuntimeException("boom"))
+    fun beforeNoonTheGreetingIsMorning() = runTest {
+        val vm = viewModel(FixedClock(MORNING))
+        repo.emissions.value = content()
 
-        val state = vm.stateFlow.first { it.uiState is ScreenState.Error }
-        assertIs<ScreenState.Error>(state.uiState)
+        assertEquals(Greeting.Morning, vm.stateFlow.first().uiState.dataOrNull?.greeting)
     }
 
     @Test
-    fun `SelectAccount persists the chosen account id`() = runTest {
-        val vm = createViewModel()
+    fun betweenNoonAndSixTheGreetingIsAfternoon() = runTest {
+        val vm = viewModel(FixedClock(AFTERNOON))
+        repo.emissions.value = content()
 
-        vm.trySendAction(HomeAction.SelectAccount("acc-2"))
-        advanceUntilIdle()
-
-        assertEquals("acc-2", userDataRepo.userData.value.selectedAccountId)
+        assertEquals(Greeting.Afternoon, vm.stateFlow.first().uiState.dataOrNull?.greeting)
     }
 
     @Test
-    fun `RetryLoad refreshes every repository`() = runTest {
-        val vm = createViewModel()
+    fun fromSixTheGreetingIsEvening() = runTest {
+        val vm = viewModel(FixedClock(EVENING))
+        repo.emissions.value = content()
+
+        assertEquals(Greeting.Evening, vm.stateFlow.first().uiState.dataOrNull?.greeting)
+    }
+
+    @Test
+    fun loadingIsPassedThrough() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = ScreenState.Loading
+
+        assertIs<ScreenState.Loading>(vm.stateFlow.first().uiState)
+    }
+
+    @Test
+    fun emptyIsPassedThrough() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = ScreenState.Empty
+
+        assertIs<ScreenState.Empty>(vm.stateFlow.first().uiState)
+    }
+
+    @Test
+    fun errorIsPassedThrough() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = ScreenState.Error(IllegalStateException("boom"))
+
+        assertIs<ScreenState.Error>(vm.stateFlow.first().uiState)
+    }
+
+    @Test
+    fun retryLoadRefreshesTheOverview() = runTest {
+        val vm = viewModel()
+        repo.emissions.value = content()
 
         vm.trySendAction(HomeAction.RetryLoad)
-        advanceUntilIdle()
 
-        assertEquals(1, accountsRepo.refreshCount)
-        assertEquals(1, balancesRepo.refreshCount)
-        assertEquals(1, transactionsRepo.refreshCount)
+        assertEquals(1, repo.refreshCount)
+    }
+
+    private companion object {
+        val MORNING: Instant = Instant.parse("2026-08-27T09:00:00Z")
+        val AFTERNOON: Instant = Instant.parse("2026-08-27T14:00:00Z")
+        val EVENING: Instant = Instant.parse("2026-08-27T20:00:00Z")
     }
 }

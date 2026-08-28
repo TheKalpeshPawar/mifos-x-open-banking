@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.core.data.banking.mapper
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.BankAccount
 import org.mifosx.openbanking.core.model.banking.BeneficiaryScheme
 import org.mifosx.openbanking.core.model.banking.payment.CreditorSelection
@@ -38,12 +39,11 @@ class PaymentMapperTest {
     ) = PaymentDraft(
         debtorAccount = BankAccount(
             accountId = "123456791",
-            nickname = "Current account ·· 3349",
-            accountSubType = "CurrentAccount",
+            accountHolderName = "Mr Nico",
+            accountTypeCode = "CACC",
             currency = "GBP",
-            sortCode = "802001",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
+            identification = "80200110203349",
+            scheme = AccountScheme.SortCode,
         ),
         creditor = CreditorSelection(
             name = "Jameson Lettings",
@@ -154,6 +154,61 @@ class PaymentMapperTest {
         assertEquals(PaymentStatus.AcceptedSettlementInProcess, receipt.status)
         assertEquals("£850.00", receipt.amountLabel)
         assertEquals("Jameson Lettings", receipt.creditorName)
+    }
+
+    /** Both parties, as sandbox payment 20123 returns them. */
+    @Test
+    fun carriesBothPartiesNameIdentificationAndSchemeOffTheEcho() {
+        val receipt = DomesticPaymentResponse(
+            data = Data(
+                domesticPaymentId = "20123",
+                consentId = "45689",
+                status = "ACCC",
+                initiation = Initiation(
+                    instructedAmount = InstructedAmount(amount = "6.00", currency = "GBP"),
+                    debtorAccount = org.mifosx.openbanking.core.network.model.pisp.domesticPayment
+                        .response.DebtorAccount(
+                            schemeName = "UK.OBIE.SortCodeAccountNumber",
+                            identification = "80200110203349",
+                            name = "Mr Nico",
+                        ),
+                    creditorAccount = org.mifosx.openbanking.core.network.model.pisp.domesticPayment
+                        .response.CreditorAccount(
+                            schemeName = "UK.OBIE.SortCodeAccountNumber",
+                            identification = "80200110203350",
+                            name = "Mr Dharani C",
+                        ),
+                ),
+            ),
+        ).toPaymentReceipt()
+
+        assertEquals("Mr Nico", receipt.debtorName)
+        assertEquals("80200110203349", receipt.debtorIdentification)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", receipt.debtorScheme)
+        assertEquals("Mr Dharani C", receipt.creditorName)
+        assertEquals("80200110203350", receipt.creditorIdentification)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", receipt.creditorScheme)
+    }
+
+    /** A payer chosen at the bank leaves `DebtorAccount` off the response entirely. */
+    @Test
+    fun leavesTheDebtorBlankWhenTheResponseCarriesNoDebtorAccount() {
+        val receipt = DomesticPaymentResponse(
+            data = Data(
+                domesticPaymentId = "20123",
+                consentId = "45689",
+                status = "ACCC",
+                initiation = Initiation(
+                    instructedAmount = InstructedAmount(amount = "6.00", currency = "GBP"),
+                    creditorAccount = org.mifosx.openbanking.core.network.model.pisp.domesticPayment
+                        .response.CreditorAccount(name = "Mr Dharani C"),
+                ),
+            ),
+        ).toPaymentReceipt()
+
+        assertEquals("", receipt.debtorName)
+        assertEquals("", receipt.debtorIdentification)
+        assertEquals("", receipt.debtorScheme)
     }
 
     /** HSBC returns the ISO codes on some responses and the long OBIE names on others. */

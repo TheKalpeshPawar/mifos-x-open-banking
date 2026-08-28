@@ -44,7 +44,7 @@
     <string name="feature_vrp_setup_error_body">Something went wrong. Please try again.</string>
     <string name="feature_vrp_setup_retry">Retry</string>
 
-    <string name="feature_vrp_setup_review_title">Check your Variable Recurring Payment</string>
+    <string name="feature_vrp_setup_review_title">Review VRP</string>
     <string name="feature_vrp_setup_review_payer">From</string>
     <string name="feature_vrp_setup_review_payee">To</string>
     <string name="feature_vrp_setup_review_limits">Limits</string>

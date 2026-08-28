@@ -117,10 +117,10 @@ class PaymentHistoryDaoTest {
     }
 
     @Test
-    fun `updateStatus writes the status back and leaves the rest of the row`() = runTest {
+    fun `updateFromReceipt writes the status back and leaves the rest of the row`() = runTest {
         dao.upsert(row("1"))
 
-        dao.updateStatus(
+        dao.updateFromReceipt(
             paymentId = "1",
             status = "AcceptedCreditSettlementCompleted",
             settledAt = "2026-08-16T10:00:00Z",
@@ -136,13 +136,72 @@ class PaymentHistoryDaoTest {
     }
 
     @Test
-    fun `updateStatus touches nothing when no row carries that payment id`() = runTest {
+    fun `updateFromReceipt touches nothing when no row carries that payment id`() = runTest {
         dao.upsert(row("1"))
 
-        dao.updateStatus("absent", "Rejected", settledAt = null, syncedAt = "2026-08-16T10:00:01Z")
+        dao.updateFromReceipt(
+            "absent",
+            "Rejected",
+            settledAt = null,
+            syncedAt = "2026-08-16T10:00:01Z",
+        )
 
         assertNull(dao.observeById("absent").first())
         assertEquals("AcceptedSettlementInProcess", dao.observeById("1").first()?.status)
+    }
+
+    @Test
+    fun `updateFromReceipt records the parties the bank echoed`() = runTest {
+        dao.upsert(row("1"))
+
+        dao.updateFromReceipt(
+            paymentId = "1",
+            status = "AcceptedCreditSettlementCompleted",
+            settledAt = null,
+            syncedAt = "2026-08-16T10:00:01Z",
+            debtorName = "Mr Nico",
+            debtorIdentification = "80200110203349",
+            debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+            creditorName = "Mr Dharani C",
+            creditorIdentification = "80200110203350",
+            creditorScheme = "UK.OBIE.SortCodeAccountNumber",
+        )
+
+        val stored = dao.observeById("1").first()
+        assertEquals("Mr Nico", stored?.debtorName)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", stored?.debtorScheme)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", stored?.creditorScheme)
+    }
+
+    /**
+     * A response omits `DebtorAccount` whenever the payer was chosen at the bank, so a blank must
+     * leave the stored payer alone rather than erasing what an earlier read recorded.
+     */
+    @Test
+    fun `updateFromReceipt keeps a stored party when the receipt carries none`() = runTest {
+        dao.upsert(row("1"))
+        dao.updateFromReceipt(
+            paymentId = "1",
+            status = "AcceptedSettlementInProcess",
+            settledAt = null,
+            syncedAt = "2026-08-16T10:00:01Z",
+            debtorName = "Mr Nico",
+            debtorIdentification = "80200110203349",
+            debtorScheme = "UK.OBIE.SortCodeAccountNumber",
+        )
+
+        dao.updateFromReceipt(
+            paymentId = "1",
+            status = "AcceptedCreditSettlementCompleted",
+            settledAt = null,
+            syncedAt = "2026-08-16T10:00:02Z",
+        )
+
+        val stored = dao.observeById("1").first()
+        assertEquals("Mr Nico", stored?.debtorName)
+        assertEquals("80200110203349", stored?.debtorIdentification)
+        assertEquals("UK.OBIE.SortCodeAccountNumber", stored?.debtorScheme)
+        assertEquals("AcceptedCreditSettlementCompleted", stored?.status)
     }
 
     private companion object {

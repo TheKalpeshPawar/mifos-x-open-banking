@@ -17,14 +17,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.Res
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_download_error
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_download_success
+import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_error_consent_missing
+import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_error_file_not_found
+import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_error_network
+import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_error_session_expired
+import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_error_statement_not_found
 import org.mifosx.openbanking.feature.statementdetail.generated.resources.feature_statement_detail_screen_title
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailAction
+import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailErrorCode
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailEvent
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailState
 import org.mifosx.openbanking.feature.statementdetail.ui.StatementDetailUiState
@@ -84,7 +93,7 @@ internal fun StatementDetailScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        StatementDetailUiState.Loading -> StatementDetailSkeleton(modifier = modifier)
+        StatementDetailUiState.Loading -> MifosProgressIndicator()
 
         is StatementDetailUiState.Content -> StatementDetailContent(
             statement = current.statement,
@@ -102,12 +111,25 @@ internal fun StatementDetailScreenContent(
             modifier = modifier,
         )
 
-        is StatementDetailUiState.Error -> StatementDetailError(
-            code = current.code,
+        is StatementDetailUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.code.bodyResource()),
+            isRetryEnabled = true,
             onRetry = { onAction(StatementDetailAction.RetryLoad) },
-            modifier = modifier,
         )
     }
+}
+
+private fun StatementDetailErrorCode.bodyResource(): StringResource = when (this) {
+    StatementDetailErrorCode.StatementNotFound ->
+        Res.string.feature_statement_detail_error_statement_not_found
+    StatementDetailErrorCode.ConsentMissingReadStatements ->
+        Res.string.feature_statement_detail_error_consent_missing
+    StatementDetailErrorCode.SessionExpired ->
+        Res.string.feature_statement_detail_error_session_expired
+    StatementDetailErrorCode.StatementFileNotFound ->
+        Res.string.feature_statement_detail_error_file_not_found
+    StatementDetailErrorCode.NetworkError ->
+        Res.string.feature_statement_detail_error_network
 }
 
 /** The top-bar title: the statement reference once loaded, or null to fall back to a generic title. */

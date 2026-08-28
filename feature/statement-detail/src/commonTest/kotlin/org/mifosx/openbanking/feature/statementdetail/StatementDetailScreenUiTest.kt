@@ -58,20 +58,6 @@ class StatementDetailScreenUiTest {
     }
 
     @Test
-    fun loadingRendersTheSkeletonNotTheContent() = runComposeUiTest {
-        setContent {
-            StatementDetailScreenContent(
-                state = StatementDetailFixtures.loadingState(),
-                onAction = {},
-                onRowClick = { _, _ -> },
-            )
-        }
-
-        onNodeWithTag(StatementDetailTestTags.LOADING_SKELETON).assertExists()
-        onNodeWithTag(StatementDetailTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
     fun emptyRendersBalancesTheEmptyBlockAndDownloadButNoTransactionSections() = runComposeUiTest {
         setContent {
             StatementDetailScreenContent(
@@ -91,21 +77,6 @@ class StatementDetailScreenUiTest {
         onNodeWithTag(StatementDetailTestTags.FEES_SECTION, useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag(StatementDetailTestTags.TRANSACTIONS_SECTION, useUnmergedTree = true)
             .assertDoesNotExist()
-    }
-
-    @Test
-    fun errorRendersTitleBodyAndRetry() = runComposeUiTest {
-        setContent {
-            StatementDetailScreenContent(
-                state = StatementDetailFixtures.errorState(),
-                onAction = {},
-                onRowClick = { _, _ -> },
-            )
-        }
-
-        onNodeWithTag(StatementDetailTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(StatementDetailTestTags.ERROR_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(StatementDetailTestTags.RETRY_BUTTON).assertExists()
     }
 
     @Test

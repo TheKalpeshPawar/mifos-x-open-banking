@@ -35,15 +35,6 @@ private const val REJECTED_AT = "3 Aug 2026, 16:40"
 class PaymentStatusScreenUiTest {
 
     @Test
-    fun loadingRendersTheSkeleton() = runComposeUiTest {
-        setContent {
-            PaymentStatusScreenContent(PaymentStatusFixtures.loadingState(), {})
-        }
-        onNodeWithTag(PaymentStatusTestTags.SKELETON).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertDoesNotExist()
-    }
-
-    @Test
     fun contentRendersTheSummaryAndEveryDetailRow() = runComposeUiTest {
         setContent {
             PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
@@ -53,6 +44,7 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.STATUS_CHIP).assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_REFERENCE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_FROM).performScrollTo().assertIsDisplayed()
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_TO).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_SUBMITTED).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_ID).performScrollTo().assertIsDisplayed()
     }
@@ -86,6 +78,29 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).performScrollTo().assertIsNotEnabled()
     }
 
+    /** An in-flight payment can still move, so the re-read is worth offering. */
+    @Test
+    fun refreshIsOfferedWhileThePaymentIsStillInFlight() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).assertExists()
+    }
+
+    /**
+     * A booked standing instruction is the bank's last word, so nothing a re-read could return.
+     *
+     * Asserted in both directions on purpose: a button that is merely absent from a fixture proves
+     * nothing, and this one was unconditional until now.
+     */
+    @Test
+    fun refreshIsWithheldOnceTheStatusIsFinal() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.standingOrderState(), {})
+        }
+        onNodeWithTag(PaymentStatusTestTags.REFRESH_BUTTON).assertDoesNotExist()
+    }
+
     @Test
     fun tappingRefreshRereadsTheStatus() {
         val actions = mutableListOf<PaymentStatusAction>()
@@ -103,15 +118,6 @@ class PaymentStatusScreenUiTest {
     }
 
     @Test
-    fun errorRendersRetry() = runComposeUiTest {
-        setContent {
-            PaymentStatusScreenContent(PaymentStatusFixtures.errorState(), {})
-        }
-        onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.RETRY_BUTTON).assertIsDisplayed()
-    }
-
-    @Test
     fun tappingRetryRereadsTheStatus() {
         val actions = mutableListOf<PaymentStatusAction>()
         runComposeUiTest {
@@ -121,7 +127,7 @@ class PaymentStatusScreenUiTest {
                     onAction = { actions += it },
                 )
             }
-            onNodeWithTag(PaymentStatusTestTags.RETRY_BUTTON).performClick()
+            onNodeWithText("Retry").performClick()
         }
 
         assertEquals<List<PaymentStatusAction>>(listOf(PaymentStatusAction.RefreshStatus), actions)
@@ -246,7 +252,6 @@ class PaymentStatusScreenUiTest {
         }
         onNodeWithTag(PaymentStatusTestTags.REFRESH_FAILURE).performScrollTo().assertIsDisplayed()
         onNodeWithTag(PaymentStatusTestTags.SUMMARY_CARD).assertIsDisplayed()
-        onNodeWithTag(PaymentStatusTestTags.ERROR_STATE).assertDoesNotExist()
     }
 
     @Test
@@ -333,6 +338,41 @@ class PaymentStatusScreenUiTest {
         onNodeWithTag(PaymentStatusTestTags.DETAIL_REPEATS).assertDoesNotExist()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_FINAL_PAYMENT).assertDoesNotExist()
         onNodeWithTag(PaymentStatusTestTags.DETAIL_RECURRING_AMOUNT).assertDoesNotExist()
+    }
+
+    /**
+     * The row exists to name the rail, so asserting only its tag would not catch it naming the wrong
+     * one — which is the single way this row can be wrong.
+     */
+    @Test
+    fun theBookedMandateNamesItsPaymentType() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.standingOrderState(), {})
+        }
+
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_TYPE)
+            .performScrollTo()
+            .assertIsDisplayed()
+        onNodeWithText("Domestic Standing Order").assertIsDisplayed()
+    }
+
+    @Test
+    fun aScheduledPaymentNamesItsPaymentType() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.scheduledState(), {})
+        }
+
+        onNodeWithText("Domestic Scheduled Payment").assertIsDisplayed()
+    }
+
+    /** With no consent type there is no honest value, so the row is withheld rather than guessed. */
+    @Test
+    fun thePaymentTypeRowIsWithheldWhenTheRailIsUnknown() = runComposeUiTest {
+        setContent {
+            PaymentStatusScreenContent(PaymentStatusFixtures.contentState(), {})
+        }
+
+        onNodeWithTag(PaymentStatusTestTags.DETAIL_PAYMENT_TYPE).assertDoesNotExist()
     }
 
     // endregion

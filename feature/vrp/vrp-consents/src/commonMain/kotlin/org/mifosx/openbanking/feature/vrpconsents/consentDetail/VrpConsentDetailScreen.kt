@@ -52,8 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.common.AccountScheme
+import org.mifosx.openbanking.core.common.formatAccountIdentifier
 import org.mifosx.openbanking.core.model.callback.ConsentStatus
-import org.mifosx.openbanking.core.ui.account.accountTypeLabel
+import org.mifosx.openbanking.core.model.vrp.AccountIdentity
 import org.mifosx.openbanking.core.ui.components.MifosFilledPillButton
 import org.mifosx.openbanking.core.ui.components.MifosSectionHeading
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
@@ -436,7 +438,7 @@ private fun LimitRow(
 }
 
 @Composable
-private fun PayerCard(payer: PayerAccountUi?) {
+private fun PayerCard(payer: AccountIdentity?) {
     DetailCard {
         MifosSectionHeading(stringResource(Res.string.feature_vrp_consents_detail_payer))
 
@@ -462,13 +464,16 @@ private fun PayerCard(payer: PayerAccountUi?) {
             } else {
                 Column {
                     Text(
-                        text = payer.maskedAccountNumber,
+                        text = formatAccountIdentifier(
+                            scheme = AccountScheme.fromSchemeName(payer.schemeName),
+                            identification = payer.identification,
+                        ),
                         style = KptTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = KptTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = accountTypeLabel(payer.accountSubType),
+                        text = payer.name,
                         style = KptTheme.typography.bodyMedium,
                         color = KptTheme.colorScheme.onSurfaceVariant,
                     )

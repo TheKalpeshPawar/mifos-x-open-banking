@@ -24,7 +24,7 @@ import template.core.base.common.screen.emptyIfContent
 import template.core.base.ui.viewmodel.BaseViewModel
 
 /**
- * Drives the direct-debits list: the mandate cards and the two summary chips.
+ * Drives the direct-debits list: the mandate cards.
  *
  * Navigation is not modelled as an action — the screen owns back through its `onBack` lambda,
  * matching account-detail — so this stays a pure state machine over the mandate stream.
@@ -81,8 +81,6 @@ class DirectDebitsViewModel(
     } else {
         DirectDebitsUiState.Content(
             mandates = items.map { it.toRowUi() },
-            activeCount = activeCount,
-            inactiveCount = inactiveCount,
         )
     }
 
@@ -91,11 +89,11 @@ class DirectDebitsViewModel(
         name = name,
         statusLabel = statusCode,
         isActive = isActive,
-        amountLabel = previousPaymentAmount
+        previousPaymentAmount = previousPaymentAmount
             .takeIf { it.isNotBlank() }
             ?.let { formatMoney(it, currency) }
             .orEmpty(),
-        lastCollectedLabel = formatMandateDate(previousPaymentDateTime),
+        previousPaymentDateTime = formatMandateDate(previousPaymentDateTime),
     )
 
     companion object {
@@ -105,25 +103,16 @@ class DirectDebitsViewModel(
 }
 
 /**
- * Formats an ISO-8601 instant as `15 Jun 2026`, the form the mandate cards show.
+ * Formats an ISO-8601 instant as `2026-06-15 00:00:00`, dropping the timezone suffix.
  *
  * Anything unparseable is returned unchanged rather than blanked: a value the bank did send is
  * more useful on screen in an odd format than silently dropped. A genuinely absent date stays
- * blank, and the card omits that line entirely.
+ * blank.
  */
 internal fun formatMandateDate(isoDateTime: String): String {
-    val segments = isoDateTime.substringBefore('T').split('-')
-    val year = segments.getOrNull(0)?.takeIf { segments.size == DATE_SEGMENTS }
-    val month = MONTH_ABBREVIATIONS.getOrNull(segments.getOrNull(1)?.toIntOrNull()?.minus(1) ?: -1)
-    val day = segments.getOrNull(2)?.trimStart('0')?.takeIf { it.isNotEmpty() }
-    return if (year == null || month == null || day == null) {
-        isoDateTime
-    } else {
-        "$day $month $year"
-    }
+    val date = isoDateTime.substringBefore('T')
+    val time = isoDateTime.substringAfter('T', "")
+        .substringBefore('+')
+        .substringBefore('Z')
+    return if (date.isEmpty() || time.isEmpty()) isoDateTime else "$date $time"
 }
-
-private const val DATE_SEGMENTS = 3
-private val MONTH_ABBREVIATIONS = listOf(
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-)

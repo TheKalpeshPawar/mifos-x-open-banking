@@ -69,7 +69,7 @@ class SendMoneyHistoryScreenUiTest {
         }
 
         onNodeWithText("Sent").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Sending").assertIsDisplayed()
+        onNodeWithText("Sending").performScrollTo().assertIsDisplayed()
     }
 
     @Test

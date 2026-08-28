@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.mifosx.openbanking.core.common.formatMoney
 import org.mifosx.openbanking.core.data.banking.ScheduledPaymentsRepository
 import org.mifosx.openbanking.core.model.banking.ScheduledPaymentItem
 import template.core.base.common.screen.ScreenState
@@ -30,7 +31,7 @@ import kotlin.time.Instant
  * matching direct-debits — so this stays a pure state machine over the payment stream, with no
  * one-shot events (`Event = Nothing`).
  *
- * All display formatting happens here: the amount becomes `GBP 842.00` and the ISO date becomes
+ * All display formatting happens here: the amount becomes `£842.00` and the ISO date becomes
  * `Fri 31 Jul 2026`, so the composables receive finished strings and stay testable on the JVM.
  */
 class ScheduledPaymentsViewModel(
@@ -71,7 +72,7 @@ class ScheduledPaymentsViewModel(
     private fun ScheduledPaymentItem.toUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
         scheduledPaymentId = scheduledPaymentId,
         payeeName = payeeName,
-        amountLabel = "$currency $amount",
+        amountLabel = formatMoney(amount, currency),
         scheduledDateLabel = formatScheduledDate(scheduledDateTime),
         scheduledType = scheduledType,
         creditorIdentification = creditorIdentification,

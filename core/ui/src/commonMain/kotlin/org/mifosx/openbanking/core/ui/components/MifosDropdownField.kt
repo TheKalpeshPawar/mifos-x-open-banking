@@ -88,8 +88,8 @@ fun <T> MifosDropdownField(
         if (caption != null) {
             Text(
                 text = caption,
-                style = KptTheme.typography.bodySmall,
-                color = KptTheme.colorScheme.onSurfaceVariant,
+                style = KptTheme.typography.titleSmall,
+                color = KptTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = CaptionGap, start = FieldPadding),
             )
         }

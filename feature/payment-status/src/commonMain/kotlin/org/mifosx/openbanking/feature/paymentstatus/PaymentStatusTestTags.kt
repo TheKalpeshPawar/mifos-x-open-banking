@@ -14,7 +14,6 @@ import org.mifosx.openbanking.feature.paymentstatus.ui.PaymentTimelineStep
 
 /** Stable tags the UI suites drive this screen by. Append-only. */
 internal object PaymentStatusTestTags {
-    const val SKELETON = "paymentStatus:skeleton"
     const val SUMMARY_CARD = "paymentStatus:summaryCard"
     const val AMOUNT = "paymentStatus:amount"
     const val STATUS_CHIP = "paymentStatus:statusChip"
@@ -22,6 +21,8 @@ internal object PaymentStatusTestTags {
     const val DETAILS_LIST = "paymentStatus:detailsList"
     const val DETAIL_REFERENCE = "paymentStatus:detailReference"
     const val DETAIL_FROM = "paymentStatus:detailFrom"
+    const val DETAIL_TO = "paymentStatus:detailTo"
+    const val DETAIL_PAYMENT_TYPE = "paymentStatus:detailPaymentType"
     const val DETAIL_SUBMITTED = "paymentStatus:detailSubmitted"
     const val DETAIL_PAYMENT_ID = "paymentStatus:detailPaymentId"
     const val STATUS_DETAIL = "paymentStatus:statusDetail"
@@ -37,8 +38,6 @@ internal object PaymentStatusTestTags {
     const val DETAIL_REPEATS = "paymentStatus:detailRepeats"
     const val DETAIL_FINAL_PAYMENT = "paymentStatus:detailFinalPayment"
     const val DETAIL_RECURRING_AMOUNT = "paymentStatus:detailRecurringAmount"
-    const val ERROR_STATE = "paymentStatus:errorState"
-    const val RETRY_BUTTON = "paymentStatus:retryButton"
     const val TIMELINE = "paymentStatus:timeline"
     const val REFRESH_FAILURE = "paymentStatus:refreshFailure"
 

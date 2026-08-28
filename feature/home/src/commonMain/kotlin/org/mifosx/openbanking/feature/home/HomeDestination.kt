@@ -27,16 +27,24 @@ fun NavController.navigateToHome(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.homeGraph(
-    onNavigateToTransactions: (accountId: String) -> Unit,
-    onNavigateToTransactionDetail: (transactionId: String, accountId: String) -> Unit,
+    onNavigateToSendMoney: () -> Unit,
+    onNavigateToSchedulePayment: () -> Unit,
+    onNavigateToStandingOrder: () -> Unit,
+    onNavigateToVrp: () -> Unit,
+    onNavigateToAccountDetail: (accountId: String) -> Unit,
+    onNavigateToSettings: () -> Unit,
 ) {
     navigation<HomeDestination>(
         startDestination = HomeRoute,
     ) {
         composableWithStayTransitions<HomeRoute> {
             HomeScreen(
-                onNavigateToTransactions = onNavigateToTransactions,
-                onNavigateToTransactionDetail = onNavigateToTransactionDetail,
+                onNavigateToSendMoney = onNavigateToSendMoney,
+                onNavigateToSchedulePayment = onNavigateToSchedulePayment,
+                onNavigateToStandingOrder = onNavigateToStandingOrder,
+                onNavigateToVrp = onNavigateToVrp,
+                onNavigateToAccountDetail = onNavigateToAccountDetail,
+                onNavigateToSettings = onNavigateToSettings,
             )
         }
     }

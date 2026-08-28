@@ -11,7 +11,6 @@ package org.mifosx.openbanking.feature.directdebits.ui
 
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -89,17 +88,6 @@ class DirectDebitsViewModelTest {
     }
 
     @Test
-    fun contentStateExposesRowsAndSummaryCounts() {
-        val repository = FakeDirectDebitsRepository(content(DirectDebitsFixtures.summary()))
-        val state = viewModel(repository).stateFlow.value.uiState
-
-        val rendered = assertIs<DirectDebitsUiState.Content>(state)
-        assertEquals(4, rendered.mandates.size)
-        assertEquals(3, rendered.activeCount)
-        assertEquals(1, rendered.inactiveCount)
-    }
-
-    @Test
     fun contentPreservesActiveFirstOrderFromTheMapper() {
         val repository = FakeDirectDebitsRepository(content(DirectDebitsFixtures.summary()))
         val rendered = assertIs<DirectDebitsUiState.Content>(viewModel(repository).stateFlow.value.uiState)
@@ -112,13 +100,13 @@ class DirectDebitsViewModelTest {
     }
 
     @Test
-    fun amountsAreFormattedWithCurrencySymbolAndDatesAsDayMonthYear() {
+    fun amountsAreFormattedWithCurrencySymbolAndDatesAsRawDateTime() {
         val repository = FakeDirectDebitsRepository(content(DirectDebitsFixtures.summary()))
         val rendered = assertIs<DirectDebitsUiState.Content>(viewModel(repository).stateFlow.value.uiState)
 
         val first = rendered.mandates.first()
-        assertEquals("£78.00", first.amountLabel)
-        assertEquals("15 Jun 2026", first.lastCollectedLabel)
+        assertEquals("£78.00", first.previousPaymentAmount)
+        assertEquals("2026-06-15 00:00:00", first.previousPaymentDateTime)
         assertEquals("DD-BG-44120", first.mandateId)
         assertEquals("Active", first.statusLabel)
     }
@@ -131,7 +119,7 @@ class DirectDebitsViewModelTest {
         val inactive = rendered.mandates.last()
         assertEquals("Inactive", inactive.statusLabel)
         assertFalse(inactive.isActive)
-        assertEquals("£13.25", inactive.amountLabel)
+        assertEquals("£13.25", inactive.previousPaymentAmount)
     }
 
     @Test
@@ -151,8 +139,8 @@ class DirectDebitsViewModelTest {
         val rendered = assertIs<DirectDebitsUiState.Content>(viewModel(repository).stateFlow.value.uiState)
 
         val row = rendered.mandates.single()
-        assertEquals("", row.amountLabel)
-        assertEquals("", row.lastCollectedLabel)
+        assertEquals("", row.previousPaymentAmount)
+        assertEquals("", row.previousPaymentDateTime)
         assertEquals("", row.mandateId)
         assertEquals("Unknown Originator", row.name)
     }
@@ -306,14 +294,14 @@ class DirectDebitsViewModelTest {
     }
 
     @Test
-    fun mandateDateFormatterTrimsLeadingZeroesFromTheDay() {
-        assertEquals("5 Jun 2026", formatMandateDate("2026-06-05T00:00:00Z"))
-        assertEquals("1 Mar 2026", formatMandateDate("2026-03-01T00:00:00Z"))
+    fun mandateDateFormatterRendersDateTimeAndStripsTheTimezone() {
+        assertEquals("2026-06-15 00:00:00", formatMandateDate("2026-06-15T00:00:00Z"))
+        assertEquals("2026-06-15 00:00:00", formatMandateDate("2026-06-15T00:00:00+00:00"))
     }
 
     @Test
-    fun mandateDateFormatterHandlesDateOnlyInput() {
-        assertEquals("20 Dec 2026", formatMandateDate("2026-12-20"))
+    fun mandateDateFormatterReturnsDateOnlyInputUnchanged() {
+        assertEquals("2026-12-20", formatMandateDate("2026-12-20"))
     }
 
     @Test

@@ -18,11 +18,6 @@ import org.mifosx.openbanking.feature.accounts.ui.AccountFilter
 internal object AccountsTestTags {
     const val CONTENT = "accounts_content"
     const val FILTER_ROW = "accounts_filter_row"
-    const val SKELETON = "accounts_skeleton"
-    const val EMPTY = "accounts_empty"
-    const val ERROR = "accounts_error"
-    const val ERROR_RETRY = "accounts_error_retry"
-    const val BALANCE_OWED_BADGE = "accounts_balance_owed_badge"
 
     private const val ACCOUNT_CARD_PREFIX = "accounts_card_"
     private const val FILTER_CHIP_PREFIX = "accounts_filter_"

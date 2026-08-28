@@ -29,7 +29,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,8 +42,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.statements.generated.resources.Res
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_closing_balance_label
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_date_range
@@ -54,16 +53,7 @@ import org.mifosx.openbanking.feature.statements.generated.resources.feature_sta
 import org.mifosx.openbanking.feature.statements.generated.resources.feature_statements_row_accessibility
 import org.mifosx.openbanking.feature.statements.ui.DownloadState
 import org.mifosx.openbanking.feature.statements.ui.StatementRowUiModel
-
-private val RowMinHeight = 72.dp
-private val RowHorizontalPadding = 16.dp
-private val RowEndPadding = 8.dp
-private val RowVerticalPadding = 12.dp
-private val RowTextGap = 2.dp
-private val RowTrailingGap = 4.dp
-private val DownloadButtonSize = 40.dp
-private val SpinnerSize = 20.dp
-private val SpinnerStroke = 2.dp
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The statements body: a lazy list of period rows, a hairline divider between each.
@@ -99,8 +89,8 @@ internal fun StatementsContent(
             )
             if (index < statements.lastIndex) {
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    modifier = Modifier.padding(horizontal = RowHorizontalPadding),
+                    color = KptTheme.colorScheme.outlineVariant,
+                    modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
                 )
             }
         }
@@ -132,13 +122,13 @@ private fun StatementRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = RowMinHeight)
+            .heightIn(min = DesignToken.sizes.rowTall)
             .clickable { onRowClick(row.statementId) }
             .padding(
-                start = RowHorizontalPadding,
-                end = RowEndPadding,
-                top = RowVerticalPadding,
-                bottom = RowVerticalPadding,
+                start = KptTheme.spacing.md,
+                end = KptTheme.spacing.sm,
+                top = KptTheme.spacing.sm,
+                bottom = KptTheme.spacing.sm,
             )
             .testTag(StatementsTestTags.row(row.statementId))
             .semantics { contentDescription = rowDescription },
@@ -161,12 +151,12 @@ private fun StatementRow(
 @Composable
 private fun StatementRowText(row: StatementRowUiModel, modifier: Modifier = Modifier) {
     val label = stringResource(Res.string.feature_statements_closing_balance_label)
-    val supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(RowTextGap)) {
+    val supportingColor = KptTheme.colorScheme.onSurfaceVariant
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs)) {
         Text(
             text = row.periodLabel,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = KptTheme.typography.bodyLarge,
+            color = KptTheme.colorScheme.onSurface,
         )
         Text(
             text = buildAnnotatedString {
@@ -175,7 +165,7 @@ private fun StatementRowText(row: StatementRowUiModel, modifier: Modifier = Modi
                     append(row.closingBalanceFormatted)
                 }
             },
-            style = MaterialTheme.typography.bodyMedium,
+            style = KptTheme.typography.bodyMedium,
         )
     }
 }
@@ -192,12 +182,12 @@ private fun StatementRowTrailing(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(RowTrailingGap),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
     ) {
         Text(
             text = dateRange,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = KptTheme.typography.bodySmall,
+            color = KptTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )
         DownloadControl(
@@ -210,7 +200,7 @@ private fun StatementRowTrailing(
 }
 
 /**
- * The download affordance for one row: a 40dp round icon button that tints to primary on hover, swapped
+ * The download affordance for one row: a round icon button that tints to primary on hover, swapped
  * for a same-footprint spinner while that statement's download is in flight.
  */
 @Composable
@@ -230,14 +220,14 @@ private fun DownloadControl(
     if (isDownloading) {
         Box(
             modifier = Modifier
-                .size(DownloadButtonSize)
+                .size(DesignToken.sizes.iconExtraLarge)
                 .testTag(StatementsTestTags.downloadSpinner(statementId))
                 .semantics { contentDescription = spinnerDescription },
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(SpinnerSize),
-                strokeWidth = SpinnerStroke,
+                modifier = Modifier.size(DesignToken.sizes.iconSmall),
+                strokeWidth = DesignToken.strokes.thick,
             )
         }
     } else {
@@ -247,16 +237,16 @@ private fun DownloadControl(
             onClick = { onDownload(statementId) },
             interactionSource = interactionSource,
             modifier = Modifier
-                .size(DownloadButtonSize)
+                .size(DesignToken.sizes.iconExtraLarge)
                 .testTag(StatementsTestTags.downloadButton(statementId)),
         ) {
             Icon(
                 imageVector = Icons.Filled.FileDownload,
                 contentDescription = downloadDescription,
                 tint = if (isHovered) {
-                    MaterialTheme.colorScheme.primary
+                    KptTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    KptTheme.colorScheme.onSurfaceVariant
                 },
             )
         }

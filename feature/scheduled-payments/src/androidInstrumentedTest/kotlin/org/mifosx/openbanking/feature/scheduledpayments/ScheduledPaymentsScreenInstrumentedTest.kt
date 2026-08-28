@@ -11,18 +11,14 @@ package org.mifosx.openbanking.feature.scheduledpayments
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mifosx.openbanking.core.model.banking.ScheduledPaymentType
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentUiModel
-import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsAction
-import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsError
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsState
 import org.mifosx.openbanking.feature.scheduledpayments.ui.ScheduledPaymentsUiState
-import kotlin.test.assertEquals
 
 private const val ACCOUNT_ID = "40051512345678"
 private const val EXECUTION_ID = "SP-001"
@@ -34,7 +30,7 @@ private const val ARRIVAL_ID = "SP-003"
 private fun executionUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
     scheduledPaymentId = EXECUTION_ID,
     payeeName = "HMRC Self Assessment",
-    amountLabel = "GBP 842.00",
+    amountLabel = "£842.00",
     scheduledDateLabel = "Fri 31 Jul 2026",
     scheduledType = ScheduledPaymentType.Execution,
     creditorIdentification = "08-32-00 12001039",
@@ -44,7 +40,7 @@ private fun executionUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiMode
 private fun arrivalUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
     scheduledPaymentId = ARRIVAL_ID,
     payeeName = "Direct Line Insurance",
-    amountLabel = "GBP 412.50",
+    amountLabel = "£412.50",
     scheduledDateLabel = "Sat 15 Aug 2026",
     scheduledType = ScheduledPaymentType.Arrival,
     creditorIdentification = "20-00-00 73428901",
@@ -54,18 +50,6 @@ private fun arrivalUiModel(): ScheduledPaymentUiModel = ScheduledPaymentUiModel(
 private fun contentState(): ScheduledPaymentsState = ScheduledPaymentsState(
     accountId = ACCOUNT_ID,
     uiState = ScheduledPaymentsUiState.Content(listOf(executionUiModel(), arrivalUiModel())),
-)
-
-private fun loadingState(): ScheduledPaymentsState = ScheduledPaymentsState(accountId = ACCOUNT_ID)
-
-private fun emptyState(): ScheduledPaymentsState = ScheduledPaymentsState(
-    accountId = ACCOUNT_ID,
-    uiState = ScheduledPaymentsUiState.Empty,
-)
-
-private fun errorState(): ScheduledPaymentsState = ScheduledPaymentsState(
-    accountId = ACCOUNT_ID,
-    uiState = ScheduledPaymentsUiState.Error(ScheduledPaymentsError.TokenExpired),
 )
 
 /**
@@ -78,14 +62,9 @@ class ScheduledPaymentsScreenInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val actions = mutableListOf<ScheduledPaymentsAction>()
-
     private fun render(state: ScheduledPaymentsState) {
         composeRule.setContent {
-            ScheduledPaymentsScreenContent(
-                state = state,
-                onAction = { actions.add(it) },
-            )
+            ScheduledPaymentsScreenContent(state = state, onAction = {})
         }
     }
 
@@ -95,34 +74,6 @@ class ScheduledPaymentsScreenInstrumentedTest {
 
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.CONTENT_LIST).assertExists()
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.card(EXECUTION_ID)).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.typeChip(EXECUTION_ID)).assertExists()
         composeRule.onNodeWithTag(ScheduledPaymentsTestTags.card(ARRIVAL_ID)).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.typeChip(ARRIVAL_ID)).assertExists()
-    }
-
-    @Test
-    fun loadingRendersTheSpinner() {
-        render(loadingState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.LOADING).assertExists()
-    }
-
-    @Test
-    fun emptyRendersItsTitle() {
-        render(emptyState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.EMPTY_TITLE, useUnmergedTree = true)
-            .assertExists()
-    }
-
-    @Test
-    fun errorShowsRetryAndDispatchesRetryLoad() {
-        render(errorState())
-
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(ScheduledPaymentsTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<ScheduledPaymentsAction>(ScheduledPaymentsAction.RetryLoad), actions)
     }
 }

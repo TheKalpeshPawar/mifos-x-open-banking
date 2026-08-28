@@ -14,7 +14,7 @@ import org.mifosx.openbanking.core.model.banking.DirectDebitsSummary
 import org.mifosx.openbanking.core.network.model.ais.directDebits.DirectDebit
 import org.mifosx.openbanking.core.network.model.ais.directDebits.DirectDebitsResponse
 
-private const val ACTIVE_STATUS = "Active"
+private const val ACTIVE_STATUS = "ACTV"
 
 /**
  * Maps the OBIE `OBReadDirectDebit2` payload into the mandate list, sorted active-first.

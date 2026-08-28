@@ -9,6 +9,7 @@
  */
 package org.mifosx.openbanking.feature.accountdetail
 
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
 import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.AccountDetailWithBalances
@@ -18,11 +19,10 @@ object AccountDetailFixtures {
 
     fun detail(
         accountId: String = "acc-1",
-        nickname: String = "Everyday Current",
-        accountSubType: String = "CurrentAccount",
+        accountHolderName: String = "Everyday Current",
         currency: String = "GBP",
-        sortCode: String = "400515",
-        accountNumber: String = "12345678",
+        identification: String = "40051512345678",
+        scheme: AccountScheme = AccountScheme.SortCode,
         servicerIdentification: String = "MIDLGB2105V",
         statusUpdateDateTime: String = "2026-06-28T18:30:00Z",
         // Defaults describe an ordinary personal current account, so a test that does not care
@@ -31,14 +31,13 @@ object AccountDetailFixtures {
         description: String = "Description of the account",
     ): AccountDetail = AccountDetail(
         accountId = accountId,
-        nickname = nickname,
-        accountSubType = accountSubType,
+        accountHolderName = accountHolderName,
+        accountTypeCode = accountTypeCode,
         currency = currency,
-        sortCode = sortCode,
-        accountNumber = accountNumber,
+        identification = identification,
+        scheme = scheme,
         servicerIdentification = servicerIdentification,
         statusUpdateDateTime = statusUpdateDateTime,
-        accountTypeCode = accountTypeCode,
         description = description,
     )
 

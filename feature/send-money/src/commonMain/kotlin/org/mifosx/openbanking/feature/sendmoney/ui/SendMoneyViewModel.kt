@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.mifosx.openbanking.core.common.formatMinorUnits
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.common.parseMinorUnits
 import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountsOverviewRepository
@@ -43,7 +42,6 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentRail
 import org.mifosx.openbanking.core.model.hsbcProduct.AccountEndpoint
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductCapability
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
-import org.mifosx.openbanking.core.ui.payee.initialsOf
 import org.mifosx.openbanking.core.ui.payment.toHistoryEntry
 import template.core.base.common.screen.DataFreshness
 import template.core.base.common.screen.ScreenState
@@ -647,15 +645,15 @@ class SendMoneyViewModel(
             step = entered.step,
             rail = entered.rail,
             debtorAccounts = accounts.map { it.account },
-            debtorRows = accounts.map { it.toAccountRow() },
-            beneficiaries = filteredPayees.map { it.toPickerRow() },
+            debtorRows = accounts,
+            beneficiaries = filteredPayees,
             debtorAccountId = entered.debtorAccountId,
             payerPickerExpanded = entered.payerPickerExpanded,
             letBankChoosePayer = entered.letBankChoosePayer,
             creditor = entered.creditor,
             creditorLabel = entered.creditor?.name.orEmpty(),
             creditorSupporting = entered.creditor?.let { schemeLabel(it) }.orEmpty(),
-            debtorAccountRow = selected?.toAccountRow(),
+            debtorAccountRow = selected,
             debtorCurrency = selected?.account?.currency.orEmpty(),
             manualEntryVisible = entered.manualEntryVisible,
             manualSortCode = entered.manualSortCode,
@@ -721,7 +719,7 @@ class SendMoneyViewModel(
     private fun isOwnAccount(identification: String): Boolean {
         val digits = identification.filter(Char::isDigit)
         if (digits.isEmpty()) return false
-        return accounts().any { (it.account.sortCode + it.account.accountNumber) == digits }
+        return accounts().any { it.account.identification.filter(Char::isDigit) == digits }
     }
 }
 
@@ -754,27 +752,10 @@ private fun ScreenState<*>.isFailure(): Boolean = when (this) {
 }
 
 /**
- * Carries the account's raw fields rather than a finished name.
- *
- * `nickname` is blank on most HSBC accounts, so using it as the headline renders an empty row —
- * which is exactly what shipped before this. The readable label is resolved at render by
- * `core/ui`'s `accountDisplayName`, the same resolver Home and Accounts use.
- */
-private fun AccountWithBalance.toAccountRow(): SendMoneyAccountRow = SendMoneyAccountRow(
-    id = account.accountId,
-    nickname = account.nickname,
-    accountSubType = account.accountSubType,
-    accountNumber = account.accountNumber,
-    rawIdentification = account.rawIdentification,
-    supporting = balance?.let { formatMinorUnits(parseMinorUnits(it.availableAmount) ?: 0L, it.currency) }
-        .orEmpty(),
-)
-
-/**
  * Whether this account's PRODUCT is known to be unable to fund a payment.
  *
  * Catches both products the sandbox refuses as a named payer: the credit card, visible in
- * [BankAccount.accountSubType], and the Global Money wallet, which reports `AccountTypeCode: CACC`
+ * [BankAccount.accountTypeCode], and the Global Money wallet, which reports `AccountTypeCode: CACC`
  * and is identifiable **only** by its free-text [BankAccount.description]. That description used to
  * be passed as an empty string here, so every wallet resolved to a plain current account, was
  * offered as a payer, and was removed only after the bank refused it with `U002` — and because the
@@ -789,18 +770,9 @@ private fun AccountWithBalance.toAccountRow(): SendMoneyAccountRow = SendMoneyAc
 private fun BankAccount.canFundAPayment(): Boolean = HsbcProductCapability.supports(
     endpoint = AccountEndpoint.PaymentDebtor,
     productType = HsbcProductType.resolve(
-        accountSubType = accountSubType,
-        accountTypeCode = "",
+        accountTypeCode = accountTypeCode,
         description = description,
     ),
-)
-
-private fun BeneficiaryItem.toPickerRow(): SendMoneyPickerRow = SendMoneyPickerRow(
-    id = identification,
-    initials = initialsOf(creditorName),
-    headline = creditorName,
-    supporting = schemeLabelFor(scheme, identification),
-    shortName = shortNameOf(creditorName),
 )
 
 /**
@@ -819,17 +791,10 @@ private fun schemeLabel(creditor: CreditorSelection): String =
     schemeLabelFor(creditor.scheme, creditor.identification)
 
 /**
- * The identifier as it is written down rather than as it is transmitted — a sort code reads in
- * pairs, an IBAN in fours, and neither is how OBIE carries it.
+ * The payee's identifier with its scheme label, kept raw as the PSU entered or the bank returned it.
  */
 private fun schemeLabelFor(scheme: BeneficiaryScheme, identification: String): String = when (scheme) {
-    BeneficiaryScheme.SortCode -> {
-        val digits = identification.filter(Char::isDigit)
-        val sortCode = digits.take(SORT_CODE_DIGITS)
-        val accountNumber = digits.drop(SORT_CODE_DIGITS)
-        "Sort Code · ${formatSortCode(sortCode)} $accountNumber".trimEnd()
-    }
-
+    BeneficiaryScheme.SortCode -> "Identification · $identification"
     BeneficiaryScheme.Iban -> "IBAN · $identification"
     BeneficiaryScheme.Paym -> "Paym · $identification"
     BeneficiaryScheme.Card -> "Card · $identification"

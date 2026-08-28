@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
@@ -33,13 +32,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import org.mifosx.openbanking.feature.paymentsstandingorder.CardBorder
-import org.mifosx.openbanking.feature.paymentsstandingorder.CardCorner
-import org.mifosx.openbanking.feature.paymentsstandingorder.CardPadding
-import org.mifosx.openbanking.feature.paymentsstandingorder.GlyphSize
-import org.mifosx.openbanking.feature.paymentsstandingorder.HeroGap
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.Res
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.feature_payments_standing_order_clear
 import org.mifosx.openbanking.feature.paymentsstandingorder.generated.resources.feature_payments_standing_order_date_content_description
@@ -73,8 +67,6 @@ internal fun DateField(
     onClear: (() -> Unit)? = null,
 ) {
     val chosen = dateLabel.isNotBlank()
-    // The spoken label carries the window as well as the value. A screen-reader user gets no benefit
-    // from greyed-out days, so the rule has to be in the description or it is not conveyed at all.
     val spoken = stringResource(
         Res.string.feature_payments_standing_order_date_content_description,
         "$label. ${if (chosen) dateLabel else placeholder}. $helper",
@@ -88,32 +80,32 @@ internal fun DateField(
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
-            style = KptTheme.typography.bodySmall,
-            color = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = LabelGap, start = CardPadding),
+            style = KptTheme.typography.titleSmall,
+            color = KptTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = KptTheme.spacing.xs, start = KptTheme.spacing.md),
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(CardCorner))
+                .clip(KptTheme.shapes.medium)
                 .border(
-                    width = CardBorder,
+                    width = DesignToken.strokes.hairline,
                     color = KptTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(CardCorner),
+                    shape = KptTheme.shapes.medium,
                 )
                 .background(KptTheme.colorScheme.surfaceContainerLowest)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .padding(CardPadding)
+                .padding(KptTheme.spacing.md)
                 .semantics { contentDescription = spoken }
                 .testTag(testTag),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(HeroGap),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Icon(
                 imageVector = Icons.Filled.CalendarToday,
                 contentDescription = null,
                 tint = contentColour,
-                modifier = Modifier.size(GlyphSize),
+                modifier = Modifier.size(DesignToken.sizes.iconExtraLarge),
             )
             Text(
                 text = if (chosen) dateLabel else placeholder,
@@ -140,20 +132,11 @@ internal fun DateField(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = contentColour,
-                    modifier = Modifier.size(GlyphSize),
+                    modifier = Modifier.size(DesignToken.sizes.iconExtraLarge),
                 )
             }
         }
-
-        Text(
-            text = helper,
-            style = KptTheme.typography.bodySmall,
-            color = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = HelperTopGap, start = CardPadding),
-        )
     }
 }
 
-private val HelperTopGap = 6.dp
-private val LabelGap = 4.dp
 private const val DISABLED_ALPHA = 0.5f

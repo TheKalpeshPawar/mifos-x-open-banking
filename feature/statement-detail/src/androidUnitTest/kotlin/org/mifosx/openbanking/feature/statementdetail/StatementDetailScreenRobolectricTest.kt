@@ -107,14 +107,6 @@ class StatementDetailScreenRobolectricTest {
     }
 
     @Test
-    fun loadingRendersTheSkeleton() {
-        render(StatementDetailFixtures.loadingState())
-
-        composeRule.onNodeWithTag(StatementDetailTestTags.LOADING_SKELETON).assertExists()
-        composeRule.onNodeWithTag(StatementDetailTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
     fun emptyRendersBalancesAndTheEmptyBlockButHidesFeesAndTransactions() {
         render(StatementDetailFixtures.emptyState())
 
@@ -129,17 +121,5 @@ class StatementDetailScreenRobolectricTest {
             .assertDoesNotExist()
         composeRule.onNodeWithTag(StatementDetailTestTags.TRANSACTIONS_SECTION, useUnmergedTree = true)
             .assertDoesNotExist()
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesRetryLoad() {
-        render(StatementDetailFixtures.errorState())
-
-        composeRule.onNodeWithTag(StatementDetailTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementDetailTestTags.ERROR_TITLE, useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeRule.onNodeWithTag(StatementDetailTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<StatementDetailAction>(StatementDetailAction.RetryLoad), actions)
     }
 }

@@ -29,7 +29,7 @@ private const val PAYMENT_TYPE_DOMESTIC_STANDING_ORDER = "domestic_standing_orde
 private const val PAYMENT_TYPE_INTERNATIONAL_STANDING_ORDER = "international_standing_order"
 
 /**
- * The payer's three columns, blank when the PSU left the account to the bank.
+ * The payer's four columns, blank when the PSU left the account to the bank.
  *
  * The entity's debtor columns are non-null, so a draft with no debtor writes empty strings rather
  * than widening the schema. Blank here means "not chosen by us" — for a submitted payment the bank's
@@ -39,8 +39,9 @@ private fun BankAccount?.historyAccountId(): String = this?.accountId.orEmpty()
 
 private fun BankAccount?.historyName(): String = this?.displayName().orEmpty()
 
-private fun BankAccount?.historyIdentification(): String =
-    this?.let { it.rawIdentification.ifBlank { it.sortCode + it.accountNumber } }.orEmpty()
+private fun BankAccount?.historyIdentification(): String = this?.identification.orEmpty()
+
+private fun BankAccount?.historyScheme(): String = this?.scheme?.toObieSchemeName().orEmpty()
 
 /** The rail a draft was built for. `CurrencyOfTransfer` is set on international drafts only. */
 private fun PaymentDraft.paymentType(): String =
@@ -68,13 +69,15 @@ internal fun PaymentReceipt.toEntity(
         errorDescription = null,
         status = status.name,
         debtorAccountId = draft.debtorAccount.historyAccountId(),
-        debtorName = draft.debtorAccount.historyName(),
+        debtorName = debtorName.ifBlank { draft.debtorAccount.historyName() },
         // The bank's chosen payer when we sent none, else the one the PSU picked.
         debtorIdentification = debtorIdentification.ifBlank {
             draft.debtorAccount.historyIdentification()
         },
+        debtorScheme = debtorScheme.ifBlank { draft.debtorAccount.historyScheme() },
         creditorName = draft.creditor.name,
         creditorIdentification = draft.creditor.identification,
+        creditorScheme = draft.creditor.scheme.toObieSchemeName(),
         amountMinorUnits = draft.amountMinorUnits,
         currency = draft.currency,
         reference = draft.reference,
@@ -111,12 +114,14 @@ internal fun PaymentReceipt.toEntity(
         errorDescription = null,
         status = status.name,
         debtorAccountId = draft.debtorAccount.historyAccountId(),
-        debtorName = draft.debtorAccount.historyName(),
+        debtorName = debtorName.ifBlank { draft.debtorAccount.historyName() },
         debtorIdentification = debtorIdentification.ifBlank {
             draft.debtorAccount.historyIdentification()
         },
+        debtorScheme = debtorScheme.ifBlank { draft.debtorAccount.historyScheme() },
         creditorName = draft.creditor.name,
         creditorIdentification = draft.creditor.identification,
+        creditorScheme = draft.creditor.scheme.toObieSchemeName(),
         amountMinorUnits = draft.amountMinorUnits,
         currency = draft.currency,
         reference = draft.reference,
@@ -145,8 +150,10 @@ internal fun ScheduledPaymentDraft.toFailureEntity(
     debtorAccountId = debtorAccount.historyAccountId(),
     debtorName = debtorAccount.historyName(),
     debtorIdentification = debtorAccount.historyIdentification(),
+    debtorScheme = debtorAccount.historyScheme(),
     creditorName = creditor.name,
     creditorIdentification = creditor.identification,
+    creditorScheme = creditor.scheme.toObieSchemeName(),
     amountMinorUnits = amountMinorUnits,
     currency = currency,
     reference = reference,
@@ -187,12 +194,14 @@ internal fun PaymentReceipt.toEntity(
         errorDescription = null,
         status = status.name,
         debtorAccountId = draft.debtorAccount.historyAccountId(),
-        debtorName = draft.debtorAccount.historyName(),
+        debtorName = debtorName.ifBlank { draft.debtorAccount.historyName() },
         debtorIdentification = debtorIdentification.ifBlank {
             draft.debtorAccount.historyIdentification()
         },
+        debtorScheme = debtorScheme.ifBlank { draft.debtorAccount.historyScheme() },
         creditorName = draft.creditor.name,
         creditorIdentification = draft.creditor.identification,
+        creditorScheme = draft.creditor.scheme.toObieSchemeName(),
         amountMinorUnits = draft.firstPaymentAmountMinorUnits,
         currency = draft.currency,
         reference = draft.reference,
@@ -223,8 +232,10 @@ internal fun StandingOrderDraft.toFailureEntity(
     debtorAccountId = debtorAccount.historyAccountId(),
     debtorName = debtorAccount.historyName(),
     debtorIdentification = debtorAccount.historyIdentification(),
+    debtorScheme = debtorAccount.historyScheme(),
     creditorName = creditor.name,
     creditorIdentification = creditor.identification,
+    creditorScheme = creditor.scheme.toObieSchemeName(),
     amountMinorUnits = firstPaymentAmountMinorUnits,
     currency = currency,
     reference = reference,
@@ -251,8 +262,10 @@ internal fun PaymentDraft.toFailureEntity(
     debtorAccountId = debtorAccount.historyAccountId(),
     debtorName = debtorAccount.historyName(),
     debtorIdentification = debtorAccount.historyIdentification(),
+    debtorScheme = debtorAccount.historyScheme(),
     creditorName = creditor.name,
     creditorIdentification = creditor.identification,
+    creditorScheme = creditor.scheme.toObieSchemeName(),
     amountMinorUnits = amountMinorUnits,
     currency = currency,
     reference = reference,
@@ -299,5 +312,5 @@ private fun String?.toPaymentStatus(): PaymentStatus =
 private fun errorId(): String = Uuid.random().toString()
 
 private fun org.mifosx.openbanking.core.model.banking.BankAccount.displayName(): String =
-    nickname.takeIf { it.isNotBlank() }
-        ?: accountSubType.ifBlank { "Account" }
+    accountHolderName.takeIf { it.isNotBlank() }
+        ?: accountTypeCode.ifBlank { "Account" }

@@ -52,7 +52,7 @@ private val DefaultVisualSize = 64.dp
 
 /**
  * Generic composable that renders any [ScreenState] with sensible defaults.
- * Integrates [DataFreshnessIndicator] for STALE/UPDATING state and animates between states
+ * Integrates [DataFreshnessIndicator] for the non-fresh states and animates between states
  * with a fade transition.
  *
  * Override precedence (highest first): per-call slot lambdas → [LocalScreenStateDefaults] →

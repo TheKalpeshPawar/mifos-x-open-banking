@@ -107,8 +107,8 @@ internal fun ScheduledPaymentDraft.toScheduledPaymentRequest(consentId: String):
 
 private fun BankAccount.toScheduledObieDebtor(): DebtorAccount = DebtorAccount(
     schemeName = SCHEME_SORT_CODE,
-    identification = rawIdentification.takeIf { it.isNotBlank() } ?: (sortCode + accountNumber),
-    name = nickname.takeIf { it.isNotBlank() },
+    identification = identification,
+    name = accountHolderName.takeIf { it.isNotBlank() },
 )
 
 /**
@@ -160,6 +160,10 @@ internal fun DomesticScheduledPaymentResponse.toScheduledPaymentReceipt(): Payme
         requestedExecutionDateTime = initiation?.requestedExecutionDateTime.orEmpty(),
         reference = initiation?.remittanceInformation?.unstructured?.firstOrNull().orEmpty(),
         debtorIdentification = initiation?.debtorAccount?.identification.orEmpty(),
+        debtorName = initiation?.debtorAccount?.name.orEmpty(),
+        debtorScheme = initiation?.debtorAccount?.schemeName.orEmpty(),
+        creditorIdentification = initiation?.creditorAccount?.identification.orEmpty(),
+        creditorScheme = initiation?.creditorAccount?.schemeName.orEmpty(),
         charges = data?.charges.orEmpty().map { it.toScheduledPaymentCharge() },
     )
 }

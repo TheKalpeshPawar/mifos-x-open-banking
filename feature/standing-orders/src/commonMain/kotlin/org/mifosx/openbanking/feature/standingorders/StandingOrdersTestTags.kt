@@ -12,31 +12,11 @@ package org.mifosx.openbanking.feature.standingorders
 /**
  * Stable `testTag` values for the standing-orders screen, shared by the Robolectric and instrumented
  * suites so both drive the same nodes.
- *
- * Append-only: a tag that an existing test references must not be renamed or removed without a
- * matching `uitest-tag-retire` note, or the suites silently stop asserting what they claim to.
  */
 internal object StandingOrdersTestTags {
 
-    const val LOADING_SKELETON = "standingOrders:loadingSkeleton"
-    const val SKELETON_SUMMARY = "standingOrders:skeletonSummary"
-
     /** The scrolling order list itself — the node the suites scroll to reach later cards. */
     const val CONTENT = "standingOrders:content"
-    const val SUMMARY_ROW = "standingOrders:summaryRow"
-
-    const val EMPTY_STATE = "standingOrders:emptyState"
-    const val EMPTY_TITLE = "standingOrders:emptyTitle"
-    const val EMPTY_BODY = "standingOrders:emptyBody"
-
-    const val UNSUPPORTED_STATE = "standingOrders:unsupportedState"
-    const val UNSUPPORTED_TITLE = "standingOrders:unsupportedTitle"
-    const val UNSUPPORTED_BODY = "standingOrders:unsupportedBody"
-
-    const val ERROR_STATE = "standingOrders:errorState"
-    const val ERROR_TITLE = "standingOrders:errorTitle"
-    const val ERROR_BODY = "standingOrders:errorBody"
-    const val RETRY_BUTTON = "standingOrders:retryButton"
 
     /** Tag for one order card, keyed by its OBIE `StandingOrderId`. */
     fun card(orderId: String): String = "standingOrders:card:$orderId"

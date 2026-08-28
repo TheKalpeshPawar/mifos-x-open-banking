@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.jb.composeNavigation)
             implementation(libs.filekit.compose)
             implementation(libs.filekit.core)
+            implementation(libs.compottie)
+            implementation(libs.compottie.resources)
         }
         androidInstrumentedTest.dependencies {
             implementation(libs.bundles.androidx.compose.ui.test)

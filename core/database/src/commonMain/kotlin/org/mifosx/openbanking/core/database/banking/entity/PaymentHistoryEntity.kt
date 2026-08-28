@@ -46,8 +46,12 @@ data class PaymentHistoryEntity(
     val debtorAccountId: String,
     val debtorName: String,
     val debtorIdentification: String,
+    /** The payer's OBIE `SchemeName`, e.g. `UK.OBIE.SortCodeAccountNumber`, or blank. */
+    val debtorScheme: String = "",
     val creditorName: String,
     val creditorIdentification: String,
+    /** The payee's OBIE `SchemeName`, e.g. `UK.OBIE.IBAN`, or blank. */
+    val creditorScheme: String = "",
     val amountMinorUnits: Long,
     val currency: String,
     val reference: String?,

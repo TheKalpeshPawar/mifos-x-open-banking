@@ -48,10 +48,10 @@ sealed interface ScheduledPaymentsUiState {
  *
  * @property scheduledPaymentId OBIE `ScheduledPaymentId`; the stable key a card renders under.
  * @property payeeName Beneficiary display name, e.g. `HMRC Self Assessment`.
- * @property amountLabel The currency and amount, e.g. `GBP 842.00`.
+ * @property amountLabel The currency and amount, e.g. `£842.00`.
  * @property scheduledDateLabel The scheduled date as `Fri 31 Jul 2026`, or the raw ISO string when
  *   it could not be parsed.
- * @property scheduledType Whether the date is an execution or an arrival date; drives the type chip.
+ * @property scheduledType Whether the date is an execution or an arrival date.
  * @property creditorIdentification The destination sort code and account number, e.g.
  *   `08-32-00 12001039`.
  * @property reference The free-text payment reference, e.g. `HMRC-SA-2526`.

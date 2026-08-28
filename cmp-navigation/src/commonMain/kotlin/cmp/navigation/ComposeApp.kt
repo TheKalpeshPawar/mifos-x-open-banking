@@ -11,7 +11,9 @@ package cmp.navigation
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +70,11 @@ fun ComposeApp(
             color = MaterialTheme.colorScheme.background,
         ) {
             RootNavScreen(
-                modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+                modifier = modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                    ),
+                ),
                 onSplashScreenRemoved = onSplashScreenRemoved,
             )
         }

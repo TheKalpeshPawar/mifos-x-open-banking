@@ -36,8 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.banking.TransactionCategory
 import org.mifosx.openbanking.feature.transactions.TransactionsTestTags
 import org.mifosx.openbanking.feature.transactions.generated.resources.Res
@@ -54,8 +54,6 @@ import org.mifosx.openbanking.feature.transactions.generated.resources.feature_t
 import org.mifosx.openbanking.feature.transactions.ui.TransactionRowUi
 import template.core.base.designsystem.theme.KptTheme
 
-private val IconCircleSize = 40.dp
-private val LeadingIconSize = 20.dp
 private const val ICON_BG_ALPHA = 0.12f
 
 /** A single transaction row: direction icon, merchant + category + pending, and the signed amount. */
@@ -75,7 +73,10 @@ internal fun TransactionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier.size(IconCircleSize).clip(CircleShape).background(accent.copy(alpha = ICON_BG_ALPHA)),
+            modifier = Modifier
+                .size(DesignToken.sizes.iconExtraLarge)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = ICON_BG_ALPHA)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -88,7 +89,7 @@ internal fun TransactionRow(
                     },
                 ),
                 tint = accent,
-                modifier = Modifier.size(LeadingIconSize),
+                modifier = Modifier.size(DesignToken.sizes.iconSmall),
             )
         }
         Spacer(Modifier.width(KptTheme.spacing.md))
@@ -128,7 +129,7 @@ private fun CategoryChip(category: TransactionCategory) {
             text = categoryLabel(category),
             style = KptTheme.typography.labelSmall,
             color = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm, vertical = KptTheme.spacing.xs),
         )
     }
 }
@@ -138,14 +139,14 @@ private fun PendingBadge(rowKey: String) {
     Surface(
         color = Color.Transparent,
         shape = RoundedCornerShape(percent = 50),
-        border = BorderStroke(1.dp, KptTheme.colorScheme.outline),
+        border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outline),
         modifier = Modifier.testTag(TransactionsTestTags.pendingBadge(rowKey)),
     ) {
         Text(
             text = stringResource(Res.string.feature_transactions_pending),
             style = KptTheme.typography.labelSmall,
             color = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.sm, vertical = KptTheme.spacing.xs),
         )
     }
 }

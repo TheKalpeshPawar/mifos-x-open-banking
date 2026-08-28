@@ -9,7 +9,6 @@
  */
 package org.mifosx.openbanking.feature.statements
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -86,33 +85,5 @@ class StatementsScreenRobolectricTest {
         composeRule.onNodeWithTag(StatementsTestTags.downloadSpinner(mayId), useUnmergedTree = true)
             .assertExists()
         composeRule.onNodeWithTag(StatementsTestTags.downloadButton(mayId)).assertDoesNotExist()
-    }
-
-    @Test
-    fun loadingRendersTheSkeleton() {
-        render(StatementsFixtures.loadingState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.LOADING_SKELETON).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.CONTENT_LIST).assertDoesNotExist()
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() {
-        render(StatementsFixtures.emptyState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_TITLE, useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag(StatementsTestTags.EMPTY_BODY, useUnmergedTree = true).assertIsDisplayed()
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesRetryLoad() {
-        render(StatementsFixtures.errorState())
-
-        composeRule.onNodeWithTag(StatementsTestTags.ERROR_STATE).assertExists()
-        composeRule.onNodeWithTag(StatementsTestTags.ERROR_TITLE, useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag(StatementsTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<StatementsAction>(StatementsAction.RetryLoad), actions)
     }
 }

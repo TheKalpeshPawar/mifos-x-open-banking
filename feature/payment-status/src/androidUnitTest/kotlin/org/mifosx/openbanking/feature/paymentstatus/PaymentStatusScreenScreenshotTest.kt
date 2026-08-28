@@ -156,13 +156,6 @@ class PaymentStatusScreenScreenshotTest {
     @Test
     fun scheduledInProgressNoteGolden() = capture("note_scheduled", PaymentStatusFixtures.scheduledState())
 
-    @Test
-    fun loadingGolden() = capture("loading", PaymentStatusFixtures.loadingState())
-
-    @Test
-    fun errorGolden() =
-        capture("error", PaymentStatusFixtures.errorState(PaymentStatusErrorKind.PaymentNotFound))
-
     /**
      * The app bar in each of the three colours it can wear, above the screen it titles.
      *

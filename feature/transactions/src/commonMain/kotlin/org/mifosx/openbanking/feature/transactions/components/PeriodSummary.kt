@@ -22,15 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.transactions.TransactionsTestTags
 import org.mifosx.openbanking.feature.transactions.generated.resources.Res
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_money_in
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_money_out
 import template.core.base.designsystem.theme.KptTheme
-
-private val DividerHeight = 36.dp
 
 /** Period summary strip: money-in (primary) and money-out (error) totals for the current view. */
 @Composable
@@ -49,7 +47,10 @@ internal fun PeriodSummary(
                     valueTag = TransactionsTestTags.MONEY_IN,
                     modifier = Modifier.weight(1f),
                 )
-                VerticalDivider(modifier = Modifier.height(DividerHeight), color = KptTheme.colorScheme.outlineVariant)
+                VerticalDivider(
+                    modifier = Modifier.height(DesignToken.sizes.iconLarge),
+                    color = KptTheme.colorScheme.outlineVariant,
+                )
                 PeriodColumn(
                     label = stringResource(Res.string.feature_transactions_money_out),
                     value = moneyOutLabel,

@@ -32,16 +32,20 @@ Every screen-data flow goes through three layers:
 | Variant | When |
 |---|---|
 | `Loading` | No cached data yet, waiting for first fetch |
-| `Content(data, freshness, fetchedAt)` | Data available (FRESH / STALE / UPDATING) |
+| `Content(data, freshness, fetchedAt)` | Data available (FRESH / UPDATING / STALE_FAILED / STALE_OFFLINE) |
 | `NoNetwork` | Offline and no cached data; `isCaptivePortal` flag for portal detection |
 | `Error` | Non-network error with no cached data |
 | `Empty` | Fetch succeeded, server returned nothing |
 | `Unauthenticated` | Auth error — prompt re-login |
 
 `DataFreshness` inside `Content`:
+Declared least to most severe; `combineScreenStates` folds several sources with `maxOf`, so the
+declaration order is the severity order.
+
 - `FRESH` — successfully fetched from network
-- `STALE` — cached data shown while offline or after a fetch error
 - `UPDATING` — background refresh in progress (show spinner overlay)
+- `STALE_FAILED` — online, but the last refresh failed; cached data shown
+- `STALE_OFFLINE` — no connectivity; cached data shown
 
 ---
 

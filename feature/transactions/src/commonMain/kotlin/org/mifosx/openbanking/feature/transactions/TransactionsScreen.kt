@@ -30,8 +30,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.transactions.components.LoadMoreButton
 import org.mifosx.openbanking.feature.transactions.components.PaginationLoader
@@ -42,9 +45,14 @@ import org.mifosx.openbanking.feature.transactions.components.TransactionSearchF
 import org.mifosx.openbanking.feature.transactions.generated.resources.Res
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_date_apply
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_date_cancel
+import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_error_body_consent_withdrawn
+import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_error_body_network
+import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_error_body_rate_limited
+import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_error_body_session_expired
 import org.mifosx.openbanking.feature.transactions.generated.resources.feature_transactions_screen_title
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsAction
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsData
+import org.mifosx.openbanking.feature.transactions.ui.TransactionsErrorKind
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsState
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsUiState
 import org.mifosx.openbanking.feature.transactions.ui.TransactionsViewModel
@@ -86,9 +94,11 @@ internal fun TransactionsScreenContent(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         when (val ui = state.uiState) {
-            TransactionsUiState.Loading -> TransactionsSkeleton()
-            is TransactionsUiState.Error -> TransactionsError(
-                kind = ui.kind,
+            TransactionsUiState.Loading -> MifosProgressIndicator()
+
+            is TransactionsUiState.Error -> MifosErrorComponent(
+                message = stringResource(ui.kind.bodyRes()),
+                isRetryEnabled = ui.kind.recoverable,
                 onRetry = { onAction(TransactionsAction.RetryLoad) },
             )
 
@@ -217,3 +227,10 @@ private fun TransactionsDateRangeDialog(
 
 private fun Long.toLocalDate(): LocalDate =
     Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+private fun TransactionsErrorKind.bodyRes(): StringResource = when (this) {
+    TransactionsErrorKind.SESSION_EXPIRED -> Res.string.feature_transactions_error_body_session_expired
+    TransactionsErrorKind.CONSENT_WITHDRAWN -> Res.string.feature_transactions_error_body_consent_withdrawn
+    TransactionsErrorKind.RATE_LIMITED -> Res.string.feature_transactions_error_body_rate_limited
+    TransactionsErrorKind.NETWORK -> Res.string.feature_transactions_error_body_network
+}

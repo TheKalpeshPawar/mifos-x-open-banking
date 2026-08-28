@@ -19,13 +19,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.mifosx.openbanking.core.ui.components.MifosErrorComponent
+import org.mifosx.openbanking.core.ui.components.MifosProgressIndicator
 import org.mifosx.openbanking.core.ui.scaffold.KptScaffold
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.Res
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_copy_success
+import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_error_consent_withdrawn
+import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_error_network
+import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_error_token_expired
+import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_error_unexpected
 import org.mifosx.openbanking.feature.transactiondetail.generated.resources.feature_transaction_detail_screen_title
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailAction
+import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailErrorKind
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailEvent
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailState
 import org.mifosx.openbanking.feature.transactiondetail.ui.TransactionDetailUiState
@@ -83,7 +91,7 @@ internal fun TransactionDetailScreenContent(
     modifier: Modifier = Modifier,
 ) {
     when (val current = state.uiState) {
-        TransactionDetailUiState.Loading -> TransactionDetailSkeleton(modifier = modifier)
+        TransactionDetailUiState.Loading -> MifosProgressIndicator()
 
         is TransactionDetailUiState.Content -> TransactionDetailContent(
             transaction = current.transaction,
@@ -93,11 +101,10 @@ internal fun TransactionDetailScreenContent(
             modifier = modifier,
         )
 
-        is TransactionDetailUiState.Error -> TransactionDetailError(
-            kind = current.kind,
+        is TransactionDetailUiState.Error -> MifosErrorComponent(
+            message = stringResource(current.kind.bodyResource()),
+            isRetryEnabled = current.kind.recoverable,
             onRetry = { onAction(TransactionDetailAction.RetryLoad) },
-            onBack = onBack,
-            modifier = modifier,
         )
 
         TransactionDetailUiState.Empty -> TransactionDetailEmpty(
@@ -105,4 +112,15 @@ internal fun TransactionDetailScreenContent(
             modifier = modifier,
         )
     }
+}
+
+private fun TransactionDetailErrorKind.bodyResource(): StringResource = when (this) {
+    TransactionDetailErrorKind.TokenExpired ->
+        Res.string.feature_transaction_detail_error_token_expired
+    TransactionDetailErrorKind.ConsentWithdrawn ->
+        Res.string.feature_transaction_detail_error_consent_withdrawn
+    TransactionDetailErrorKind.Network ->
+        Res.string.feature_transaction_detail_error_network
+    TransactionDetailErrorKind.Unexpected ->
+        Res.string.feature_transaction_detail_error_unexpected
 }

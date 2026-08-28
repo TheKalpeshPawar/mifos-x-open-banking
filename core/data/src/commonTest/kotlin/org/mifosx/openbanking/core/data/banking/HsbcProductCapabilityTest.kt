@@ -40,19 +40,15 @@ class HsbcProductCapabilityTest {
     fun resolvesGlobalMoneyFromTheDescriptionEvenWhenTheTypeCodeSaysCacc() {
         assertEquals(
             HsbcProductType.GlobalMoney,
-            HsbcProductType.resolve(
-                accountSubType = "",
-                accountTypeCode = "CACC",
-                description = "GLOBAL MONEY ACCOUNT",
-            ),
+            HsbcProductType.resolve(accountTypeCode = "CACC", description = "GLOBAL MONEY ACCOUNT"),
         )
     }
 
     @Test
-    fun resolvesGlobalMoneyRegardlessOfCaseOrSpacing() {
+    fun resolvesGlobalMoneyRegardlessOfCase() {
         assertEquals(
             HsbcProductType.GlobalMoney,
-            HsbcProductType.resolve("", "CACC", "  global   money  account "),
+            HsbcProductType.resolve("CACC", "global money account"),
         )
     }
 
@@ -60,34 +56,24 @@ class HsbcProductCapabilityTest {
     fun resolvesPersonalCurrentAccountFromCaccWhenTheDescriptionIsOrdinary() {
         assertEquals(
             HsbcProductType.PersonalCurrentAccount,
-            HsbcProductType.resolve("", "CACC", "Description of the account"),
+            HsbcProductType.resolve("CACC", "Description of the account"),
         )
     }
 
     @Test
-    fun resolvesPersonalCurrentAccountFromTheObieSubType() {
-        assertEquals(
-            HsbcProductType.PersonalCurrentAccount,
-            HsbcProductType.resolve("CurrentAccount", "", ""),
-        )
+    fun resolvesSavingsFromTheSvgsCode() {
+        assertEquals(HsbcProductType.Savings, HsbcProductType.resolve("SVGS", "BMM ACCOUNT"))
     }
 
     @Test
-    fun resolvesSavingsFromEitherTheSubTypeOrTheSvgsCode() {
-        assertEquals(HsbcProductType.Savings, HsbcProductType.resolve("Savings", "", ""))
-        assertEquals(HsbcProductType.Savings, HsbcProductType.resolve("", "SVGS", "BMM ACCOUNT"))
-    }
-
-    @Test
-    fun resolvesCreditCardFromEitherTheSubTypeOrTheCardCode() {
-        assertEquals(HsbcProductType.CreditCard, HsbcProductType.resolve("CreditCard", "", ""))
-        assertEquals(HsbcProductType.CreditCard, HsbcProductType.resolve("", "CARD", ""))
+    fun resolvesCreditCardFromTheCardCode() {
+        assertEquals(HsbcProductType.CreditCard, HsbcProductType.resolve("CARD", ""))
     }
 
     @Test
     fun resolvesUnknownForAnUnrecognisedProduct() {
-        assertEquals(HsbcProductType.Unknown, HsbcProductType.resolve("", "", ""))
-        assertEquals(HsbcProductType.Unknown, HsbcProductType.resolve("PremierSaver", "XXXX", "New"))
+        assertEquals(HsbcProductType.Unknown, HsbcProductType.resolve("", ""))
+        assertEquals(HsbcProductType.Unknown, HsbcProductType.resolve("XXXX", "New"))
     }
 
     // --- matrix -------------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 package org.mifosx.openbanking.feature.paymentsschedulepayment
 
 import kotlinx.datetime.LocalDate
+import org.mifosx.openbanking.core.common.AccountScheme
 import org.mifosx.openbanking.core.common.formatMinorUnits
 import org.mifosx.openbanking.core.model.banking.AccountBalance
 import org.mifosx.openbanking.core.model.banking.AccountWithBalance
@@ -25,10 +26,8 @@ import org.mifosx.openbanking.core.model.banking.payment.PaymentStatus
 import org.mifosx.openbanking.core.model.banking.payment.StagedConsent
 import org.mifosx.openbanking.core.ui.payment.PaymentHistoryEntry
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.OFFERED_CURRENCIES
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAccountRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentAmountProblem
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentErrorKind
-import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentPickerRow
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStage
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentState
 import org.mifosx.openbanking.feature.paymentsschedulepayment.ui.SchedulePaymentStep
@@ -75,57 +74,51 @@ object SchedulePaymentFixtures {
     /** £21,530.92 available — comfortably covers the fixture payment. */
     fun currentAccount(): BankAccount = BankAccount(
         accountId = CURRENT_ACCOUNT_ID,
-        nickname = "Current account ·· 3349",
-        accountSubType = "CurrentAccount",
+        accountHolderName = "Mr Nico",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "802001",
-        accountNumber = "10203349",
-        rawIdentification = "80200110203349",
+        identification = "80200110203349",
+        scheme = AccountScheme.SortCode,
     )
 
     /** £482.10 available — the account TC-SEND-003 overdraws. */
     fun savingsAccount(): BankAccount = BankAccount(
         accountId = SAVINGS_ACCOUNT_ID,
-        nickname = "BMM ACCOUNT ·· 3695",
-        accountSubType = "Savings",
+        accountHolderName = "Mr Robert",
+        accountTypeCode = "SVGS",
         currency = "GBP",
-        sortCode = "801225",
-        accountNumber = "90953695",
-        rawIdentification = "80122590953695",
+        identification = "80122590953695",
+        scheme = AccountScheme.SortCode,
     )
 
     /**
-     * A credit card, as HSBC returns one: the account-number field is a masked PAN slice, not a
-     * real account number, which is why it cannot fund a payment. Present in [accounts] on purpose
+     * A credit card, as HSBC returns one: the identification is a masked PAN, not a real account
+     * number, which is why it cannot fund a payment. Present in [accounts] on purpose
      * — the picker must be proven to exclude it, and a fixture without one proves nothing.
      */
     fun creditCard(): BankAccount = BankAccount(
         accountId = CREDIT_CARD_ID,
-        nickname = "",
-        // "CARD", not "CreditCard": v4.0 has no AccountSubType, so AccountMapper falls through to
-        // AccountTypeCode, which HSBC sends as CARD. Both resolve, but the fixture mirrors the bank.
-        accountSubType = "CARD",
+        accountHolderName = "",
+        accountTypeCode = "CARD",
         currency = "GBP",
-        sortCode = "",
-        accountNumber = "xxxx-xxxx-xxxx-3456",
-        rawIdentification = "xxxx-xxxx-xxxx-3456",
+        identification = "xxxx-xxxx-xxxx-3456",
+        scheme = AccountScheme.Pan,
     )
 
     /**
      * The Global Money wallet exactly as HSBC returns it: `AccountTypeCode: CACC`, so
-     * `accountSubType` reads "CACC" and is indistinguishable from a current account. The one field
+     * `accountTypeCode` reads "CACC" and is indistinguishable from a current account. The one field
      * that gives it away is the free-text description, which the sandbox returns verbatim as
      * "GLOBAL MONEY ACCOUNT" — so the fixture carries it. It stays in [accounts] on purpose: the
      * picker must be proven to exclude it, and a fixture without one proves nothing.
      */
     fun globalMoneyWallet(): BankAccount = BankAccount(
         accountId = GLOBAL_MONEY_ID,
-        nickname = "",
-        accountSubType = "CACC",
+        accountHolderName = "",
+        accountTypeCode = "CACC",
         currency = "GBP",
-        sortCode = "801197",
-        accountNumber = "70009652",
-        rawIdentification = "80119770009652",
+        identification = "80119770009652",
+        scheme = AccountScheme.SortCode,
         description = "GLOBAL MONEY ACCOUNT",
     )
 
@@ -213,35 +206,10 @@ object SchedulePaymentFixtures {
         creditorName = "Jameson Lettings",
     )
 
-    /**
-     * Raw fields, not a finished label — the readable name is resolved at render by
-     * `accountDisplayName`, exactly as it is in production. A fixture that pre-baked the label would
-     * have passed while the live screen rendered blank rows, which is what happened.
-     */
-    private fun debtorRows(): List<SchedulePaymentAccountRow> = listOf(
-        SchedulePaymentAccountRow(
-            id = CURRENT_ACCOUNT_ID,
-            nickname = "",
-            accountSubType = "CurrentAccount",
-            accountNumber = "10203349",
-            rawIdentification = "80200110203349",
-            supporting = "£21,530.92",
-        ),
-        SchedulePaymentAccountRow(
-            id = SAVINGS_ACCOUNT_ID,
-            nickname = "",
-            accountSubType = "Savings",
-            accountNumber = "90953695",
-            rawIdentification = "80122590953695",
-            supporting = "£482.10",
-        ),
-    )
-
-    private fun creditorRows(): List<SchedulePaymentPickerRow> = listOf(
-        SchedulePaymentPickerRow(JAMESON_ID, "JL", "Jameson Lettings", "Sort Code · 40-12-09 65872310", "Jameson L."),
-        SchedulePaymentPickerRow(SHARMA_ID, "JS", "John Sharma", "Sort Code · 23-05-80 11223344", "John S."),
-        SchedulePaymentPickerRow(EDF_ID, "EE", "EDF Energy", "Sort Code · 60-00-01 99887766", "EDF E."),
-    )
+    /** Debtor rows carrying raw OBIE fields and no holder name, so the label is resolved at render. */
+    private fun debtorRows(): List<AccountWithBalance> = accounts()
+        .filter { it.account.accountId == CURRENT_ACCOUNT_ID || it.account.accountId == SAVINGS_ACCOUNT_ID }
+        .map { it.copy(account = it.account.copy(accountHolderName = "")) }
 
     /**
      * IBAN payees, which is all the international rail ever lists.
@@ -250,20 +218,28 @@ object SchedulePaymentFixtures {
      * international form would depict a screen the app cannot produce — and a golden of it would
      * document the wrong thing.
      */
-    private fun internationalCreditorRows(): List<SchedulePaymentPickerRow> = listOf(
-        SchedulePaymentPickerRow(WEISS_ID, "KW", "Klara Weiss", "IBAN · DE89 3704 0044 0532 0130 00", "Klara W."),
-        SchedulePaymentPickerRow(
+    private fun internationalCreditorRows(): List<BeneficiaryItem> = listOf(
+        BeneficiaryItem(
+            WEISS_ID,
+            CURRENT_ACCOUNT_ID,
+            "Klara Weiss",
+            BeneficiaryScheme.Iban,
+            "DE89370400440532013000",
+            "",
+        ),
+        BeneficiaryItem(
             DUPONT_ID,
-            "MD",
+            CURRENT_ACCOUNT_ID,
             "Marie Dupont",
-            "IBAN · FR14 2004 1010 0505 0001 3M02 606",
-            "Marie D.",
+            BeneficiaryScheme.Iban,
+            "FR1420041010050500013M02606",
+            "",
         ),
     )
 
     /** Whichever scheme the rail lists. */
-    private fun payeesFor(rail: PaymentRail): List<SchedulePaymentPickerRow> = when (rail) {
-        PaymentRail.Domestic -> creditorRows()
+    private fun payeesFor(rail: PaymentRail): List<BeneficiaryItem> = when (rail) {
+        PaymentRail.Domestic -> beneficiaries()
         PaymentRail.International -> internationalCreditorRows()
     }
 
@@ -279,7 +255,7 @@ object SchedulePaymentFixtures {
         rail: PaymentRail = PaymentRail.Domestic,
         executionDate: LocalDate? = null,
         datePickerVisible: Boolean = false,
-        beneficiaries: List<SchedulePaymentPickerRow> = payeesFor(rail),
+        beneficiaries: List<BeneficiaryItem> = payeesFor(rail),
         manualEntryVisible: Boolean = false,
         creditor: CreditorSelection? = null,
         creditorLabel: String = "",
@@ -400,7 +376,7 @@ object SchedulePaymentFixtures {
     fun reviewState(
         reference: String = "RENT-FLAT12",
         rail: PaymentRail = PaymentRail.Domestic,
-        debtorAccountRow: SchedulePaymentAccountRow? = debtorRows().first(),
+        debtorAccountRow: AccountWithBalance? = debtorRows().first(),
         instructedCurrency: String = "GBP",
         chargeBearer: ChargeBearer = ChargeBearer.BorneByCreditor,
     ): SchedulePaymentState = SchedulePaymentState(
@@ -424,7 +400,7 @@ object SchedulePaymentFixtures {
             creditorSupporting = if (rail == PaymentRail.International) {
                 "IBAN · DE89 3704 0044 0532 0130 00"
             } else {
-                "Sort Code · 40-12-09 65872310"
+                "Identification · 40-12-09 65872310"
             },
             amountInput = "850",
             // In the instructed currency, as the ViewModel formats it — the review's hero figure and

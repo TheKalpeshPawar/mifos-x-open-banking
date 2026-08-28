@@ -14,11 +14,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import org.mifosx.openbanking.core.common.formatSortCode
 import org.mifosx.openbanking.core.data.banking.AccountCapabilityRegistry
 import org.mifosx.openbanking.core.data.banking.AccountDetailRepository
 import org.mifosx.openbanking.core.model.banking.AccountBalanceLine
-import org.mifosx.openbanking.core.model.banking.AccountDetail
 import org.mifosx.openbanking.core.model.banking.AccountDetailWithBalances
 import org.mifosx.openbanking.core.model.hsbcProduct.HsbcProductType
 import template.core.base.common.screen.ScreenState
@@ -96,28 +94,15 @@ class AccountDetailViewModel(
         ScreenState.Empty, ScreenState.Loading -> AccountDetailUiState.Loading
     }
 
-    private fun AccountDetailWithBalances.toUiState(): AccountDetailUiState {
-        val header = detail.toHeaderUi()
-        return if (hasNoBalances) {
-            AccountDetailUiState.Empty(header = header)
+    private fun AccountDetailWithBalances.toUiState(): AccountDetailUiState =
+        if (hasNoBalances) {
+            AccountDetailUiState.Empty(header = detail)
         } else {
             AccountDetailUiState.Content(
-                header = header,
+                header = detail,
                 balances = balances.map { it.toRowUi() },
             )
         }
-    }
-
-    private fun AccountDetail.toHeaderUi(): AccountHeaderUi = AccountHeaderUi(
-        nickname = nickname,
-        accountSubType = accountSubType.uppercase(),
-        identificationLabel = buildIdentificationLabel(sortCode, accountNumber),
-        currency = currency,
-        servicerIdentification = servicerIdentification,
-        lastUpdatedLabel = formatStatusTimestamp(statusUpdateDateTime),
-        accountNumber = accountNumber,
-        description = description,
-    )
 
     private fun AccountBalanceLine.toRowUi(): BalanceRowUi = BalanceRowUi(
         type = type,
@@ -135,15 +120,6 @@ class AccountDetailViewModel(
         const val ACCOUNT_ID_ARG: String = "accountId"
     }
 }
-
-/**
- * Renders `400515` + `12345678` as `40-05-15 12345678`, the form the header card shows. Falls back
- * to whichever half is present so a partial identification still reads sensibly.
- */
-internal fun buildIdentificationLabel(sortCode: String, accountNumber: String): String = listOf(
-    sortCode.takeIf { it.isNotBlank() }?.let(::formatSortCode).orEmpty(),
-    accountNumber,
-).filter { it.isNotBlank() }.joinToString(" ")
 
 /**
  * Inserts thousands separators into a raw OBIE decimal string, preserving the fractional part
