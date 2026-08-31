@@ -37,7 +37,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.NonCancellable.start
-import kotlinx.datetime.format.Padding
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.designsystem.theme.darkScheme
@@ -160,7 +159,7 @@ private fun ThemeSwatch(config: DarkThemeConfig, modifier: Modifier = Modifier) 
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
             )
             SchemeSwatch(
                 scheme = lightScheme,
@@ -170,7 +169,7 @@ private fun ThemeSwatch(config: DarkThemeConfig, modifier: Modifier = Modifier) 
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
             )
         }
     }
