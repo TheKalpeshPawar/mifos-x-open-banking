@@ -19,26 +19,16 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 /**
  * Screen state for the settings hub.
  *
- * @property themeConfig The stored theme preference, and the option the picker marks as selected.
- * @property themeLabel The label resource for [themeConfig], resolved by the composable.
- * @property isThemeMenuExpanded Whether the theme dropdown is open.
+ * @property themeConfig The stored theme preference, and the card the picker marks as selected.
  */
 data class SettingsState(
     val themeConfig: DarkThemeConfig,
-    val themeLabel: StringResource = Res.string.feature_settings_theme_follow_system,
-    val isThemeMenuExpanded: Boolean = false,
 )
 
 /** Actions the view model owns. Navigation is the screen's lambdas, not routed here. */
 sealed interface SettingsAction {
     /** Store [config] as the theme preference. */
     data class SelectTheme(val config: DarkThemeConfig) : SettingsAction
-
-    /** Open the theme dropdown if closed, close it if open. */
-    data object ToggleThemeMenu : SettingsAction
-
-    /** Close the theme dropdown. */
-    data object DismissThemeMenu : SettingsAction
 }
 
 /** The label resource for one theme option, used by both the row's value and the picker. */

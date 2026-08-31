@@ -9,6 +9,8 @@
  */
 package org.mifosx.openbanking.feature.settings
 
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -51,6 +53,12 @@ class SettingsScreenRobolectricTest {
         .positionInRoot
         .y
 
+    private fun leftOf(tag: String): Float = composeRule
+        .onNodeWithTag(tag, useUnmergedTree = true)
+        .fetchSemanticsNode()
+        .positionInRoot
+        .x
+
     @Test
     fun allThreeSectionsRenderInThePreviewOrder() {
         render(SettingsFixtures.contentState())
@@ -61,41 +69,41 @@ class SettingsScreenRobolectricTest {
     }
 
     @Test
-    fun themeRowRendersTheCurrentValueAndItsDropdownChip() {
-        render(SettingsFixtures.contentState(themeConfig = DarkThemeConfig.DARK))
-
-        composeRule.onNodeWithTag(SettingsTestTags.THEME_ROW).assertExists()
-        composeRule.onNodeWithTag(SettingsTestTags.THEME_VALUE, useUnmergedTree = true)
-            .assertExists()
-        composeRule.onNodeWithTag(SettingsTestTags.THEME_DROPDOWN, useUnmergedTree = true)
-            .assertExists()
-    }
-
-    @Test
-    fun tappingTheThemeRowDispatchesToggleThemeMenu() {
+    fun everyThemeConfigGetsAPreviewCard() {
         render(SettingsFixtures.contentState())
 
-        composeRule.onNodeWithTag(SettingsTestTags.THEME_ROW).performClick()
-
-        assertEquals(listOf<SettingsAction>(SettingsAction.ToggleThemeMenu), actions)
-    }
-
-    @Test
-    fun anExpandedMenuOffersEveryThemeOption() {
-        render(SettingsFixtures.contentState(isThemeMenuExpanded = true))
-
         DarkThemeConfig.entries.forEach { config ->
-            composeRule.onNodeWithTag(SettingsTestTags.themeOption(config), useUnmergedTree = true)
-                .assertExists()
+            composeRule.onNodeWithTag(SettingsTestTags.themeCard(config)).assertExists()
         }
     }
 
+    /** Light, Dark, System — the picked design's order, not the enum's declaration order. */
     @Test
-    fun selectingLightDispatchesSelectThemeWithLight() {
-        render(SettingsFixtures.contentState(isThemeMenuExpanded = true))
+    fun themeCardsRunLightThenDarkThenSystem() {
+        render(SettingsFixtures.contentState())
 
-        composeRule.onNodeWithTag(SettingsTestTags.themeOption(DarkThemeConfig.LIGHT))
-            .performClick()
+        val light = leftOf(SettingsTestTags.themeCard(DarkThemeConfig.LIGHT))
+        val dark = leftOf(SettingsTestTags.themeCard(DarkThemeConfig.DARK))
+        val system = leftOf(SettingsTestTags.themeCard(DarkThemeConfig.FOLLOW_SYSTEM))
+        assertTrue(light < dark)
+        assertTrue(dark < system)
+    }
+
+    @Test
+    fun onlyTheStoredThemeCardReadsAsSelected() {
+        render(SettingsFixtures.contentState(themeConfig = DarkThemeConfig.DARK))
+
+        composeRule.onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.DARK))
+            .assertIsSelected()
+        composeRule.onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.LIGHT))
+            .assertIsNotSelected()
+    }
+
+    @Test
+    fun tappingLightDispatchesSelectThemeWithLight() {
+        render(SettingsFixtures.contentState())
+
+        composeRule.onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.LIGHT)).performClick()
 
         assertEquals(
             listOf<SettingsAction>(SettingsAction.SelectTheme(DarkThemeConfig.LIGHT)),

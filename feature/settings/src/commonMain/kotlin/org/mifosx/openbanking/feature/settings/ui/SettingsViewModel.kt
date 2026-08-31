@@ -19,10 +19,7 @@ import template.core.base.ui.viewmodel.BaseViewModel
 class SettingsViewModel(
     private val userDataRepository: UserDataRepository,
 ) : BaseViewModel<SettingsState, Nothing, SettingsAction>(
-    initialState = SettingsState(
-        themeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-        themeLabel = DarkThemeConfig.FOLLOW_SYSTEM.themeLabel(),
-    ),
+    initialState = SettingsState(themeConfig = DarkThemeConfig.FOLLOW_SYSTEM),
 ) {
     init {
         observeUserPreferences()
@@ -31,24 +28,17 @@ class SettingsViewModel(
     override fun handleAction(action: SettingsAction) {
         when (action) {
             is SettingsAction.SelectTheme -> selectTheme(action.config)
-            SettingsAction.ToggleThemeMenu -> setThemeMenuExpanded(!state.isThemeMenuExpanded)
-            SettingsAction.DismissThemeMenu -> setThemeMenuExpanded(false)
         }
     }
 
     private fun selectTheme(config: DarkThemeConfig) {
-        setThemeMenuExpanded(false)
         viewModelScope.launch { userDataRepository.setDarkThemeConfig(config) }
-    }
-
-    private fun setThemeMenuExpanded(expanded: Boolean) = updateState {
-        copy(isThemeMenuExpanded = expanded)
     }
 
     private fun observeUserPreferences() {
         viewModelScope.launch {
             userDataRepository.observeDarkThemeConfig.collect { theme ->
-                updateState { copy(themeConfig = theme, themeLabel = theme.themeLabel()) }
+                updateState { copy(themeConfig = theme) }
             }
         }
     }

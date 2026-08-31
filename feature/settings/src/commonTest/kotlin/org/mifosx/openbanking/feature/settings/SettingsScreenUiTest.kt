@@ -10,10 +10,13 @@
 package org.mifosx.openbanking.feature.settings
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.feature.settings.ui.SettingsAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -62,7 +65,33 @@ class SettingsScreenUiTest {
     }
 
     @Test
-    fun tappingTheThemeRowDispatchesToggleThemeMenu() = runComposeUiTest {
+    fun everyThemeConfigGetsAPreviewCard() = runComposeUiTest {
+        setContent {
+            SettingsScreenContent(state = SettingsFixtures.contentState(), onAction = {})
+        }
+
+        DarkThemeConfig.entries.forEach { config ->
+            onNodeWithTag(SettingsTestTags.themeCard(config)).assertExists()
+        }
+    }
+
+    @Test
+    fun onlyTheStoredThemeCardReadsAsSelected() = runComposeUiTest {
+        setContent {
+            SettingsScreenContent(
+                state = SettingsFixtures.contentState(themeConfig = DarkThemeConfig.DARK),
+                onAction = {},
+            )
+        }
+
+        onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.DARK)).assertIsSelected()
+        onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.LIGHT)).assertIsNotSelected()
+        onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.FOLLOW_SYSTEM))
+            .assertIsNotSelected()
+    }
+
+    @Test
+    fun tappingAThemeCardDispatchesSelectTheme() = runComposeUiTest {
         val actions = mutableListOf<SettingsAction>()
         setContent {
             SettingsScreenContent(
@@ -71,9 +100,12 @@ class SettingsScreenUiTest {
             )
         }
 
-        onNodeWithTag(SettingsTestTags.THEME_ROW).performClick()
+        onNodeWithTag(SettingsTestTags.themeCard(DarkThemeConfig.LIGHT)).performClick()
 
-        assertEquals(listOf<SettingsAction>(SettingsAction.ToggleThemeMenu), actions)
+        assertEquals(
+            listOf<SettingsAction>(SettingsAction.SelectTheme(DarkThemeConfig.LIGHT)),
+            actions,
+        )
     }
 
     @Test

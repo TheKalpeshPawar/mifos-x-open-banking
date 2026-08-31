@@ -9,14 +9,17 @@
  */
 package org.mifosx.openbanking.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -28,7 +31,8 @@ import org.mifosx.openbanking.feature.settings.components.SettingsRow
 import org.mifosx.openbanking.feature.settings.components.SettingsRowChevron
 import org.mifosx.openbanking.feature.settings.components.SettingsRowExternalLink
 import org.mifosx.openbanking.feature.settings.components.SettingsSection
-import org.mifosx.openbanking.feature.settings.components.ThemeDropdownRow
+import org.mifosx.openbanking.feature.settings.components.SettingsSectionLabel
+import org.mifosx.openbanking.feature.settings.components.ThemePreviewRow
 import org.mifosx.openbanking.feature.settings.generated.resources.Res
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_consents_subtitle
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_consents_title
@@ -42,6 +46,7 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_appearance
 import org.mifosx.openbanking.feature.settings.ui.SettingsAction
 import org.mifosx.openbanking.feature.settings.ui.SettingsState
+import template.core.base.designsystem.theme.KptTheme
 
 /** The Mifos Initiative privacy policy page, opened in an external browser. */
 private const val PRIVACY_URL = "https://mifos.org/privacy-policy/"
@@ -65,15 +70,14 @@ internal fun SettingsScreenContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.lg)
             .testTag(SettingsTestTags.CONTENT)
             .semantics { contentDescription = description },
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.xl),
     ) {
         AppearanceSection(
             themeConfig = state.themeConfig,
-            isThemeMenuExpanded = state.isThemeMenuExpanded,
             onSelectTheme = { onAction(SettingsAction.SelectTheme(it)) },
-            onToggleThemeMenu = { onAction(SettingsAction.ToggleThemeMenu) },
-            onDismissThemeMenu = { onAction(SettingsAction.DismissThemeMenu) },
         )
         AccountSection(
             onNavigateToConsents = onNavigateToConsents,
@@ -85,26 +89,29 @@ internal fun SettingsScreenContent(
     }
 }
 
+/**
+ * The theme picker. Unlike the other sections it has no card of its own — the three preview cards
+ * carry the elevation, so wrapping them would stack two shadows.
+ */
 @Composable
 private fun AppearanceSection(
     themeConfig: DarkThemeConfig,
-    isThemeMenuExpanded: Boolean,
     onSelectTheme: (DarkThemeConfig) -> Unit,
-    onToggleThemeMenu: () -> Unit,
-    onDismissThemeMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SettingsSection(
-        title = stringResource(Res.string.feature_settings_section_appearance),
-        testTag = SettingsTestTags.SECTION_APPEARANCE,
-        modifier = modifier,
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(SettingsTestTags.SECTION_APPEARANCE),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
-        ThemeDropdownRow(
+        SettingsSectionLabel(
+            title = stringResource(Res.string.feature_settings_section_appearance),
+        )
+        ThemePreviewRow(
             selected = themeConfig,
-            expanded = isThemeMenuExpanded,
-            onToggle = onToggleThemeMenu,
-            onDismiss = onDismissThemeMenu,
             onSelect = onSelectTheme,
+            modifier = Modifier.testTag(SettingsTestTags.SECTION),
         )
     }
 }
@@ -160,6 +167,10 @@ private fun AboutSection(
                 testTag = SettingsTestTags.externalLink(SettingsTestTags.PRIVACY_ROW),
             )
         }
+        HorizontalDivider(
+            color = KptTheme.colorScheme.outlineVariant,
+            modifier = Modifier.padding(horizontal = KptTheme.spacing.md),
+        )
         SettingsRow(
             title = stringResource(Res.string.feature_settings_licences_title),
             testTag = SettingsTestTags.LICENCES_ROW,

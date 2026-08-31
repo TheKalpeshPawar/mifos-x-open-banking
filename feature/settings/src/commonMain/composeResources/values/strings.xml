@@ -16,17 +16,17 @@
     <string name="feature_settings_section_account">Account</string>
     <string name="feature_settings_section_about">About &amp; Legal</string>
 
-    <string name="feature_settings_theme_title">Theme</string>
     <!--
       The three options are the DarkThemeConfig entries. "System" rather than the enum's own
       "Follow System" constant name: the enum's configName is a persistence value, and the
-      preview shows the shorter word.
+      picker shows the shorter word.
     -->
     <string name="feature_settings_theme_follow_system">System</string>
     <string name="feature_settings_theme_light">Light</string>
     <string name="feature_settings_theme_dark">Dark</string>
-    <string name="feature_settings_theme_select_accessibility">Select theme, currently %s</string>
     <string name="feature_settings_theme_option_accessibility">Use %s theme</string>
+    <!-- Sample text inside each theme preview; not a sentence, no translation needed. -->
+    <string name="feature_settings_theme_sample">Aa</string>
 
     <string name="feature_settings_consents_title">Manage Consents</string>
     <string name="feature_settings_consents_subtitle">View, revoke or reconfirm Open Banking consents</string>

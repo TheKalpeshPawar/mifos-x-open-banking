@@ -17,11 +17,9 @@ import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.feature.settings.FakeUserDataRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
- * Covers [SettingsViewModel]'s preference reads, theme writes and picker state.
+ * Covers [SettingsViewModel]'s preference reads and theme writes.
  *
  * Test names are camelCase: this source set also compiles for Kotlin/Native, whose frontend
  * rejects punctuation inside backticked names.
@@ -129,64 +127,5 @@ class SettingsViewModelTest {
     @Test
     fun everyDarkThemeConfigEntryIsOfferedByThePicker() {
         assertEquals(3, DarkThemeConfig.entries.size)
-    }
-
-    @Test
-    fun themeMenuStartsCollapsed() {
-        assertFalse(state(viewModel()).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun toggleExpandsTheThemeMenu() = runTest {
-        val vm = viewModel()
-
-        vm.trySendAction(SettingsAction.ToggleThemeMenu)
-
-        assertTrue(state(vm).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun toggleTwiceCollapsesTheThemeMenu() = runTest {
-        val vm = viewModel()
-
-        vm.trySendAction(SettingsAction.ToggleThemeMenu)
-        vm.trySendAction(SettingsAction.ToggleThemeMenu)
-
-        assertFalse(state(vm).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun dismissCollapsesTheThemeMenu() = runTest {
-        val vm = viewModel()
-
-        vm.trySendAction(SettingsAction.ToggleThemeMenu)
-        vm.trySendAction(SettingsAction.DismissThemeMenu)
-
-        assertFalse(state(vm).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun dismissOnAClosedMenuLeavesItClosed() = runTest {
-        val vm = viewModel()
-
-        vm.trySendAction(SettingsAction.DismissThemeMenu)
-
-        assertFalse(state(vm).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun selectingAThemeCollapsesTheMenu() = runTest {
-        val vm = viewModel()
-
-        vm.trySendAction(SettingsAction.ToggleThemeMenu)
-        vm.trySendAction(SettingsAction.SelectTheme(DarkThemeConfig.DARK))
-
-        assertFalse(state(vm).isThemeMenuExpanded)
-    }
-
-    @Test
-    fun theThemeLabelTracksTheStoredTheme() {
-        val repository = FakeUserDataRepository(initialTheme = DarkThemeConfig.DARK)
-        assertEquals(DarkThemeConfig.DARK.themeLabel(), state(viewModel(repository)).themeLabel)
     }
 }

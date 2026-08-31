@@ -14,12 +14,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -35,8 +33,8 @@ import org.mifosx.openbanking.feature.settings.SettingsTestTags
 import template.core.base.designsystem.theme.KptTheme
 
 /**
- * One settings row: an optional leading icon, a title over an optional subtitle, and an optional
- * trailing slot.
+ * One settings row: a leading icon, a title over an optional subtitle, and an optional trailing
+ * slot.
  *
  * @param testTag Carried by the row itself; its title carries [SettingsTestTags.ROW].
  * @param onClick `null` for a row that only reports a value — it then takes no click and shows no
@@ -46,8 +44,8 @@ import template.core.base.designsystem.theme.KptTheme
 internal fun SettingsRow(
     title: String,
     testTag: String,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
     subtitle: String? = null,
     subtitleTestTag: String? = null,
     onClick: (() -> Unit)? = null,
@@ -60,11 +58,16 @@ internal fun SettingsRow(
             .heightIn(min = DesignToken.sizes.rowMin)
             .then(clickable)
             .testTag(testTag)
-            .padding(horizontal = KptTheme.spacing.md, vertical = KptTheme.spacing.sm),
+            .padding(KptTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.md),
     ) {
-        RowLeadingIcon(icon = icon)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = KptTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(DesignToken.sizes.iconMedium),
+        )
         RowText(
             title = title,
             subtitle = subtitle,
@@ -72,21 +75,6 @@ internal fun SettingsRow(
             modifier = Modifier.weight(1f),
         )
         trailing?.invoke(this)
-    }
-}
-
-/** The leading icon, or a spacer of the same width so unadorned rows share one text edge. */
-@Composable
-private fun RowLeadingIcon(icon: ImageVector?, modifier: Modifier = Modifier) {
-    if (icon == null) {
-        Spacer(modifier = modifier.width(DesignToken.sizes.iconMedium))
-    } else {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = KptTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier.size(DesignToken.sizes.iconMedium),
-        )
     }
 }
 

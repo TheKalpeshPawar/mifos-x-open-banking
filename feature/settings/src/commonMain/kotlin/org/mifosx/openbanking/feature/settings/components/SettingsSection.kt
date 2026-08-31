@@ -9,23 +9,26 @@
  */
 package org.mifosx.openbanking.feature.settings.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.feature.settings.SettingsTestTags
 import template.core.base.designsystem.theme.KptTheme
 
 /**
- * One titled group of settings rows: a tinted header band above a surface holding the rows.
+ * One titled group of settings rows: a label above an elevated, outlined card holding the rows.
  *
- * @param testTag Carried by the group; its header band carries [SettingsTestTags.SECTION].
+ * @param testTag Carried by the group; its card carries [SettingsTestTags.SECTION] and its label
+ *   [SettingsTestTags.SECTION_TITLE].
  */
 @Composable
 internal fun SettingsSection(
@@ -38,31 +41,32 @@ internal fun SettingsSection(
         modifier = modifier
             .fillMaxWidth()
             .testTag(testTag),
+        verticalArrangement = Arrangement.spacedBy(KptTheme.spacing.sm),
     ) {
+        SettingsSectionLabel(title = title)
         Surface(
-            color = KptTheme.colorScheme.surfaceContainerLow,
+            color = KptTheme.colorScheme.surfaceContainerLowest,
+            shape = KptTheme.shapes.large,
+            shadowElevation = KptTheme.elevation.level1,
+            border = BorderStroke(DesignToken.strokes.hairline, KptTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(SettingsTestTags.SECTION),
         ) {
-            Text(
-                text = title,
-                style = KptTheme.typography.titleSmall,
-                color = KptTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(
-                        start = KptTheme.spacing.md,
-                        end = KptTheme.spacing.md,
-                        top = KptTheme.spacing.lg,
-                        bottom = KptTheme.spacing.sm,
-                    )
-                    .testTag(SettingsTestTags.SECTION_TITLE),
-            )
-        }
-        HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
-        Surface(color = KptTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
             Column(content = content)
         }
-        HorizontalDivider(color = KptTheme.colorScheme.outlineVariant)
     }
+}
+
+/** A section's heading, sitting above its content rather than inside it. */
+@Composable
+internal fun SettingsSectionLabel(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = title,
+        style = KptTheme.typography.labelMedium,
+        color = KptTheme.colorScheme.primary,
+        modifier = modifier
+            .padding(start = KptTheme.spacing.md)
+            .testTag(SettingsTestTags.SECTION_TITLE),
+    )
 }

@@ -21,15 +21,16 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 import org.mifosx.openbanking.feature.settings.ui.SettingsViewModel
 
 /**
- * The settings hub: appearance, account and about rows. A bottom-nav tab root, so it carries no
- * navigation icon.
+ * The settings hub: appearance, account and about rows.
  *
+ * @param onBack Returns to the screen that opened settings.
  * @param onNavigateToConsents Opens the consent list.
  * @param onNavigateToLicences Opens the open-source licences screen.
  * @param onOpenUrl Hands a URL to the platform browser.
  */
 @Composable
 internal fun SettingsScreen(
+    onBack: () -> Unit,
     onNavigateToConsents: () -> Unit,
     onNavigateToLicences: () -> Unit,
     onOpenUrl: (String) -> Unit,
@@ -39,7 +40,8 @@ internal fun SettingsScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     KptScaffold(
-        showNavigationIcon = false,
+        showNavigationIcon = true,
+        onNavigationIconClick = onBack,
         title = stringResource(Res.string.feature_settings_screen_title),
         modifier = modifier,
     ) {

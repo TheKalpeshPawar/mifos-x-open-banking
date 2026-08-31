@@ -12,25 +12,19 @@ package org.mifosx.openbanking.feature.settings
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.feature.settings.ui.LicencesState
 import org.mifosx.openbanking.feature.settings.ui.SettingsState
-import org.mifosx.openbanking.feature.settings.ui.themeLabel
 
 /** The settings states the suites render, shared by the view-model and Compose suites. */
 object SettingsFixtures {
 
-    /** Rows the screen offers: theme, consents, privacy, licences. */
-    const val EXPECTED_ROW_COUNT: Int = 4
+    /** Rows the screen offers: consents, privacy, licences. The theme picker is cards, not rows. */
+    const val EXPECTED_ROW_COUNT: Int = 3
 
     /** Appearance, Account, About & Legal. */
     const val EXPECTED_SECTION_COUNT: Int = 3
 
     fun contentState(
         themeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-        isThemeMenuExpanded: Boolean = false,
-    ): SettingsState = SettingsState(
-        themeConfig = themeConfig,
-        themeLabel = themeConfig.themeLabel(),
-        isThemeMenuExpanded = isThemeMenuExpanded,
-    )
+    ): SettingsState = SettingsState(themeConfig = themeConfig)
 }
 
 /** The licences states the suites render. */
