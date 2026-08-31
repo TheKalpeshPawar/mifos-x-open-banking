@@ -15,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -35,6 +36,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.NonCancellable.start
+import kotlinx.datetime.format.Padding
 import org.jetbrains.compose.resources.stringResource
 import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.designsystem.theme.darkScheme
@@ -48,7 +51,7 @@ import org.mifosx.openbanking.feature.settings.ui.themeLabel
 import template.core.base.designsystem.theme.KptTheme
 
 /** Width of a preview card relative to its height. */
-private const val SWATCH_ASPECT_RATIO = 1.15f
+private const val SWATCH_ASPECT_RATIO = 1.30f
 
 /** Corner rounding of the inner mini-card, as a percentage of its top-start corner. */
 private const val MINI_CARD_PERCENT = 18
@@ -151,11 +154,23 @@ private fun ThemeSwatch(config: DarkThemeConfig, modifier: Modifier = Modifier) 
         DarkThemeConfig.FOLLOW_SYSTEM -> Row(modifier = modifier) {
             SchemeSwatch(
                 scheme = darkScheme,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                innerCardPadding = PaddingValues(
+                    start = KptTheme.spacing.md,
+                    top = KptTheme.spacing.md,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
             SchemeSwatch(
                 scheme = lightScheme,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                innerCardPadding = PaddingValues(
+                    start = KptTheme.spacing.md,
+                    top = KptTheme.spacing.md,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
     }
@@ -166,16 +181,20 @@ private fun ThemeSwatch(config: DarkThemeConfig, modifier: Modifier = Modifier) 
  * primary, carrying sample text in its on-primary.
  */
 @Composable
-private fun SchemeSwatch(scheme: ColorScheme, modifier: Modifier = Modifier) {
+private fun SchemeSwatch(
+    scheme: ColorScheme,
+    modifier: Modifier = Modifier,
+    innerCardPadding: PaddingValues = PaddingValues(
+        start = KptTheme.spacing.lg,
+        top = KptTheme.spacing.md,
+    ),
+) {
     val miniCardShape = RoundedCornerShape(topStartPercent = MINI_CARD_PERCENT)
     Box(modifier = modifier.background(scheme.background)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    start = KptTheme.spacing.md,
-                    top = KptTheme.spacing.md,
-                ),
+                .padding(innerCardPadding),
         ) {
             Box(
                 modifier = Modifier
