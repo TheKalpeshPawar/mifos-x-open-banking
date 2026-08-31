@@ -30,7 +30,6 @@ import org.mifosx.openbanking.feature.settings.components.SettingsRowExternalLin
 import org.mifosx.openbanking.feature.settings.components.SettingsSection
 import org.mifosx.openbanking.feature.settings.components.ThemeDropdownRow
 import org.mifosx.openbanking.feature.settings.generated.resources.Res
-import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_app_version_title
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_consents_subtitle
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_consents_title
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_content_accessibility
@@ -41,27 +40,25 @@ import org.mifosx.openbanking.feature.settings.generated.resources.feature_setti
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_about
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_account
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_section_appearance
+import org.mifosx.openbanking.feature.settings.ui.SettingsAction
+import org.mifosx.openbanking.feature.settings.ui.SettingsState
+
+/** The Mifos Initiative privacy policy page, opened in an external browser. */
+private const val PRIVACY_URL = "https://mifos.org/privacy-policy/"
 
 /**
  * The settings body: Appearance, Account, and About & Legal, in that order.
  *
- * A plain scrolling column rather than a lazy list — the row count is fixed and small, and every
- * row is composed anyway, so laziness would buy nothing while costing the ability to assert on
- * off-screen rows without scrolling to them first.
+ * Free of the view model so the Compose suites can drive it directly.
  */
 @Composable
-@Suppress("LongParameterList")
-internal fun SettingsContent(
-    themeConfig: DarkThemeConfig,
-    appVersionLabel: String,
-    isThemeMenuExpanded: Boolean,
-    onSelectTheme: (DarkThemeConfig) -> Unit,
-    onToggleThemeMenu: () -> Unit,
-    onDismissThemeMenu: () -> Unit,
-    onNavigateToConsents: () -> Unit,
-    onOpenPrivacy: () -> Unit,
-    onNavigateToLicences: () -> Unit,
+internal fun SettingsScreenContent(
+    state: SettingsState,
+    onAction: (SettingsAction) -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToConsents: () -> Unit = {},
+    onNavigateToLicences: () -> Unit = {},
+    onOpenUrl: (String) -> Unit = {},
 ) {
     val description = stringResource(Res.string.feature_settings_content_accessibility)
     Column(
@@ -72,18 +69,17 @@ internal fun SettingsContent(
             .semantics { contentDescription = description },
     ) {
         AppearanceSection(
-            themeConfig = themeConfig,
-            isThemeMenuExpanded = isThemeMenuExpanded,
-            onSelectTheme = onSelectTheme,
-            onToggleThemeMenu = onToggleThemeMenu,
-            onDismissThemeMenu = onDismissThemeMenu,
+            themeConfig = state.themeConfig,
+            isThemeMenuExpanded = state.isThemeMenuExpanded,
+            onSelectTheme = { onAction(SettingsAction.SelectTheme(it)) },
+            onToggleThemeMenu = { onAction(SettingsAction.ToggleThemeMenu) },
+            onDismissThemeMenu = { onAction(SettingsAction.DismissThemeMenu) },
         )
         AccountSection(
             onNavigateToConsents = onNavigateToConsents,
         )
         AboutSection(
-            appVersionLabel = appVersionLabel,
-            onOpenPrivacy = onOpenPrivacy,
+            onOpenPrivacy = { onOpenUrl(PRIVACY_URL) },
             onNavigateToLicences = onNavigateToLicences,
         )
     }
@@ -139,13 +135,9 @@ private fun AccountSection(
     }
 }
 
-/**
- * Privacy leaves for a browser and says so with the external-link glyph; Licences opens in the app
- * and gets a chevron. App Version closes the group as a static readout.
- */
+/** Privacy, which opens a browser, and Licences, which opens in the app. */
 @Composable
 private fun AboutSection(
-    appVersionLabel: String,
     onOpenPrivacy: () -> Unit,
     onNavigateToLicences: () -> Unit,
     modifier: Modifier = Modifier,
@@ -179,21 +171,5 @@ private fun AboutSection(
                 testTag = SettingsTestTags.chevron(SettingsTestTags.LICENCES_ROW),
             )
         }
-        AppVersionRow(appVersionLabel = appVersionLabel)
     }
-}
-
-/**
- * The build identity. No icon, no trailing affordance and no click handler — it reports a value
- * and offers nothing, and anything that looked tappable here would lead nowhere.
- */
-@Composable
-private fun AppVersionRow(appVersionLabel: String, modifier: Modifier = Modifier) {
-    SettingsRow(
-        title = stringResource(Res.string.feature_settings_app_version_title),
-        testTag = SettingsTestTags.APP_VERSION_ROW,
-        modifier = modifier,
-        subtitle = appVersionLabel,
-        subtitleTestTag = SettingsTestTags.APP_VERSION_VALUE,
-    )
 }

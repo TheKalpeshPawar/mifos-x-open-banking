@@ -15,13 +15,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,31 +29,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import org.mifosx.openbanking.core.designsystem.theme.DesignToken
 import org.mifosx.openbanking.core.model.user.DarkThemeConfig
 import org.mifosx.openbanking.feature.settings.SettingsTestTags
 import org.mifosx.openbanking.feature.settings.generated.resources.Res
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_theme_option_accessibility
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_theme_select_accessibility
 import org.mifosx.openbanking.feature.settings.generated.resources.feature_settings_theme_title
-import org.mifosx.openbanking.feature.settings.ui.labelResource
-
-private val ChipHorizontalPadding = 12.dp
-private val ChipVerticalPadding = 6.dp
-private val ChipRadius = 8.dp
-private val ChipGap = 4.dp
-private val ChipIconSize = 18.dp
+import org.mifosx.openbanking.feature.settings.ui.themeLabel
+import template.core.base.designsystem.theme.KptTheme
 
 /**
  * The Theme row: the current value as the row's subtitle, and a dropdown chip repeating it.
  *
- * The value appears twice by design — the subtitle states what the theme is now, and the chip is
- * the control that changes it. A control labelled only "Theme" would leave the user opening the
- * menu to find out what is already set.
- *
- * Every option in [DarkThemeConfig] is offered. The list is the enum's own entries rather than a
- * hand-written three, so a config added to the model appears here without this file changing.
+ * The picker offers every [DarkThemeConfig] entry.
  */
 @Composable
 internal fun ThemeDropdownRow(
@@ -66,7 +54,7 @@ internal fun ThemeDropdownRow(
     onSelect: (DarkThemeConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selectedLabel = stringResource(selected.labelResource())
+    val selectedLabel = stringResource(selected.themeLabel())
     SettingsRow(
         title = stringResource(Res.string.feature_settings_theme_title),
         testTag = SettingsTestTags.THEME_ROW,
@@ -86,6 +74,7 @@ internal fun ThemeDropdownRow(
     }
 }
 
+/** The control that opens the picker, labelled with the current theme. */
 @Composable
 private fun ThemeChip(label: String, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val description = stringResource(
@@ -93,8 +82,8 @@ private fun ThemeChip(label: String, onToggle: () -> Unit, modifier: Modifier = 
         label,
     )
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = RoundedCornerShape(ChipRadius),
+        color = KptTheme.colorScheme.surfaceContainerHighest,
+        shape = KptTheme.shapes.small,
         modifier = modifier
             .clickable(onClick = onToggle)
             .testTag(SettingsTestTags.THEME_DROPDOWN)
@@ -102,28 +91,29 @@ private fun ThemeChip(label: String, onToggle: () -> Unit, modifier: Modifier = 
     ) {
         Row(
             modifier = Modifier.padding(
-                horizontal = ChipHorizontalPadding,
-                vertical = ChipVerticalPadding,
+                horizontal = KptTheme.spacing.md,
+                vertical = KptTheme.spacing.xs,
             ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ChipGap),
+            horizontalArrangement = Arrangement.spacedBy(KptTheme.spacing.xs),
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = KptTheme.typography.labelLarge,
+                color = KptTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag(SettingsTestTags.THEME_VALUE),
             )
             Icon(
                 imageVector = Icons.Filled.ArrowDropDown,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(ChipIconSize),
+                tint = KptTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(DesignToken.sizes.iconExtraSmall),
             )
         }
     }
 }
 
+/** The theme options, one per [DarkThemeConfig] entry. */
 @Composable
 private fun ThemeMenu(
     currentSelection: DarkThemeConfig,
@@ -138,7 +128,7 @@ private fun ThemeMenu(
         modifier = modifier.testTag(SettingsTestTags.THEME_MENU),
     ) {
         DarkThemeConfig.entries.forEach { config ->
-            val label = stringResource(config.labelResource())
+            val label = stringResource(config.themeLabel())
             val description = stringResource(
                 Res.string.feature_settings_theme_option_accessibility,
                 label,

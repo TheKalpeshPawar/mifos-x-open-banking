@@ -20,12 +20,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Headless smoke coverage for [SettingsScreenContent] on the desktop renderer, over the same
- * [SettingsTestTags] the Robolectric and instrumented suites drive.
- *
- * This class lives in `commonTest`, so it also compiles into `androidUnitTest`, where there is no
- * Robolectric runner to stand up a composition. The module's build script filters it out of the
- * JVM unit-test tasks; the depth belongs to [SettingsScreenRobolectricTest].
+ * Headless coverage for [SettingsScreenContent] on the desktop renderer, over the same
+ * [SettingsTestTags] the Robolectric suite drives.
  *
  * Test names are camelCase — this source set compiles for Kotlin/Native, whose frontend rejects
  * punctuation inside backticked names.
@@ -114,32 +110,5 @@ class SettingsScreenUiTest {
         onNodeWithTag(SettingsTestTags.PRIVACY_ROW).performClick()
 
         assertEquals(listOf("https://mifos.org/privacy-policy/"), opened)
-    }
-
-    @Test
-    fun errorRendersRetryAndDispatchesRetryLoad() = runComposeUiTest {
-        val actions = mutableListOf<SettingsAction>()
-        setContent {
-            SettingsScreenContent(
-                state = SettingsFixtures.errorState(),
-                onAction = { actions.add(it) },
-            )
-        }
-
-        onNodeWithTag(SettingsTestTags.ERROR_STATE).assertExists()
-        onNodeWithTag(SettingsTestTags.RETRY_BUTTON).performClick()
-
-        assertEquals(listOf<SettingsAction>(SettingsAction.RetryLoad), actions)
-    }
-
-    @Test
-    fun emptyRendersItsTitleAndBody() = runComposeUiTest {
-        setContent {
-            SettingsScreenContent(state = SettingsFixtures.emptyState(), onAction = {})
-        }
-
-        onNodeWithTag(SettingsTestTags.EMPTY_STATE).assertExists()
-        onNodeWithTag(SettingsTestTags.EMPTY_TITLE, useUnmergedTree = true).assertExists()
-        onNodeWithTag(SettingsTestTags.EMPTY_BODY, useUnmergedTree = true).assertExists()
     }
 }
